@@ -125,7 +125,7 @@ def main(opt):
   parameters = [p for p in model.parameters() if p.requires_grad]
   print_model_params(model)
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-  best_val_acc = test_acc = best_epoch = 0
+  best_val_acc = test_acc = train_acc = best_epoch = 0
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
 

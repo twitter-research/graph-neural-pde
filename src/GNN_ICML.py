@@ -6,7 +6,7 @@ from torch import nn
 from torch import Tensor
 import torch.nn.functional as F
 from data import get_dataset
-from run_CGNN import get_optimizer, test
+from run_GNN import get_optimizer, test
 # Whether use adjoint method or not.
 from torch_geometric.utils.convert import to_scipy_sparse_matrix
 import numpy as np

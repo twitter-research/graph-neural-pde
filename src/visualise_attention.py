@@ -5,7 +5,7 @@ from torch_geometric.nn import GCNConv, ChebConv  # noqa
 from GNN import GNN
 import time
 from data import get_dataset
-from run_CGNN import get_optimizer, print_model_params, train, test
+from run_GNN import get_optimizer, print_model_params, train, test
 import networkx as nx
 import matplotlib.pyplot as plt
 

@@ -12,7 +12,7 @@ from ray import tune
 from ray.tune import CLIReporter
 from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining
 from ray.tune.suggest.ax import AxSearch
-from run_CGNN import get_optimizer, print_model_params, test, train
+from run_GNN import get_optimizer, print_model_params, test, train
 from torch import nn
 from GNN_ICML import ICML_GNN, get_sym_adj
 from GNN_ICML import train as train_icml
