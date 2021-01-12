@@ -17,7 +17,7 @@ def construct_graph(model):
 
 def main(opt):
 
-  dataset = get_dataset(opt['dataset'], '../data', False)
+  dataset = get_dataset(opt, '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   model, data = GNN(opt, dataset, device).to(device), dataset.data.to(device)
   print(opt)
@@ -65,7 +65,7 @@ if __name__ == '__main__':
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilist ODE learning')
   parser.add_argument('--alpha_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) alpha')
-  parser.add_argument('--alpha_sigmoid', type=bool, default=True, help='apply sigmoid before multiplying by alpha')
+  parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_false', help='apply sigmoid before multiplying by alpha')
   parser.add_argument('--beta_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) beta')
   parser.add_argument('--block', type=str, default='attention', help='constant, mixed, attention, SDE')
   parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
@@ -80,7 +80,7 @@ if __name__ == '__main__':
   parser.add_argument("--tol_scale_adjoint", type=float, default=1.0,
                       help="multiplier for adjoint_atol and adjoint_rtol")
   parser.add_argument('--ode_blocks', type=int, default=1, help='number of ode blocks to run')
-  parser.add_argument('--simple', type=bool, default=True,
+  parser.add_argument('--add_source', dest='add_source', action='store_true',
                       help='If try get rid of alpha param and the beta*x0 source term')
   # SDE args
   parser.add_argument('--dt_min', type=float, default=1e-5, help='minimum timestep for the SDE solver')

@@ -10,8 +10,9 @@ from torch import nn
 from data import get_dataset
 from function_laplacian_diffusion import LaplacianODEFunc
 from GNN_early import GNNEarly
-from GNN import ConstantODEblock
+from block_constant import ConstantODEblock
 from utils import get_rw_adj
+
 
 class EarlyStopTests(unittest.TestCase):
   def setUp(self):
@@ -24,11 +25,13 @@ class EarlyStopTests(unittest.TestCase):
 
     self.leakyrelu = nn.LeakyReLU(0.2)
     self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    self.opt = {'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2, 'K': 10,
-                'attention_norm_idx': 0, 'simple': True, 'alpha': 1, 'alpha_dim': 'vc', 'beta_dim': 'vc',
-                'hidden_dim': 6, 'block': 'constant', 'function': 'laplacian', 'alpha_sigmoid': True, 'augment': False, 'adjoint': False,
-                'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler'}
-    self.dataset = get_dataset('Cora', '../data', False)
+    self.opt = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2, 'K': 10,
+                'attention_norm_idx': 0, 'add_source': False, 'alpha': 1, 'alpha_dim': 'vc', 'beta_dim': 'vc',
+                'hidden_dim': 6, 'block': 'constant', 'function': 'laplacian', 'augment': False, 'adjoint': False,
+                'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler',
+                'rewiring': None, 'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None,
+                'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None}
+    self.dataset = get_dataset(self.opt, '../data', False)
 
   def tearDown(self) -> None:
     pass
@@ -39,9 +42,9 @@ class EarlyStopTests(unittest.TestCase):
     out_dim = 6
     func = LaplacianODEFunc(self.dataset.data.num_features, out_dim, self.opt, data, self.device)
     func.edge_index, func.edge_weight = get_rw_adj(data.edge_index, edge_weight=None, norm_dim=1,
-                                                                   fill_value=self.opt['self_loop_weight'],
-                                                                   num_nodes=data.num_nodes,
-                                                                   dtype=data.x.dtype)
+                                                   fill_value=self.opt['self_loop_weight'],
+                                                   num_nodes=data.num_nodes,
+                                                   dtype=data.x.dtype)
     out = func(t, data.x)
     print(out.shape)
     self.assertTrue(out.shape == (self.dataset.data.num_nodes, self.dataset.num_features))
@@ -51,7 +54,7 @@ class EarlyStopTests(unittest.TestCase):
     self.assertTrue(isinstance(odeblock.odefunc, LaplacianODEFunc))
     self.assertTrue(odeblock.test_integrator.data.x.shape == data.x.shape)
     gnn.train()
-    out = odeblock(data.x)
+    out = odeblock(data.x)[0]
     self.assertTrue(data.x.shape == out.shape)
     gnn.eval()
     gnn.set_solver_m2()

@@ -274,7 +274,7 @@ def main(opt):
   except KeyError:
     pass  # not always present when called as lib
 
-  dataset = get_dataset(opt['dataset'], '../data', False)
+  dataset = get_dataset(opt, '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   adj = get_sym_adj(dataset.data, opt, device)
   model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
@@ -303,7 +303,7 @@ def main(opt):
 
 def train_ray(opt, checkpoint_dir=None, data_dir='../data', opt_val=False):
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  dataset = get_dataset(opt['dataset'], data_dir, False)
+  dataset = get_dataset(opt, data_dir, False)
   adj = get_sym_adj(dataset.data, opt, device)
   model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
   if torch.cuda.device_count() > 1:
@@ -334,7 +334,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir='../data', opt_val=False):
 
 def train_ray_icml(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  dataset = get_dataset(opt["dataset"], data_dir, False)
+  dataset = get_dataset(opt, data_dir, False)
 
   if opt["num_splits"] > 0:
     dataset.data = set_train_val_test_split(
@@ -433,7 +433,7 @@ if __name__ == "__main__":
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilist ODE learning')
   parser.add_argument('--alpha_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) alpha')
-  parser.add_argument('--alpha_sigmoid', type=bool, default=True, help='apply sigmoid before multiplying by alpha')
+  parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_false', help='apply sigmoid before multiplying by alpha')
   parser.add_argument('--beta_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) beta')
   # ODE args
   parser.add_argument('--method', type=str, default='dopri5',

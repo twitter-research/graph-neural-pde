@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils import softmax
 import torch_sparse
 from torch_geometric.utils.loop import add_remaining_self_loops
@@ -55,12 +54,14 @@ class ODEFuncAtt(ODEFunc):
     ax = self.multiply_attention(x, attention, wx)
     # todo would be nice if this was more efficient
 
-    alpha = torch.sigmoid(self.alpha_train)
-
-    if self.opt['simple']:
-      f = alpha * (ax - x)
+    if not self.opt['no_alpha_sigmoid']:
+      alpha = torch.sigmoid(self.alpha_train)
     else:
-      f = alpha * (ax - x) + self.beta_train * self.x0
+      alpha = self.alpha_train
+
+    f = alpha * (ax - x)
+    if self.opt['add_source']:
+      f = f + self.beta_train * self.x0
     return f
 
   def __repr__(self):
@@ -118,11 +119,10 @@ class SpGraphAttentionLayer(nn.Module):
 
 
 if __name__ == '__main__':
-  dataset = get_dataset('Cora', '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  opt = {'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2, 'K': 10, 'attention_norm_idx': 0,
-         'simple': True, 'alpha_dim': 'sc', 'beta_dim': 'vc', 'max_nfe':1000, 'mix_features': False}
-
+  opt = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2, 'K': 10, 'attention_norm_idx': 0,
+         'add_source':False, 'alpha_dim': 'sc', 'beta_dim': 'vc', 'max_nfe':1000, 'mix_features': False}
+  dataset = get_dataset(opt, '../data', False)
   t = 1
   func = ODEFuncAtt(dataset.data.num_features, 6, opt, dataset.data, device)
   out = func(t, dataset.data.x)

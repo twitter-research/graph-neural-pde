@@ -30,12 +30,6 @@ def run_best_params(opt):
   # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
   best_params_ret['epoch'] = opt['epoch']
   best_params_ret['max_nfe'] = opt['max_nfe']
-  # if opt['ode'] is not None:
-  #   best_params_ret['ode'] = opt['ode']
-  #   best_params_ret["linear_attention"] = False
-  # else:
-  #   best_params_ret['ode'] = best_params['ode']
-  #   best_params_ret['linear_attention'] = best_params['linear_attention']
 
   print("Running with parameters {}".format(best_params_ret))
 
@@ -43,9 +37,14 @@ def run_best_params(opt):
   reporter = CLIReporter(
     metric_columns=["accuracy", "loss", "training_iteration"])
 
+  if opt['name'] is None:
+    name = opt['folder'] + '_test'
+  else:
+    name = opt['name']
+
   result = tune.run(
     partial(train_ray_int, data_dir=data_dir),
-    name=opt['name'],
+    name=name,
     resources_per_trial={"cpu": opt['cpus'], "gpu": opt['gpus']},
     search_alg=None,
     config=best_params_ret,
@@ -58,7 +57,7 @@ def run_best_params(opt):
 
   df = result.dataframe(metric="accuracy", mode="max").sort_values('accuracy', ascending=False)
   try:
-    df.to_csv('../ray_results/{}_{}.csv'.format(opt['name'], time.strftime("%Y%m%d-%H%M%S")))
+    df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
   except:
     pass
 
@@ -78,16 +77,15 @@ if __name__ == '__main__':
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilise ODE learning')
   parser.add_argument('--reps', type=int, default=1, help='the number of random weight initialisations to use')
-  parser.add_argument('--name', type=str, default='ray_test')
+  parser.add_argument('--name', type=str, default=None)
   parser.add_argument('--gpus', type=float, default=0, help='number of gpus per trial. Can be fractional')
   parser.add_argument('--cpus', type=float, default=1, help='number of cpus per trial. Can be fractional')
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random slpits >= 0. 0 for planetoid split")
   parser.add_argument('--adjoint', default=False, help='use the adjoint ODE method to reduce memory footprint')
   parser.add_argument("--max_nfe", type=int, default=5000, help="Maximum number of function evaluations allowed.")
-  parser.add_argument("--no_early", action="store_true", help="Whether or not to use early stopping of the ODE integrator when testing.")
-  # parser.add_argument("--ode", type=str, default=None,
-  #                     help="set ode block. Either 'ode', 'att', 'transformer_att', 'sde'")
-  
+  parser.add_argument("--no_early", action="store_true",
+                      help="Whether or not to use early stopping of the ODE integrator when testing.")
+
   args = parser.parse_args()
 
   opt = vars(args)

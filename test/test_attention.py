@@ -25,9 +25,12 @@ class AttentionTests(unittest.TestCase):
 
     self.leakyrelu = nn.LeakyReLU(0.2)
     self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    self.opt = {'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2, 'K': 10,
-                'attention_norm_idx': 0, 'simple': True, 'max_nfe': 1000, 'mix_features': False, 'attention_dim': 32,
-                'mixed_block': False}
+    self.opt = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2,
+                'K': 10,
+                'attention_norm_idx': 0, 'add_source': False, 'max_nfe': 1000, 'mix_features': False,
+                'attention_dim': 32,
+                'mixed_block': False, 'rewiring': None, 'no_alpha_sigmoid': False, 'reweight_attention': False,
+                'kinetic_energy': None, 'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None}
 
   def tearDown(self) -> None:
     pass
@@ -62,7 +65,7 @@ class AttentionTests(unittest.TestCase):
     self.assertTrue(torch.all(attention > 0.))
     self.assertTrue(torch.all(attention <= 1.))
 
-    dataset = get_dataset('Cora', '../data', False)
+    dataset = get_dataset(self.opt, '../data', False)
     data = dataset.data
     in_features = data.x.shape[1]
     out_features = data.x.shape[1]
@@ -87,7 +90,7 @@ class AttentionTests(unittest.TestCase):
     self.assertTrue(torch.all(torch.eq(attention, 0.5 * torch.ones((self.edge1.shape[1], self.x1.shape[1])))))
 
   def test_module(self):
-    dataset = get_dataset('Cora', '../data', False)
+    dataset = get_dataset(self.opt, '../data', False)
     t = 1
     out_dim = 6
     func = ODEFuncAtt(dataset.data.num_features, out_dim, self.opt, dataset.data, self.device)

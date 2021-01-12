@@ -14,8 +14,8 @@ from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining
 from ray.tune.suggest.ax import AxSearch
 from run_GNN import get_optimizer, print_model_params, test, train
 from torch import nn
-from GNN_ICML import ICML_GNN, get_sym_adj
-from GNN_ICML import train as train_icml
+from GNN_ICML20 import ICML_GNN, get_sym_adj
+from GNN_ICML20 import train as train_icml
 
 def average_test(models, datas):
   results = [test(model, data) for model, data in zip(models, datas)]
@@ -496,7 +496,7 @@ if __name__ == "__main__":
   parser.add_argument("--augment", action="store_true",
                       help="double the length of the feature vector by appending zeros to stabilise ODE learning", )
   parser.add_argument("--alpha_dim", type=str, default="sc", help="choose either scalar (sc) or vector (vc) alpha")
-  parser.add_argument("--alpha_sigmoid", type=bool, default=True, help="apply sigmoid before multiplying by alpha")
+  parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_false', help='apply sigmoid before multiplying by alpha')
   parser.add_argument("--beta_dim", type=str, default="sc", help="choose either scalar (sc) or vector (vc) beta")
   # ODE args
   parser.add_argument(
@@ -511,13 +511,12 @@ if __name__ == "__main__":
   parser.add_argument("--tol_scale_adjoint", type=float, default=1.0,
                       help="multiplier for adjoint_atol and adjoint_rtol")
   parser.add_argument("--ode_blocks", type=int, default=1, help="number of ode blocks to run")
-  parser.add_argument(
-    "--simple", type=bool, default=True, help="If try get rid of alpha param and the beta*x0 source term"
-  )
+  parser.add_argument('--add_source', dest='add_source', action='store_true',
+                      help='If try get rid of alpha param and the beta*x0 source term')
   # SDE args
   parser.add_argument("--dt_min", type=float, default=1e-5, help="minimum timestep for the SDE solver")
   parser.add_argument("--dt", type=float, default=1e-3, help="fixed step size")
-  parser.add_argument("--adaptive", type=bool, default=False, help="use adaptive step sizes")
+  parser.add_argument('--adaptive', dest='adaptive', action='store_true', help='use adaptive step sizes')
   # Attention args
   parser.add_argument("--attention_dropout", type=float, default=0.0, help="dropout of attention weights")
   parser.add_argument(
@@ -530,11 +529,11 @@ if __name__ == "__main__":
                       help='the size to project x to before calculating att scores')
   parser.add_argument("--heads", type=int, default=4, help="number of attention heads")
   parser.add_argument("--attention_norm_idx", type=int, default=0, help="0 = normalise rows, 1 = normalise cols")
-  parser.add_argument("--mix_features", type=bool, default=False, help="False apply attention to x. True apply to xW")
-
+  parser.add_argument('--mix_features', dest='mix_features', action='store_true',
+                      help='apply a feature transformation xW to the ODE')
   parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention, SDE')
   parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
-  parser.add_argument('--reweight_attention', type=bool, default=False, help="multiply attention scores by edge weights before softmax")
+  parser.add_argument('--reweight_attention', dest='reweight_attention', action='store_true', help="multiply attention scores by edge weights before softmax")
   # ray args
   parser.add_argument("--num_samples", type=int, default=20, help="number of ray trials")
   parser.add_argument("--gpus", type=float, default=0, help="number of gpus per trial. Can be fractional")

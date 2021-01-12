@@ -163,7 +163,7 @@ if __name__ == '__main__':
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilist ODE learning')
   parser.add_argument('--alpha_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) alpha')
-  parser.add_argument('--alpha_sigmoid', type=bool, default=True, help='apply sigmoid before multiplying by alpha')
+  parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_false', help='apply sigmoid before multiplying by alpha')
   parser.add_argument('--beta_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) beta')
   parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention, SDE')
   parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
@@ -179,12 +179,12 @@ if __name__ == '__main__':
   parser.add_argument("--tol_scale_adjoint", type=float, default=1.0,
                       help="multiplier for adjoint_atol and adjoint_rtol")
   parser.add_argument('--ode_blocks', type=int, default=1, help='number of ode blocks to run')
-  parser.add_argument('--simple', type=bool, default=True,
+  parser.add_argument('--add_source', dest='add_source', action='store_true',
                       help='If try get rid of alpha param and the beta*x0 source term')
   # SDE args
   parser.add_argument('--dt_min', type=float, default=1e-5, help='minimum timestep for the SDE solver')
   parser.add_argument('--dt', type=float, default=1e-3, help='fixed step size')
-  parser.add_argument('--adaptive', type=bool, default=False, help='use adaptive step sizes')
+  parser.add_argument('--adaptive', dest='adaptive', action='store_true', help='use adaptive step sizes')
   # Attention args
   parser.add_argument('--leaky_relu_slope', type=float, default=0.2,
                       help='slope of the negative part of the leaky relu used in attention')
@@ -193,10 +193,10 @@ if __name__ == '__main__':
   parser.add_argument('--attention_norm_idx', type=int, default=0, help='0 = normalise rows, 1 = normalise cols')
   parser.add_argument('--attention_dim', type=int, default=64,
                       help='the size to project x to before calculating att scores')
-  parser.add_argument('--mix_features', type=bool, default=False,
+  parser.add_argument('--mix_features', dest='mix_features', action='store_true',
                       help='apply a feature transformation xW to the ODE')
   parser.add_argument("--max_nfe", type=int, default=1000, help="Maximum number of function evaluations allowed.")
-  parser.add_argument('--reweight_attention', type=bool, default=False, help="multiply attention scores by edge weights before softmax")
+  parser.add_argument('--reweight_attention', dest='reweight_attention', action='store_true', help="multiply attention scores by edge weights before softmax")
   # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
   parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")

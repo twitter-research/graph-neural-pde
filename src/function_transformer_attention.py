@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils import softmax
 import torch_sparse
 from torch_geometric.utils.loop import add_remaining_self_loops
@@ -47,13 +46,13 @@ class ODEFuncTransformerAtt(ODEFunc):
     attention, values = self.multihead_att_layer(x, self.edge_index)
     ax = self.multiply_attention(x, attention, values)
 
-    alpha = torch.sigmoid(self.alpha_train)
-    # else:
-    # alpha = self.alpha
-    if self.opt['simple']:
-      f = alpha * (ax - x)
+    if not self.opt['no_alpha_sigmoid']:
+      alpha = torch.sigmoid(self.alpha_train)
     else:
-      f = alpha * (ax - x) + self.beta_train * self.x0
+      alpha = self.alpha_train
+    f = alpha * (ax - x)
+    if self.opt['add_source']:
+      f = f + self.beta_train * self.x0
     return f
 
   def __repr__(self):
@@ -101,10 +100,9 @@ class SpGraphTransAttentionLayer(nn.Module):
 
   def init_weights(self, m):
     if type(m) == nn.Linear:
-      #nn.init.xavier_uniform_(m.weight, gain=1.414)
-      #m.bias.data.fill_(0.01)
+      # nn.init.xavier_uniform_(m.weight, gain=1.414)
+      # m.bias.data.fill_(0.01)
       nn.init.constant_(m.weight, 1e-5)
-
 
   def forward(self, x, edge):
     q = self.Q(x)
@@ -136,12 +134,12 @@ class SpGraphTransAttentionLayer(nn.Module):
 
 
 if __name__ == '__main__':
-  dataset = get_dataset('Cora', '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  opt = {'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'heads': 2, 'K': 10, 'attention_norm_idx': 0, 'simple': True,
+  opt = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'heads': 2, 'K': 10,
+         'attention_norm_idx': 0, 'add_source': False,
          'alpha_dim': 'sc', 'beta_dim': 'sc', 'max_nfe': 1000, 'mix_features': False
          }
-
+  dataset = get_dataset(opt, '../data', False)
   t = 1
   func = ODEFuncTransformerAtt(dataset.data.num_features, 6, opt, dataset.data, device)
   out = func(t, dataset.data.x)

@@ -25,11 +25,6 @@ def set_pop_search_space(opt):
   else:
     opt['self_loop_weight'] = tune.uniform(0, 5)
   opt['time'] = tune.uniform(1., 10.)
-  # opt['optimizer'] = tune.choice(['rmsprop', 'adam', 'adamax'])
-  # opt['alpha_dim'] = tune.choice(['sc', 'vc'])
-  # opt['alpha_sigmoid'] = tune.choice([True, False])
-  # opt['beta_dim'] = tune.choice(['sc', 'vc'])
-  # opt['method'] = tune.choice(['dopri5', 'euler', 'rk4', 'midpoint'])
   opt['tol_scale'] = tune.loguniform(1e1, 1e5)
   return opt
 
@@ -68,7 +63,7 @@ def main(opt):
       'tol_scale': tune.loguniform(1e2, 1e4),
       'time': tune.uniform(1., 15.),
       # 'alpha_dim': ['sc', 'vc'],
-      'alpha_sigmoid': ['True', 'False']
+      'no_alpha_sigmoid': [True, False]
     })
   reporter = CLIReporter(
     metric_columns=["accuracy", "loss", "training_iteration"])
@@ -92,7 +87,7 @@ def main(opt):
   print("Best trial final validation accuracy: {}".format(
     best_trial.last_result["accuracy"]))
 
-  dataset = get_dataset(opt['dataset'], data_dir, False)
+  dataset = get_dataset(opt, data_dir, False)
   best_trained_model = GNN(best_trial.config, dataset, device)
   if opt['gpus'] > 1:
     best_trained_model = nn.DataParallel(best_trained_model)
@@ -128,7 +123,7 @@ if __name__ == '__main__':
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilist ODE learning')
   parser.add_argument('--alpha_dim', type=str, default='vc', help='choose either scalar (sc) or vector (vc) alpha')
-  parser.add_argument('--alpha_sigmoid', type=bool, default=True, help='apply sigmoid before multiplying by alpha')
+  parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_false', help='apply sigmoid before multiplying by alpha')
   parser.add_argument('--beta_dim', type=str, default='vc', help='choose either scalar (sc) or vector (vc) beta')
   # ODE args
   parser.add_argument('--method', type=str, default='dopri5',

@@ -39,12 +39,12 @@ class LaplacianODEFunc(ODEFunc):
   def forward(self, t, x):  # the t param is needed by the ODE solver.
     self.nfe += 1
     ax = self.sparse_multiply(x)
-    if self.opt['alpha_sigmoid']:
+    if not self.opt['no_alpha_sigmoid']:
       alpha = torch.sigmoid(self.alpha_train)
     else:
       alpha = self.alpha_train
-    if self.opt['simple']:
-      f = alpha * (ax - x)
-    else:
-      f = alpha * (ax - x) + self.beta_train * self.x0
+
+    f = alpha * (ax - x)
+    if self.opt['add_source']:
+      f = f + self.beta_train * self.x0
     return f

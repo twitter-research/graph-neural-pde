@@ -25,11 +25,13 @@ class AttentionTests(unittest.TestCase):
     self.alpha = tensor([[1, 2, 3, 4]], dtype=torch.float)
     self.leakyrelu = nn.LeakyReLU(0.2)
     self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    self.opt = {'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2, 'K': 10,
-                'attention_norm_idx': 0, 'simple': True, 'alpha': 1, 'alpha_dim': 'vc', 'beta_dim': 'vc',
-                'hidden_dim': 6, 'linear_attention': True, 'alpha_sigmoid': True, 'augment': False, 'adjoint': False,
+    self.opt = {'dataset': 'Citeseer', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2,
+                'K': 10,
+                'attention_norm_idx': 0, 'add_source': False, 'alpha': 1, 'alpha_dim': 'vc', 'beta_dim': 'vc',
+                'hidden_dim': 6, 'linear_attention': True, 'augment': False, 'adjoint': False,
                 'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler',
-                'mixed_block': True, 'max_nfe': 1000, 'mix_features': False, 'attention_dim': 32}
+                'mixed_block': True, 'max_nfe': 1000, 'mix_features': False, 'attention_dim': 32, 'rewiring': None,
+                'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None, 'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None}
 
   def tearDown(self) -> None:
     pass
@@ -64,7 +66,7 @@ class AttentionTests(unittest.TestCase):
     self.assertTrue(torch.all(attention > 0.))
     self.assertTrue(torch.all(attention <= 1.))
 
-    dataset = get_dataset('Cora', '../data', False)
+    dataset = get_dataset(self.opt, '../data', False)
     data = dataset.data
     in_features = data.x.shape[1]
     out_features = data.x.shape[1]
@@ -79,7 +81,7 @@ class AttentionTests(unittest.TestCase):
     self.assertTrue(torch.all(attention > 0.))
     self.assertTrue(torch.all(attention <= 1.))
 
-  def test_symetric_attention(self):
+  def test_symmetric_attention(self):
     in_features = self.x1.shape[1]
     out_features = self.x1.shape[1]
     att_layer = SpGraphTransAttentionLayer(in_features, out_features, self.opt, self.device, concat=True)
@@ -89,7 +91,7 @@ class AttentionTests(unittest.TestCase):
     self.assertTrue(torch.all(torch.eq(attention, 0.5 * torch.ones((self.edge1.shape[1], self.x1.shape[1])))))
 
   def test_module(self):
-    dataset = get_dataset('Cora', '../data', False)
+    dataset = get_dataset(self.opt, '../data', False)
     t = 1
     out_dim = 6
     func = ODEFuncTransformerAtt(dataset.data.num_features, out_dim, self.opt, dataset.data, self.device)
@@ -98,7 +100,7 @@ class AttentionTests(unittest.TestCase):
     self.assertTrue(out.shape == (dataset.data.num_nodes, dataset.num_features))
 
   def test_two_way_edge(self):
-    dataset = get_dataset('Citeseer', '../data', False)
+    dataset = get_dataset(self.opt, '../data', False)
     edge = dataset.data.edge_index
     print(f"is_undirected {dataset.data.is_undirected()}")
 

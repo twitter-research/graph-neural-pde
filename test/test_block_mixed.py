@@ -32,13 +32,14 @@ class MixedODEBlockTests(unittest.TestCase):
 
     self.leakyrelu = nn.LeakyReLU(0.2)
     self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    self.opt = {'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2, 'K': 10,
-                'attention_norm_idx': 0, 'simple': True, 'alpha': 1, 'alpha_dim': 'vc', 'beta_dim': 'vc',
-                'hidden_dim': 6, 'block': 'mixed', 'function': 'laplacian', 'alpha_sigmoid': True, 'augment': False,
-                'adjoint': False,
-                'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler'}
+    self.opt = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'sc', 'heads': 2,
+                'K': 10, 'attention_norm_idx': 0, 'add_source': False, 'alpha': 1, 'alpha_dim': 'vc',
+                'hidden_dim': 6, 'block': 'mixed', 'function': 'laplacian', 'augment': False, 'adjoint': False,
+                'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler',
+                'rewiring': None, 'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None,
+                'total_deriv': None, 'directional_penalty': None, 'jacobian_norm2': None}
 
-    self.dataset = get_dataset('Cora', '../data', False)
+    self.dataset = get_dataset(self.opt, '../data', False)
 
   def tearDown(self) -> None:
     pass

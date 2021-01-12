@@ -131,9 +131,9 @@ class SpGraphAttentionLayer(nn.Module):
 
 
 if __name__ == '__main__':
-  dataset = get_dataset('Cora', '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  opt = {'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'heads':1, 'K':10, 'attention_norm_idx':0}
+  opt = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'heads':1, 'K':10, 'attention_norm_idx':0}
+  dataset = get_dataset(opt, '../data', False)
   t = 1
   func = ODEFuncDorseyAtt(dataset.data.num_features, 2, opt, dataset.data, device)
   out = func(t, dataset.data.x)
