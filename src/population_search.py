@@ -3,7 +3,7 @@ from ray import tune
 from ray.tune import CLIReporter
 from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining
 from GNN import GNN
-from run_CGNN import train, test, get_optimizer, get_cora_opt
+from run_GNN import train, test, get_optimizer, get_cora_opt
 from data import get_dataset
 import torch
 from torch import nn

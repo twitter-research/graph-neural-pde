@@ -36,7 +36,7 @@ def get_image_opt(opt):
   opt['adjoint'] = False
 
   opt['epoch'] = 3 #1 #1 #3 #10#20 #400
-  opt['batch_size'] = 8 #64 #64  # doing batch size for mnist
+  opt['batch_size'] = 64 #64 #64  # doing batch size for mnist
   opt['train_size'] = 128#10240 #512 #10240     #128#512 #4096 #2048
   opt['test_size'] = 512 #512#64         #128
   assert (opt['train_size']) % opt['batch_size'] == 0, "train_size needs to be multiple of batch_size"
@@ -87,9 +87,8 @@ def train(epoch, model, optimizer, dataset):
   loader = DataLoader(dataset, batch_size=model.opt['batch_size'], shuffle=True)
 
   for batch_idx, batch in enumerate(loader):
-    if batch_idx % 1 == 0:
-      print("Batch Index {}".format(batch_idx))
     optimizer.zero_grad()
+    start_time = time.time()
     if batch_idx == 0 and epoch==0: # only do this for 1st batch/epoch
       #need to rebuild the adjacency with the batch_size
       #requires every batch loop the same size
@@ -114,6 +113,8 @@ def train(epoch, model, optimizer, dataset):
     optimizer.step()
     model.bm.update(model.getNFE())
     model.resetNFE()
+    if batch_idx % 1 == 0:
+      print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum, time.time() - start_time))
 
     # if batch_idx % args.log_interval == 0:
     #   print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
