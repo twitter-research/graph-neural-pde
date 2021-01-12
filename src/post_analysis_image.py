@@ -14,6 +14,7 @@ import pandas as pd
 import torchvision.transforms as transforms
 from data_image import load_data
 import openpyxl
+from utils import get_rw_adj
 
 @torch.no_grad()
 def print_image_T(model, dataset, opt, modelpath, height=2, width=3):
@@ -61,7 +62,7 @@ def print_image_path(model, dataset, opt, height, width, frames):
     paths = model.forward_plot_path(batch.x, frames)
     break
   # draw graph initial graph
-  fig = plt.figure()#figsize=(width*10, height*10))
+  fig = plt.figure() #figsize=(width*10, height*10))
   for i in range(height * width):
     plt.subplot(height, width, i + 1)
     plt.tight_layout()
@@ -72,7 +73,6 @@ def print_image_path(model, dataset, opt, height, width, frames):
       A = paths[i,0,:].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
       A = A / 2 + 0.5
       plt.imshow(A)
-
     plt.title("t=0 Ground Truth: {}".format(batch.y[i].item()))
     plt.axis('off')
 
@@ -126,13 +126,13 @@ def plot_att_edges(model):
   pass
 
 def main(opt):
-  model_key = 'model_20210109-185237'
+  model_key = 'model_20210112-170350'
   modelfolder = f"../models/{model_key}"
   modelpath = f"../models/{model_key}/{model_key}"
 
   df = pd.read_excel('../models/models.xlsx', engine='openpyxl', )
   optdf = df.loc[df['model_key'] == model_key]
-  numeric = ['batch_size', 'train_size', 'test_size', 'Test Acc', 'alpha', 'beta',
+  numeric = ['batch_size', 'train_size', 'test_size', 'Test Acc', 'alpha',
              'hidden_dim', 'input_dropout', 'dropout',
              'lr', 'decay', 'self_loop_weight', 'epoch', 'time',
              'tol_scale', 'ode_blocks', 'dt_min', 'dt',
@@ -154,9 +154,9 @@ def main(opt):
   loader = DataLoader(Graph_train, batch_size=model.opt['batch_size'], shuffle=True)
   for batch_idx, batch in enumerate(loader):
     if batch_idx == 0:  # only do this for 1st batch/epoch
-      model.data = batch  # loader.dataset  #adding this to reset the data
-      model.odeblock.data = batch  # loader.dataset.data #why do I need to do this? duplicating data from model to ODE block?
-      model.odeblock.odefunc.adj = model.odeblock.odefunc.get_rw_adj(model.data)  # to reset adj matrix
+      model.data = batch #loader.dataset  #adding this to reset the data
+      model.odeblock.data = batch #loader.dataset.data #why do I need to do this? duplicating data from model to ODE block?
+      model.odeblock.odefunc.adj = get_rw_adj(model.data.edge_index) #to reset adj matrix
     break
 
   model.load_state_dict(torch.load(modelpath))

@@ -225,14 +225,14 @@ def main(opt):
   #save params of: [opt dict, alpha, beta] to XL dataframe
   opt['model_key'] = f"model_{timestr}"
   #TODO need to assert spreadsheet columns matchexcel_helper.py opt
-  opt['alpha'] = model.odeblock.odefunc.alpha
-  opt['beta'] = model.odeblock.odefunc.beta
+  # opt['alpha'] = model.odeblock.odefunc.alpha
+  # opt['beta'] = model.odeblock.odefunc.beta
   opt['Test Acc'] = tmp_test_acc
 
   df = pd.DataFrame({k:[v] for k,v in opt.items()})
   cols = list(df)
   top_cols = ['model_key','im_dataset','ode','linear_attention','batched',
-   'simple','diags','batch_size','train_size','test_size','Test Acc','alpha','beta']
+   'simple','diags','batch_size','train_size','test_size','Test Acc' ,'alpha']#,'beta']
   for head in reversed(top_cols):
     cols.insert(0, cols.pop(cols.index(head)))
   df = df.loc[:, cols]
@@ -248,9 +248,9 @@ def main(opt):
   loader = DataLoader(Graph_train, batch_size=model.opt['batch_size'], shuffle=True)
   for batch_idx, batch in enumerate(loader):
     if batch_idx == 0:  # only do this for 1st batch/epoch
-      model.data = batch  # loader.dataset  #adding this to reset the data
-      model.odeblock.data = batch  # loader.dataset.data #why do I need to do this? duplicating data from model to ODE block?
-      model.odeblock.odefunc.adj = model.odeblock.odefunc.get_rw_adj(model.data)  # to reset adj matrix
+      model.data = batch #loader.dataset  #adding this to reset the data
+      model.odeblock.data = batch #loader.dataset.data #why do I need to do this? duplicating data from model to ODE block?
+      model.odeblock.odefunc.adj = get_rw_adj(model.data.edge_index) #to reset adj matrix
     break
   model.load_state_dict(torch.load(savepath))
   out = model(batch.x)

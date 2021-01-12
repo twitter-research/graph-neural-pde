@@ -110,18 +110,20 @@ class GNN_image(BaseGNN):
     z = x
     paths = [z.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])]
     for f in range(frames):
-
-      self.odeblock.set_x0(x)
+      self.odeblock.set_x0(z) #(x)
       if self.training:
-        z, self.reg_states = self.odeblock(x)
+        z, self.reg_states = self.odeblock(z)
       else:
-        z = self.odeblock(x)
+        z = self.odeblock(z)
       # Activation.
       z = F.relu(z)
       # Dropout.
       z = F.dropout(z, self.opt['dropout'], training=self.training)
       path = z.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])
       print(f"Total Pixel intensity of the first image: {torch.sum(z[0:self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'],:])}")
+      print(f"{torch.sum(z[1:self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'],:])}")
+      print(f"{torch.sum(z[2:self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'],:])}")
+
       paths.append(path)
 
     paths = torch.stack(paths,dim=1)
