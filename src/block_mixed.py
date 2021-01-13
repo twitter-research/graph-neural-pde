@@ -3,17 +3,18 @@ from torch import nn
 from function_transformer_attention import SpGraphTransAttentionLayer
 from base_classes import ODEblock
 from utils import get_rw_adj
+from regularized_ODE_function import RegularizedODEfunc
 
 
 class MixedODEblock(ODEblock):
-  def __init__(self, odefunc, opt, data, device, t=torch.tensor([0, 1]), gamma=0.):
-    super(MixedODEblock, self).__init__(odefunc, opt, data, device, t)
+  def __init__(self, odefunc, regularization_fns, opt, num_nodes, edge_index, edge_attr, device, t=torch.tensor([0, 1]), gamma=0):
+    super(MixedODEblock, self).__init__(odefunc, regularization_fns, opt, t)
 
-    self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, self.data, device)
-    self.odefunc.edge_index, self.odefunc.edge_weight = get_rw_adj(data.edge_index, edge_weight=data.edge_attr, norm_dim=1,
+    self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, edge_index, edge_attr, device)
+    self.reg_odefunc = RegularizedODEfunc(self.odefunc, regularization_fns)
+    self.odefunc.edge_index, self.odefunc.edge_weight = get_rw_adj(edge_index, edge_weight=edge_attr, norm_dim=1,
                                                                    fill_value=opt['self_loop_weight'],
-                                                                   num_nodes=data.num_nodes,
-                                                                   dtype=data.x.dtype)
+                                                                   num_nodes=num_nodes)
     if opt['adjoint']:
       from torchdiffeq import odeint_adjoint as odeint
     else:

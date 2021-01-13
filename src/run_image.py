@@ -89,7 +89,7 @@ def train(epoch, model, optimizer, dataset):
   for batch_idx, batch in enumerate(loader):
     optimizer.zero_grad()
     start_time = time.time()
-    # if batch_idx == 0 and epoch==0: # only do this for 1st batch/epoch
+    # if batch_idx == 0 and epoch==0: # only do this for 1st batch/epochf
     #   break
       #need to rebuild the adjacency with the batch_size
       #requires every batch loop the same size
@@ -180,7 +180,8 @@ def main(opt):
   for batch_idx, batch in enumerate(loader):
       break
   print("creating GNN model")
-  model = GNN_image(opt, batch, opt['num_class'], device).to(device)
+  model = GNN_image(opt, Graph_train.num_features, Graph_train.data.num_nodes, opt['num_class'], Graph_train.data.edge_index,
+                    Graph_train.data.edge_attr, device).to(device)
 
   print(opt)
   # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.

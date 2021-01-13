@@ -16,16 +16,15 @@ from model_configurations import set_block, set_function
 
 # Define the GNN model.
 class GNN_image(BaseGNN):
-  def __init__(self, opt, data, num_classes, device=torch.device('cpu')):
-    super(GNN_image, self).__init__(opt, data, num_classes, device)
+  def __init__(self, opt, num_features, num_nodes, num_classes, edge_index, edge_attr=None, device=torch.device('cpu')):
+    super(GNN_image, self).__init__(opt, num_features, device)
     self.f = set_function(opt)
     self.block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
-    self.odeblocks = nn.ModuleList(
-      [self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor) for dummy_i in range(self.n_ode_blocks)]).to(self.device)
-    self.odeblock = self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor).to(self.device)
+    # self.odeblocks = nn.ModuleList(
+    #   [self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor) for dummy_i in range(self.n_ode_blocks)]).to(self.device)
+    self.odeblock = self.block(self.f, self.regularization_fns, opt, num_nodes, edge_index, edge_attr, device, t=time_tensor).to(self.device)
 
-    # self.m2 = nn.Linear(opt['im_width'] * opt['im_height'] * opt['im_chan'], dataset.num_classes)
     self.m2 = nn.Linear(opt['im_width'] * opt['im_height'] * opt['im_chan'], num_classes)
 
   def forward(self, x):

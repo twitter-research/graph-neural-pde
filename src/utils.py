@@ -67,7 +67,7 @@ def get_rw_adj_old(data, opt):
   return coo2tensor(normed_csc.tocoo())
 
 
-def get_rw_adj(edge_index, edge_weight=None, norm_dim=1, fill_value=0., num_nodes=None, dtype=None):
+def get_rw_adj(edge_index, edge_weight=None, norm_dim=1, fill_value=0., num_nodes=None, dtype=torch.float32):
   num_nodes = maybe_num_nodes(edge_index, num_nodes)
 
   if edge_weight is None:

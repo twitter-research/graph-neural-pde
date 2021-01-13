@@ -119,7 +119,8 @@ def main(opt):
     pass  # not always present when called as lib
   dataset = get_dataset(opt, '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  model, data = GNN(opt, dataset, device).to(device), dataset.data.to(device)
+  model, data = GNN(opt, dataset.num_features, dataset.data.num_nodes, dataset.num_classes, dataset.data.edge_index,
+                    dataset.data.edge_attr, device).to(device), dataset.data.to(device)
   print(opt)
   # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
   parameters = [p for p in model.parameters() if p.requires_grad]
@@ -196,7 +197,8 @@ if __name__ == '__main__':
   parser.add_argument('--mix_features', type=bool, default=False,
                       help='apply a feature transformation xW to the ODE')
   parser.add_argument("--max_nfe", type=int, default=1000, help="Maximum number of function evaluations allowed.")
-  parser.add_argument('--reweight_attention', type=bool, default=False, help="multiply attention scores by edge weights before softmax")
+  parser.add_argument('--reweight_attention', type=bool, default=False,
+                      help="multiply attention scores by edge weights before softmax")
   # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
   parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")
@@ -209,7 +211,8 @@ if __name__ == '__main__':
   parser.add_argument('--gdc_method', type=str, default='ppr', help="ppr, heat, coeff")
   parser.add_argument('--gdc_sparsification', type=str, default='topk', help="threshold, topk")
   parser.add_argument('--gdc_k', type=int, default=64, help="number of neighbours to sparsify to when using topk")
-  parser.add_argument('--gdc_threshold', type=float, default=0.0001, help="obove this edge weight, keep edges when using threshold")
+  parser.add_argument('--gdc_threshold', type=float, default=0.0001,
+                      help="obove this edge weight, keep edges when using threshold")
   parser.add_argument('--gdc_avg_degree', type=int, default=64,
                       help="if gdc_threshold is not given can be calculated by specifying avg degree")
   parser.add_argument('--ppr_alpha', type=float, default=0.05, help="teleport probability")
