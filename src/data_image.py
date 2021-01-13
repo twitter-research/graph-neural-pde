@@ -197,7 +197,10 @@ def create_in_memory_dataset(opt, type, data_loader, edge_index, im_height, im_w
             self.data, self.slices = self.collate(graph_list)
             torch.save((self.data, self.slices), self.processed_paths[0])
 
+
     return IMAGE_IN_MEM(root)
+
+
 
 def load_data(opt):
   im_height = opt['im_height']

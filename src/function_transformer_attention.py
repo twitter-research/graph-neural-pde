@@ -13,7 +13,7 @@ from base_classes import ODEFunc
 class ODEFuncTransformerAtt(ODEFunc):
 
   def __init__(self, in_features, out_features, opt, data, device):
-    super(ODEFuncTransformerAtt, self).__init__(opt, data, device)
+    super(ODEFuncTransformerAtt, self).__init__(opt, device)
 
     if opt['self_loop_weight'] > 0:
       self.edge_index, self.edge_weight = add_remaining_self_loops(data.edge_index, data.edge_attr,

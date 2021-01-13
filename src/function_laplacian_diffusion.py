@@ -16,7 +16,7 @@ class LaplacianODEFunc(ODEFunc):
 
   # currently requires in_features = out_features
   def __init__(self, in_features, out_features, opt, data, device):
-    super(LaplacianODEFunc, self).__init__(opt, data, device)
+    super(LaplacianODEFunc, self).__init__(opt, device)
 
     self.in_features = in_features
     self.out_features = out_features

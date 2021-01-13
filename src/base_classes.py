@@ -77,7 +77,7 @@ class ODEblock(nn.Module):
 class ODEFunc(MessagePassing):
 
   # currently requires in_features = out_features
-  def __init__(self, opt, data, device):
+  def __init__(self, opt, device):
     super(ODEFunc, self).__init__()
     self.opt = opt
     self.device = device

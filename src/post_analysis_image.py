@@ -13,7 +13,7 @@ from torch_geometric.utils import to_dense_adj
 import pandas as pd
 import torchvision.transforms as transforms
 from data_image import load_data
-import openpyxl
+# import openpyxl
 from utils import get_rw_adj
 
 @torch.no_grad()
