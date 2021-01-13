@@ -30,14 +30,14 @@ def get_image_opt(opt):
   opt['decay'] = 5e-4
   opt['self_loop_weight'] = 0.555  #### 0?
   opt['alpha'] = 0.918
-  opt['time'] = 12.1
+  opt['time'] = 1 #12.1
   opt['augment'] = False #True   #False need to view image
   opt['attention_dropout'] = 0
   opt['adjoint'] = False
 
-  opt['epoch'] = 3 #1 #1 #3 #10#20 #400
-  opt['batch_size'] = 64 #64 #64  # doing batch size for mnist
-  opt['train_size'] = 128#10240 #512 #10240     #128#512 #4096 #2048
+  opt['epoch'] = 2 #3 #1 #1 #3 #10#20 #400
+  opt['batch_size'] = 4 #64 #64 #64  # doing batch size for mnist
+  opt['train_size'] = 32 #128#10240 #512 #10240     #128#512 #4096 #2048
   opt['test_size'] = 512 #512#64         #128
   assert (opt['train_size']) % opt['batch_size'] == 0, "train_size needs to be multiple of batch_size"
   assert (opt['test_size']) % opt['batch_size'] == 0, "test_size needs to be multiple of batch_size"
@@ -89,13 +89,14 @@ def train(epoch, model, optimizer, dataset):
   for batch_idx, batch in enumerate(loader):
     optimizer.zero_grad()
     start_time = time.time()
-    if batch_idx == 0 and epoch==0: # only do this for 1st batch/epoch
+    # if batch_idx == 0 and epoch==0: # only do this for 1st batch/epoch
+    #   break
       #need to rebuild the adjacency with the batch_size
       #requires every batch loop the same size
-      model.data = batch #loader.dataset  #adding this to reset the data
-      model.odeblock.data = batch #loader.dataset.data #why do I need to do this? duplicating data from model to ODE block?
+      # model.data = batch #loader.dataset  #adding this to reset the data
+      # model.odeblock.data = batch #loader.dataset.data #why do I need to do this? duplicating data from model to ODE block?
       # model.odeblock.odefunc.adj = model.odeblock.odefunc.get_rw_adj(model.data) #to reset adj matrix
-      model.odeblock.odefunc.adj = get_rw_adj(model.data.edge_index) #to reset adj matrix
+      # model.odeblock.odefunc.adj = get_rw_adj(model.data.edge_index) #to reset adj matrix
 
     if batch_idx > model.opt['train_size']//model.opt['batch_size']: # only do this for 1st batch/epoch
       break
@@ -175,8 +176,11 @@ def main(opt):
   print("Loading Data")
   Graph_GNN, Graph_train, Graph_test = load_data(opt)
 
+  loader = DataLoader(Graph_train, batch_size=opt['batch_size'], shuffle=True)
+  for batch_idx, batch in enumerate(loader):
+      break
   print("creating GNN model")
-  model = GNN_image(opt, Graph_GNN, device).to(device)
+  model = GNN_image(opt, batch, opt['num_class'], device).to(device)
 
   print(opt)
   # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
@@ -243,15 +247,12 @@ def main(opt):
                      truncate_sheet=False,header=False) #True)#False)#,**to_excel_kwargs)
 
   print("creating GNN model")
-  model = GNN_image(opt, Graph_GNN, device).to(device)
-  #todo this is so fucked, load model with GNN to get num_classes==10 and then augment adj with below
-  loader = DataLoader(Graph_train, batch_size=model.opt['batch_size'], shuffle=True)
+  loader = DataLoader(Graph_train, batch_size=opt['batch_size'], shuffle=True)
   for batch_idx, batch in enumerate(loader):
-    if batch_idx == 0:  # only do this for 1st batch/epoch
-      model.data = batch #loader.dataset  #adding this to reset the data
-      model.odeblock.data = batch #loader.dataset.data #why do I need to do this? duplicating data from model to ODE block?
-      model.odeblock.odefunc.adj = get_rw_adj(model.data.edge_index) #to reset adj matrix
-    break
+      break
+  print("creating GNN model")
+  model = GNN_image(opt, batch, opt['num_class'], device).to(device)
+
   model.load_state_dict(torch.load(savepath))
   out = model(batch.x)
   model.eval()
@@ -313,7 +314,7 @@ if __name__ == '__main__':
                       help='the size to project x to before calculating att scores')
   parser.add_argument('--mix_features', type=bool, default=False,
                       help='apply a feature transformation xW to the ODE')
-  parser.add_argument("--max_nfe", type=int, default=1000, help="Maximum number of function evaluations allowed.")
+  parser.add_argument("--max_nfe", type=int, default=5000, help="Maximum number of function evaluations allowed.")
   parser.add_argument('--reweight_attention', type=bool, default=False, help="multiply attention scores by edge weights before softmax")
   # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")

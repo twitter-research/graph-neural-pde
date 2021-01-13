@@ -16,8 +16,8 @@ from model_configurations import set_block, set_function
 
 # Define the GNN model.
 class GNN_image(BaseGNN):
-  def __init__(self, opt, dataset, device=torch.device('cpu')):
-    super(GNN_image, self).__init__(opt, dataset, device)
+  def __init__(self, opt, data, num_classes, device=torch.device('cpu')):
+    super(GNN_image, self).__init__(opt, data, num_classes, device)
     self.f = set_function(opt)
     self.block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
@@ -25,7 +25,8 @@ class GNN_image(BaseGNN):
       [self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor) for dummy_i in range(self.n_ode_blocks)]).to(self.device)
     self.odeblock = self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor).to(self.device)
 
-    self.m2 = nn.Linear(opt['im_width'] * opt['im_height'] * opt['im_chan'], dataset.num_classes)
+    # self.m2 = nn.Linear(opt['im_width'] * opt['im_height'] * opt['im_chan'], dataset.num_classes)
+    self.m2 = nn.Linear(opt['im_width'] * opt['im_height'] * opt['im_chan'], num_classes)
 
   def forward(self, x):
     # Encode each node based on its feature.

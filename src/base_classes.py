@@ -96,10 +96,10 @@ class ODEFunc(MessagePassing):
 
 
 class BaseGNN(MessagePassing):
-  def __init__(self, opt, dataset, device=torch.device('cpu')):
+  def __init__(self, opt, data, num_classes, device=torch.device('cpu')):
     super(BaseGNN, self).__init__()
     self.opt = opt
-    self.data = dataset.data.to(device)
+    self.data = data.to(device)
     self.T = opt['time']
     self.device = device
     self.fm = Meter()
@@ -110,7 +110,7 @@ class BaseGNN(MessagePassing):
     except KeyError:
       self.n_ode_blocks = 1
 
-    self.m2 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
+    self.m2 = nn.Linear(opt['hidden_dim'], num_classes)
 
     self.regularization_fns, self.regularization_coeffs = create_regularization_fns(self.opt)
 

@@ -126,7 +126,7 @@ def plot_att_edges(model):
   pass
 
 def main(opt):
-  model_key = 'model_20210112-170350'
+  model_key = 'model_20210113-093420'
   modelfolder = f"../models/{model_key}"
   modelpath = f"../models/{model_key}/{model_key}"
 
@@ -149,26 +149,29 @@ def main(opt):
   Graph_GNN, Graph_train, Graph_test = load_data(opt)
 
   print("creating GNN model")
-  model = GNN_image(opt, Graph_GNN, device).to(device)
+  # model = GNN_image(opt, Graph_GNN, device).to(device)
   #todo this is so fucked, load model with GNN to get num_classes==10 and then augment adj with below
-  loader = DataLoader(Graph_train, batch_size=model.opt['batch_size'], shuffle=True)
+  # loader = DataLoader(Graph_train, batch_size=model.opt['batch_size'], shuffle=True)
+  loader = DataLoader(Graph_train, batch_size=opt['batch_size'], shuffle=True)
   for batch_idx, batch in enumerate(loader):
-    if batch_idx == 0:  # only do this for 1st batch/epoch
-      model.data = batch #loader.dataset  #adding this to reset the data
-      model.odeblock.data = batch #loader.dataset.data #why do I need to do this? duplicating data from model to ODE block?
-      model.odeblock.odefunc.adj = get_rw_adj(model.data.edge_index) #to reset adj matrix
-    break
+    if batch_idx == 0:# only do this for 1st batch/epoch
+      # model.data = batch #loader.dataset  #adding this to reset the data
+      # model.odeblock.data = batch #loader.dataset.data #why do I need to do this? duplicating data from model to ODE block?
+      # model.odeblock.odefunc.adj = get_rw_adj(model.data.edge_index) #to reset adj matrix
+      break
 
-  model.load_state_dict(torch.load(modelpath))
-  out = model(batch.x)
+  model = GNN_image(opt, batch, opt['num_class'], device).to(device)
+  # model.load_state_dict(torch.load(modelpath))
+  # out = model(batch.x)
   model.eval()
 
   # do these as functions that take model key to generate displays on demand
   # 1)
-  print_image_T(model, Graph_test, opt, modelpath, height=2, width=3)
+  print_image_T(model, Graph_test, opt, modelpath, height=2, width=2) #width=3)
   # 2)
   #TODO Total Pixel intensity seems to increase loads for linear ATT
-  animation = print_image_path(model, Graph_test, opt, height=2, width=3, frames=10)
+  # animation = print_image_path(model, Graph_test, opt, height=2, width=3, frames=10)
+  animation = print_image_path(model, Graph_test, opt, height=2, width=2, frames=10)
   animation.save(f'{modelpath}_animation.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=0.5)
   # 3)
   # plot_att_heat(model, model_key, modelpath)

@@ -178,7 +178,8 @@ def create_in_memory_dataset(opt, type, data_loader, edge_index, im_height, im_w
                 if type == "GNN":
                     if batch_idx > 0:
                         break
-                    y = torch.tensor(opt['num_class']-1)  #<- hack the datset num_classes property (code above)
+                    self.tensor = torch.tensor(opt['num_class'] - 1)
+                    y = self.tensor  #<- hack the datset num_classes property (code above)
                 elif type == "Train":
                     if opt['testing_code'] == True and batch_idx > opt['train_size'] - 1:
                         break
