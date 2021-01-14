@@ -136,16 +136,37 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
     else:
       tune.report(loss=loss, accuracy=np.mean(tmp_test_accs))
 
+from data_image import load_data
+from torch_geometric.data import DataLoader
+import GNN_image
+from run_image import test as test_image, train as train_image
 
-def train_ray_old(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
+def train_ray_image(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  dataset = get_dataset(opt, data_dir, True)
-  model = GNN(opt, dataset, device)
+
+  # dataset = get_dataset(opt, data_dir, True)
+  _, dataset_train, dataset_test = load_data(opt)
+  # data = dataset.data.to(device)
+
+  loader = DataLoader(dataset_train, batch_size=opt['batch_size'], shuffle=True)
+  for batch_idx, batch in enumerate(loader):
+      break
+  print("creating GNN model")
+  model = GNN_image(opt, batch, opt['num_class'], device).to(device)
+  # model = GNN(opt, dataset, device)
+
+  train_this = train_image
+  # models.append(model)
+
   if torch.cuda.device_count() > 1:
     model = nn.DataParallel(model)
-  model, data = model.to(device), dataset.data.to(device)
+
+  model = model.to(device)
   parameters = [p for p in model.parameters() if p.requires_grad]
+
   optimizer = get_optimizer(opt["optimizer"], parameters, lr=opt["lr"], weight_decay=opt["decay"])
+  # optimizers.append(optimizer)
+
   # The `checkpoint_dir` parameter gets passed by Ray Tune when a checkpoint
   # should be restored.
   if checkpoint_dir:
@@ -154,16 +175,16 @@ def train_ray_old(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
     model.load_state_dict(model_state)
     optimizer.load_state_dict(optimizer_state)
 
+
   for epoch in range(1, opt["epoch"]):
-    loss = train(model, optimizer, data)
-    train_acc, val_acc, tmp_test_acc = test(model, data)
+    loss = train_image(epoch, model, optimizer, dataset_train)
+    tmp_test_accs = test_image(model, dataset_train)
+
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((model.state_dict(), optimizer.state_dict()), path)
-    if opt_val:
-      tune.report(loss=loss, accuracy=val_acc)
-    else:
-      tune.report(loss=loss, accuracy=tmp_test_acc)
+
+    tune.report(loss=loss, accuracy=np.mean(tmp_test_accs))
 
 
 def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
@@ -173,7 +194,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
   if opt["num_splits"] > 0:
     dataset.data = set_train_val_test_split(
       23 * np.random.randint(0, opt["num_splits"]),  # random prime 23 to make the splits 'more' random. Could remove
-      dataset.data, 
+      dataset.data,
       num_development = 5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
   model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
@@ -208,167 +229,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
       tune.report(loss=loss, accuracy=tmp_test_acc_int)
 
 
-def set_cora_search_space(opt):
-  opt["decay"] = tune.uniform(0.01, 0.1)  # weight decay l2 reg
-  opt["kinetic_energy"]  = tune.loguniform(0.001, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
-
-  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
-  opt["lr"] = tune.loguniform(0.05, 0.2)
-  opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
-  opt["optimizer"] = tune.choice(["adam", "adamax"])
-  opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-  opt["time"] = tune.uniform(5.0, 20.0)  # terminal time of the ODE integrator;
-  # when it's big, the training hangs (probably due a big NFEs of the ODE)
-
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  # hidden dim for attention
-    opt['attention_norm_idx'] = tune.choice([0, 1])
-    opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
-    opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
-  else:
-    opt["self_loop_weight"] = tune.uniform(0, 3)
-
-  opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
-  if opt["adjoint"]:
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"]) #, "rk4"])
-    opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
-
-  if opt['rewiring'] == 'gdc':
-    opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
-    opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
-
-  return opt
-
-
-def set_pubmed_search_space(opt):
-  opt["decay"] = tune.uniform(0.001, 0.1)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 1.0)
-  opt["directional_penalty"]  = tune.loguniform(0.01, 1.0)
-
-  opt["hidden_dim"] = 128 #tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
-  opt["lr"] = tune.loguniform(0.02, 0.1)
-  opt["input_dropout"] = 0.4 #tune.uniform(0.2, 0.5)
-  opt["dropout"] = tune.uniform(0, 0.5)
-  opt["time"] = tune.uniform(5.0, 20.0)
-  opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
-
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
-    opt['attention_norm_idx'] = tune.choice([0, 1])
-    opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
-    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-      [0, 1])  # whether or not to use self-loops
-  else:
-    opt["self_loop_weight"] = tune.uniform(0, 3)
-
-  opt["tol_scale"] = tune.loguniform(1, 1e4)
-
-  if opt["adjoint"]:
-    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e4)
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])
-  else:
-    raise Exception("Can't train on PubMed without the adjoint method.")
-
-  return opt
-
-
-def set_citeseer_search_space(opt):
-  opt["decay"] = 0.1 #tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.001, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
-
-  opt["hidden_dim"] = 128 #tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))
-  opt["lr"] = tune.loguniform(2e-3, 0.01)
-  opt["input_dropout"] = tune.uniform(0.4, 0.8)
-  opt["dropout"] = tune.uniform(0, 0.8)
-  opt["time"] = tune.uniform(0.5, 8.0)
-  opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
-  #
-
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(1, 4))
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
-    opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
-    opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
-    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-      [0, 1])  # whether or not to use self-loops
-  else:
-    opt["self_loop_weight"] = tune.uniform(0, 3)  # 1 seems to work pretty well
-
-  opt["tol_scale"] = tune.loguniform(1, 2e3)
-
-  if opt["adjoint"]:
-    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
-  return opt
-
-
-def set_computers_search_space(opt):
-  opt["decay"] = tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
-
-  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
-  opt["lr"] = tune.loguniform(5e-5, 5e-3)
-  opt["input_dropout"] = tune.uniform(0.4, 0.8)
-  opt["dropout"] = tune.uniform(0, 0.8)
-  opt["self_loop_weight"] = tune.choice([0, 1])
-  opt["time"] = tune.uniform(0.5, 10.0)
-  opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
-
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
-    opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
-    opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
-    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-      [0, 1])  # whether or not to use self-loops
-  else:
-    opt["self_loop_weight"] = tune.uniform(0, 3)
-
-  opt["tol_scale"] = tune.loguniform(1e1, 1e4)
-
-  if opt["adjoint"]:
-    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
-  return opt
-
-
-def set_coauthors_search_space(opt):
-  opt["decay"] = tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.01, 10.0)
-
-  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 6))
-  opt["lr"] = tune.loguniform(1e-5, 0.1)
-  opt["input_dropout"] = tune.uniform(0.4, 0.8)
-  opt["dropout"] = tune.uniform(0, 0.8)
-  opt["self_loop_weight"] = tune.choice([0, 1])
-  opt["time"] = tune.uniform(0.5, 10.0)
-  opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
-
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
-    opt['attention_norm_idx'] = tune.choice([0, 1])
-    opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
-    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-      [0, 1])  # whether or not to use self-loops
-  else:
-    opt["self_loop_weight"] = tune.uniform(0, 3)
-
-  opt["tol_scale"] = tune.loguniform(1e1, 1e4)
-
-  if opt["adjoint"]:
-    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
-  return opt
-
-
-def set_photo_search_space(opt):
+def set_MNIST_search_space(opt):
   opt["decay"] = tune.loguniform(2e-3, 1e-2)
   opt["kinetic_energy"]  = tune.loguniform(0.01, 10.0)
   opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
@@ -398,6 +259,7 @@ def set_photo_search_space(opt):
   return opt
 
 
+
 def set_search_space(opt):
   if opt["dataset"] == "Cora":
     return set_cora_search_space(opt)
@@ -423,7 +285,7 @@ def main(opt):
     max_t=opt["epoch"],
     grace_period=opt["grace_period"],
     reduction_factor=opt["reduction_factor"],
-  )
+  ) #handels early termination and respawning
   reporter = CLIReporter(
     metric_columns=["accuracy", "loss", "training_iteration"]
   )
@@ -431,8 +293,8 @@ def main(opt):
   search_alg = AxSearch(metric="accuracy")
   search_alg = None
 
-  train_fn = train_ray if opt["num_splits"] == 0 else train_ray_rand
-
+  # train_fn = train_ray if opt["num_splits"] == 0 else train_ray_rand #details in here
+  train_fn = train_ray_image
   result = tune.run(
     partial(train_fn, data_dir=data_dir),
     name=opt["name"],
@@ -453,8 +315,16 @@ def main(opt):
   print("Best trial final validation loss: {}".format(best_trial.best_result["loss"]))
   print("Best trial final validation accuracy: {}".format(best_trial.best_result["accuracy"]))
 
-  dataset = get_dataset(opt, data_dir, True)
-  best_trained_model = GNN(best_trial.config, dataset, device)
+  # dataset = get_dataset(opt, data_dir, True)
+  # best_trained_model = GNN(best_trial.config, dataset, device)
+
+  _, dataset_train, dataset_test = load_data(opt)
+  loader = DataLoader(dataset_train, batch_size=opt['batch_size'], shuffle=True)
+  for batch_idx, batch in enumerate(loader):
+      break
+  best_trained_model = GNN_image(best_trial.config, batch, opt['num_class'], device).to(device)
+
+
   if opt["gpus"] > 1:
     best_trained_model = nn.DataParallel(best_trained_model)
   best_trained_model.to(device)
@@ -464,7 +334,9 @@ def main(opt):
   model_state, optimizer_state = torch.load(checkpoint_path)
   best_trained_model.load_state_dict(model_state)
 
-  test_acc = test(best_trained_model, best_trained_model.data.to(device))
+  # test_acc = test(best_trained_model, best_trained_model.data.to(device))
+  test_acc = test_image(best_trained_model, dataset_test.to(device))
+
   print("Best trial test set accuracy: {}".format(test_acc))
   df = result.dataframe(metric="accuracy", mode="max").sort_values(
     "accuracy", ascending=False

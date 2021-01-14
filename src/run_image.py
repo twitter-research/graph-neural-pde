@@ -136,13 +136,8 @@ def test(model, dataset):
       break
     model.eval()
     logits, accs = model(batch.x), []
-    # for _, mask in data('train_mask', 'val_mask', 'test_mask'):
-    #   pred = logits[mask].max(1)[1]
-    #   acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
     pred = logits.max(1)[1]
-    # acc = pred.eq(data.y.T).sum().item() / len(data.y)
     total_correct += pred.eq(batch.y.T).sum().item()
-    # accs.append(acc)
   accs = total_correct / test_size
   return accs
 
