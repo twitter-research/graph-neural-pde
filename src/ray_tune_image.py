@@ -153,8 +153,11 @@ def train_ray_image(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
       break
 
   batch.to(device)
-  model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], batch.edge_index,
-                    batch.edge_attr, device).to(device)
+  edge_index_gpu = batch.edge_index
+  edge_attr_gpu = batch.edge_attr
+
+  model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu.to(device),
+                    edge_attr_gpu.to(device), device).to(device)
   # model = GNN_image(opt, batch, opt['num_class'], device).to(device)
   # model = GNN(opt, dataset, device)
 
@@ -315,8 +318,11 @@ def main(opt):
   loader = DataLoader(dataset_train, batch_size=opt['batch_size'], shuffle=True)
   for batch_idx, batch in enumerate(loader):
       break
+
   batch.to(device)
-  best_trained_model = GNN_image(best_trial.config, batch.num_features, batch.num_nodes, opt['num_class'], batch.edge_index,
+  edge_index_gpu = batch.edge_index
+  edge_attr_gpu = batch.edge_attr
+  best_trained_model = GNN_image(best_trial.config, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu.to(device),
                     batch.edge_attr, device).to(device)
 
   if opt["gpus"] > 1:
@@ -447,7 +453,7 @@ if __name__ == "__main__":
                       help='Batching')
   parser.add_argument('--im_width', type=int, default=28, help='im_width')
   parser.add_argument('--im_height', type=int, default=28, help='im_height')
-  parser.add_argument('--im_chan', type=int, default=1, help='im_height')
+  parser.add_argument('--im_chan', type=int, default=1, help='im_chan')
   parser.add_argument('--num_class', type=int, default=10, help='num classes')
   parser.add_argument('--diags', type=bool, default=False,
                       help='Edge index include diagonal diffusion')
