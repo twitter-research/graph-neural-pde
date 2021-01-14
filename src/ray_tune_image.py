@@ -234,15 +234,16 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
 
 def set_MNIST_search_space(opt):
   opt["decay"] = tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+  # opt["kinetic_energy"]  = tune.loguniform(0.01, 10.0)
+  # opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
 
-  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
+  # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
   opt["lr"] = tune.loguniform(1e-2, 0.1)
-  opt["input_dropout"] = tune.uniform(0.4, 0.8)
+  opt["input_dropout"] = tune.uniform(0.2, 0.8)
   opt["dropout"] = tune.uniform(0, 0.8)
-  opt["time"] = tune.uniform(0.5, 7.0)
+  opt["time"] = tune.uniform(0.5, 20.0)
   opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
+  opt['self_loops'] = tune.choice([0,1])
 
   if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
@@ -440,9 +441,9 @@ if __name__ == "__main__":
   # visualisation args
   parser.add_argument('--use_image_defaults', default='MNIST',
                       help='sets as per function get_image_opt')
-  parser.add_argument('--batch_size', type=int, default=64, help='Batch size')
-  parser.add_argument('--train_size', type=int, default=128, help='Batch size')
-  parser.add_argument('--test_size', type=int, default=512, help='Batch size')
+  parser.add_argument('--batch_size', type=int, default=100, help='Batch size')
+  parser.add_argument('--train_size', type=int, default=50000, help='Batch size')
+  parser.add_argument('--test_size', type=int, default=10000, help='Batch size')
   parser.add_argument('--batched', type=bool, default=True,
                       help='Batching')
   parser.add_argument('--im_width', type=int, default=28, help='im_width')
@@ -453,7 +454,7 @@ if __name__ == "__main__":
                       help='Edge index include diagonal diffusion')
   parser.add_argument('--im_dataset', type=str, default='MNIST',
                                            help='MNIST, CIFAR')
-  parser.add_argument('--testing_code', type=bool, default=True,
+  parser.add_argument('--testing_code', type=bool, default=False,
                       help='Batching')
   parser.add_argument('--num_nodes', type=int, default=28**2, help='im_width')
 
