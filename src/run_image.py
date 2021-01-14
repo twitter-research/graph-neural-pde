@@ -36,8 +36,8 @@ def get_image_opt(opt):
   opt['adjoint'] = False
 
   opt['epoch'] = 2 #3 #1 #1 #3 #10#20 #400
-  opt['batch_size'] = 4 #64 #64 #64  # doing batch size for mnist
-  opt['train_size'] = 32 #128#10240 #512 #10240     #128#512 #4096 #2048
+  opt['batch_size'] = 64 #64 #64  # doing batch size for mnist
+  opt['train_size'] = 128#10240 #512 #10240     #128#512 #4096 #2048
   opt['test_size'] = 512 #512#64         #128
   assert (opt['train_size']) % opt['batch_size'] == 0, "train_size needs to be multiple of batch_size"
   assert (opt['test_size']) % opt['batch_size'] == 0, "test_size needs to be multiple of batch_size"
@@ -180,8 +180,8 @@ def main(opt):
   for batch_idx, batch in enumerate(loader):
       break
   print("creating GNN model")
-  model = GNN_image(opt, Graph_train.num_features, Graph_train.data.num_nodes, opt['num_class'], Graph_train.data.edge_index,
-                    Graph_train.data.edge_attr, device).to(device)
+  model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], batch.edge_index,
+                    batch.edge_attr, device).to(device)
 
   print(opt)
   # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.

@@ -119,6 +119,8 @@ def main(opt):
     pass  # not always present when called as lib
   dataset = get_dataset(opt, '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+
   model, data = GNN(opt, dataset.num_features, dataset.data.num_nodes, dataset.num_classes, dataset.data.edge_index,
                     dataset.data.edge_attr, device).to(device), dataset.data.to(device)
   print(opt)
