@@ -103,6 +103,10 @@ def train(epoch, model, optimizer, dataset):
 
     out = model(batch.x.to(model.device))
 
+    print(f"batch y: {batch.y.to(model.device).size()}")
+    print(f"batch y2: {batch.y.view(-1).to(model.device).size()}")
+    print(f"out {out.size()}")
+
     lf = torch.nn.CrossEntropyLoss()
     # loss = lf(out, torch.squeeze(batch.y))  #squeeze now needed
     loss = lf(out, batch.y.view(-1).to(model.device))  #squeeze now needed

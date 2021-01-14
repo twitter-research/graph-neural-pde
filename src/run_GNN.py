@@ -71,6 +71,12 @@ def train(model, optimizer, data):
   model.train()
   optimizer.zero_grad()
   out = model(data.x)
+
+  print(f"batch y: {data.y.to(model.device).size()}")
+  print(f"out {out.size()}")
+  print(f"out[data.train_mask] {out[data.train_mask].size()}")
+  print(f"data.y[data.train_mask {data.y[data.train_mask].size()}")
+
   lf = torch.nn.CrossEntropyLoss()
   loss = lf(out[data.train_mask], data.y[data.train_mask])
   if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
