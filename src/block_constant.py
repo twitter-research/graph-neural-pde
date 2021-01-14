@@ -1,18 +1,20 @@
 from base_classes import ODEblock
 import torch
 from utils import get_rw_adj
+from regularized_ODE_function import RegularizedODEfunc
 
 
 class ConstantODEblock(ODEblock):
-  def __init__(self, odefunc, regularization_fns, opt, data, device, t=torch.tensor([0, 1])):
-    super(ConstantODEblock, self).__init__(odefunc, regularization_fns, opt, data, device, t)
+  def __init__(self, odefunc, regularization_fns, opt, num_nodes, edge_index, edge_attr, device, t=torch.tensor([0, 1])):
+    super(ConstantODEblock, self).__init__(odefunc, regularization_fns, opt, t)
 
     self.aug_dim = 2 if opt['augment'] else 1
-    self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, self.data, device)
-    self.odefunc.edge_index, self.odefunc.edge_weight = get_rw_adj(data.edge_index, edge_weight=data.edge_attr, norm_dim=1,
+    # todo not ideal that the class and object have the same name
+    self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, edge_index, edge_attr, device)
+    self.reg_odefunc = RegularizedODEfunc(self.odefunc, regularization_fns)
+    self.odefunc.edge_index, self.odefunc.edge_weight = get_rw_adj(edge_index, edge_weight=edge_attr, norm_dim=1,
                                                                    fill_value=opt['self_loop_weight'],
-                                                                   num_nodes=data.num_nodes,
-                                                                   dtype=data.x.dtype)
+                                                                   num_nodes=num_nodes)
     self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight 
 
     if opt['adjoint']:

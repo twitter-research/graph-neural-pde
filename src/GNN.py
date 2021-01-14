@@ -7,16 +7,16 @@ from model_configurations import set_block, set_function
 
 # Define the GNN model.
 class GNN(BaseGNN):
-  def __init__(self, opt, dataset, device=torch.device('cpu')):
-    super(GNN, self).__init__(opt, dataset, device)
+  def __init__(self, opt, num_features, num_nodes, num_classes, edge_index, edge_attr=None, device=torch.device('cpu')):
+    super(GNN, self).__init__(opt, num_features, device)
     self.f = set_function(opt)
     self.block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
-    self.odeblocks = nn.ModuleList(
-      [self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor) for dummy_i in range(self.n_ode_blocks)]).to(self.device)
-    self.odeblock = self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor).to(self.device)
-
-    self.m2 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
+    # self.odeblocks = nn.ModuleList(
+    #   [self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor) for dummy_i in range(self.n_ode_blocks)]).to(self.device)
+    self.odeblock = self.block(self.f, self.regularization_fns, opt, num_nodes, edge_index, edge_attr, device, t=time_tensor).to(self.device)
+    # todo remove next line as in base class
+    self.m2 = nn.Linear(opt['hidden_dim'], num_classes)
 
   def forward(self, x):
     # Encode each node based on its feature.

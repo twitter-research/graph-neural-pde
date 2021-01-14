@@ -4,6 +4,7 @@ A GNN used at test time that supports early stopping during the integrator
 
 import torch
 import torch.nn.functional as F
+from torch import nn
 import argparse
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
 import time
@@ -15,13 +16,13 @@ from model_configurations import set_block, set_function
 
 
 class GNNEarly(BaseGNN):
-  def __init__(self, opt, dataset, device=torch.device('cpu')):
-    super(GNNEarly, self).__init__(opt, dataset, device)
+  def __init__(self, opt, num_features, num_nodes, num_classes, edge_index, edge_attr=None, device=torch.device('cpu')):
+    super(GNNEarly, self).__init__(opt, num_features, device)
     block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
     self.f = set_function(opt)
     self.regularization_fns = ()
-    self.odeblock = block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor).to(device)
+    self.odeblock = block(self.f, self.regularization_fns, opt, num_nodes, edge_index, edge_attr, device, t=time_tensor).to(device)
     # overwrite the test integrator with this custom one
     self.odeblock.test_integrator = EarlyStopInt(self.T, device)
     self.odeblock.test_integrator.data = self.data
@@ -30,6 +31,8 @@ class GNNEarly(BaseGNN):
     else:
       from torchdiffeq import odeint
     self.odeblock.train_integrator = odeint
+
+    self.m2 = nn.Linear(opt['hidden_dim'], num_classes)
 
     self.set_solver_data()
 

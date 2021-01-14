@@ -17,6 +17,7 @@ from torch import nn
 from GNN_ICML import ICML_GNN, get_sym_adj
 from GNN_ICML import train as train_icml
 
+
 def average_test(models, datas):
   results = [test(model, data) for model, data in zip(models, datas)]
   train_accs, val_accs, tmp_test_accs = [], [], []
@@ -32,14 +33,14 @@ def average_test(models, datas):
 def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   dataset = get_dataset(opt, data_dir, True)
-  
+
   models = []
   datas = []
   optimizers = []
 
   for split in range(opt["num_splits"]):
     dataset.data = set_train_val_test_split(
-      np.random.randint(0, 1000), dataset.data, num_development = 5000 if opt["dataset"] == "CoauthorCS" else 1500)
+      np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
     datas.append(dataset.data)
 
     if opt['baseline']:
@@ -49,7 +50,8 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
       model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
       train_this = train_icml
     else:
-      model = GNN(opt, dataset, device)
+      model = GNN(opt, dataset.num_features, dataset.data.num_nodes, dataset.num_classes, dataset.data.edge_index,
+                  dataset.data.edge_attr, device)
       train_this = train
 
     models.append(model)
@@ -102,7 +104,8 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
       model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
       train_this = train_icml
     else:
-      model = GNN(opt, dataset, device)
+      model = GNN(opt, dataset.num_features, dataset.data.num_nodes, dataset.num_classes, dataset.data.edge_index,
+                  dataset.data.edge_attr, device)
       train_this = train
 
     models.append(model)
@@ -140,7 +143,8 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
 def train_ray_old(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   dataset = get_dataset(opt, data_dir, True)
-  model = GNN(opt, dataset, device)
+  model = GNN(opt, dataset.num_features, dataset.data.num_nodes, dataset.num_classes, dataset.data.edge_index,
+              dataset.data.edge_attr, device)
   if torch.cuda.device_count() > 1:
     model = nn.DataParallel(model)
   model, data = model.to(device), dataset.data.to(device)
@@ -173,10 +177,15 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
   if opt["num_splits"] > 0:
     dataset.data = set_train_val_test_split(
       23 * np.random.randint(0, opt["num_splits"]),  # random prime 23 to make the splits 'more' random. Could remove
-      dataset.data, 
-      num_development = 5000 if opt["dataset"] == "CoauthorCS" else 1500)
+      dataset.data,
+      num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
-  model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
+  model = GNN(opt, dataset.num_features, dataset.data.num_nodes, dataset.num_classes, dataset.data.edge_index,
+              dataset.data.edge_attr, device) if opt["no_early"] else GNNEarly(opt, dataset.num_features,
+                                                                               dataset.data.num_nodes,
+                                                                               dataset.num_classes,
+                                                                               dataset.data.edge_index,
+                                                                               dataset.data.edge_attr, device)
   if torch.cuda.device_count() > 1:
     model = nn.DataParallel(model)
   model, data = model.to(device), dataset.data.to(device)
@@ -192,7 +201,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
   for epoch in range(1, opt["epoch"]):
     loss = train(model, optimizer, data)
     # need next line as it sets the attributes in the solver
-    
+
     if opt["no_early"]:
       _, val_acc_int, tmp_test_acc_int = test(model, data)
     else:
@@ -210,8 +219,8 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
 
 def set_cora_search_space(opt):
   opt["decay"] = tune.uniform(0.01, 0.1)  # weight decay l2 reg
-  opt["kinetic_energy"]  = tune.loguniform(0.001, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+  opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
+  opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
   opt["lr"] = tune.loguniform(0.05, 0.2)
@@ -232,7 +241,7 @@ def set_cora_search_space(opt):
 
   opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
   if opt["adjoint"]:
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"]) #, "rk4"])
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
     opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
 
   if opt['rewiring'] == 'gdc':
@@ -244,12 +253,12 @@ def set_cora_search_space(opt):
 
 def set_pubmed_search_space(opt):
   opt["decay"] = tune.uniform(0.001, 0.1)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 1.0)
-  opt["directional_penalty"]  = tune.loguniform(0.01, 1.0)
+  opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
+  opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
 
-  opt["hidden_dim"] = 128 #tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+  opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
   opt["lr"] = tune.loguniform(0.02, 0.1)
-  opt["input_dropout"] = 0.4 #tune.uniform(0.2, 0.5)
+  opt["input_dropout"] = 0.4  # tune.uniform(0.2, 0.5)
   opt["dropout"] = tune.uniform(0, 0.5)
   opt["time"] = tune.uniform(5.0, 20.0)
   opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
@@ -276,11 +285,11 @@ def set_pubmed_search_space(opt):
 
 
 def set_citeseer_search_space(opt):
-  opt["decay"] = 0.1 #tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.001, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+  opt["decay"] = 0.1  # tune.loguniform(2e-3, 1e-2)
+  opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
+  opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
-  opt["hidden_dim"] = 128 #tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))
+  opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))
   opt["lr"] = tune.loguniform(2e-3, 0.01)
   opt["input_dropout"] = tune.uniform(0.4, 0.8)
   opt["dropout"] = tune.uniform(0, 0.8)
@@ -308,8 +317,8 @@ def set_citeseer_search_space(opt):
 
 def set_computers_search_space(opt):
   opt["decay"] = tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+  opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+  opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
   opt["lr"] = tune.loguniform(5e-5, 5e-3)
@@ -339,8 +348,8 @@ def set_computers_search_space(opt):
 
 def set_coauthors_search_space(opt):
   opt["decay"] = tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.01, 10.0)
+  opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+  opt["directional_penalty"] = tune.loguniform(0.01, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 6))
   opt["lr"] = tune.loguniform(1e-5, 0.1)
@@ -370,8 +379,8 @@ def set_coauthors_search_space(opt):
 
 def set_photo_search_space(opt):
   opt["decay"] = tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+  opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+  opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
   opt["lr"] = tune.loguniform(1e-2, 0.1)
@@ -385,9 +394,9 @@ def set_photo_search_space(opt):
     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 6))
     opt['attention_norm_idx'] = tune.choice([0, 1])
     opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-      [0, 1]) 
+      [0, 1])
     opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
-  else: 
+  else:
     opt["self_loop_weight"] = tune.uniform(0, 3)
 
   opt["tol_scale"] = tune.loguniform(1, 1e4)
@@ -454,7 +463,9 @@ def main(opt):
   print("Best trial final validation accuracy: {}".format(best_trial.best_result["accuracy"]))
 
   dataset = get_dataset(opt, data_dir, True)
-  best_trained_model = GNN(best_trial.config, dataset, device)
+  best_trained_model = GNN(best_trial.config, dataset.num_features, dataset.data.num_nodes, dataset.num_classes,
+                           dataset.data.edge_index,
+                           dataset.data.edge_attr, device)
   if opt["gpus"] > 1:
     best_trained_model = nn.DataParallel(best_trained_model)
   best_trained_model.to(device)
@@ -534,7 +545,8 @@ if __name__ == "__main__":
 
   parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention, SDE')
   parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
-  parser.add_argument('--reweight_attention', type=bool, default=False, help="multiply attention scores by edge weights before softmax")
+  parser.add_argument('--reweight_attention', type=bool, default=False,
+                      help="multiply attention scores by edge weights before softmax")
   # ray args
   parser.add_argument("--num_samples", type=int, default=20, help="number of ray trials")
   parser.add_argument("--gpus", type=float, default=0, help="number of gpus per trial. Can be fractional")
@@ -564,7 +576,8 @@ if __name__ == "__main__":
   parser.add_argument('--gdc_method', type=str, default='ppr', help="ppr, heat, coeff")
   parser.add_argument('--gdc_sparsification', type=str, default='topk', help="threshold, topk")
   parser.add_argument('--gdc_k', type=int, default=64, help="number of neighbours to sparsify to when using topk")
-  parser.add_argument('--gdc_threshold', type=float, default=0.0001, help="obove this edge weight, keep edges when using threshold")
+  parser.add_argument('--gdc_threshold', type=float, default=0.0001,
+                      help="obove this edge weight, keep edges when using threshold")
   parser.add_argument('--gdc_avg_degree', type=int, default=64,
                       help="if gdc_threshold is not given can be calculated by specifying avg degree")
   parser.add_argument('--ppr_alpha', type=float, default=0.05, help="teleport probability")

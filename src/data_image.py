@@ -244,7 +244,7 @@ def load_data(opt):
                                              root='../data/PyG'+exdataset+'Test/', processed_file_name='PyG'+exdataset+'Test.pt')
   return Graph_GNN, Graph_train, Graph_test
 
-# from SuperPixData import load_matlab_file, stack_matrices
+from SuperPixData import load_matlab_file, stack_matrices
 def create_Superpix75(opt, type, root, processed_file_name=None):
     class IMAGE_IN_MEM(InMemoryDataset):
         def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
@@ -288,7 +288,12 @@ def create_Superpix75(opt, type, root, processed_file_name=None):
                 for k in range(coords_train.shape[0]):
                     adj_mat_train[k, :, :] = np.isfinite(coords_train[k, :, :, 1])
 
+                # data labels [0,...,9]
                 train_labels = self.load_labels(path_train_labels)
+
+                #what are these? one per datapoint
+                idx_centroids_train = load_matlab_file(path_train_centroids, 'idx_centroids')
+
                 batch_size = opt['batch_size']
                 for i in range(opt['train_size'] // batch_size):
                     x = vals_train[i*batch_size:(i+1)*batch_size+1,:]
@@ -347,7 +352,7 @@ def load_Superpix75Mat(opt): #, path='../data/SuperMNIST/MNIST/datasets/mnist_su
     Graph_test = create_Superpix75(opt, type,
                 root='../data/SuperPix75'+ str(opt['test_size']) +type+'/', processed_file_name='GraphSuperPix75'+ str(opt['test_size'])+type+'.pt')
 
-    return Graph_GNN, Graph_train, Graph_test
+    return Graph_train, Graph_test
 
 
 def imshow(img):
@@ -422,7 +427,7 @@ if __name__ == "__main__":
     opt = vars(args)
     opt = get_image_opt(opt)
 
-    # load_Superpix75Mat(opt)
+    load_Superpix75Mat(opt)
 
 
     # Cora = get_dataset('Cora', '../data', False)

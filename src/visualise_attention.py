@@ -19,7 +19,7 @@ def main(opt):
 
   dataset = get_dataset(opt['dataset'], '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  model, data = GNN(opt, dataset, device).to(device), dataset.data.to(device)
+  model, data = GNN(opt, dataset, device, None, None).to(device), dataset.data.to(device)
   print(opt)
   # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
   parameters = [p for p in model.parameters() if p.requires_grad]

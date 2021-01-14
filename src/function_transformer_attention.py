@@ -12,14 +12,14 @@ from base_classes import ODEFunc
 
 class ODEFuncTransformerAtt(ODEFunc):
 
-  def __init__(self, in_features, out_features, opt, data, device):
+  def __init__(self, in_features, out_features, opt, edge_index, edge_attr, device):
     super(ODEFuncTransformerAtt, self).__init__(opt, device)
 
     if opt['self_loop_weight'] > 0:
-      self.edge_index, self.edge_weight = add_remaining_self_loops(data.edge_index, data.edge_attr,
+      self.edge_index, self.edge_weight = add_remaining_self_loops(edge_index, edge_attr,
                                                                    fill_value=opt['self_loop_weight'])
     else:
-      self.edge_index, self.edge_weight = data.edge_index, data.edge_attr
+      self.edge_index, self.edge_weight = edge_index, edge_attr
     # self.alpha = nn.Parameter(torch.ones([data.num_nodes, 1]))
     self.multihead_att_layer = SpGraphTransAttentionLayer(in_features, out_features, opt,
                                                           device).to(device)
