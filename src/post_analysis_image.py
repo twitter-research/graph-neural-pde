@@ -124,10 +124,9 @@ def plot_att_edges(model):
   pass
 
 def main(opt):
-  model_key = '20210114_195014'
+  model_key = '20210114_211047'
   directory = f"../models/"
   for filename in os.listdir(directory):
-    print(filename)
     if filename.startswith(model_key):
       path = os.path.join(directory, filename)
       print(path)
@@ -139,13 +138,6 @@ def main(opt):
 
   df = pd.read_csv(f'{directory}models.csv')
   optdf = df.loc[df['model_key'] == model_key]
-  # numeric = ['batch_size', 'train_size', 'test_size', 'Test Acc', 'alpha',
-  #            'hidden_dim', 'input_dropout', 'dropout',
-  #            'lr', 'decay', 'self_loop_weight', 'epoch', 'time',
-  #            'tol_scale', 'ode_blocks', 'dt_min', 'dt',
-  #            'leaky_relu_slope', 'attention_dropout', 'heads', 'attention_norm_idx', 'attention_dim',
-  #            'im_width', 'im_height', 'num_feature', 'num_class', 'im_chan', 'num_nodes']
-  # df[numeric] = df[numeric].apply(pd.to_numeric)
   opt = optdf.to_dict('records')[0]
 
   print("Loading Data")
@@ -181,10 +173,10 @@ def main(opt):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('--use_cora_defaults', action='store_true',
-                      help='Whether to run with best params for cora. Overrides the choice of dataset')
-  parser.add_argument('--dataset', type=str, default='Cora',
-                      help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS')
+  # parser.add_argument('--use_cora_defaults', action='store_true',
+  #                     help='Whether to run with best params for cora. Overrides the choice of dataset')
+  # parser.add_argument('--dataset', type=str, default='Cora',
+  #                     help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS')
   parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
   parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')
   parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
@@ -235,7 +227,6 @@ if __name__ == '__main__':
   # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
   parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")
-
   parser.add_argument('--kinetic_energy', type=float, default=None, help="int_t ||f||_2^2")
   parser.add_argument('--directional_penalty', type=float, default=None, help="int_t ||(df/dx)^T f||^2")
   # rewiring args
@@ -249,6 +240,7 @@ if __name__ == '__main__':
   parser.add_argument('--ppr_alpha', type=float, default=0.05, help="teleport probability")
   parser.add_argument('--heat_time', type=float, default=3., help="time to run gdc heat kernal diffusion for")
   # visualisation args
+  parser.add_argument('--testing_code', type=bool, default=False, help='run on limited size training/test sets')
   parser.add_argument('--use_image_defaults', default='MNIST',help='sets as per function get_image_opt')
   parser.add_argument('--batch_size', type=int, default=64, help='Batch size')
   parser.add_argument('--train_size', type=int, default=128, help='Batch size')
@@ -260,7 +252,6 @@ if __name__ == '__main__':
   parser.add_argument('--num_class', type=int, default=10, help='im_height')
   parser.add_argument('--diags', type=bool, default=False,help='Edge index include diagonal diffusion')
   parser.add_argument('--im_dataset', type=str, default='MNIST',help='MNIST, CIFAR')
-  parser.add_argument('--testing_code', type=bool, default=True,help='Batching')
   parser.add_argument('--num_nodes', type=int, default=28**2, help='im_width')
   args = parser.parse_args()
   opt = vars(args)

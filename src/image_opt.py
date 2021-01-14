@@ -2,10 +2,10 @@
 def get_image_opt(opt):
 
   opt['im_dataset'] =  'MNIST' #'MNIST'  #datasets = ['MNIST','CIFAR']
-  opt['testing_code'] = True #False #True #to work with smaller dataset
-  opt['function'] = 'transformer' #'laplacian' #'transformer'
-  opt['block'] = 'attention' #'constant' #'attention' 'mixed
-  opt['simple'] = True
+  opt['testing_code'] = False #True #to work with smaller dataset
+  opt['function'] = 'laplacian' #'laplacian' #'transformer'
+  opt['block'] = 'constant' #'constant' #'attention' 'mixed
+  opt['simple'] = True #True
 
   opt['input_dropout'] = 0.5
   opt['dropout'] = 0

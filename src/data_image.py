@@ -307,66 +307,7 @@ def imshow(img):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--use_image_defaults', default='MNIST',
-                        help='#Image version# Whether to run with best params for cora. Overrides the choice of dataset')
-    # parser.add_argument('--use_image_defaults', action='store_true',
-    #                     help='Whether to run with best params for cora. Overrides the choice of dataset')
-    # parser.add_argument('--dataset', type=str, default='Cora',
-    #                     help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS')
-    parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')  ######## NEED
-    parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')
-    parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
-    parser.add_argument('--optimizer', type=str, default='adam', help='One from sgd, rmsprop, adam, adagrad, adamax.')
-    parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
-    parser.add_argument('--decay', type=float, default=5e-4, help='Weight decay for optimization')
-    parser.add_argument('--self_loop_weight', type=float, default=1.0, help='Weight of self-loops.')
-    parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')
-    parser.add_argument('--alpha', type=float, default=1.0, help='Factor in front matrix A.')
-    parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
-    parser.add_argument('--augment', action='store_true',
-                        help='double the length of the feature vector by appending zeros to stabilist ODE learning')
-    parser.add_argument('--alpha_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) alpha')
-    parser.add_argument('--alpha_sigmoid', type=bool, default=True, help='apply sigmoid before multiplying by alpha')
-    parser.add_argument('--beta_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) beta')
-    # ODE args
-    parser.add_argument('--method', type=str, default='dopri5',
-                        help="set the numerical solver: dopri5, euler, rk4, midpoint")  ######## NEED
-    parser.add_argument('--ode', type=str, default='ode',
-                        help="set ode block. Either 'ode', 'att', 'sde'")  ######## NEED
-    parser.add_argument('--adjoint', default=False, help='use the adjoint ODE method to reduce memory footprint')
-    parser.add_argument('--tol_scale', type=float, default=1., help='multiplier for atol and rtol')
-    parser.add_argument('--ode_blocks', type=int, default=1, help='number of ode blocks to run')
-    parser.add_argument('--simple', type=bool, default=False,
-                        help='If try get rid of alpha param and the beta*x0 source term')
-    # SDE args
-    parser.add_argument('--dt_min', type=float, default=1e-5, help='minimum timestep for the SDE solver')
-    parser.add_argument('--dt', type=float, default=1e-3, help='fixed step size')
-    parser.add_argument('--adaptive', type=bool, default=False, help='use adaptive step sizes')
-    # Attention args
-    parser.add_argument('--leaky_relu_slope', type=float, default=0.2,
-                        help='slope of the negative part of the leaky relu used in attention')
-    parser.add_argument('--attention_dropout', type=float, default=0., help='dropout of attention weights')
-    parser.add_argument('--heads', type=int, default=1, help='number of attention heads')
-    parser.add_argument('--attention_norm_idx', type=int, default=0, help='0 = normalise rows, 1 = normalise cols')
-    parser.add_argument('--attention_dim', type=int, default=64,
-                        help='the size to project x to before calculating att scores')
-    parser.add_argument('--mix_features', type=bool, default=False,
-                        help='apply a feature transformation xW to the ODE')
-    parser.add_argument('--linear_attention', type=bool, default=False,
-                        help='learn the adjacency using attention at the start of each epoch, but do not update inside the ode')
-    parser.add_argument('--mixed_block', type=bool, default=False,
-                        help='learn the adjacency using a mix of attention and the Laplacian at the start of each epoch, but do not update inside the ode')
 
-    # visualisation args
-    parser.add_argument('--batch_size', type=int, default=64, help='Batch size')
-    parser.add_argument('--batched', type=bool, default=True,
-                        help='Batching')
-    parser.add_argument('--im_width', type=int, default=28, help='im_width')
-    parser.add_argument('--im_height', type=int, default=28, help='im_height')
-    parser.add_argument('--diags', type=bool, default=False,
-                        help='Edge index include diagonal diffusion')
-    parser.add_argument('--im_dataset', type=str, default='MNIST',
-                        help='MNIST, CIFAR')
     args = parser.parse_args()
     opt = vars(args)
     opt = get_image_opt(opt)

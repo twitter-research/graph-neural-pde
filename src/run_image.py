@@ -45,8 +45,13 @@ def train(model, optimizer, dataset):
     model.bm.update(model.getNFE())
     model.resetNFE()
 
-    if batch_idx % 1 == 0:
-      print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum, time.time() - start_time))
+    if opt['testing_code']:
+      if batch_idx % 1 == 0:
+        print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum, time.time() - start_time))
+    else:
+      if batch_idx % (opt['train_size']/opt['batch_size']/10) == 0:
+        print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
+                                                                              time.time() - start_time))
 
   return loss.item()
 
@@ -140,9 +145,10 @@ def main(opt):
   #save run details to csv
   opt['model_key'] = model_key
   opt['Test Acc'] = test_acc
+  #TODO would be good to keep a record of wall-clock time
   df = pd.DataFrame({k:[v] for k,v in opt.items()})
   cols = list(df)
-  top_cols = ['model_key','testing_code','function','block','simple','batched',
+  top_cols = ['model_key','testing_code','im_dataset','function','block','simple','batched',
    'diags','batch_size','train_size','test_size','Test Acc' ,'alpha']
   for head in reversed(top_cols):
     cols.insert(0, cols.pop(cols.index(head)))
@@ -171,10 +177,10 @@ def main(opt):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('--use_cora_defaults', action='store_true',
-                      help='Whether to run with best params for cora. Overrides the choice of dataset')
-  parser.add_argument('--dataset', type=str, default='Cora',
-                      help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS')
+  # parser.add_argument('--use_cora_defaults', action='store_true',
+  #                     help='Whether to run with best params for cora. Overrides the choice of dataset')
+  # parser.add_argument('--dataset', type=str, default='Cora',
+  #                     help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS')
   parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
   parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')
   parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
@@ -238,6 +244,7 @@ if __name__ == '__main__':
   parser.add_argument('--ppr_alpha', type=float, default=0.05, help="teleport probability")
   parser.add_argument('--heat_time', type=float, default=3., help="time to run gdc heat kernal diffusion for")
   # visualisation args
+  parser.add_argument('--testing_code', type=bool, default=False, help='run on limited size training/test sets')
   parser.add_argument('--use_image_defaults', default='MNIST',help='sets as per function get_image_opt')
   parser.add_argument('--batch_size', type=int, default=64, help='Batch size')
   parser.add_argument('--train_size', type=int, default=128, help='Batch size')
@@ -249,7 +256,6 @@ if __name__ == '__main__':
   parser.add_argument('--num_class', type=int, default=10, help='im_height')
   parser.add_argument('--diags', type=bool, default=False,help='Edge index include diagonal diffusion')
   parser.add_argument('--im_dataset', type=str, default='MNIST',help='MNIST, CIFAR')
-  parser.add_argument('--testing_code', type=bool, default=True,help='Batching')
   parser.add_argument('--num_nodes', type=int, default=28**2, help='im_width')
 
   args = parser.parse_args()
