@@ -331,6 +331,8 @@ if __name__ == '__main__':
   parser.add_argument('--use_image_defaults', default='MNIST',
                       help='sets as per function get_image_opt')
   parser.add_argument('--batch_size', type=int, default=64, help='Batch size')
+  parser.add_argument('--train_size', type=int, default=128, help='Batch size')
+  parser.add_argument('--test_size', type=int, default=512, help='Batch size')
   parser.add_argument('--batched', type=bool, default=True,
                       help='Batching')
   parser.add_argument('--im_width', type=int, default=28, help='im_width')
