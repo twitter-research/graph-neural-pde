@@ -138,7 +138,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
 
 from data_image import load_data
 from torch_geometric.data import DataLoader
-import GNN_image
+from GNN_image import GNN_image
 from run_image import test as test_image, train as train_image
 
 def train_ray_image(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
