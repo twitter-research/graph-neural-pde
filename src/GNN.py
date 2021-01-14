@@ -12,11 +12,11 @@ class GNN(BaseGNN):
     self.f = set_function(opt)
     self.block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
-    self.odeblocks = nn.ModuleList(
-      [self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor) for dummy_i in range(self.n_ode_blocks)]).to(self.device)
-    self.odeblock = self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor).to(self.device)
-
-    self.m2 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
+    # self.odeblocks = nn.ModuleList(
+    #   [self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor) for dummy_i in range(self.n_ode_blocks)]).to(self.device)
+    self.odeblock = self.block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
+    # todo remove next line as in base class
+    # self.m2 = nn.Linear(opt['hidden_dim'], num_classes)
 
   def forward(self, x):
     # Encode each node based on its feature.
@@ -33,7 +33,7 @@ class GNN(BaseGNN):
 
     self.odeblock.set_x0(x)
 
-    if self.training:
+    if self.training and self.odeblock.nreg > 0:
       z, self.reg_states = self.odeblock(x)
     else:
       z = self.odeblock(x)

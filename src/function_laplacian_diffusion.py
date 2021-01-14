@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 import torch_sparse
-from base_classes import ODEFunc
 
 from base_classes import ODEFunc
 

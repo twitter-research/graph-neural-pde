@@ -117,9 +117,10 @@ class BaseGNN(MessagePassing):
     self.regularization_fns, self.regularization_coeffs = create_regularization_fns(self.opt)
 
   def getNFE(self):
-    return self.odeblock.odefunc.nfe
+    return self.odeblock.odefunc.nfe + self.odeblock.reg_odefunc.odefunc.nfe
 
   def resetNFE(self):
+    self.odeblock.odefunc.nfe = 0
     self.odeblock.odefunc.nfe = 0
 
   def reset(self):
