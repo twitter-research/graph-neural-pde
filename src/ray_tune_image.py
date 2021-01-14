@@ -157,7 +157,7 @@ def train_ray_image(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
   edge_attr_gpu = batch.edge_attr
 
   model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu.to(device),
-                    edge_attr_gpu.to(device), device).to(device)
+                    edge_attr_gpu, device).to(device)
   # model = GNN_image(opt, batch, opt['num_class'], device).to(device)
   # model = GNN(opt, dataset, device)
 
