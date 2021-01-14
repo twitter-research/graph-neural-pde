@@ -261,18 +261,8 @@ def set_MNIST_search_space(opt):
 
 
 def set_search_space(opt):
-  if opt["dataset"] == "Cora":
-    return set_cora_search_space(opt)
-  elif opt["dataset"] == "Pubmed":
-    return set_pubmed_search_space(opt)
-  elif opt["dataset"] == "Citeseer":
-    return set_citeseer_search_space(opt)
-  elif opt["dataset"] == "Computers":
-    return set_computers_search_space(opt)
-  elif opt["dataset"] == "Photo":
-    return set_photo_search_space(opt)
-  elif opt["dataset"] == "CoauthorCS":
-    return set_coauthors_search_space(opt)
+  if opt["dataset"] == "MNIST":
+    return set_MNIST_search_space(opt)
 
 
 def main(opt):
@@ -353,7 +343,7 @@ if __name__ == "__main__":
     help="Whether to run with best params for cora. Overrides the choice of dataset",
   )
   parser.add_argument(
-    "--dataset", type=str, default="Cora", help="Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS"
+    "--dataset", type=str, default="MNIST", help="Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS"
   )
   parser.add_argument("--hidden_dim", type=int, default=32, help="Hidden dimension.")
   parser.add_argument("--input_dropout", type=float, default=0.5, help="Input dropout rate.")
