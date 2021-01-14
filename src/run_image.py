@@ -135,9 +135,9 @@ def test(model, dataset):
     if batch_idx > model.opt['test_size']//model.opt['batch_size']: # only do this for 1st batch/epoch
       break
     model.eval()
-    logits, accs = model(batch.x), []
+    logits, accs = model(batch.x.to(model.device)), []
     pred = logits.max(1)[1]
-    total_correct += pred.eq(batch.y.T).sum().item()
+    total_correct += pred.eq(batch.y.T.to(model.device)).sum().item()
   accs = total_correct / test_size
   return accs
 
