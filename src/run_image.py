@@ -103,10 +103,6 @@ def train(epoch, model, optimizer, dataset):
 
     out = model(batch.x.to(model.device))
 
-    print(f"batch y: {batch.y.to(model.device).size()}")
-    print(f"batch y2: {batch.y.view(-1).to(model.device).size()}")
-    print(f"out {out.size()}")
-
     lf = torch.nn.CrossEntropyLoss()
     # loss = lf(out, torch.squeeze(batch.y))  #squeeze now needed
     loss = lf(out, batch.y.view(-1).to(model.device))  #squeeze now needed
@@ -139,9 +135,9 @@ def test(model, dataset):
     if batch_idx > model.opt['test_size']//model.opt['batch_size']: # only do this for 1st batch/epoch
       break
     model.eval()
-    logits, accs = model(batch.x), []
+    logits, accs = model(batch.x.to(model.device)), []
     pred = logits.max(1)[1]
-    total_correct += pred.eq(batch.y.T).sum().item()
+    total_correct += pred.eq(batch.y.T.to(model.device)).sum().item()
   accs = total_correct / test_size
   return accs
 
@@ -179,8 +175,18 @@ def main(opt):
   for batch_idx, batch in enumerate(loader):
       break
   print("creating GNN model")
-  model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], batch.edge_index,
+
+  batch.to(device)
+  edge_index_gpu = batch.edge_index
+  edge_attr_gpu = batch.edge_attr
+
+  model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu.to(device),
                     batch.edge_attr, device).to(device)
+  #
+  # model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], batch.edge_index,
+  #                   batch.edge_attr, device).to(device)
+
+
 
   print(opt)
   # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
