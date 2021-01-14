@@ -105,7 +105,7 @@ def train(epoch, model, optimizer, dataset):
 
     lf = torch.nn.CrossEntropyLoss()
     # loss = lf(out, torch.squeeze(batch.y))  #squeeze now needed
-    loss = lf(out, batch.y.view(-1))  #squeeze now needed
+    loss = lf(out, batch.y.view(-1).to(model.device))  #squeeze now needed
 
     model.fm.update(model.getNFE())
     model.resetNFE()
