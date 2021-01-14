@@ -152,6 +152,7 @@ def train_ray_image(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
   for batch_idx, batch in enumerate(loader):
       break
 
+  batch.to(device)
   model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], batch.edge_index,
                     batch.edge_attr, device).to(device)
   # model = GNN_image(opt, batch, opt['num_class'], device).to(device)
@@ -314,6 +315,7 @@ def main(opt):
   loader = DataLoader(dataset_train, batch_size=opt['batch_size'], shuffle=True)
   for batch_idx, batch in enumerate(loader):
       break
+  batch.to(device)
   best_trained_model = GNN_image(best_trial.config, batch.num_features, batch.num_nodes, opt['num_class'], batch.edge_index,
                     batch.edge_attr, device).to(device)
 

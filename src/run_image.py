@@ -101,7 +101,7 @@ def train(epoch, model, optimizer, dataset):
     if batch_idx > model.opt['train_size']//model.opt['batch_size']: # only do this for 1st batch/epoch
       break
 
-    out = model(batch.x)
+    out = model(batch.x.to(model.device))
 
     lf = torch.nn.CrossEntropyLoss()
     # loss = lf(out, torch.squeeze(batch.y))  #squeeze now needed
