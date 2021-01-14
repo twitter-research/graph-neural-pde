@@ -253,7 +253,7 @@ def get_sym_adj(data, opt, device):
 
 
 def train(model, optimizer, data):
-  model.train()
+    model.train(,
   optimizer.zero_grad()
   out = model(data.x)
   lf = torch.nn.CrossEntropyLoss()

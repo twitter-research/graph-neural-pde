@@ -2,70 +2,13 @@ import os
 import sys
 import argparse
 import torch
-import torchvision
-import numpy as np
-from torch_geometric.nn import GCNConv, ChebConv
 from GNN_image import GNN_image
 import time
 from torch_geometric.data import DataLoader
-from data_image import edge_index_calc, create_in_memory_dataset, load_data
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-from torch_geometric.utils import to_dense_adj
+from data_image import load_data
 import pandas as pd
-import torchvision.transforms as transforms
-from utils import get_rw_adj
-from post_analysis_image import print_image_T, print_image_path, plot_att_heat, plot_att_edges
+from image_opt import get_image_opt
 
-
-def get_image_opt(opt):
-
-  opt['im_dataset'] = 'MNIST' #'CIFAR'  #datasets = ['MNIST','CIFAR']
-  opt['testing_code'] = True #False #True #to work with smaller dataset
-
-  opt['input_dropout'] = 0.5
-  opt['dropout'] = 0
-  opt['optimizer'] = 'rmsprop'
-  opt['lr'] = 0.0047
-  opt['decay'] = 5e-4
-  opt['self_loop_weight'] = 0.555  #### 0?
-  opt['alpha'] = 0.918
-  opt['time'] = 1 #12.1
-  opt['augment'] = False #True   #False need to view image
-  opt['attention_dropout'] = 0
-  opt['adjoint'] = False
-
-  opt['epoch'] = 2 #3 #1 #1 #3 #10#20 #400
-  opt['batch_size'] = 64 #64 #64  # doing batch size for mnist
-  opt['train_size'] = 128#10240 #512 #10240     #128#512 #4096 #2048
-  opt['test_size'] = 512 #512#64         #128
-  assert (opt['train_size']) % opt['batch_size'] == 0, "train_size needs to be multiple of batch_size"
-  assert (opt['test_size']) % opt['batch_size'] == 0, "test_size needs to be multiple of batch_size"
-
-
-  if opt['im_dataset'] == 'MNIST':
-    opt['im_width'] = 28
-    opt['im_height'] = 28
-    opt['im_chan'] = 1
-    opt['hidden_dim'] = 1 #16    #### 1 or 3 rgb?
-    opt['num_feature'] = 1  # 1433   #### 1 or 3 rgb?
-    opt['num_class'] = 10  # 7  #### mnist digits
-
-  elif opt['im_dataset'] == 'CIFAR':
-    opt['im_width'] = 32
-    opt['im_height'] = 32
-    opt['im_chan'] = 3
-    opt['hidden_dim'] = 3 #16    #### 1 or 3 rgb?
-    opt['num_feature'] = 3  # 1433   #### 1 or 3 rgb?
-    opt['num_class'] = 10  # 7  #### mnist digits
-
-  opt['num_nodes'] = opt['im_height'] * opt['im_width'] # * opt['im_chan'] #2708  ###pixels
-  opt['simple'] = True #False does not run in new code
-  opt['diags'] = True
-  opt['ode'] = 'ode' #'att' don't think att is implmented properly on this codebase?
-  opt['linear_attention'] = True
-  opt['batched'] = True
-  return opt
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
   if name == 'sgd':
@@ -81,46 +24,30 @@ def get_optimizer(name, parameters, lr, weight_decay=0):
   else:
     raise Exception("Unsupported optimizer: {}".format(name))
 
-def train(epoch, model, optimizer, dataset):
-
+def train(model, optimizer, dataset):
   model.train()
   loader = DataLoader(dataset, batch_size=model.opt['batch_size'], shuffle=True)
 
   for batch_idx, batch in enumerate(loader):
     optimizer.zero_grad()
     start_time = time.time()
-    # if batch_idx == 0 and epoch==0: # only do this for 1st batch/epochf
-    #   break
-      #need to rebuild the adjacency with the batch_size
-      #requires every batch loop the same size
-      # model.data = batch #loader.dataset  #adding this to reset the data
-      # model.odeblock.data = batch #loader.dataset.data #why do I need to do this? duplicating data from model to ODE block?
-      # model.odeblock.odefunc.adj = model.odeblock.odefunc.get_rw_adj(model.data) #to reset adj matrix
-      # model.odeblock.odefunc.adj = get_rw_adj(model.data.edge_index) #to reset adj matrix
-
-    if batch_idx > model.opt['train_size']//model.opt['batch_size']: # only do this for 1st batch/epoch
+    if batch_idx > model.opt['train_size']//model.opt['batch_size']: # only do for train_size data points
       break
 
     out = model(batch.x.to(model.device))
 
     lf = torch.nn.CrossEntropyLoss()
-    # loss = lf(out, torch.squeeze(batch.y))  #squeeze now needed
-    loss = lf(out, batch.y.view(-1).to(model.device))  #squeeze now needed
-
+    loss = lf(out, batch.y.view(-1).to(model.device))
     model.fm.update(model.getNFE())
     model.resetNFE()
-    # F.nll_loss(out[data.train_mask], data.y[data.train_mask]).backward()
     loss.backward()
     optimizer.step()
     model.bm.update(model.getNFE())
     model.resetNFE()
+
     if batch_idx % 1 == 0:
       print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum, time.time() - start_time))
 
-    # if batch_idx % args.log_interval == 0:
-    #   print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-    #     epoch, batch_idx * len(data), len(train_loader.dataset),
-    #            100. * batch_idx / len(train_loader), loss.item()))
   return loss.item()
 
 
@@ -151,110 +78,87 @@ def print_model_params(model):
 
 
 def main(opt):
-  # try:
-  #   os.rename('../models/models.xlsx','../models/temp_models.xlsx')
-  #   os.rename('../models/temp_models.xlsx','../models/models.xlsx')
-  # except OSError:
-  #   print('Error ../models/models.xlsx is still open, please close and rerun.')
-  #   sys.exit(1)
-
+  csv_path = '../models/models.csv'
+  if os.path.exists(csv_path):
+    try:
+      os.rename(csv_path,'../models/temp_models.csv')
+      os.rename('../models/temp_models.csv',csv_path)
+    except OSError:
+      print(f'Error {csv_path} is still open, please close and rerun.')
+      sys.exit(1)
   try:
     if opt['use_image_defaults']:
       opt = get_image_opt(opt) #get_cora_opt(opt)
   except KeyError:
     pass  # not always present when called as lib
 
-  use_cuda = False  # True  put this in opt??
-  torch.manual_seed(1)
-  device = torch.device("cuda" if use_cuda else "cpu")
-
   print("Loading Data")
-  Graph_GNN, Graph_train, Graph_test = load_data(opt)
+  data_train, data_test = load_data(opt)
 
-  loader = DataLoader(Graph_train, batch_size=opt['batch_size'], shuffle=True)
+  print("creating GNN model")
+  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+  loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=True)
   for batch_idx, batch in enumerate(loader):
       break
-  print("creating GNN model")
-
   batch.to(device)
   edge_index_gpu = batch.edge_index
   edge_attr_gpu = batch.edge_attr
-
-  model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu.to(device),
+  if edge_index_gpu is not None: edge_index_gpu.to(device)
+  if edge_attr_gpu is not None: edge_index_gpu.to(device)
+  model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
                     batch.edge_attr, device).to(device)
-  #
-  # model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], batch.edge_index,
-  #                   batch.edge_attr, device).to(device)
-
-
 
   print(opt)
-  # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
   parameters = [p for p in model.parameters() if p.requires_grad]
   print_model_params(model)
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-  best_val_acc = test_acc = best_epoch = 0
 
-  for epoch in range(opt['epoch']): #1, opt['epoch']):
+  for epoch in range(opt['epoch']):
     print("Epoch {}".format(epoch))
     start_time = time.time()
-
-    loss = train(epoch, model, optimizer, Graph_train)
-    tmp_test_acc = test(model, Graph_test)
-    # train_acc, val_acc, tmp_test_acc = test(model, Graph_test)
-
-  # Greyed this out as extra complication with batchsize linked adj
-  #   if val_acc > best_val_acc:
-  #     best_val_acc = val_acc
-  #     test_acc = tmp_test_acc
-  #     best_epoch = epoch
-  #   log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-  #   print(
-  #     log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, best_val_acc, test_acc))
-  #   # print('gamma: {}'.format(model.odeblock.gamma))
-  # print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
-
+    loss = train(model, optimizer, data_train)
+    test_acc = test(model, data_test)
     log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
-    print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, tmp_test_acc))
+    print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
 
-  timestr = time.strftime("%Y%m%d-%H%M%S")
-
+  timestr = time.strftime("%Y%m%d_%H%M%S")
   #save model - params only - no point repeatedly saving data
-  # savefolder = f"../models/model_{timestr}"
-  # try:
-  #   os.mkdir(savefolder)
-  # except OSError:
-  #   print("Creation of the directory %s failed" % savefolder)
-  # else:
-  #   print("Successfully created the directory %s " % savefolder)
-  #
-  # savepath = f"../models/model_{timestr}/model_{timestr}"
-  # torch.save(model.state_dict(), savepath)
+  data_name = opt['im_dataset']
+  blck = opt['block']
+  fct = opt['function']
+  model_key = f"{timestr}"
+  savefolder = f"../models/{timestr}_{data_name}_{blck}_{fct}"
+  savepath = f"../models/{savefolder}/model_{model_key}"
+  try:
+    os.mkdir(savefolder)
+  except OSError:
+    print("Creation of the directory %s failed" % savefolder)
+  else:
+    print("Successfully created the directory %s " % savefolder)
+  torch.save(model.state_dict(), savepath)
 
-  #save params of: [opt dict, alpha, beta] to XL dataframe
-  opt['model_key'] = f"model_{timestr}"
-  opt['Test Acc'] = tmp_test_acc
+  #save run details to csv
+  opt['model_key'] = model_key
+  opt['Test Acc'] = test_acc
+  df = pd.DataFrame({k:[v] for k,v in opt.items()})
+  cols = list(df)
+  top_cols = ['model_key','testing_code','function','block','simple','batched',
+   'diags','batch_size','train_size','test_size','Test Acc' ,'alpha']
+  for head in reversed(top_cols):
+    cols.insert(0, cols.pop(cols.index(head)))
+  df = df.loc[:, cols]
+  header = False if os.path.exists(csv_path) else True
+  df.to_csv(csv_path,mode='a',header=header)
 
-  # df = pd.DataFrame({k:[v] for k,v in opt.items()})
-  # cols = list(df)
-  # top_cols = ['model_key','im_dataset','ode','linear_attention','batched',
-  #  'simple','diags','batch_size','train_size','test_size','Test Acc' ,'alpha']#,'beta']
-  # for head in reversed(top_cols):
-  #   cols.insert(0, cols.pop(cols.index(head)))
-  # df = df.loc[:, cols]
-  # print("Saving Excel")
-  # # df.to_excel("models.xlsx")
-  # from excel_helper import append_df_to_excel
-  # append_df_to_excel(f'../models/models.xlsx', df, sheet_name='Sheet1', startrow=None,
-  #                    truncate_sheet=False,header=False) #True)#False)#,**to_excel_kwargs)
-  #
   # print("creating GNN model")
-  # loader = DataLoader(Graph_train, batch_size=opt['batch_size'], shuffle=True)
-  # for batch_idx, batch in enumerate(loader):
-  #     break
-  # print("creating GNN model")
-  # model = GNN_image(opt, batch, opt['num_class'], device).to(device)
+  # batch.to(device)
+  # edge_index_gpu = batch.edge_index
+  # edge_attr_gpu = batch.edge_attr
+  # if edge_index_gpu is not None: edge_index_gpu.to(device)
+  # if edge_attr_gpu is not None: edge_index_gpu.to(device)
   #
+  # model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
+  #                   batch.edge_attr, device).to(device)  #
   # model.load_state_dict(torch.load(savepath))
   # out = model(batch.x)
   # model.eval()
@@ -262,7 +166,7 @@ def main(opt):
   # animation = print_image_path(model, Graph_test, height=2, width=3, frames=10)
   # animation.save(f'../images/Graph{exdataset}_ani_{timestr}.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=0.5)
   # plot_att_heat(model)
-  # return tmp_test_acc
+  return test_acc
 
 
 if __name__ == '__main__':
@@ -321,10 +225,8 @@ if __name__ == '__main__':
   # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
   parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")
-
   parser.add_argument('--kinetic_energy', type=float, default=None, help="int_t ||f||_2^2")
   parser.add_argument('--directional_penalty', type=float, default=None, help="int_t ||(df/dx)^T f||^2")
-
   # rewiring args
   parser.add_argument('--rewiring', type=str, default=None, help="two_hop, gdc")
   parser.add_argument('--gdc_method', type=str, default='ppr', help="ppr, heat, coeff")
@@ -335,28 +237,20 @@ if __name__ == '__main__':
                       help="if gdc_threshold is not given can be calculated by specifying avg degree")
   parser.add_argument('--ppr_alpha', type=float, default=0.05, help="teleport probability")
   parser.add_argument('--heat_time', type=float, default=3., help="time to run gdc heat kernal diffusion for")
-
-
   # visualisation args
-  parser.add_argument('--use_image_defaults', default='MNIST',
-                      help='sets as per function get_image_opt')
+  parser.add_argument('--use_image_defaults', default='MNIST',help='sets as per function get_image_opt')
   parser.add_argument('--batch_size', type=int, default=64, help='Batch size')
   parser.add_argument('--train_size', type=int, default=128, help='Batch size')
-  parser.add_argument('--test_size', type=int, default=512, help='Batch size')
-  parser.add_argument('--batched', type=bool, default=True,
-                      help='Batching')
+  parser.add_argument('--test_size', type=int, default=128, help='Batch size')
+  parser.add_argument('--batched', type=bool, default=True,help='Batching')
   parser.add_argument('--im_width', type=int, default=28, help='im_width')
   parser.add_argument('--im_height', type=int, default=28, help='im_height')
   parser.add_argument('--im_chan', type=int, default=1, help='im_height')
-  parser.add_argument('--num_class', type=int, default=1, help='im_height')
-  parser.add_argument('--diags', type=bool, default=False,
-                      help='Edge index include diagonal diffusion')
-  parser.add_argument('--im_dataset', type=str, default='MNIST',
-                                           help='MNIST, CIFAR')
-  parser.add_argument('--testing_code', type=bool, default=True,
-                      help='Batching')
+  parser.add_argument('--num_class', type=int, default=10, help='im_height')
+  parser.add_argument('--diags', type=bool, default=False,help='Edge index include diagonal diffusion')
+  parser.add_argument('--im_dataset', type=str, default='MNIST',help='MNIST, CIFAR')
+  parser.add_argument('--testing_code', type=bool, default=True,help='Batching')
   parser.add_argument('--num_nodes', type=int, default=28**2, help='im_width')
-
 
   args = parser.parse_args()
   opt = vars(args)

@@ -64,7 +64,7 @@ class Trainer(object):
             target = target.cuda()
             idx = idx.cuda()
 
-        self.model.train()
+        self.model.train(,
         self.optimizer.zero_grad()
 
         logits = self.model(inputs)
@@ -87,7 +87,7 @@ class Trainer(object):
             target = target.cuda()
             idx = idx.cuda()
 
-        self.model.train()
+        self.model.train(,
         self.optimizer.zero_grad()
 
         logits = self.model(inputs)
@@ -115,7 +115,7 @@ class Trainer(object):
             target = target.cuda()
             idx = idx.cuda()
 
-        self.model.train()
+        self.model.train(,
         self.optimizer.zero_grad()
 
         logits = self.model(inputs)

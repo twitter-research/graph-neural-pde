@@ -10,54 +10,7 @@ import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
 import scipy.sparse as sp
 import h5py
-
-def get_image_opt(opt):
-  opt['im_dataset'] = 'MNIST'  #datasets = ['MNIST','CIFAR']
-
-  opt['input_dropout'] = 0.5
-  opt['dropout'] = 0
-  opt['optimizer'] = 'rmsprop'
-  opt['lr'] = 0.0047
-  opt['decay'] = 5e-4
-  opt['self_loop_weight'] = 0.555  #### 0?
-  opt['alpha'] = 0.918
-  opt['time'] = 12.1
-  opt['augment'] = False #True   #False need to view image
-  opt['attention_dropout'] = 0
-  opt['adjoint'] = False
-
-  opt['epoch'] = 4 #3 #10#20 #400
-  opt['batch_size'] = 64 #64  # doing batch size for mnist
-  opt['train_size'] = 512 #128#512 #4096 #2048 #512 #2047:#4095:#511:#5119:#1279:#
-  opt['test_size'] = 64 #2559:#1279:
-  assert (opt['train_size']) % opt['batch_size'] == 0, "train_size needs to be multiple of batch_size"
-  assert (opt['test_size']) % opt['batch_size'] == 0, "test_size needs to be multiple of batch_size"
-
-
-  if opt['im_dataset'] == 'MNIST':
-    opt['im_width'] = 28
-    opt['im_height'] = 28
-    opt['im_chan'] = 1
-    opt['hidden_dim'] = 1 #16    #### 1 or 3 rgb?
-    opt['num_feature'] = 1  # 1433   #### 1 or 3 rgb?
-    opt['num_class'] = 10  # 7  #### mnist digits
-
-  elif opt['im_dataset'] == 'CIFAR':
-    opt['im_width'] = 32
-    opt['im_height'] = 32
-    opt['im_chan'] = 3
-    # ????
-    opt['hidden_dim'] = 3 #16    #### 1 or 3 rgb?
-    opt['num_feature'] = 3  # 1433   #### 1 or 3 rgb?
-    opt['num_class'] = 10  # 7  #### mnist digits
-
-  opt['num_nodes'] = opt['im_height'] * opt['im_width'] * opt['im_chan'] #2708  ###pixels
-  opt['simple'] = False #True
-  opt['diags'] = True
-  opt['ode'] = 'ode' #'att' don't think att is implmented properly on this codebase?
-  opt['linear_attention'] = True
-  opt['batched'] = True
-  return opt
+from image_opt import get_image_opt
 
 
 def edge_index_calc(im_height, im_width, im_chan, diags = False):
@@ -167,20 +120,10 @@ def create_in_memory_dataset(opt, type, data_loader, edge_index, im_height, im_w
         def download(self):
             pass #download_url(self.url, self.raw_dir)
 
-        # @property
-        # def num_classes(self):
-        #     r"""The number of classes in the dataset."""
-        #     y = self.data.y
-        #     return y.max().item() + 1 if y.dim() == 1 else y.size(1)
         def process(self):
             graph_list = []
             for batch_idx, (data, target) in enumerate(data_loader):
-                if type == "GNN":
-                    if batch_idx > 0:
-                        break
-                    self.tensor = torch.tensor(opt['num_class'] - 1)
-                    y = self.tensor  #<- hack the datset num_classes property (code above)
-                elif type == "Train":
+                if type == "Train":
                     if opt['testing_code'] == True and batch_idx > opt['train_size'] - 1:
                         break
                     y = target
@@ -188,7 +131,7 @@ def create_in_memory_dataset(opt, type, data_loader, edge_index, im_height, im_w
                     if opt['testing_code'] == True and batch_idx > opt['test_size'] - 1:
                         break
                     y = target
-                x = data.view(im_chan, im_width * im_height)#, -1)
+                x = data.view(im_chan, im_width * im_height)
                 x = x.T
 
                 graph = Data(x=x, y=y.unsqueeze(dim=0), edge_index=edge_index)
@@ -197,52 +140,53 @@ def create_in_memory_dataset(opt, type, data_loader, edge_index, im_height, im_w
             self.data, self.slices = self.collate(graph_list)
             torch.save((self.data, self.slices), self.processed_paths[0])
 
-
     return IMAGE_IN_MEM(root)
-
 
 
 def load_data(opt):
   im_height = opt['im_height']
   im_width = opt['im_width']
   im_chan = opt['im_chan']
-  exdataset = opt['im_dataset']
+  data_name = opt['im_dataset']
 
   if opt['im_dataset'] == 'MNIST':
     transform = transforms.Compose([transforms.ToTensor(),
                                     transforms.Normalize((0.1307,), (0.3081,))])
-    data_train = torchvision.datasets.MNIST('../data/'+exdataset + '/', train=True, download=True,
+    data_train = torchvision.datasets.MNIST('../data/'+data_name + '/', train=True, download=True,
                                             transform=transform)
-    data_test = torchvision.datasets.MNIST('../data/'+exdataset+'/', train=False, download=True,
+    data_test = torchvision.datasets.MNIST('../data/'+data_name+'/', train=False, download=True,
                                            transform=transform)
   elif opt['im_dataset'] == 'CIFAR':
     transform = transforms.Compose([transforms.ToTensor(),
                                     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    data_train = torchvision.datasets.CIFAR10('../data/' + exdataset + '/', train=True, download=True,
+    data_train = torchvision.datasets.CIFAR10('../data/' + data_name + '/', train=True, download=True,
                                             transform=transform)
-    data_test = torchvision.datasets.CIFAR10('../data/' + exdataset + '/', train=False, download=True,
+    data_test = torchvision.datasets.CIFAR10('../data/' + data_name + '/', train=False, download=True,
                                            transform=transform)
 
   train_loader = torch.utils.data.DataLoader(data_train, batch_size=1, shuffle=True)
   test_loader = torch.utils.data.DataLoader(data_test, batch_size=1, shuffle=True)
 
   edge_index = edge_index_calc(im_height, im_width, im_chan, diags=opt['diags'])
+
   print("creating in_memory_datasets")
   if opt['testing_code'] == True:
-      Graph_GNN = create_in_memory_dataset(opt, "GNN", train_loader, edge_index, im_height, im_width, im_chan,
-                                             root='../data/PyG'+exdataset+'GNN/', processed_file_name='Graph'+exdataset+'GNN.pt')
-      Graph_train = create_in_memory_dataset(opt, "Train", train_loader, edge_index, im_height, im_width, im_chan,
-                                             root='../data/PyG'+exdataset+ str(opt['train_size'])+'Train/', processed_file_name='Graph'+exdataset+str(opt['train_size']) +'Train.pt')
-      Graph_test = create_in_memory_dataset(opt, "Test", test_loader, edge_index, im_height, im_width, im_chan,
-                                             root='../data/PyG'+exdataset+ str(opt['test_size'])+'Test/', processed_file_name='Graph'+exdataset+str(opt['test_size']) +'Test.pt')
+      rootstr_train = '../data/PyG'+data_name+ str(opt['train_size'])+'Train/'
+      filestr_train = 'PyG'+data_name+str(opt['train_size']) +'Train.pt'
+      rootstr_test = '../data/PyG' + data_name + str(opt['test_size']) + 'Test/'
+      filestr_test = 'PyG' + data_name + str(opt['test_size']) + 'Test.pt'
   else:
-      Graph_GNN = create_in_memory_dataset(opt, "GNN", train_loader, edge_index, im_height, im_width, im_chan,
-                                             root='../data/PyG'+exdataset+'GNN/', processed_file_name='PyG'+exdataset+'GNN.pt')
-      Graph_train = create_in_memory_dataset(opt, "Train", train_loader, edge_index, im_height, im_width, im_chan,
-                                             root='../data/PyG'+exdataset+'Train/', processed_file_name='PyG'+exdataset+'Train.pt')
-      Graph_test = create_in_memory_dataset(opt, "Test", test_loader, edge_index, im_height, im_width, im_chan,
-                                             root='../data/PyG'+exdataset+'Test/', processed_file_name='PyG'+exdataset+'Test.pt')
-  return Graph_GNN, Graph_train, Graph_test
+      rootstr_train = '../data/PyG'+data_name+ str(opt['train_size'])+'Train/'
+      filestr_train = 'PyG'+data_name+str(opt['train_size']) +'Train.pt'
+      rootstr_test = '../data/PyG' + data_name + str(opt['test_size']) + 'Test/'
+      filestr_test = 'PyG' + data_name + str(opt['test_size']) + 'Test.pt'
+
+  PyG_train = create_in_memory_dataset(opt, "Train", train_loader, edge_index, im_height, im_width, im_chan,
+                                         root=rootstr_train, processed_file_name=filestr_train)
+  PyG_test = create_in_memory_dataset(opt, "Test", test_loader, edge_index, im_height, im_width, im_chan,
+                                         root=rootstr_test, processed_file_name=filestr_test)
+  return PyG_train, PyG_test
+
 
 from SuperPixData import load_matlab_file, stack_matrices
 def create_Superpix75(opt, type, root, processed_file_name=None):
