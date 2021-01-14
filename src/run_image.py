@@ -337,6 +337,7 @@ if __name__ == '__main__':
                       help='Batching')
   parser.add_argument('--im_width', type=int, default=28, help='im_width')
   parser.add_argument('--im_height', type=int, default=28, help='im_height')
+  parser.add_argument('--im_chan', type=int, default=1, help='im_height')
   parser.add_argument('--diags', type=bool, default=False,
                       help='Edge index include diagonal diffusion')
   parser.add_argument('--im_dataset', type=str, default='MNIST',
