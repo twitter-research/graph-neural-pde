@@ -14,6 +14,7 @@ REGULARIZATION_FNS = {
     "directional_penalty": reg_lib.directional_derivative
 }
 
+
 def create_regularization_fns(args):
     regularization_fns = []
     regularization_coeffs = []
@@ -40,7 +41,6 @@ class ODEblock(nn.Module):
     
     self.nreg = len(regularization_fns)
     self.reg_odefunc = RegularizedODEfunc(self.odefunc, regularization_fns)
-
 
     if opt['adjoint']:
       from torchdiffeq import odeint_adjoint as odeint
@@ -85,13 +85,12 @@ class ODEFunc(MessagePassing):
     self.edge_index = None
     self.edge_weight = None
     self.attention_weights = None
-    self.alpha_train = nn.Parameter(torch.tensor(0.0)) 
-    self.beta_train = nn.Parameter(torch.tensor(0.0)) 
+    self.alpha_train = nn.Parameter(torch.tensor(0.0))
+    self.beta_train = nn.Parameter(torch.tensor(0.0))
     self.x0 = None
     self.nfe = 0
     self.alpha_sc = nn.Parameter(torch.ones(1))
     self.beta_sc = nn.Parameter(torch.ones(1))
-
 
   def __repr__(self):
     return self.__class__.__name__
@@ -121,7 +120,7 @@ class BaseGNN(MessagePassing):
 
   def resetNFE(self):
     self.odeblock.odefunc.nfe = 0
-    self.odeblock.odefunc.nfe = 0
+    self.odeblock.reg_odefunc.odefunc.nfe = 0
 
   def reset(self):
     self.m1.reset_parameters()
