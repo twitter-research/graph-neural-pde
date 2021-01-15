@@ -425,12 +425,6 @@ if __name__ == "__main__":
   parser.add_argument("--name", type=str, default="ray_exp")
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random splits >= 0. 0 for planetoid split")
   parser.add_argument("--num_init", type=int, default=4, help="Number of random initializations >= 0")
-  parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
-  parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")
-
-  parser.add_argument('--kinetic_energy', type=float, default=None, help="int_t ||f||_2^2")
-  parser.add_argument('--directional_penalty', type=float, default=None, help="int_t ||(df/dx)^T f||^2")
-
   parser.add_argument("--baseline", action="store_true", help="Wheather to run the ICML baseline or not.")
 
 
