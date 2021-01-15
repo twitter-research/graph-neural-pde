@@ -133,7 +133,7 @@ def main(opt):
   fct = opt['function']
   model_key = f"{timestr}"
   savefolder = f"../models/{timestr}_{data_name}_{blck}_{fct}"
-  savepath = f"../models/{savefolder}/model_{model_key}"
+  savepath = f"{savefolder}/model_{model_key}"
   try:
     os.mkdir(savefolder)
   except OSError:
