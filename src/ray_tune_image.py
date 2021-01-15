@@ -143,7 +143,7 @@ from run_image import test as test_image, train as train_image
 def train_ray_image(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
   #load data
   data_train, data_test = load_data(opt)
-  print('train size: {}, test size {}'.format(data_train.shape, data_test.shape))
+  print('train size: {}, test size {}'.format(data_train.data.y.shape, data_test.data.y.shape))
   #load model
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=True)
@@ -174,7 +174,7 @@ def train_ray_image(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
     optimizer.load_state_dict(optimizer_state)
 
   for epoch in range(1, opt["epoch"]):
-    loss = train_image(epoch, model, optimizer, data_train)
+    loss = train_image(model, optimizer, data_train)
     tmp_test_accs = test_image(model, data_test)
 
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
@@ -293,10 +293,10 @@ def main(opt):
   )
 
   # df = result.dataframe(metric='accuracy', mode='max')
-  best_trial = result.get_best_trial("accuracy", "max", "all")
-  print("Best trial config: {}".format(best_trial.config))
-  print("Best trial final validation loss: {}".format(best_trial.best_result["loss"]))
-  print("Best trial final validation accuracy: {}".format(best_trial.best_result["accuracy"]))
+  # best_trial = result.get_best_trial("accuracy", "max", "all")
+  # print("Best trial config: {}".format(best_trial.config))
+  # print("Best trial final validation loss: {}".format(best_trial.best_result["loss"]))
+  # print("Best trial final validation accuracy: {}".format(best_trial.best_result["accuracy"]))
 
   # dataset = get_dataset(opt, data_dir, True)
   # best_trained_model = GNN(best_trial.config, dataset, device)
@@ -334,7 +334,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   # parser.add_argument('--use_cora_defaults', action='store_true',
   #                     help='Whether to run with best params for cora. Overrides the choice of dataset')
-  parser.add_argument('--dataset', type=str, default='Cora',
+  parser.add_argument('--dataset', type=str, default='MNIST',
                       help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS')
   parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
   parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')

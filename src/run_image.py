@@ -24,6 +24,7 @@ def get_optimizer(name, parameters, lr, weight_decay=0):
   else:
     raise Exception("Unsupported optimizer: {}".format(name))
 
+
 def train(model, optimizer, dataset):
   model.train()
   loader = DataLoader(dataset, batch_size=model.opt['batch_size'], shuffle=True)
@@ -31,7 +32,7 @@ def train(model, optimizer, dataset):
   for batch_idx, batch in enumerate(loader):
     optimizer.zero_grad()
     start_time = time.time()
-    if batch_idx > model.opt['train_size']//model.opt['batch_size']: # only do for train_size data points
+    if batch_idx > model.opt['train_size'] // model.opt['batch_size']:  # only do for train_size data points
       break
 
     out = model(batch.x.to(model.device))
@@ -45,11 +46,12 @@ def train(model, optimizer, dataset):
     model.bm.update(model.getNFE())
     model.resetNFE()
 
-    if opt['testing_code']:
+    if model.opt['testing_code']:
       if batch_idx % 1 == 0:
-        print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum, time.time() - start_time))
+        print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
+                                                                              time.time() - start_time))
     else:
-      if batch_idx % (opt['train_size']/opt['batch_size']/10) == 0:
+      if batch_idx % (model.opt['train_size'] / model.opt['batch_size'] / 10) == 0:
         print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
                                                                               time.time() - start_time))
 
@@ -64,7 +66,7 @@ def test(model, dataset):
   loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
   total_correct = 0
   for batch_idx, batch in enumerate(loader):
-    if batch_idx > model.opt['test_size']//model.opt['batch_size']: # only do this for 1st batch/epoch
+    if batch_idx > model.opt['test_size'] // model.opt['batch_size']:  # only do this for 1st batch/epoch
       break
     model.eval()
     logits, accs = model(batch.x.to(model.device)), []
@@ -86,14 +88,14 @@ def main(opt):
   csv_path = '../models/models.csv'
   if os.path.exists(csv_path):
     try:
-      os.rename(csv_path,'../models/temp_models.csv')
-      os.rename('../models/temp_models.csv',csv_path)
+      os.rename(csv_path, '../models/temp_models.csv')
+      os.rename('../models/temp_models.csv', csv_path)
     except OSError:
       print(f'Error {csv_path} is still open, please close and rerun.')
       sys.exit(1)
   try:
     if opt['use_image_defaults']:
-      opt = get_image_opt(opt) #get_cora_opt(opt)
+      opt = get_image_opt(opt)  # get_cora_opt(opt)
   except KeyError:
     pass  # not always present when called as lib
 
@@ -104,7 +106,7 @@ def main(opt):
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=True)
   for batch_idx, batch in enumerate(loader):
-      break
+    break
   batch.to(device)
   edge_index_gpu = batch.edge_index
   edge_attr_gpu = batch.edge_attr
@@ -127,7 +129,7 @@ def main(opt):
     print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
 
   timestr = time.strftime("%Y%m%d_%H%M%S")
-  #save model - params only - no point repeatedly saving data
+  # save model - params only - no point repeatedly saving data
   data_name = opt['im_dataset']
   blck = opt['block']
   fct = opt['function']
@@ -142,19 +144,19 @@ def main(opt):
     print("Successfully created the directory %s " % savefolder)
   torch.save(model.state_dict(), savepath)
 
-  #save run details to csv
+  # save run details to csv
   opt['model_key'] = model_key
   opt['Test Acc'] = test_acc
-  #TODO would be good to keep a record of wall-clock time
-  df = pd.DataFrame({k:[v] for k,v in opt.items()})
+  # TODO would be good to keep a record of wall-clock time
+  df = pd.DataFrame({k: [v] for k, v in opt.items()})
   cols = list(df)
-  top_cols = ['model_key','testing_code','im_dataset','function','block','simple','batched',
-   'diags','batch_size','train_size','test_size','Test Acc' ,'alpha']
+  top_cols = ['model_key', 'testing_code', 'im_dataset', 'function', 'block', 'simple', 'batched',
+              'diags', 'batch_size', 'train_size', 'test_size', 'Test Acc', 'alpha']
   for head in reversed(top_cols):
     cols.insert(0, cols.pop(cols.index(head)))
   df = df.loc[:, cols]
   header = False if os.path.exists(csv_path) else True
-  df.to_csv(csv_path,mode='a',header=header)
+  df.to_csv(csv_path, mode='a', header=header)
 
   # print("creating GNN model")
   # batch.to(device)
@@ -227,7 +229,8 @@ if __name__ == '__main__':
   parser.add_argument('--mix_features', type=bool, default=False,
                       help='apply a feature transformation xW to the ODE')
   parser.add_argument("--max_nfe", type=int, default=5000, help="Maximum number of function evaluations allowed.")
-  parser.add_argument('--reweight_attention', type=bool, default=False, help="multiply attention scores by edge weights before softmax")
+  parser.add_argument('--reweight_attention', type=bool, default=False,
+                      help="multiply attention scores by edge weights before softmax")
   # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
   parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")
@@ -238,25 +241,26 @@ if __name__ == '__main__':
   parser.add_argument('--gdc_method', type=str, default='ppr', help="ppr, heat, coeff")
   parser.add_argument('--gdc_sparsification', type=str, default='topk', help="threshold, topk")
   parser.add_argument('--gdc_k', type=int, default=64, help="number of neighbours to sparsify to when using topk")
-  parser.add_argument('--gdc_threshold', type=float, default=0.0001, help="obove this edge weight, keep edges when using threshold")
+  parser.add_argument('--gdc_threshold', type=float, default=0.0001,
+                      help="obove this edge weight, keep edges when using threshold")
   parser.add_argument('--gdc_avg_degree', type=int, default=64,
                       help="if gdc_threshold is not given can be calculated by specifying avg degree")
   parser.add_argument('--ppr_alpha', type=float, default=0.05, help="teleport probability")
   parser.add_argument('--heat_time', type=float, default=3., help="time to run gdc heat kernal diffusion for")
   # visualisation args
   parser.add_argument('--testing_code', type=bool, default=False, help='run on limited size training/test sets')
-  parser.add_argument('--use_image_defaults', default='MNIST',help='sets as per function get_image_opt')
+  parser.add_argument('--use_image_defaults', default='MNIST', help='sets as per function get_image_opt')
   parser.add_argument('--batch_size', type=int, default=64, help='Batch size')
   parser.add_argument('--train_size', type=int, default=128, help='Batch size')
   parser.add_argument('--test_size', type=int, default=128, help='Batch size')
-  parser.add_argument('--batched', type=bool, default=True,help='Batching')
+  parser.add_argument('--batched', type=bool, default=True, help='Batching')
   parser.add_argument('--im_width', type=int, default=28, help='im_width')
   parser.add_argument('--im_height', type=int, default=28, help='im_height')
   parser.add_argument('--im_chan', type=int, default=1, help='im_height')
   parser.add_argument('--num_class', type=int, default=10, help='im_height')
-  parser.add_argument('--diags', type=bool, default=False,help='Edge index include diagonal diffusion')
-  parser.add_argument('--im_dataset', type=str, default='MNIST',help='MNIST, CIFAR')
-  parser.add_argument('--num_nodes', type=int, default=28**2, help='im_width')
+  parser.add_argument('--diags', type=bool, default=False, help='Edge index include diagonal diffusion')
+  parser.add_argument('--im_dataset', type=str, default='MNIST', help='MNIST, CIFAR')
+  parser.add_argument('--num_nodes', type=int, default=28 ** 2, help='im_width')
 
   args = parser.parse_args()
   opt = vars(args)
