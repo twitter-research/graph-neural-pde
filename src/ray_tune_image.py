@@ -143,6 +143,7 @@ from run_image import test as test_image, train as train_image
 def train_ray_image(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
   #load data
   data_train, data_test = load_data(opt)
+  print('train size: {}, test size {}'.format(data_train.shape, data_test.shape))
   #load model
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=True)
