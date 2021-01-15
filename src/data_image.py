@@ -142,6 +142,15 @@ def create_in_memory_dataset(opt, type, data_loader, edge_index, im_height, im_w
 
     return IMAGE_IN_MEM(root)
 
+def create_out_memory_dataset(opt, type, data_loader, edge_index, im_height, im_width, im_chan, root, processed_file_name=None):
+    pass
+    # https: // pytorch - geometric.readthedocs.io / en / latest / notes / create_dataset.html
+    # def len(self):
+    #     return len(self.processed_file_names)
+    #
+    # def get(self, idx):
+    #     data = torch.load(osp.join(self.processed_dir, 'data_{}.pt'.format(idx)))
+    #     return data
 
 def load_data(opt):
   im_height = opt['im_height']
@@ -181,10 +190,16 @@ def load_data(opt):
       rootstr_test = '../data/PyG' + data_name + str(opt['test_size']) + 'Test/'
       filestr_test = 'PyG' + data_name + str(opt['test_size']) + 'Test.pt'
 
-  PyG_train = create_in_memory_dataset(opt, "Train", train_loader, edge_index, im_height, im_width, im_chan,
-                                         root=rootstr_train, processed_file_name=filestr_train)
-  PyG_test = create_in_memory_dataset(opt, "Test", test_loader, edge_index, im_height, im_width, im_chan,
-                                         root=rootstr_test, processed_file_name=filestr_test)
+  try:
+      PyG_train = create_in_memory_dataset(opt, "Train", train_loader, edge_index, im_height, im_width, im_chan,
+                                             root=rootstr_train, processed_file_name=filestr_train)
+      PyG_test = create_in_memory_dataset(opt, "Test", test_loader, edge_index, im_height, im_width, im_chan,
+                                             root=rootstr_test, processed_file_name=filestr_test)
+  except:
+      PyG_train = create_out_memory_dataset(opt, "Train", train_loader, edge_index, im_height, im_width, im_chan,
+                                             root=rootstr_train, processed_file_name=filestr_train)
+      PyG_test = create_out_memory_dataset(opt, "Test", test_loader, edge_index, im_height, im_width, im_chan,
+                                             root=rootstr_test, processed_file_name=filestr_test)
   return PyG_train, PyG_test
 
 
