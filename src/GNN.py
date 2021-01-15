@@ -12,8 +12,6 @@ class GNN(BaseGNN):
     self.f = set_function(opt)
     self.block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
-    # self.odeblocks = nn.ModuleList(
-    #   [self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor) for dummy_i in range(self.n_ode_blocks)]).to(self.device)
     self.odeblock = self.block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
     # todo remove next line as in base class
     # self.m2 = nn.Linear(opt['hidden_dim'], num_classes)
