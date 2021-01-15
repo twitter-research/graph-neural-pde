@@ -411,6 +411,33 @@ if __name__ == "__main__":
   parser.add_argument('--diags', type=bool, default=False,help='Edge index include diagonal diffusion')
   parser.add_argument('--im_dataset', type=str, default='MNIST',help='MNIST, CIFAR')
   parser.add_argument('--num_nodes', type=int, default=28**2, help='im_width')
+
+  # ray args
+  parser.add_argument("--num_samples", type=int, default=20, help="number of ray trials")
+  parser.add_argument("--gpus", type=float, default=0, help="number of gpus per trial. Can be fractional")
+  parser.add_argument("--cpus", type=float, default=1, help="number of cpus per trial. Can be fractional")
+  parser.add_argument(
+    "--grace_period", type=int, default=5, help="number of epochs to wait before terminating trials"
+  )
+  parser.add_argument(
+    "--reduction_factor", type=int, default=4, help="number of trials is halved after this many epochs"
+  )
+  parser.add_argument("--name", type=str, default="ray_exp")
+  parser.add_argument("--num_splits", type=int, default=0, help="Number of random splits >= 0. 0 for planetoid split")
+  parser.add_argument("--num_init", type=int, default=4, help="Number of random initializations >= 0")
+
+  parser.add_argument("--max_nfe", type=int, default=300, help="Maximum number of function evaluations allowed.")
+
+  parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
+  parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")
+
+  parser.add_argument('--kinetic_energy', type=float, default=None, help="int_t ||f||_2^2")
+  parser.add_argument('--directional_penalty', type=float, default=None, help="int_t ||(df/dx)^T f||^2")
+
+  parser.add_argument("--baseline", action="store_true", help="Wheather to run the ICML baseline or not.")
+
+
+
   args = parser.parse_args()
 
   opt = vars(args)
