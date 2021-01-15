@@ -52,7 +52,7 @@ class GNNEarly(BaseGNN):
     self.odeblock.set_x0(x)
     self.set_solver_m2()
 
-    if self.training:
+    if self.training  and self.odeblock.nreg > 0:
       z, self.reg_states  = self.odeblock(x)
     else:
       z = self.odeblock(x)
