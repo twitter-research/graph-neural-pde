@@ -190,16 +190,15 @@ def load_data(opt):
       rootstr_test = '../data/PyG' + data_name + str(opt['test_size']) + 'Test/'
       filestr_test = 'PyG' + data_name + str(opt['test_size']) + 'Test.pt'
 
-  try:
-      PyG_train = create_in_memory_dataset(opt, "Train", train_loader, edge_index, im_height, im_width, im_chan,
-                                             root=rootstr_train, processed_file_name=filestr_train)
-      PyG_test = create_in_memory_dataset(opt, "Test", test_loader, edge_index, im_height, im_width, im_chan,
-                                             root=rootstr_test, processed_file_name=filestr_test)
-  except:
-      PyG_train = create_out_memory_dataset(opt, "Train", train_loader, edge_index, im_height, im_width, im_chan,
-                                             root=rootstr_train, processed_file_name=filestr_train)
-      PyG_test = create_out_memory_dataset(opt, "Test", test_loader, edge_index, im_height, im_width, im_chan,
-                                             root=rootstr_test, processed_file_name=filestr_test)
+  PyG_train = create_in_memory_dataset(opt, "Train", train_loader, edge_index, im_height, im_width, im_chan,
+                                         root=rootstr_train, processed_file_name=filestr_train)
+  PyG_test = create_in_memory_dataset(opt, "Test", test_loader, edge_index, im_height, im_width, im_chan,
+                                         root=rootstr_test, processed_file_name=filestr_test)
+  # except:
+  #     PyG_train = create_out_memory_dataset(opt, "Train", train_loader, edge_index, im_height, im_width, im_chan,
+  #                                            root=rootstr_train, processed_file_name=filestr_train)
+  #     PyG_test = create_out_memory_dataset(opt, "Test", test_loader, edge_index, im_height, im_width, im_chan,
+  #                                            root=rootstr_test, processed_file_name=filestr_test)
   return PyG_train, PyG_test
 
 
