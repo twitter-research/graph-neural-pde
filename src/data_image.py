@@ -108,10 +108,9 @@ def edge_index_calc(im_height, im_width, im_chan, diags=False):
 
 
 class ImageInMemory(InMemoryDataset):
-  def __init__(self, root, name, opt, data_loader, edge_index, type, transform=None, pre_transform=None, pre_filter=None):
+  def __init__(self, root, name, opt, data, type, transform=None, pre_transform=None, pre_filter=None):
     self.name = name
-    self.data_loader = data_loader
-    self.edge_index = edge_index
+    self.data = data
     self.opt = opt
     self.type = type
     super(ImageInMemory, self).__init__(root, transform, pre_transform, pre_filter)
@@ -139,7 +138,10 @@ class ImageInMemory(InMemoryDataset):
 
   def process(self):
     graph_list = []
-    for batch_idx, (data, target) in enumerate(self.data_loader):
+    c, w, h = self.opt['im_chan'], self.opt['im_width'], self.opt['im_height']
+    edge_index = edge_index_calc(h, w, c, diags=opt['diags'])
+    data_loader = torch.utils.data.DataLoader(self.data, batch_size=1, shuffle=True)
+    for batch_idx, (data, target) in enumerate(data_loader):
       if self.type == "Train":
         if self.opt['testing_code'] == True and batch_idx > self.opt['train_size'] - 1:
           break
@@ -148,10 +150,10 @@ class ImageInMemory(InMemoryDataset):
         if self.opt['testing_code'] == True and batch_idx > self.opt['test_size'] - 1:
           break
         y = target
-      x = data.view(self.opt['im_chan'], self.opt['im_width'] * self.opt['im_height'])
+      x = data.view(c, w * h)
       x = x.T
 
-      graph = Data(x=x, y=y.unsqueeze(dim=0), edge_index=self.edge_index)
+      graph = Data(x=x, y=y.unsqueeze(dim=0), edge_index=edge_index)
       graph_list.append(graph)
 
     self.data, self.slices = self.collate(graph_list)
@@ -193,10 +195,10 @@ def load_data(opt):
     data_test = torchvision.datasets.CIFAR10('../data/CIFAR/', train=False, download=True,
                                              transform=transform)
 
-  train_loader = torch.utils.data.DataLoader(data_train, batch_size=1, shuffle=True)
-  test_loader = torch.utils.data.DataLoader(data_test, batch_size=1, shuffle=True)
-
-  edge_index = edge_index_calc(im_height, im_width, im_chan, diags=opt['diags'])
+  # train_loader = torch.utils.data.DataLoader(data_train, batch_size=1, shuffle=True)
+  # test_loader = torch.utils.data.DataLoader(data_test, batch_size=1, shuffle=True)
+  #
+  # edge_index = edge_index_calc(im_height, im_width, im_chan, diags=opt['diags'])
 
   print("creating in_memory_datasets")
   # rootstr_train = '../data/PyG' + data_name + str(opt['train_size']) + 'Train/'
@@ -207,8 +209,8 @@ def load_data(opt):
   name_train = f"PyG{data_name}{str(opt['train_size'])}Train"
   name_test = f"PyG{data_name}{str(opt['test_size'])}Test"
 
-  PyG_train = ImageInMemory(root, name_train, opt, train_loader, edge_index, 'Train', transform=None, pre_transform=None, pre_filter=None)
-  PyG_test = ImageInMemory(root, name_test, opt, test_loader, edge_index, 'Test', transform=None, pre_transform=None,
+  PyG_train = ImageInMemory(root, name_train, opt, data_train, 'Train', transform=None, pre_transform=None, pre_filter=None)
+  PyG_test = ImageInMemory(root, name_test, opt, data_test, 'Test', transform=None, pre_transform=None,
                             pre_filter=None)
 
   return PyG_train, PyG_test
