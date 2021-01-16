@@ -2,7 +2,6 @@ name: torch
 channels:
   - defaults
 dependencies:
-  - appnope=0.1.0
   - argon2-cffi=20.1.0
   - async_generator=1.10
   - attrs=20.2.0
@@ -43,7 +42,6 @@ dependencies:
   - libcxx=10.0.0
   - libedit=3.1.20191231
   - libffi=3.3
-  - libgfortran=3.0.1
   - libiconv=1.16
   - libpng=1.6.37
   - libprotobuf=3.13.0.1
