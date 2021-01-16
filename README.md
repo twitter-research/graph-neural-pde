@@ -11,10 +11,9 @@ that encompasses various forms of graph rewiring and GNNs with both explicit and
 
 Dependencies (with python >= 3.7):
 
-```{bash}
-pandas==1.1.0
-torch==1.6.0
-scikit_learn==0.23.1
+```
+conda config --append channels conda-forge
+conda create --name graph-neural-pde --file requirements.txt
 ```
 
 ### Dataset and Preprocessing
