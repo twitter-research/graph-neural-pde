@@ -156,9 +156,9 @@ class ImageInMemory(InMemoryDataset):
       graph = Data(x=x, y=y.unsqueeze(dim=0), edge_index=edge_index)
       graph_list.append(graph)
 
-    self.data, self.slices = self.collate(graph_list)
-    torch.save((self.data, self.slices), self.processed_paths[0])
-
+    # self.data, self.slices = self.collate(graph_list)
+    # torch.save((self.data, self.slices), self.processed_paths[0])
+    torch.save(self.collate(graph_list), self.processed_paths[0])
 
 
 
@@ -351,6 +351,7 @@ if __name__ == "__main__":
   opt = vars(args)
   opt = get_image_opt(opt)
   load_data(opt)
+  # data = torch.load('data/PyGMNIST128Train/processed/data.pt')
 
   # load_Superpix75Mat(opt)
 
