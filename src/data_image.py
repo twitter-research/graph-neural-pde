@@ -108,22 +108,20 @@ def edge_index_calc(im_height, im_width, im_chan, diags=False):
 
 
 class ImageInMemory(InMemoryDataset):
-  def __init__(self, root, name, opt, data, type, transform=None, pre_transform=None, pre_filter=None):
+  def __init__(self, root, name, opt, type, transform=None, pre_transform=None, pre_filter=None):
     self.name = name
-    self.data = data
     self.opt = opt
     self.type = type
     super(ImageInMemory, self).__init__(root, transform, pre_transform, pre_filter)
     self.data, self.slices = torch.load(self.processed_paths[0])
 
-
   @property
   def raw_dir(self):
-      return osp.join(self.root, self.name, 'raw')
+    return osp.join(self.root, self.name, 'raw')
 
   @property
   def processed_dir(self):
-      return osp.join(self.root, self.name, 'processed')
+    return osp.join(self.root, self.name, 'processed')
 
   @property
   def raw_file_names(self):
@@ -136,11 +134,33 @@ class ImageInMemory(InMemoryDataset):
   def download(self):
     pass  # download_url(self.url, self.raw_dir)
 
+  def read_data(self):
+    if self.opt['im_dataset'] == 'MNIST':
+      transform = transforms.Compose([transforms.ToTensor(),
+                                      transforms.Normalize((0.1307,), (0.3081,))])
+      if self.type == "Train":
+        data = torchvision.datasets.MNIST('../data/MNIST/', train=True, download=True,
+                                          transform=transform)
+      elif self.type == 'Test':
+        data = torchvision.datasets.MNIST('../data/MNIST/', train=False, download=True,
+                                          transform=transform)
+    elif self.opt['im_dataset'] == 'CIFAR':
+      transform = transforms.Compose([transforms.ToTensor(),
+                                      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+      if self.type == "Train":
+        data = torchvision.datasets.CIFAR10('../data/CIFAR/', train=True, download=True,
+                                             transform=transform)
+      elif self.type == 'Test':
+        data = torchvision.datasets.CIFAR10('../data/CIFAR/', train=False, download=True,
+                                            transform=transform)
+    return data
+
   def process(self):
     graph_list = []
+    data = self.read_data()
     c, w, h = self.opt['im_chan'], self.opt['im_width'], self.opt['im_height']
     edge_index = edge_index_calc(h, w, c, diags=self.opt['diags'])
-    data_loader = torch.utils.data.DataLoader(self.data, batch_size=1, shuffle=True)
+    data_loader = torch.utils.data.DataLoader(data, batch_size=1, shuffle=True)
     for batch_idx, (data, target) in enumerate(data_loader):
       if self.type == "Train":
         if self.opt['testing_code'] == True and batch_idx > self.opt['train_size'] - 1:
@@ -161,7 +181,6 @@ class ImageInMemory(InMemoryDataset):
     torch.save(self.collate(graph_list), self.processed_paths[0])
 
 
-
 def create_out_memory_dataset(opt, type, data_loader, edge_index, im_height, im_width, im_chan, root,
                               processed_file_name=None):
   pass
@@ -175,25 +194,7 @@ def create_out_memory_dataset(opt, type, data_loader, edge_index, im_height, im_
 
 
 def load_data(opt):
-  im_height = opt['im_height']
-  im_width = opt['im_width']
-  im_chan = opt['im_chan']
   data_name = opt['im_dataset']
-
-  if opt['im_dataset'] == 'MNIST':
-    transform = transforms.Compose([transforms.ToTensor(),
-                                    transforms.Normalize((0.1307,), (0.3081,))])
-    data_train = torchvision.datasets.MNIST('../data/MNIST/', train=True, download=True,
-                                            transform=transform)
-    data_test = torchvision.datasets.MNIST('../data/MNIST/', train=False, download=True,
-                                           transform=transform)
-  elif opt['im_dataset'] == 'CIFAR':
-    transform = transforms.Compose([transforms.ToTensor(),
-                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    data_train = torchvision.datasets.CIFAR10('../data/CIFAR/', train=True, download=True,
-                                              transform=transform)
-    data_test = torchvision.datasets.CIFAR10('../data/CIFAR/', train=False, download=True,
-                                             transform=transform)
 
   # train_loader = torch.utils.data.DataLoader(data_train, batch_size=1, shuffle=True)
   # test_loader = torch.utils.data.DataLoader(data_test, batch_size=1, shuffle=True)
@@ -209,9 +210,9 @@ def load_data(opt):
   name_train = f"PyG{data_name}{str(opt['train_size'])}Train"
   name_test = f"PyG{data_name}{str(opt['test_size'])}Test"
 
-  PyG_train = ImageInMemory(root, name_train, opt, data_train, 'Train', transform=None, pre_transform=None, pre_filter=None)
-  PyG_test = ImageInMemory(root, name_test, opt, data_test, 'Test', transform=None, pre_transform=None,
-                            pre_filter=None)
+  PyG_train = ImageInMemory(root, name_train, opt, 'Train', transform=None, pre_transform=None, pre_filter=None)
+  PyG_test = ImageInMemory(root, name_test, opt, 'Test', transform=None, pre_transform=None,
+                           pre_filter=None)
 
   return PyG_train, PyG_test
 
