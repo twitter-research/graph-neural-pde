@@ -141,11 +141,11 @@ class ImageInMemory(InMemoryDataset):
     graph_list = []
     for batch_idx, (data, target) in enumerate(self.data_loader):
       if self.type == "Train":
-        if opt['testing_code'] == True and batch_idx > opt['train_size'] - 1:
+        if self.opt['testing_code'] == True and batch_idx > self.opt['train_size'] - 1:
           break
         y = target
       elif self.type == "Test":
-        if opt['testing_code'] == True and batch_idx > opt['test_size'] - 1:
+        if self.opt['testing_code'] == True and batch_idx > self.opt['test_size'] - 1:
           break
         y = target
       x = data.view(self.opt['im_chan'], self.opt['im_width'] * self.opt['im_height'])
