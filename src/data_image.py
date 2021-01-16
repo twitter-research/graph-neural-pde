@@ -1,4 +1,5 @@
 import os
+import os.path as osp
 import argparse
 import torch
 import numpy as np
@@ -106,52 +107,22 @@ def edge_index_calc(im_height, im_width, im_chan, diags=False):
   return ret_edge_tensor
 
 
-def create_in_memory_dataset(opt, type, data_loader, edge_index, im_height, im_width, im_chan, root,
-                             processed_file_name=None):
-  class IMAGE_IN_MEM(InMemoryDataset):
-    def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
-      super(IMAGE_IN_MEM, self).__init__(root, transform, pre_transform, pre_filter)
-      self.data, self.slices = torch.load(self.processed_paths[0])
-
-    @property
-    def raw_file_names(self):
-      return []
-
-    @property
-    def processed_file_names(self):
-      return [processed_file_name]
-
-    def download(self):
-      pass  # download_url(self.url, self.raw_dir)
-
-    def process(self):
-      graph_list = []
-      for batch_idx, (data, target) in enumerate(data_loader):
-        if type == "Train":
-          if opt['testing_code'] == True and batch_idx > opt['train_size'] - 1:
-            break
-          y = target
-        elif type == "Test":
-          if opt['testing_code'] == True and batch_idx > opt['test_size'] - 1:
-            break
-          y = target
-        x = data.view(im_chan, im_width * im_height)
-        x = x.T
-
-        graph = Data(x=x, y=y.unsqueeze(dim=0), edge_index=edge_index)
-        graph_list.append(graph)
-
-      self.data, self.slices = self.collate(graph_list)
-      torch.save((self.data, self.slices), self.processed_paths[0])
-
-  return IMAGE_IN_MEM(root)
-
-
 class ImageInMemory(InMemoryDataset):
-  def __init__(self, root, opt, transform=None, pre_transform=None, pre_filter=None):
+  def __init__(self, root, name, opt, data_loader, edge_index, transform=None, pre_transform=None, pre_filter=None):
     super(ImageInMemory, self).__init__(root, transform, pre_transform, pre_filter)
-    self.opt = opt
     self.data, self.slices = torch.load(self.processed_paths[0])
+    self.name = name
+    self.data_loader = data_loader
+    self.edge_index = edge_index
+    self.opt = opt
+
+  @property
+  def raw_dir(self):
+      return osp.join(self.root, self.name, 'raw')
+
+  @property
+  def processed_dir(self):
+      return osp.join(self.root, self.name, 'processed')
 
   @property
   def raw_file_names(self):
@@ -159,27 +130,14 @@ class ImageInMemory(InMemoryDataset):
 
   @property
   def processed_file_names(self):
-    return [processed_file_name]
+    return 'data.pt'
 
   def download(self):
-    if opt['im_dataset'] == 'MNIST':
-      transform = transforms.Compose([transforms.ToTensor(),
-                                      transforms.Normalize((0.1307,), (0.3081,))])
-      data_train = torchvision.datasets.MNIST('../data/MNIST/', train=True, download=True,
-                                              transform=transform)
-      data_test = torchvision.datasets.MNIST('../data/MNIST/', train=False, download=True,
-                                             transform=transform)
-    elif opt['im_dataset'] == 'CIFAR':
-      transform = transforms.Compose([transforms.ToTensor(),
-                                      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-      data_train = torchvision.datasets.CIFAR10('../data/CIFAR/', train=True, download=True,
-                                                transform=transform)
-      data_test = torchvision.datasets.CIFAR10('../data/CIFAR/', train=False, download=True,
-                                               transform=transform)
+    pass  # download_url(self.url, self.raw_dir)
 
   def process(self):
     graph_list = []
-    for batch_idx, (data, target) in enumerate(data_loader):
+    for batch_idx, (data, target) in enumerate(self.data_loader):
       if type == "Train":
         if opt['testing_code'] == True and batch_idx > opt['train_size'] - 1:
           break
@@ -188,14 +146,16 @@ class ImageInMemory(InMemoryDataset):
         if opt['testing_code'] == True and batch_idx > opt['test_size'] - 1:
           break
         y = target
-      x = data.view(im_chan, im_width * im_height)
+      x = data.view(self.opt['im_chan'], self.opt['im_width'] * self.opt['im_height'])
       x = x.T
 
-      graph = Data(x=x, y=y.unsqueeze(dim=0), edge_index=edge_index)
+      graph = Data(x=x, y=y.unsqueeze(dim=0), edge_index=self.edge_index)
       graph_list.append(graph)
 
     self.data, self.slices = self.collate(graph_list)
     torch.save((self.data, self.slices), self.processed_paths[0])
+
+
 
 
 def create_out_memory_dataset(opt, type, data_loader, edge_index, im_height, im_width, im_chan, root,
@@ -241,15 +201,13 @@ def load_data(opt):
   # filestr_train = 'PyG' + data_name + str(opt['train_size']) + 'Train.pt'
   # rootstr_test = '../data/PyG' + data_name + str(opt['test_size']) + 'Test/'
   # filestr_test = 'PyG' + data_name + str(opt['test_size']) + 'Test.pt'
-  rootstr_train = f"../data/PyG{data_name}{str(opt['train_size'])}Train/"
-  filestr_train = f"PyG{data_name}{str(opt['train_size'])}Train.pt"
-  rootstr_test = f"../data/PyG{data_name}{str(opt['test_size'])}Test/"
-  filestr_test = f"PyG{data_name}{str(opt['test_size'])}Test.pt"
+  root = '../data'
+  name_train = f"PyG{data_name}{str(opt['train_size'])}Train"
+  name_test = f"PyG{data_name}{str(opt['test_size'])}Test"
 
-  PyG_train = create_in_memory_dataset(opt, "Train", train_loader, edge_index, im_height, im_width, im_chan,
-                                       root=rootstr_train, processed_file_name=filestr_train)
-  PyG_test = create_in_memory_dataset(opt, "Test", test_loader, edge_index, im_height, im_width, im_chan,
-                                      root=rootstr_test, processed_file_name=filestr_test)
+  PyG_train = ImageInMemory(root, name_train, opt, train_loader, edge_index, transform=None, pre_transform=None, pre_filter=None)
+  PyG_test = ImageInMemory(root, name_test, opt, test_loader, edge_index, transform=None, pre_transform=None,
+                            pre_filter=None)
 
   return PyG_train, PyG_test
 
