@@ -132,9 +132,9 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((models[best].state_dict(), optimizers[best].state_dict()), path)
     if opt_val:
-      tune.report(loss=loss, accuracy=np.mean(val_accs))
+      tune.report(loss=loss, accuracy=np.mean(val_accs), train_acc=np.mean(train_accs))
     else:
-      tune.report(loss=loss, accuracy=np.mean(tmp_test_accs))
+      tune.report(loss=loss, accuracy=np.mean(tmp_test_accs), train_acc=np.mean(train_accs))
 
 
 def train_ray_old(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
@@ -425,7 +425,7 @@ def main(opt):
     reduction_factor=opt["reduction_factor"],
   )
   reporter = CLIReporter(
-    metric_columns=["accuracy", "loss", "training_iteration"]
+    metric_columns=["accuracy", "train_acc", "loss", "training_iteration"]
   )
   # choose a search algorithm from https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
   search_alg = AxSearch(metric="accuracy")
