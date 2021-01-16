@@ -17,7 +17,7 @@ dependencies:
   - libcxx=10.0.0
   - libedit=3.1.20191231
   - libffi=3.3
-  - libgfortran=3.0.1
+  - libgfortran
   - libllvm9=9.0.1
   - libpng=1.6.37
   - libtiff=4.1.0
