@@ -10,10 +10,9 @@ that encompasses various forms of graph rewiring and GNNs with both explicit and
 ### Requirements
 
 Dependencies (with python >= 3.7):
-
+Edit the first line of environment.yml to your desired conda environment name
 ```
-conda config --append channels conda-forge
-conda create --name graph-neural-pde --file requirements.txt
+conda env create -f environment.yml
 ```
 
 ### Dataset and Preprocessing
