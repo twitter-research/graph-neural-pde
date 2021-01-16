@@ -1,213 +1,97 @@
-name: torch
+name: graph-neural-pde
 channels:
+  - soumith
+  - pytorch
   - defaults
 dependencies:
-  - argon2-cffi=20.1.0
-  - async_generator=1.10
-  - attrs=20.2.0
-  - backcall=0.2.0
   - blas=1.0
-  - bleach=3.2.1
-  - ca-certificates=2020.10.14
-  - certifi=2020.6.20
-  - cffi=1.14.3
+  - ca-certificates=2020.12.8
+  - certifi=2020.12.5
   - cycler=0.10.0
-  - dbus=1.13.18
-  - defusedxml=0.6.0
-  - entrypoints=0.3
-  - expat=2.2.10
-  - freetype=2.10.2
-  - gettext=0.19.8.1
-  - glib=2.66.1
-  - icu=58.2
-  - importlib-metadata=2.0.0
-  - importlib_metadata=2.0.0
-  - iniconfig=1.1.1
-  - intel-openmp=2019.4
-  - ipykernel=5.3.4
-  - ipython=7.18.1
-  - ipython_genutils=0.2.0
-  - ipywidgets=7.5.1
-  - jedi=0.17.2
-  - jinja2=2.11.2
-  - joblib=0.15.1
+  - freetype=2.10.4
+  - intel-openmp=2020.2
+  - joblib=1.0.0
   - jpeg=9b
-  - jsonschema=3.2.0
-  - jupyter=1.0.0
-  - jupyter_client=6.1.7
-  - jupyter_console=6.2.0
-  - jupyter_core=4.6.3
-  - jupyterlab_pygments=0.1.2
-  - kiwisolver=1.2.0
+  - kiwisolver=1.3.0
+  - lcms2=2.11
   - libcxx=10.0.0
   - libedit=3.1.20191231
   - libffi=3.3
-  - libiconv=1.16
+  - libgfortran=3.0.1
+  - libllvm9=9.0.1
   - libpng=1.6.37
-  - libprotobuf=3.13.0.1
-  - libsodium=1.0.18
   - libtiff=4.1.0
+  - libuv=1.40.0
   - llvm-openmp=10.0.0
   - lz4-c=1.9.2
-  - markupsafe=1.1.1
-  - matplotlib=3.2.2
-  - matplotlib-base=3.2.2
-  - mistune=0.8.4
+  - matplotlib=3.3.2
+  - matplotlib-base=3.3.2
   - mkl=2019.4
   - mkl-service=2.3.0
-  - mkl_fft=1.1.0
+  - mkl_fft=1.2.0
   - mkl_random=1.1.1
-  - more-itertools=8.5.0
-  - nbclient=0.5.1
-  - nbconvert=6.0.7
-  - nbformat=5.0.8
   - ncurses=6.2
-  - nest-asyncio=1.4.1
-  - ninja=1.9.0
-  - notebook=6.1.4
-  - numpy-base=1.18.5
+  - ninja=1.10.2
+  - numba=0.50.1
+  - numpy=1.19.2
+  - numpy-base=1.19.2
   - olefile=0.46
-  - openssl=1.1.1h
-  - packaging=20.4
-  - pandas=1.0.5
-  - pandoc=2.11
-  - pandocfilters=1.4.2
-  - parso=0.7.0
-  - pcre=8.44
-  - pexpect=4.8.0
-  - pickleshare=0.7.5
-  - pillow=7.1.2
-  - pip=20.1.1
-  - pluggy=0.13.1
-  - prometheus_client=0.8.0
-  - prompt-toolkit=3.0.8
-  - prompt_toolkit=3.0.8
-  - ptyprocess=0.6.0
-  - py=1.9.0
-  - pycparser=2.20
-  - pygments=2.7.2
+  - openssl=1.1.1i
+  - pillow=8.1.0
+  - pip=20.3.3
   - pyparsing=2.4.7
-  - pyqt=5.9.2
-  - pyrsistent=0.17.3
-  - pytest=6.1.1
-  - python=3.8.3
+  - python=3.8.5
   - python-dateutil=2.8.1
-  - pytz=2020.1
-  - pyzmq=19.0.2
-  - qt=5.9.7
-  - qtconsole=4.7.7
-  - qtpy=1.9.0
+  - pytorch=1.7.1
   - readline=8.0
-  - scikit-learn=0.23.1
-  - send2trash=1.5.0
-  - setuptools=47.3.1
-  - sip=4.19.8
+  - setuptools=51.1.2
   - six=1.15.0
-  - sqlite=3.32.3
-  - terminado=0.9.1
-  - testpath=0.4.4
+  - sqlite=3.33.0
+  - tbb=2020.3
   - threadpoolctl=2.1.0
   - tk=8.6.10
-  - toml=0.10.1
-  - tornado=6.0.4
-  - traitlets=5.0.5
-  - wcwidth=0.2.5
-  - webencodings=0.5.1
-  - wheel=0.34.2
-  - widgetsnbextension=3.5.1
+  - torchvision=0.2.1
+  - tornado=6.1
+  - typing_extensions=3.7.4.3
+  - wheel=0.36.2
   - xz=5.2.5
-  - zeromq=4.3.3
-  - zipp=3.4.0
   - zlib=1.2.11
-  - zstd=1.4.4
+  - zstd=1.4.5
   - pip:
-    - absl-py==0.9.0
-    - aiohttp==3.7.2
-    - aiohttp-cors==0.7.0
-    - aioredis==1.3.1
     - ase==3.20.1
-    - async-timeout==3.0.1
-    - ax-platform==0.1.18
-    - beautifulsoup4==4.9.3
-    - blessings==1.7
     - boltons==20.2.1
-    - botorch==0.3.2
-    - cachetools==4.1.0
-    - chardet==3.0.4
-    - click==7.1.2
-    - colorama==0.4.4
-    - colorful==0.5.4
+    - chardet==4.0.0
     - decorator==4.4.2
-    - dgl==0.4.3.post2
     - et-xmlfile==1.0.1
-    - filelock==3.0.12
-    - future==0.18.2
-    - google==3.0.0
-    - google-api-core==1.23.0
-    - google-auth==1.23.0
-    - google-auth-oauthlib==0.4.1
-    - googleapis-common-protos==1.52.0
     - googledrivedownloader==0.4
-    - gpustat==0.6.0
-    - gputil==1.4.0
-    - gpytorch==1.2.1
-    - grpcio==1.30.0
-    - h5py==2.10.0
-    - hiredis==1.1.0
+    - h5py==3.1.0
     - idna==2.10
     - isodate==0.6.0
     - jdcal==1.4.1
+    - jinja2==2.11.2
     - littleutils==0.2.2
-    - llvmlite==0.34.0
-    - markdown==3.2.2
-    - msgpack==1.0.0
-    - multidict==5.0.0
-    - networkx==2.4
-    - numba==0.51.2
-    - numpy==1.19.3
-    - nvidia-ml-py3==7.352.0
-    - oauthlib==3.1.0
+    - llvmlite==0.33.0
+    - markupsafe==1.1.1
+    - networkx==2.5
     - ogb==1.2.4
-    - opencensus==0.7.11
-    - opencensus-context==0.1.2
-    - openpyxl==3.0.5
+    - openpyxl==3.0.6
     - outdated==0.2.0
-    - plotly==4.12.0
-    - protobuf==3.12.2
-    - psutil==5.7.3
-    - py-spy==0.3.3
-    - pyasn1==0.4.8
-    - pyasn1-modules==0.2.8
-    - pykeops==1.4.1
-    - pytorch-lightning==0.8.1
-    - ray==1.0.0
+    - pandas==1.2.0
+    - pykeops==1.4.2
+    - python-louvain==0.15
+    - pytz==2020.5
     - rdflib==5.0.0
-    - redis==3.4.1
-    - requests==2.24.0
-    - requests-oauthlib==1.3.0
-    - retrying==1.3.3
-    - rsa==4.6
-    - scipy==1.5.0
-    - soupsieve==2.0.1
-    - sqlalchemy==1.3.20
-    - tabulate==0.8.7
-    - tensorboard==2.2.2
-    - tensorboard-plugin-wit==1.7.0
-    - tensorboardx==2.1
-    - torch==1.6.0
-    - torch-geometric==1.6.1
+    - requests==2.25.1
+    - scikit-learn==0.24.0
+    - scipy==1.5.4
+    - torch-cluster==1.5.8
+    - torch-geometric==1.6.3
     - torch-scatter==2.0.5
-    - torch-sparse==0.6.7
+    - torch-sparse==0.6.8
+    - torch-spline-conv==1.2.0
     - torchdiffeq==0.1.1
-    - torchsde==0.2.1
-    - torchsummary==1.5.1
-    - torchvision==0.7.0
-    - tqdm==4.46.1
+    - torchsde==0.2.4
+    - tqdm==4.56.0
     - trampoline==0.1.2
-    - typeguard==2.10.0
-    - typing-extensions==3.7.4.3
-    - urllib3==1.25.9
-    - werkzeug==1.0.1
-    - yarl==1.6.2
-prefix: /Users/bchamberlain/anaconda3/envs/torch
-
+    - urllib3==1.26.2
+prefix: /Users/benchamberlain/anaconda/envs/graph-neural-pde
