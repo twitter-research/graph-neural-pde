@@ -161,16 +161,16 @@ def load_data(opt):
   if opt['im_dataset'] == 'MNIST':
     transform = transforms.Compose([transforms.ToTensor(),
                                     transforms.Normalize((0.1307,), (0.3081,))])
-    data_train = torchvision.datasets.MNIST('../data/'+data_name + '/', train=True, download=True,
+    data_train = torchvision.datasets.MNIST('../data/MNIST/', train=True, download=True,
                                             transform=transform)
-    data_test = torchvision.datasets.MNIST('../data/'+data_name+'/', train=False, download=True,
+    data_test = torchvision.datasets.MNIST('../data/MNIST/', train=False, download=True,
                                            transform=transform)
   elif opt['im_dataset'] == 'CIFAR':
     transform = transforms.Compose([transforms.ToTensor(),
                                     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    data_train = torchvision.datasets.CIFAR10('../data/' + data_name + '/', train=True, download=True,
+    data_train = torchvision.datasets.CIFAR10('../data/CIFAR/', train=True, download=True,
                                             transform=transform)
-    data_test = torchvision.datasets.CIFAR10('../data/' + data_name + '/', train=False, download=True,
+    data_test = torchvision.datasets.CIFAR10('../data/CIFAR/', train=False, download=True,
                                            transform=transform)
 
   train_loader = torch.utils.data.DataLoader(data_train, batch_size=1, shuffle=True)
