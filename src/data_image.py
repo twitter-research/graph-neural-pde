@@ -179,16 +179,10 @@ def load_data(opt):
   edge_index = edge_index_calc(im_height, im_width, im_chan, diags=opt['diags'])
 
   print("creating in_memory_datasets")
-  if opt['testing_code'] == True:
-      rootstr_train = '../data/PyG'+data_name+ str(opt['train_size'])+'Train/'
-      filestr_train = 'PyG'+data_name+str(opt['train_size']) +'Train.pt'
-      rootstr_test = '../data/PyG' + data_name + str(opt['test_size']) + 'Test/'
-      filestr_test = 'PyG' + data_name + str(opt['test_size']) + 'Test.pt'
-  else:
-      rootstr_train = '../data/PyG'+data_name+ str(opt['train_size'])+'Train/'
-      filestr_train = 'PyG'+data_name+str(opt['train_size']) +'Train.pt'
-      rootstr_test = '../data/PyG' + data_name + str(opt['test_size']) + 'Test/'
-      filestr_test = 'PyG' + data_name + str(opt['test_size']) + 'Test.pt'
+  rootstr_train = '../data/PyG'+data_name+ str(opt['train_size'])+'Train/'
+  filestr_train = 'PyG'+data_name+str(opt['train_size']) +'Train.pt'
+  rootstr_test = '../data/PyG' + data_name + str(opt['test_size']) + 'Test/'
+  filestr_test = 'PyG' + data_name + str(opt['test_size']) + 'Test.pt'
 
   PyG_train = create_in_memory_dataset(opt, "Train", train_loader, edge_index, im_height, im_width, im_chan,
                                          root=rootstr_train, processed_file_name=filestr_train)
