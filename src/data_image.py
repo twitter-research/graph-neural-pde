@@ -139,7 +139,7 @@ class ImageInMemory(InMemoryDataset):
   def process(self):
     graph_list = []
     c, w, h = self.opt['im_chan'], self.opt['im_width'], self.opt['im_height']
-    edge_index = edge_index_calc(h, w, c, diags=opt['diags'])
+    edge_index = edge_index_calc(h, w, c, diags=self.opt['diags'])
     data_loader = torch.utils.data.DataLoader(self.data, batch_size=1, shuffle=True)
     for batch_idx, (data, target) in enumerate(data_loader):
       if self.type == "Train":
