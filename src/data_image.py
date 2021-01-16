@@ -110,11 +110,12 @@ def edge_index_calc(im_height, im_width, im_chan, diags=False):
 class ImageInMemory(InMemoryDataset):
   def __init__(self, root, name, opt, data_loader, edge_index, transform=None, pre_transform=None, pre_filter=None):
     self.name = name
-    super(ImageInMemory, self).__init__(root, transform, pre_transform, pre_filter)
-    self.data, self.slices = torch.load(self.processed_paths[0])
     self.data_loader = data_loader
     self.edge_index = edge_index
     self.opt = opt
+    super(ImageInMemory, self).__init__(root, transform, pre_transform, pre_filter)
+    self.data, self.slices = torch.load(self.processed_paths[0])
+
 
   @property
   def raw_dir(self):
