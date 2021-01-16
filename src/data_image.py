@@ -140,11 +140,11 @@ class ImageInMemory(InMemoryDataset):
   def process(self):
     graph_list = []
     for batch_idx, (data, target) in enumerate(self.data_loader):
-      if type == "Train":
+      if self.type == "Train":
         if opt['testing_code'] == True and batch_idx > opt['train_size'] - 1:
           break
         y = target
-      elif type == "Test":
+      elif self.type == "Test":
         if opt['testing_code'] == True and batch_idx > opt['test_size'] - 1:
           break
         y = target
@@ -350,7 +350,7 @@ if __name__ == "__main__":
   opt = get_image_opt(opt)
   load_data(opt)
 
-  load_Superpix75Mat(opt)
+  # load_Superpix75Mat(opt)
 
   # Cora = get_dataset('Cora', '../data', False)
   # gnn = GNN(self.opt, dataset, device=self.device)
