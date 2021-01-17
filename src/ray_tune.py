@@ -478,6 +478,8 @@ def main(opt):
     name=opt["name"],
     resources_per_trial={"cpu": opt["cpus"], "gpu": opt["gpus"]},
     search_alg=search_alg,
+    keep_checkpoints_num=3,
+    checkpoint_score_attr='accuracy',
     config=opt,
     num_samples=opt["num_samples"],
     scheduler=scheduler,
