@@ -217,9 +217,11 @@ def set_cora_search_space(opt):
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
   opt["lr"] = tune.loguniform(0.05, 0.2)
-  opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
+  opt['input_dropout'] = 0.5
+  # opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
   opt["optimizer"] = tune.choice(["adam", "adamax"])
-  opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
+  opt['dropout'] = 0.1
+  # opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
   opt["time"] = tune.uniform(5.0, 20.0)  # terminal time of the ODE integrator;
   # when it's big, the training hangs (probably due a big NFEs of the ODE)
 
@@ -238,7 +240,8 @@ def set_cora_search_space(opt):
     opt["tol_scale_adjoint"] = 142
 
   if opt['rewiring'] == 'gdc':
-    opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'topk'
     opt['gdc_method'] = tune.choice(['ppr', 'heat'])
     opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
     opt['gdc_threshold'] = tune.loguniform(0.0001, 0.01)
