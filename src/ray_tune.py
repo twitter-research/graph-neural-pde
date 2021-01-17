@@ -17,6 +17,7 @@ from torch import nn
 from GNN_ICML20 import ICML_GNN, get_sym_adj
 from GNN_ICML20 import train as train_icml
 
+
 def average_test(models, datas):
   results = [test(model, data) for model, data in zip(models, datas)]
   train_accs, val_accs, tmp_test_accs = [], [], []
@@ -32,14 +33,14 @@ def average_test(models, datas):
 def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   dataset = get_dataset(opt, data_dir, True)
-  
+
   models = []
   datas = []
   optimizers = []
 
   for split in range(opt["num_splits"]):
     dataset.data = set_train_val_test_split(
-      np.random.randint(0, 1000), dataset.data, num_development = 5000 if opt["dataset"] == "CoauthorCS" else 1500)
+      np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
     datas.append(dataset.data)
 
     if opt['baseline']:
@@ -173,8 +174,8 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
   if opt["num_splits"] > 0:
     dataset.data = set_train_val_test_split(
       23 * np.random.randint(0, opt["num_splits"]),  # random prime 23 to make the splits 'more' random. Could remove
-      dataset.data, 
-      num_development = 5000 if opt["dataset"] == "CoauthorCS" else 1500)
+      dataset.data,
+      num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
   model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
   if torch.cuda.device_count() > 1:
@@ -192,7 +193,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
   for epoch in range(1, opt["epoch"]):
     loss = train(model, optimizer, data)
     # need next line as it sets the attributes in the solver
-    
+
     if opt["no_early"]:
       _, val_acc_int, tmp_test_acc_int = test(model, data)
     else:
@@ -209,10 +210,10 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
 
 
 def set_cora_search_space(opt):
-  opt["decay"] = tune.uniform(0.01, 0.1)  # weight decay l2 reg
+  opt["decay"] = 0.017  # weight decay l2 reg
   if opt['regularise']:
-    opt["kinetic_energy"]  = tune.loguniform(0.001, 10.0)
-    opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+    opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
   opt["lr"] = tune.loguniform(0.05, 0.2)
@@ -223,34 +224,72 @@ def set_cora_search_space(opt):
   # when it's big, the training hangs (probably due a big NFEs of the ODE)
 
   if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  # hidden dim for attention
-    opt['attention_norm_idx'] = tune.choice([0, 1])
-    opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
-    opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
+    opt["heads"] = 2
+    opt["attention_dim"] = 128
+    opt['attention_norm_idx'] = 0
+    opt["leaky_relu_slope"] = 0.14
+    opt["self_loop_weight"] = 1
   else:
     opt["self_loop_weight"] = tune.uniform(0, 3)
 
-  opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
+  opt["tol_scale"] = 726
   if opt["adjoint"]:
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"]) #, "rk4"])
-    opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
+    opt["adjoint_method"] = "adaptive_heun"
+    opt["tol_scale_adjoint"] = 142
 
   if opt['rewiring'] == 'gdc':
+    opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_method'] = tune.choice(['ppr', 'heat'])
     opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+    gdc_threshold = tune.loguniform(0.0001, 0.01)
     opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
 
   return opt
 
 
+# def set_cora_search_space(opt):
+#   opt["decay"] = tune.uniform(0.01, 0.1)  # weight decay l2 reg
+#   if opt['regularise']:
+#     opt["kinetic_energy"]  = tune.loguniform(0.001, 10.0)
+#     opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+#
+#   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
+#   opt["lr"] = tune.loguniform(0.05, 0.2)
+#   opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
+#   opt["optimizer"] = tune.choice(["adam", "adamax"])
+#   opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
+#   opt["time"] = tune.uniform(5.0, 20.0)  # terminal time of the ODE integrator;
+#   # when it's big, the training hangs (probably due a big NFEs of the ODE)
+#
+#   if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+#     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
+#     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  # hidden dim for attention
+#     opt['attention_norm_idx'] = tune.choice([0, 1])
+#     opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
+#     opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
+#   else:
+#     opt["self_loop_weight"] = tune.uniform(0, 3)
+#
+#   opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
+#   if opt["adjoint"]:
+#     opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"]) #, "rk4"])
+#     opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
+#
+#   if opt['rewiring'] == 'gdc':
+#     opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+#     opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
+#
+#   return opt
+
+
 def set_pubmed_search_space(opt):
   opt["decay"] = tune.uniform(0.001, 0.1)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 1.0)
-  opt["directional_penalty"]  = tune.loguniform(0.01, 1.0)
+  opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
+  opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
 
-  opt["hidden_dim"] = 128 #tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+  opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
   opt["lr"] = tune.loguniform(0.02, 0.1)
-  opt["input_dropout"] = 0.4 #tune.uniform(0.2, 0.5)
+  opt["input_dropout"] = 0.4  # tune.uniform(0.2, 0.5)
   opt["dropout"] = tune.uniform(0, 0.5)
   opt["time"] = tune.uniform(5.0, 20.0)
   opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
@@ -277,11 +316,11 @@ def set_pubmed_search_space(opt):
 
 
 def set_citeseer_search_space(opt):
-  opt["decay"] = 0.1 #tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.001, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+  opt["decay"] = 0.1  # tune.loguniform(2e-3, 1e-2)
+  opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
+  opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
-  opt["hidden_dim"] = 128 #tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))
+  opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))
   opt["lr"] = tune.loguniform(2e-3, 0.01)
   opt["input_dropout"] = tune.uniform(0.4, 0.8)
   opt["dropout"] = tune.uniform(0, 0.8)
@@ -309,8 +348,8 @@ def set_citeseer_search_space(opt):
 
 def set_computers_search_space(opt):
   opt["decay"] = tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+  opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+  opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
   opt["lr"] = tune.loguniform(5e-5, 5e-3)
@@ -340,8 +379,8 @@ def set_computers_search_space(opt):
 
 def set_coauthors_search_space(opt):
   opt["decay"] = tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.01, 10.0)
+  opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+  opt["directional_penalty"] = tune.loguniform(0.01, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 6))
   opt["lr"] = tune.loguniform(1e-5, 0.1)
@@ -371,8 +410,8 @@ def set_coauthors_search_space(opt):
 
 def set_photo_search_space(opt):
   opt["decay"] = tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+  opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+  opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
   opt["lr"] = tune.loguniform(1e-2, 0.1)
@@ -386,9 +425,9 @@ def set_photo_search_space(opt):
     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 6))
     opt['attention_norm_idx'] = tune.choice([0, 1])
     opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-      [0, 1]) 
+      [0, 1])
     opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
-  else: 
+  else:
     opt["self_loop_weight"] = tune.uniform(0, 3)
 
   opt["tol_scale"] = tune.loguniform(1, 1e4)
@@ -497,7 +536,8 @@ if __name__ == "__main__":
   parser.add_argument("--augment", action="store_true",
                       help="double the length of the feature vector by appending zeros to stabilise ODE learning", )
   parser.add_argument("--alpha_dim", type=str, default="sc", help="choose either scalar (sc) or vector (vc) alpha")
-  parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true', help='apply sigmoid before multiplying by alpha')
+  parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true',
+                      help='apply sigmoid before multiplying by alpha')
   parser.add_argument("--beta_dim", type=str, default="sc", help="choose either scalar (sc) or vector (vc) beta")
   # ODE args
   parser.add_argument(
@@ -507,7 +547,8 @@ if __name__ == "__main__":
     "--adjoint_method", type=str, default="adaptive_heun",
     help="set the numerical solver for the backward pass: dopri5, euler, rk4, midpoint"
   )
-  parser.add_argument("--adjoint", dest='adjoint', action='store_true', help="use the adjoint ODE method to reduce memory footprint")
+  parser.add_argument("--adjoint", dest='adjoint', action='store_true',
+                      help="use the adjoint ODE method to reduce memory footprint")
   parser.add_argument("--tol_scale", type=float, default=1.0, help="multiplier for atol and rtol")
   parser.add_argument("--tol_scale_adjoint", type=float, default=1.0,
                       help="multiplier for adjoint_atol and adjoint_rtol")
@@ -534,7 +575,8 @@ if __name__ == "__main__":
                       help='apply a feature transformation xW to the ODE')
   parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention, SDE')
   parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
-  parser.add_argument('--reweight_attention', dest='reweight_attention', action='store_true', help="multiply attention scores by edge weights before softmax")
+  parser.add_argument('--reweight_attention', dest='reweight_attention', action='store_true',
+                      help="multiply attention scores by edge weights before softmax")
   # ray args
   parser.add_argument("--num_samples", type=int, default=20, help="number of ray trials")
   parser.add_argument("--gpus", type=float, default=0, help="number of gpus per trial. Can be fractional")
@@ -565,7 +607,8 @@ if __name__ == "__main__":
   parser.add_argument('--gdc_method', type=str, default='ppr', help="ppr, heat, coeff")
   parser.add_argument('--gdc_sparsification', type=str, default='topk', help="threshold, topk")
   parser.add_argument('--gdc_k', type=int, default=64, help="number of neighbours to sparsify to when using topk")
-  parser.add_argument('--gdc_threshold', type=float, default=0.0001, help="obove this edge weight, keep edges when using threshold")
+  parser.add_argument('--gdc_threshold', type=float, default=0.0001,
+                      help="obove this edge weight, keep edges when using threshold")
   parser.add_argument('--gdc_avg_degree', type=int, default=64,
                       help="if gdc_threshold is not given can be calculated by specifying avg degree")
   parser.add_argument('--ppr_alpha', type=float, default=0.05, help="teleport probability")
