@@ -290,8 +290,9 @@ def set_cora_search_space(opt):
 
 def set_pubmed_search_space(opt):
   opt["decay"] = tune.uniform(0.001, 0.1)
-  opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
-  opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
+    opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
 
   opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
   opt["lr"] = tune.loguniform(0.02, 0.1)
@@ -317,6 +318,16 @@ def set_pubmed_search_space(opt):
     opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])
   else:
     raise Exception("Can't train on PubMed without the adjoint method.")
+
+  if opt['rewiring'] == 'gdc':
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'topk'
+    opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    opt['gdc_method'] = 'heat'
+    opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+    # opt['gdc_threshold'] = tune.loguniform(0.0001, 0.01)
+    opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
+    opt['heat_time'] = tune.uniform(1, 5)
 
   return opt
 
