@@ -590,10 +590,10 @@ if __name__ == "__main__":
   parser.add_argument("--gpus", type=float, default=0, help="number of gpus per trial. Can be fractional")
   parser.add_argument("--cpus", type=float, default=1, help="number of cpus per trial. Can be fractional")
   parser.add_argument(
-    "--grace_period", type=int, default=5, help="number of epochs to wait before terminating trials"
+    "--grace_period", type=int, default=10, help="number of epochs to wait before terminating trials"
   )
   parser.add_argument(
-    "--reduction_factor", type=int, default=4, help="number of trials is halved after this many epochs"
+    "--reduction_factor", type=int, default=5, help="number of trials is halved after this many epochs"
   )
   parser.add_argument("--name", type=str, default="ray_exp")
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random splits >= 0. 0 for planetoid split")
