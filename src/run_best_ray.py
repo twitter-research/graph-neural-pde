@@ -30,6 +30,9 @@ def run_best_params(opt):
   # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
   best_params_ret['epoch'] = opt['epoch']
   best_params_ret['max_nfe'] = opt['max_nfe']
+  # handle adjoint
+  if best_params['adjoint'] or opt['adjoint']:
+    best_params_ret['adjoint'] = True
 
   print("Running with parameters {}".format(best_params_ret))
 
