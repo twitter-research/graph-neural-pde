@@ -32,7 +32,6 @@ class LaplacianODEFunc(ODEFunc):
     elif self.opt['block'] == 'mixed':  # adj is a torch sparse matrix
       ax = torch_sparse.spmm(self.edge_index, self.attention_weights, x.shape[0], x.shape[0], x)
     else:  # adj is a torch sparse matrix
-      print('x device {}, edge index device {} edge weight device {}'.format(x.device, self.edge_index.device, self.edge_weight.device))
       ax = torch_sparse.spmm(self.edge_index, self.edge_weight, x.shape[0], x.shape[0], x)
     return ax
 
