@@ -241,7 +241,7 @@ def set_cora_search_space(opt):
     opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
     opt['gdc_method'] = tune.choice(['ppr', 'heat'])
     opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
-    gdc_threshold = tune.loguniform(0.0001, 0.01)
+    opt['gdc_threshold'] = tune.loguniform(0.0001, 0.01)
     opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
 
   return opt
