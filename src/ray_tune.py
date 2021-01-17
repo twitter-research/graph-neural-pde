@@ -210,8 +210,9 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
 
 def set_cora_search_space(opt):
   opt["decay"] = tune.uniform(0.01, 0.1)  # weight decay l2 reg
-  opt["kinetic_energy"]  = tune.loguniform(0.001, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+  if opt['regularise']:
+    opt["kinetic_energy"]  = tune.loguniform(0.001, 10.0)
+    opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
   opt["lr"] = tune.loguniform(0.05, 0.2)
@@ -549,7 +550,7 @@ if __name__ == "__main__":
   parser.add_argument("--num_init", type=int, default=4, help="Number of random initializations >= 0")
 
   parser.add_argument("--max_nfe", type=int, default=300, help="Maximum number of function evaluations allowed.")
-
+  # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
   parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")
 
@@ -557,6 +558,7 @@ if __name__ == "__main__":
   parser.add_argument('--directional_penalty', type=float, default=None, help="int_t ||(df/dx)^T f||^2")
 
   parser.add_argument("--baseline", action="store_true", help="Wheather to run the ICML baseline or not.")
+  parser.add_argument("--regularise", dest='regularise', action='store_true', help='search over reg params')
 
   # rewiring args
   parser.add_argument('--rewiring', type=str, default=None, help="two_hop, gdc")
