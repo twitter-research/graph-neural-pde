@@ -10,10 +10,12 @@ class AttODEblock(ODEblock):
 
     self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, data, device)
     # self.odefunc.edge_index, self.odefunc.edge_weight = data.edge_index, edge_weight=data.edge_attr
-    self.odefunc.edge_index, self.odefunc.edge_weight = get_rw_adj(data.edge_index, edge_weight=data.edge_attr, norm_dim=1,
-                                                                   fill_value=opt['self_loop_weight'],
-                                                                   num_nodes=data.num_nodes,
-                                                                   dtype=data.x.dtype).to(device)
+    edge_index, edge_weight = get_rw_adj(data.edge_index, edge_weight=data.edge_attr, norm_dim=1,
+                                         fill_value=opt['self_loop_weight'],
+                                         num_nodes=data.num_nodes,
+                                         dtype=data.x.dtype).to(device)
+    self.odefunc.edge_index = edge_index.to(device)
+    self.odefunc.edge_weight = edge_weight.to(device)
     self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight
 
     if opt['adjoint']:
