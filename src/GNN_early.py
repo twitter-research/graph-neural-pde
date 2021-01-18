@@ -155,6 +155,8 @@ if __name__ == '__main__':
 
   parser.add_argument('--kinetic_energy', type=float, default=0.01, help="int_t ||f||_2^2")
   parser.add_argument('--directional_penalty', type=float, default=0.01, help="int_t ||(df/dx)^T f||^2")
+  parser.add_argument('--rewiring', type=str, default=None, help="two_hop, gdc")
+
 
   args = parser.parse_args()
 
