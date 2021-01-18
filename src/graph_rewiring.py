@@ -21,6 +21,7 @@ def apply_gdc(data, opt):
     diff_args = dict(method='ppr', alpha=opt['ppr_alpha'])
   else:
     diff_args = dict(method='heat', t=opt['heat_time'])
+  print('diff args: {}'.format(diff_args))
   if opt['gdc_sparsification'] == 'topk':
     sparse_args = dict(method='topk', k=opt['gdc_k'], dim=0)
   else:
