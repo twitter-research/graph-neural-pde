@@ -18,7 +18,7 @@ def apply_gdc(data, opt):
   print('raw data contains {} edges and {} nodes'.format(data.num_edges, data.num_nodes))
   print('performing gdc transformation with method {}, sparsification {}'.format(opt['gdc_method'], opt['gdc_sparsification']))
   if opt['gdc_method'] == 'ppr':
-    diff_args = dict(method='ppr', alpha=opt['ppr_alpha'])
+    diff_args = dict(method='ppr', alpha=opt['ppr_alpha'], eps=opt['gdc_threshold'])
   else:
     diff_args = dict(method='heat', t=opt['heat_time'])
   print('diff args: {}'.format(diff_args))
