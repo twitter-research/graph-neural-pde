@@ -562,7 +562,7 @@ if __name__ == "__main__":
   parser.add_argument("--num_init", type=int, default=4, help="Number of random initializations >= 0")
 
   parser.add_argument("--max_nfe", type=int, default=300, help="Maximum number of function evaluations allowed.")
-
+  parser.add_argument("--regularise", dest='regularise', action="store_true", help="add regularisation")
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
   parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")
 
