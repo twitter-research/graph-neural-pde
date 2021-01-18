@@ -21,7 +21,7 @@ class GNNEarly(BaseGNN):
     time_tensor = torch.tensor([0, self.T]).to(device)
     self.f = set_function(opt)
     self.regularization_fns = ()
-    self.odeblock = block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor).to(device)
+    self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
     # overwrite the test integrator with this custom one
     self.odeblock.test_integrator = EarlyStopInt(self.T, device)
     self.odeblock.test_integrator.data = self.data
