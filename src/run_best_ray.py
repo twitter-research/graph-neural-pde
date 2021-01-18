@@ -74,14 +74,14 @@ def run_best_params(opt):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
-  parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')
+  parser.add_argument('--epoch', type=int, default=100, help='Number of training epochs per iteration.')
   parser.add_argument('--folder', type=str, default=None, help='experiment folder to read')
   parser.add_argument('--index', type=int, default=0, help='index to take from experiment folder')
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilise ODE learning')
-  parser.add_argument('--reps', type=int, default=1, help='the number of random weight initialisations to use')
+  parser.add_argument('--reps', type=int, default=8, help='the number of random weight initialisations to use')
   parser.add_argument('--name', type=str, default=None)
-  parser.add_argument('--gpus', type=float, default=0, help='number of gpus per trial. Can be fractional')
+  parser.add_argument('--gpus', type=float, default=1, help='number of gpus per trial. Can be fractional')
   parser.add_argument('--cpus', type=float, default=1, help='number of cpus per trial. Can be fractional')
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random slpits >= 0. 0 for planetoid split")
   parser.add_argument("--adjoint", dest='adjoint', action='store_true', help="use the adjoint ODE method to reduce memory footprint")
