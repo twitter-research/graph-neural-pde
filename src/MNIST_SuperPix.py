@@ -2,7 +2,9 @@ import torch
 import torchvision
 import matplotlib.pyplot as plt
 import numpy as np
-
+import networkx as nx
+from torch_geometric.data import Data
+from torch_geometric.utils.convert import to_networkx
 
 def calc_centroids(pixel_lables, num_centroids):
     centroids = {}
@@ -16,6 +18,59 @@ def calc_centroids(pixel_lables, num_centroids):
         horizontal_av = np.mean(indices[1])
         centroids[i] = (vertical_av, horizontal_av)
     return centroids
+
+
+def find_neighbours(labels, boundaries, im_height, im_width):
+    neighbour_dict = {}
+    for i in range(im_height):
+        for j in range(im_width):
+            pix = i * im_width + j
+            if boundaries[i][j] ==1:
+                neighbours = np.array([pix-im_width,pix-1,pix+1,pix+im_width])
+                neighbours = neighbours[neighbours > 0]
+                neighbours = neighbours[neighbours < im_height*im_width]
+                neighbours = neighbours[np.logical_or(neighbours//im_width == pix//im_width, neighbours%im_width == pix%im_width)]
+                for n in neighbours:
+                    if labels[pix // im_width][pix % im_width] in neighbour_dict:
+                        temp_set = neighbour_dict[labels[pix//im_width][pix%im_width]]
+                        temp_set.add(labels[n//im_width][n%im_width])
+                        neighbour_dict[labels[pix//im_width][pix%im_width]] = temp_set
+                    else:
+                        neighbour_dict[labels[pix//im_width][pix%im_width]] = {labels[n//im_width][n%im_width]}
+    return neighbour_dict
+
+
+def calc_centroid_labels(num_centroids, pixel_lables, pixel_values):
+    x = []
+    for c in range(num_centroids):
+        # pixel_lables[pixel_lables==c]
+        CL = pixel_values[np.ix_(np.where(pixel_lables == c)[0], np.where(pixel_lables == c)[1])]
+
+        if np.all(np.amax(CL, axis=(0,1)) == np.amin(CL, axis=(0,1))):
+            x.append(np.amax(CL, axis=(0,1)))
+        else:
+            #todo why aren't patch values the same?
+            print(c)
+            print(np.amax(CL, axis=(0, 1)))
+            print(np.amin(CL, axis=(0, 1)))
+            x.append(np.amax(CL, axis=(0, 1)))
+    return np.array(x)
+
+
+def create_edge_index_from_neighbours(neighbour_dict):
+    edge_index = [[],[]]
+    for i, J in neighbour_dict.items():
+        edge_index[0].extend([i]*len(J))
+        edge_index[1].extend(list(J))
+    return torch.tensor(edge_index,dtype=int)
+
+
+
+
+
+
+
+
 
 
 # torch.manual_seed(1)
@@ -116,74 +171,15 @@ ax.scatter(x=horizontal, y=vertical)
 plt.show()
 
 
-import networkx as nx
-from torch_geometric.data import Data
-from torch_geometric.utils.convert import to_networkx
 
 boundaries = skimage.segmentation.find_boundaries(s, mode='inner').astype(np.uint8)
-# loop through each pixel
-# find bounday nodes
-# look at all neighbours of boundary nodes
-# add to neighbours dict all neighbouring lables
 
-# need function to get neighbours
-# just truncate out of bounds
 
-def find_neighbours(labels, boundaries, im_height, im_width):
-    neighbour_dict = {}
-    for i in range(im_height):
-        for j in range(im_width):
-            pix = i * im_width + j
-            if boundaries[i][j] ==1:
-                neighbours = np.array([pix-im_width,pix-1,pix+1,pix+im_width])
-                neighbours = neighbours[neighbours > 0]
-                neighbours = neighbours[neighbours < im_height*im_width]
-                neighbours = neighbours[np.logical_or(neighbours//im_width == pix//im_width, neighbours%im_width == pix%im_width)]
-                for n in neighbours:
-                    if labels[pix // im_width][pix % im_width] in neighbour_dict:
-                        temp_set = neighbour_dict[labels[pix//im_width][pix%im_width]]
-                        temp_set.add(labels[n//im_width][n%im_width])
-                        neighbour_dict[labels[pix//im_width][pix%im_width]] = temp_set
-                    else:
-                        neighbour_dict[labels[pix//im_width][pix%im_width]] = {labels[n//im_width][n%im_width]}
-    return neighbour_dict
 
 neighbour_dict = find_neighbours(s, boundaries, im_height=28, im_width=28)
 
+edge_index = create_edge_index_from_neighbours(neighbour_dict)
 
-
-
-# edge_index = np.zeros((num_centroids, num_centroids))
-# for i,J in neighbour_dict.items():
-#     for j in J:
-#         if i!=j:
-#             edge_index[i,j] = 1
-#             edge_index[j,i] = 1
-
-edge_index = [[],[]]
-for i, J in neighbour_dict.items():
-    edge_index[0].extend([i]*len(J))
-    edge_index[1].extend(list(J))
-edge_index = torch.tensor(edge_index,dtype=int)
-
-# graph = Data()
-# graph.from_dict(neighbour_dict)
-
-def calc_centroid_labels(num_centroids, pixel_lables, pixel_values):
-    x = []
-    for c in range(num_centroids):
-        # pixel_lables[pixel_lables==c]
-        CL = pixel_values[np.ix_(np.where(pixel_lables == c)[0], np.where(pixel_lables == c)[1])]
-
-        if np.all(np.amax(CL, axis=(0,1)) == np.amin(CL, axis=(0,1))):
-            x.append(np.amax(CL, axis=(0,1)))
-        else:
-            #todo why aren't patch values the same?
-            print(c)
-            print(np.amax(CL, axis=(0, 1)))
-            print(np.amin(CL, axis=(0, 1)))
-            x.append(np.amax(CL, axis=(0, 1)))
-    return np.array(x)
 
 x = calc_centroid_labels(num_centroids, pixel_lables, pixel_values=color2)
 x = torch.tensor(x)
@@ -191,6 +187,9 @@ pos_centroids = torch.tensor([centroids[i] for i in range(num_centroids)])
 graph = Data(x=x, edge_index=edge_index, pos=pos_centroids)
 
 NXgraph = to_networkx(graph)
+nx.draw(NXgraph, centroids,node_size=300/4,edge_color="lime")
+plt.show()
+
 ######
 fig, ax = plt.subplots()
 plt.axis('off')
