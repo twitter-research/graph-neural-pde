@@ -32,7 +32,7 @@ def average_test(models, datas):
 
 def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  dataset = get_dataset(opt, data_dir, True)
+  dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
   models = []
   datas = []
@@ -169,7 +169,7 @@ def train_ray_old(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
 
 def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  dataset = get_dataset(opt, data_dir, True)
+  dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
   if opt["num_splits"] > 0:
     dataset.data = set_train_val_test_split(
@@ -334,8 +334,9 @@ def set_pubmed_search_space(opt):
 
 def set_citeseer_search_space(opt):
   opt["decay"] = 0.1  # tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
-  opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))
   opt["lr"] = tune.loguniform(2e-3, 0.01)
@@ -360,6 +361,15 @@ def set_citeseer_search_space(opt):
   if opt["adjoint"]:
     opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
     opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
+  if opt['rewiring'] == 'gdc':
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'topk'
+    # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    opt['gdc_method'] = 'heat'
+    opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+    # opt['gdc_threshold'] = tune.loguniform(0.0001, 0.01)
+    # opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
+    opt['heat_time'] = tune.uniform(1, 5)
   return opt
 
 
@@ -512,7 +522,7 @@ def main(opt):
   print("Best trial final validation loss: {}".format(best_trial.best_result["loss"]))
   print("Best trial final validation accuracy: {}".format(best_trial.best_result["accuracy"]))
 
-  dataset = get_dataset(opt, data_dir, True)
+  dataset = get_dataset(opt, data_dir, opt['not_lcc'])
   best_trained_model = GNN(best_trial.config, dataset, device)
   if opt["gpus"] > 1:
     best_trained_model = nn.DataParallel(best_trained_model)
