@@ -24,7 +24,7 @@ def apply_gdc(data, opt):
   if opt['gdc_sparsification'] == 'topk':
     sparse_args = dict(method='topk', k=opt['gdc_k'], dim=0)
   else:
-    sparse_args = dict(method='threshold', eps=opt['gdc_threshold'])
+    sparse_args = dict(method='threshold', avg_degree=opt['avg_degree'])
   print('gdc sparse args: {}'.format(sparse_args))
   gdc = GDC(float(opt['self_loop_weight']), normalization_in='sym',
             normalization_out='col',
