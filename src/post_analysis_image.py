@@ -124,7 +124,7 @@ def plot_att_edges(model):
   pass
 
 def main(opt):
-  model_key = '20210115_084939'
+  model_key = '20210118_095342'
   directory = f"../models/"
   for filename in os.listdir(directory):
     if filename.startswith(model_key):

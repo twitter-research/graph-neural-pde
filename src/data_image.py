@@ -209,15 +209,17 @@ def load_data(opt):
   root = '../data'
   name_train = f"PyG{data_name}{str(opt['train_size'])}Train"
   name_test = f"PyG{data_name}{str(opt['test_size'])}Test"
+  root_train = f"{root}/{name_train}"
+  root_test = f"{root}/{name_test}"
 
-  PyG_train = ImageInMemory(root, name_train, opt, 'Train', transform=None, pre_transform=None, pre_filter=None)
-  PyG_test = ImageInMemory(root, name_test, opt, 'Test', transform=None, pre_transform=None,
+  PyG_train = ImageInMemory(root_train, name_train, opt, 'Train', transform=None, pre_transform=None, pre_filter=None)
+  PyG_test = ImageInMemory(root_test, name_test, opt, 'Test', transform=None, pre_transform=None,
                            pre_filter=None)
 
   return PyG_train, PyG_test
 
 
-from SuperPixData import load_matlab_file, stack_matrices
+# from SuperPixData import load_matlab_file, stack_matrices
 
 
 def create_Superpix75(opt, type, root, processed_file_name=None):
