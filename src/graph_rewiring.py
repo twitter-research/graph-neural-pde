@@ -29,7 +29,7 @@ def apply_gdc(data, opt):
   gdc = GDC(float(opt['self_loop_weight']), normalization_in='sym',
             normalization_out='col',
             diffusion_kwargs=diff_args,
-            sparsification_kwargs=sparse_args, exact=opt['approx_ppr'])
+            sparsification_kwargs=sparse_args, exact=opt['exact'])
   data = gdc(data)
   print('following rewiring data contains {} edges and {} nodes'.format(data.num_edges, data.num_nodes))
   return data
