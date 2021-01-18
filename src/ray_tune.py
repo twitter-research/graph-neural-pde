@@ -321,13 +321,15 @@ def set_pubmed_search_space(opt):
 
   if opt['rewiring'] == 'gdc':
     # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
-    opt['gdc_sparsification'] = 'topk'
-    opt['gdc_method'] = tune.choice(['ppr', 'heat'])
-    opt['gdc_method'] = 'heat'
-    opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+    opt['gdc_sparsification'] = 'threshold'
+    opt['exact'] = False
+    # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    opt['gdc_method'] = 'ppr'
+    opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
     # opt['gdc_threshold'] = tune.loguniform(0.0001, 0.01)
+    opt['gdc_threshold'] = None
     opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
-    opt['heat_time'] = tune.uniform(1, 5)
+    # opt['heat_time'] = tune.uniform(1, 5)
 
   return opt
 
@@ -643,6 +645,8 @@ if __name__ == "__main__":
   parser.add_argument('--ppr_alpha', type=float, default=0.05, help="teleport probability")
   parser.add_argument('--heat_time', type=float, default=3., help="time to run gdc heat kernal diffusion for")
   parser.add_argument("--not_lcc", action="store_false", help="don't use the largest connected component")
+  parser.add_argument("--exact", action="store_true",
+                      help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
 
   args = parser.parse_args()
 
