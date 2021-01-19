@@ -80,9 +80,9 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((models[best].state_dict(), optimizers[best].state_dict()), path)
     if opt_val:
-      tune.report(loss=loss, accuracy=np.mean(val_accs))
+      tune.report(loss=loss, accuracy=np.mean(val_accs), train_acc=np.mean(train_accs))
     else:
-      tune.report(loss=loss, accuracy=np.mean(tmp_test_accs))
+      tune.report(loss=loss, accuracy=np.mean(tmp_test_accs), train_acc=np.mean(train_accs))
 
 
 def train_ray(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
@@ -349,8 +349,9 @@ def set_citeseer_search_space(opt):
 
 def set_computers_search_space(opt):
   opt["decay"] = tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
-  opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
   opt["lr"] = tune.loguniform(5e-5, 5e-3)
@@ -375,7 +376,18 @@ def set_computers_search_space(opt):
   if opt["adjoint"]:
     opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
     opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
-  return opt
+
+  if opt['rewiring'] == 'gdc':
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'threshold'
+    opt['exact'] = False
+    # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    opt['gdc_method'] = 'ppr'
+    # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
+    opt['gdc_threshold'] = tune.loguniform(0.00001, 0.01)
+    # opt['gdc_threshold'] = None
+    opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
+    # opt['heat_time'] = tune.uniform(1, 5)
 
 
 def set_coauthors_search_space(opt):
