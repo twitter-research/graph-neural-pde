@@ -297,24 +297,25 @@ def set_pubmed_search_space(opt):
   opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
   opt["lr"] = tune.loguniform(0.02, 0.1)
   opt["input_dropout"] = 0.4  # tune.uniform(0.2, 0.5)
-  opt["dropout"] = tune.uniform(0, 0.5)
-  opt["time"] = tune.uniform(5.0, 20.0)
-  opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
+  opt["dropout"] = tune.uniform(0., 0.6)
+  opt["time"] = tune.uniform(5.0, 15.0)
+  # opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
+  opt['optimizer'] = 'adam'
 
   if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 7))
     opt['attention_norm_idx'] = tune.choice([0, 1])
-    opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+    opt["leaky_relu_slope"] = tune.uniform(0, 0.5)
     opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
       [0, 1])  # whether or not to use self-loops
   else:
     opt["self_loop_weight"] = tune.uniform(0, 3)
 
-  opt["tol_scale"] = tune.loguniform(1, 1e4)
+  opt["tol_scale"] = tune.loguniform(1, 1e3)
 
   if opt["adjoint"]:
-    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e4)
+    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e3)
     opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])
   else:
     raise Exception("Can't train on PubMed without the adjoint method.")
@@ -519,29 +520,29 @@ def main(opt):
   )
 
   # df = result.dataframe(metric='accuracy', mode='max')
-  best_trial = result.get_best_trial("accuracy", "max", "all")
-  print("Best trial config: {}".format(best_trial.config))
-  print("Best trial final validation loss: {}".format(best_trial.best_result["loss"]))
-  print("Best trial final validation accuracy: {}".format(best_trial.best_result["accuracy"]))
-
-  dataset = get_dataset(opt, data_dir, opt['not_lcc'])
-  best_trained_model = GNN(best_trial.config, dataset, device)
-  if opt["gpus"] > 1:
-    best_trained_model = nn.DataParallel(best_trained_model)
-  best_trained_model.to(device)
-
-  checkpoint_path = os.path.join(best_trial.checkpoint.value, "checkpoint")
-
-  model_state, optimizer_state = torch.load(checkpoint_path)
-  best_trained_model.load_state_dict(model_state)
-
-  test_acc = test(best_trained_model, best_trained_model.data.to(device))
-  print("Best trial test set accuracy: {}".format(test_acc))
-  df = result.dataframe(metric="accuracy", mode="max").sort_values(
-    "accuracy", ascending=False
-  )  # get max accuracy for each trial
-  timestr = time.strftime("%Y%m%d-%H%M%S")
-  df.to_csv("../hyperopt_results/result_{}.csv".format(timestr))
+  # best_trial = result.get_best_trial("accuracy", "max", "all")
+  # print("Best trial config: {}".format(best_trial.config))
+  # print("Best trial final validation loss: {}".format(best_trial.best_result["loss"]))
+  # print("Best trial final validation accuracy: {}".format(best_trial.best_result["accuracy"]))
+  #
+  # dataset = get_dataset(opt, data_dir, opt['not_lcc'])
+  # best_trained_model = GNN(best_trial.config, dataset, device)
+  # if opt["gpus"] > 1:
+  #   best_trained_model = nn.DataParallel(best_trained_model)
+  # best_trained_model.to(device)
+  #
+  # checkpoint_path = os.path.join(best_trial.checkpoint.value, "checkpoint")
+  #
+  # model_state, optimizer_state = torch.load(checkpoint_path)
+  # best_trained_model.load_state_dict(model_state)
+  #
+  # test_acc = test(best_trained_model, best_trained_model.data.to(device))
+  # print("Best trial test set accuracy: {}".format(test_acc))
+  # df = result.dataframe(metric="accuracy", mode="max").sort_values(
+  #   "accuracy", ascending=False
+  # )  # get max accuracy for each trial
+  # timestr = time.strftime("%Y%m%d-%H%M%S")
+  # df.to_csv("../hyperopt_results/result_{}.csv".format(timestr))
 
 
 if __name__ == "__main__":
