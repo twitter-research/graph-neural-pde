@@ -388,6 +388,7 @@ def set_computers_search_space(opt):
     # opt['gdc_threshold'] = None
     opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
     # opt['heat_time'] = tune.uniform(1, 5)
+  return opt
 
 
 def set_coauthors_search_space(opt):
