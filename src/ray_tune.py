@@ -138,35 +138,6 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
       tune.report(loss=loss, accuracy=np.mean(tmp_test_accs), train_acc=np.mean(train_accs))
 
 
-def train_ray_old(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
-  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  dataset = get_dataset(opt, data_dir, True)
-  model = GNN(opt, dataset, device)
-  if torch.cuda.device_count() > 1:
-    model = nn.DataParallel(model)
-  model, data = model.to(device), dataset.data.to(device)
-  parameters = [p for p in model.parameters() if p.requires_grad]
-  optimizer = get_optimizer(opt["optimizer"], parameters, lr=opt["lr"], weight_decay=opt["decay"])
-  # The `checkpoint_dir` parameter gets passed by Ray Tune when a checkpoint
-  # should be restored.
-  if checkpoint_dir:
-    checkpoint = os.path.join(checkpoint_dir, "checkpoint")
-    model_state, optimizer_state = torch.load(checkpoint)
-    model.load_state_dict(model_state)
-    optimizer.load_state_dict(optimizer_state)
-
-  for epoch in range(1, opt["epoch"]):
-    loss = train(model, optimizer, data)
-    train_acc, val_acc, tmp_test_acc = test(model, data)
-    with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
-      path = os.path.join(checkpoint_dir, "checkpoint")
-      torch.save((model.state_dict(), optimizer.state_dict()), path)
-    if opt_val:
-      tune.report(loss=loss, accuracy=val_acc)
-    else:
-      tune.report(loss=loss, accuracy=tmp_test_acc)
-
-
 def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
@@ -197,16 +168,16 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
     if opt["no_early"]:
       _, val_acc_int, tmp_test_acc_int = test(model, data)
     else:
-      _, _, _ = test(model, data)
+      train_acc, _, _ = test(model, data)
       val_acc_int = model.odeblock.test_integrator.solver.best_val
       tmp_test_acc_int = model.odeblock.test_integrator.solver.best_test
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((model.state_dict(), optimizer.state_dict()), path)
     if opt_val:
-      tune.report(loss=loss, accuracy=val_acc_int)
+      tune.report(loss=loss, accuracy=val_acc_int, train_acc=train_acc)
     else:
-      tune.report(loss=loss, accuracy=tmp_test_acc_int)
+      tune.report(loss=loss, accuracy=tmp_test_acc_int, train_acc=train_acc)
 
 
 def set_cora_search_space(opt):
