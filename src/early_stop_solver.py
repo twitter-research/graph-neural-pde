@@ -22,9 +22,9 @@ class EarlyStopRK4(RKAdaptiveStepsizeODESolver):
     self.data = None
     self.best_val = 0
     self.best_test = 0
+    self.test = self.test_OGB if opt['dataset'] == 'ogbn-arxiv' else self.test
     if opt['dataset'] == 'ogbn-arxiv':
       self.lf = torch.nn.functional.nll_loss
-      self.ode_test = self.test_OGB
       self.evaluator = Evaluator(name=opt['dataset'])
 
   def set_accs(self, val, test):
@@ -61,7 +61,7 @@ class EarlyStopRK4(RKAdaptiveStepsizeODESolver):
     return (new_t, _interp_evaluate(self.rk_state.interp_coeff, self.rk_state.t0, self.rk_state.t1, next_t))
 
   @torch.no_grad()
-  def ode_test(self, logits):
+  def test(self, logits):
     accs = []
     for _, mask in self.data('train_mask', 'val_mask', 'test_mask'):
       pred = logits[mask].max(1)[1]
@@ -101,7 +101,9 @@ class EarlyStopRK4(RKAdaptiveStepsizeODESolver):
     t0, t1 = float(self.rk_state.t0), float(self.rk_state.t1)
     if self.dataset == 'ogbn-arxiv':
       z = z.log_softmax(dim=-1)
-    loss = self.lf(z[self.data.train_mask], self.data.y[self.data.train_mask])
+      loss = self.lf(z[self.data.train_mask], self.data.y.squeeze()[self.data.train_mask])
+    else:
+      loss = self.lf(z[self.data.train_mask], self.data.y[self.data.train_mask])
     train_acc, val_acc, tmp_test_acc = self.ode_test(z)
     log = 'ODE eval t0 {:.3f}, t1 {:.3f} Loss: {:.4f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
     # print(log.format(t0, t1, loss, train_acc, val_acc, tmp_test_acc))
