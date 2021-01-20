@@ -398,6 +398,36 @@ def set_photo_search_space(opt):
     opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
   return opt
 
+def set_arxiv_search_space(opt):
+  opt["decay"] = tune.loguniform(2e-3, 1e-2)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+
+  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
+  opt["lr"] = tune.loguniform(1e-2, 0.1)
+  opt["input_dropout"] = tune.uniform(0.4, 0.8)
+  opt["dropout"] = tune.uniform(0, 0.8)
+  opt["time"] = tune.uniform(0.5, 7.0)
+  opt["optimizer"] = tune.choice(["adam", "adamax"]) #, "rmsprop"])
+
+  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 6))
+    opt['attention_norm_idx'] = tune.choice([0, 1])
+    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+      [0, 1])
+    opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+  else:
+    opt["self_loop_weight"] = tune.uniform(0, 3)
+
+  opt["tol_scale"] = tune.loguniform(1, 1e4)
+
+  if opt["adjoint"]:
+    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+  return opt
+
 
 def set_search_space(opt):
   if opt["dataset"] == "Cora":
@@ -413,7 +443,7 @@ def set_search_space(opt):
   elif opt["dataset"] == "CoauthorCS":
     return set_coauthors_search_space(opt)
   elif opt["dataset"] == "ogbn-arxiv":
-    return set_coauthors_search_space(opt)
+    return set_arxiv_search_space(opt)
 
 
 def main(opt):
