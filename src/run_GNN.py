@@ -5,7 +5,7 @@ from torch_geometric.nn import GCNConv, ChebConv  # noqa
 from GNN import GNN
 import time
 from data import get_dataset
-
+from ogb.nodeproppred import Evaluator
 
 def get_cora_opt(opt):
   opt['dataset'] = 'Cora'
