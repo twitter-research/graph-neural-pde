@@ -14,7 +14,7 @@ class EarlyStopRK4(RKAdaptiveStepsizeODESolver):
   tableau = _DORMAND_PRINCE_SHAMPINE_TABLEAU
   mid = DPS_C_MID
 
-  def __init__(self, func, y0, rtol, atol, **kwargs):
+  def __init__(self, func, y0, rtol, atol, opt, **kwargs):
     super(EarlyStopRK4, self).__init__(func, y0, rtol, atol, **kwargs)
 
     self.lf = torch.nn.CrossEntropyLoss()
@@ -78,6 +78,8 @@ class EarlyStopRK4(RKAdaptiveStepsizeODESolver):
     z = F.relu(z)
     z = self.m2(z)
     t0, t1 = float(self.rk_state.t0), float(self.rk_state.t1)
+    if self.dataset == 'ogbn-arxiv':
+      z = z.log_softmax(dim=-1)
     loss = self.lf(z[self.data.train_mask], self.data.y[self.data.train_mask])
     train_acc, val_acc, tmp_test_acc = self.ode_test(z)
     log = 'ODE eval t0 {:.3f}, t1 {:.3f} Loss: {:.4f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
