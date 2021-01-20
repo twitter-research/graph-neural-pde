@@ -412,6 +412,8 @@ def set_search_space(opt):
     return set_photo_search_space(opt)
   elif opt["dataset"] == "CoauthorCS":
     return set_coauthors_search_space(opt)
+  elif opt["dataset"] == "ogbn-arxiv":
+    return set_coauthors_search_space(opt)
 
 
 def main(opt):

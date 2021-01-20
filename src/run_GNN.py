@@ -97,7 +97,7 @@ def train(model, optimizer, data):
 
 
 @torch.no_grad()
-def test(model, data):
+def test(model, data, opt=None):  # opt required for runtime polymorphism
   model.eval()
   logits, accs = model(data.x), []
   for _, mask in data('train_mask', 'val_mask', 'test_mask'):
@@ -160,7 +160,7 @@ def main(opt):
     start_time = time.time()
 
     loss = train(model, optimizer, data)
-    train_acc, val_acc, tmp_test_acc = test_fn(model, data)
+    train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
 
     if val_acc > best_val_acc:
       best_val_acc = val_acc
