@@ -169,9 +169,9 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
     # need next line as it sets the attributes in the solver
     
     if opt["no_early"]:
-      _, val_acc_int, tmp_test_acc_int = this_test(model, data)
+      _, val_acc_int, tmp_test_acc_int = this_test(model, data, opt)
     else:
-      _, _, _ = this_test(model, data)
+      _, _, _ = this_test(model, data, opt)
       val_acc_int = model.odeblock.test_integrator.solver.best_val
       tmp_test_acc_int = model.odeblock.test_integrator.solver.best_test
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:

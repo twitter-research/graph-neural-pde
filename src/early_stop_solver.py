@@ -22,7 +22,8 @@ class EarlyStopRK4(RKAdaptiveStepsizeODESolver):
     self.data = None
     self.best_val = 0
     self.best_test = 0
-    self.test = self.test_OGB if opt['dataset'] == 'ogbn-arxiv' else self.test
+    self.ode_test = self.test_OGB if opt['dataset'] == 'ogbn-arxiv' else self.test
+    self.dataset = opt['dataset']
     if opt['dataset'] == 'ogbn-arxiv':
       self.lf = torch.nn.functional.nll_loss
       self.evaluator = Evaluator(name=opt['dataset'])
