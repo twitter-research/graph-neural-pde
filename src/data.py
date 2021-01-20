@@ -32,6 +32,10 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     dataset = Amazon(path, ds)
   elif ds == 'CoauthorCS':
     dataset = Coauthor(path, 'CS')
+  elif ds == 'ogbn-arxiv':
+    dataset = PygNodePropPredDataset(name=ds,root=path,
+                                     transform=T.ToSparseTensor())
+    use_lcc = False  #  never need to calculate the lcc with ogb datasets
   else:
     raise Exception('Unknown dataset.')
 
