@@ -71,8 +71,12 @@ def train(model, optimizer, data):
   model.train()
   optimizer.zero_grad()
   out = model(data.x)
-  lf = torch.nn.CrossEntropyLoss()
-  loss = lf(out[data.train_mask], data.y[data.train_mask])
+  if model.opt['dataset'] == 'ogbn-arxiv':
+    lf = torch.nn.functional.nll_loss
+    loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
+  else:
+    lf = torch.nn.CrossEntropyLoss()
+    loss = lf(out[data.train_mask], data.y.squeeze(1)[data.train_mask])
   if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
     reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
     regularization_coeffs = model.regularization_coeffs
