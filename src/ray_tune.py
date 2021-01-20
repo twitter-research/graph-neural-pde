@@ -393,8 +393,9 @@ def set_computers_search_space(opt):
 
 def set_coauthors_search_space(opt):
   opt["decay"] = tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
-  opt["directional_penalty"] = tune.loguniform(0.01, 10.0)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.01, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 6))
   opt["lr"] = tune.loguniform(1e-5, 0.1)
@@ -419,6 +420,19 @@ def set_coauthors_search_space(opt):
   if opt["adjoint"]:
     opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
     opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+
+  if opt['rewiring'] == 'gdc':
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'threshold'
+    opt['exact'] = False
+    # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    opt['gdc_method'] = 'ppr'
+    # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
+    opt['gdc_threshold'] = tune.loguniform(0.0001, 0.0005)
+    # opt['gdc_threshold'] = None
+    opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
+    # opt['heat_time'] = tune.uniform(1, 5)
+
   return opt
 
 
