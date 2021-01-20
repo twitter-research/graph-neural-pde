@@ -110,6 +110,31 @@ def print_model_params(model):
       print(name)
       print(param.data.shape)
 
+@torch.no_grad()
+def test_OGB(model, data, opt):
+    if opt['dataset'] == 'ogbn-arxiv':
+      name = 'ogbn-arxiv'
+
+    evaluator = Evaluator(name=name)
+    model.eval()
+
+    out = model(data.x).log_softmax(dim=-1)
+    y_pred = out.argmax(dim=-1, keepdim=True)
+
+    train_acc = evaluator.eval({
+        'y_true': data.y[data.train_mask],
+        'y_pred': y_pred[data.train_mask],
+    })['acc']
+    valid_acc = evaluator.eval({
+        'y_true': data.y[data.val_mask],
+        'y_pred': y_pred[data.val_mask],
+    })['acc']
+    test_acc = evaluator.eval({
+        'y_true': data.y[data.test_mask],
+        'y_pred': y_pred[data.test_mask],
+    })['acc']
+
+    return train_acc, valid_acc, test_acc
 
 def main(opt):
   try:
