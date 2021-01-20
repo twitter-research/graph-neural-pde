@@ -70,6 +70,27 @@ class EarlyStopRK4(RKAdaptiveStepsizeODESolver):
     return accs
 
   @torch.no_grad()
+  def test_OGB(self, logits):
+    evaluator = self.evaluator
+    data = self.data
+    y_pred = logits.argmax(dim=-1, keepdim=True)
+
+    train_acc = evaluator.eval({
+      'y_true': data.y[data.train_mask],
+      'y_pred': y_pred[data.train_mask],
+    })['acc']
+    valid_acc = evaluator.eval({
+      'y_true': data.y[data.val_mask],
+      'y_pred': y_pred[data.val_mask],
+    })['acc']
+    test_acc = evaluator.eval({
+      'y_true': data.y[data.test_mask],
+      'y_pred': y_pred[data.test_mask],
+    })['acc']
+
+    return [train_acc, valid_acc, test_acc]
+
+  @torch.no_grad()
   def evaluate(self, rkstate):
     # Activation.
     z = rkstate.y1
