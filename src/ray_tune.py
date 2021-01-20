@@ -10,15 +10,18 @@ from GNN_early import GNNEarly
 from GNN import GNN
 from ray import tune
 from ray.tune import CLIReporter
-from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining
+from ray.tune.schedulers import ASHAScheduler
 from ray.tune.suggest.ax import AxSearch
-from run_GNN import get_optimizer, print_model_params, test, train
+from run_GNN import get_optimizer, test, test_OGB, train
 from torch import nn
 from GNN_ICML20 import ICML_GNN, get_sym_adj
 from GNN_ICML20 import train as train_icml
 
 def average_test(models, datas):
-  results = [test(model, data) for model, data in zip(models, datas)]
+  if opt['dataset'] == 'ogbn-arxiv':
+    results = [test_OGB(model, data, opt) for model, data in zip(models, datas)]
+  else:
+    results = [test(model, data) for model, data in zip(models, datas)]
   train_accs, val_accs, tmp_test_accs = [], [], []
 
   for train_acc, val_acc, test_acc in results:
