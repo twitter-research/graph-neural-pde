@@ -155,11 +155,12 @@ def main(opt):
   print_model_params(model)
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
   best_val_acc = test_acc = train_acc = best_epoch = 0
+  test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
 
     loss = train(model, optimizer, data)
-    train_acc, val_acc, tmp_test_acc = test(model, data)
+    train_acc, val_acc, tmp_test_acc = test_fn(model, data)
 
     if val_acc > best_val_acc:
       best_val_acc = val_acc
