@@ -166,8 +166,8 @@ def main(opt, run_count):
     results['forward_nfe'].append(model.fm.sum)
     results['backward_nfe'].append(model.bm.sum)
     results['train_acc'].append(train_acc)
-    results['test_acc'].append(val_acc)
-    results['val_acc'].append(test_acc)
+    results['test_acc'].append(test_acc)
+    results['val_acc'].append(val_acc)
     results['best_epoch'] = best_epoch
     results['best_val_acc'] = best_val_acc
     results['best_test_acc'] = best_test_acc
