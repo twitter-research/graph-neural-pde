@@ -100,12 +100,13 @@ SOLVERS = {
 
 
 class EarlyStopInt(torch.nn.Module):
-  def __init__(self, t, device=None):
+  def __init__(self, t, opt, device=None):
     super(EarlyStopInt, self).__init__()
     self.device = device
     self.solver = None
     self.data = None
     self.m2 = None
+    self.opt = opt
     self.t = torch.tensor([0, 3 * t], dtype=torch.float).to(self.device)
 
   def __call__(self, func, y0, t, method=None, rtol=1e-7, atol=1e-9, 
@@ -153,7 +154,7 @@ class EarlyStopInt(torch.nn.Module):
     shapes, func, y0, t, rtol, atol, method, options = _check_inputs(func, y0, self.t, rtol, atol, method, options,
                                                                      SOLVERS)
 
-    self.solver = SOLVERS[method](func, y0, rtol=rtol, atol=atol, **options)
+    self.solver = SOLVERS[method](func, y0, rtol=rtol, atol=atol, opt=self.opt, **options)
     if self.solver.data is None:
       self.solver.data = self.data
     self.solver.m2 = self.m2
