@@ -66,7 +66,7 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     dataset.data = set_train_val_test_split(
       12345,
       dataset.data,
-      num_development=5000 if opt == "CoauthorCS" else 1500)
+      num_development=5000 if ds == "CoauthorCS" else 1500)
 
   return dataset
 
