@@ -68,6 +68,18 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
   except AttributeError:
     train_mask_exists = False
 
+  if ds == 'ogbn-arxiv':
+    split_idx = dataset.get_idx_split()
+    data = Data(
+    x=dataset.data.x,
+    edge_index=dataset.data.edge_index,
+    y=dataset.data.y,
+    train_mask=split_idx['train'],
+    test_mask=split_idx['test'],
+    val_mask=split_idx['valid'])
+    dataset.data = data
+    train_mask_exists = True
+
   if use_lcc or not train_mask_exists:
     dataset.data = set_train_val_test_split(
       12345,
