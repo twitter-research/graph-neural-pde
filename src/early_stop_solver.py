@@ -6,6 +6,7 @@ import copy
 
 from torchdiffeq._impl.interp import _interp_evaluate
 from torchdiffeq._impl.rk_common import RKAdaptiveStepsizeODESolver
+from ogb.nodeproppred import Evaluator
 
 
 class EarlyStopRK4(RKAdaptiveStepsizeODESolver):
@@ -21,6 +22,10 @@ class EarlyStopRK4(RKAdaptiveStepsizeODESolver):
     self.data = None
     self.best_val = 0
     self.best_test = 0
+    if opt['dataset'] == 'ogbn-arxiv':
+      self.lf = torch.nn.functional.nll_loss
+      self.ode_test = self.test_OGB
+      self.evaluator = Evaluator(name=opt['dataset'])
 
   def set_accs(self, val, test):
     self.best_val = val
