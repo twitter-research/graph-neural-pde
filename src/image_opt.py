@@ -1,7 +1,7 @@
 
 def get_image_opt(opt):
   opt['im_dataset'] =  'MNIST' #'MNIST'  #datasets = ['MNIST','CIFAR']
-  opt['testing_code'] = True #True #to work with smaller dataset
+  opt['testing_code'] = False #True #to work with smaller dataset
   opt['function'] = 'transformer' #'laplacian' #'transformer'
   opt['block'] = 'attention' #'constant' #'attention' 'mixed
   opt['simple'] = True #True
