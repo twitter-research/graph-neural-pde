@@ -89,6 +89,9 @@ if __name__ == '__main__':
   parser.add_argument("--no_early", action="store_true",
                       help="Whether or not to use early stopping of the ODE integrator when testing.")
 
+  parser.add_argument('--earlystopxT', type=float, default=3, help='multiplier for T used to evaluate best model')
+
+
   args = parser.parse_args()
 
   opt = vars(args)

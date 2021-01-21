@@ -5,7 +5,7 @@ from torch_geometric.nn import GCNConv, ChebConv  # noqa
 from GNN import GNN
 import time
 from data import get_dataset
-
+from ogb.nodeproppred import Evaluator
 
 def get_cora_opt(opt):
   opt['dataset'] = 'Cora'
@@ -71,8 +71,12 @@ def train(model, optimizer, data):
   model.train()
   optimizer.zero_grad()
   out = model(data.x)
-  lf = torch.nn.CrossEntropyLoss()
-  loss = lf(out[data.train_mask], data.y[data.train_mask])
+  if model.opt['dataset'] == 'ogbn-arxiv':
+    lf = torch.nn.functional.nll_loss
+    loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
+  else:
+    lf = torch.nn.CrossEntropyLoss()
+    loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
   if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
     reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
     regularization_coeffs = model.regularization_coeffs
@@ -110,6 +114,31 @@ def print_model_params(model):
       print(name)
       print(param.data.shape)
 
+@torch.no_grad()
+def test_OGB(model, data, opt):
+    if opt['dataset'] == 'ogbn-arxiv':
+      name = 'ogbn-arxiv'
+
+    evaluator = Evaluator(name=name)
+    model.eval()
+
+    out = model(data.x).log_softmax(dim=-1)
+    y_pred = out.argmax(dim=-1, keepdim=True)
+
+    train_acc = evaluator.eval({
+        'y_true': data.y[data.train_mask],
+        'y_pred': y_pred[data.train_mask],
+    })['acc']
+    valid_acc = evaluator.eval({
+        'y_true': data.y[data.val_mask],
+        'y_pred': y_pred[data.val_mask],
+    })['acc']
+    test_acc = evaluator.eval({
+        'y_true': data.y[data.test_mask],
+        'y_pred': y_pred[data.test_mask],
+    })['acc']
+
+    return train_acc, valid_acc, test_acc
 
 def main(opt):
   try:
@@ -126,11 +155,12 @@ def main(opt):
   print_model_params(model)
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
   best_val_acc = test_acc = train_acc = best_epoch = 0
+  test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
 
     loss = train(model, optimizer, data)
-    train_acc, val_acc, tmp_test_acc = test(model, data)
+    train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
 
     if val_acc > best_val_acc:
       best_val_acc = val_acc

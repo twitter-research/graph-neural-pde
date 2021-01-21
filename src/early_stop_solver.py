@@ -6,6 +6,7 @@ import copy
 
 from torchdiffeq._impl.interp import _interp_evaluate
 from torchdiffeq._impl.rk_common import RKAdaptiveStepsizeODESolver
+from ogb.nodeproppred import Evaluator
 
 
 class EarlyStopRK4(RKAdaptiveStepsizeODESolver):
@@ -13,7 +14,7 @@ class EarlyStopRK4(RKAdaptiveStepsizeODESolver):
   tableau = _DORMAND_PRINCE_SHAMPINE_TABLEAU
   mid = DPS_C_MID
 
-  def __init__(self, func, y0, rtol, atol, **kwargs):
+  def __init__(self, func, y0, rtol, atol, opt, **kwargs):
     super(EarlyStopRK4, self).__init__(func, y0, rtol, atol, **kwargs)
 
     self.lf = torch.nn.CrossEntropyLoss()
@@ -21,6 +22,12 @@ class EarlyStopRK4(RKAdaptiveStepsizeODESolver):
     self.data = None
     self.best_val = 0
     self.best_test = 0
+    self.ode_test = self.test_OGB if opt['dataset'] == 'ogbn-arxiv' else self.test
+    self.dataset = opt['dataset']
+
+    if opt['dataset'] == 'ogbn-arxiv':
+      self.lf = torch.nn.functional.nll_loss
+      self.evaluator = Evaluator(name=opt['dataset'])
 
   def set_accs(self, val, test):
     self.best_val = val
@@ -65,6 +72,27 @@ class EarlyStopRK4(RKAdaptiveStepsizeODESolver):
     return accs
 
   @torch.no_grad()
+  def test_OGB(self, logits):
+    evaluator = self.evaluator
+    data = self.data
+    y_pred = logits.argmax(dim=-1, keepdim=True)
+
+    train_acc = evaluator.eval({
+      'y_true': data.y[data.train_mask],
+      'y_pred': y_pred[data.train_mask],
+    })['acc']
+    valid_acc = evaluator.eval({
+      'y_true': data.y[data.val_mask],
+      'y_pred': y_pred[data.val_mask],
+    })['acc']
+    test_acc = evaluator.eval({
+      'y_true': data.y[data.test_mask],
+      'y_pred': y_pred[data.test_mask],
+    })['acc']
+
+    return [train_acc, valid_acc, test_acc]
+
+  @torch.no_grad()
   def evaluate(self, rkstate):
     # Activation.
     z = rkstate.y1
@@ -73,7 +101,11 @@ class EarlyStopRK4(RKAdaptiveStepsizeODESolver):
     z = F.relu(z)
     z = self.m2(z)
     t0, t1 = float(self.rk_state.t0), float(self.rk_state.t1)
-    loss = self.lf(z[self.data.train_mask], self.data.y[self.data.train_mask])
+    if self.dataset == 'ogbn-arxiv':
+      z = z.log_softmax(dim=-1)
+      loss = self.lf(z[self.data.train_mask], self.data.y.squeeze()[self.data.train_mask])
+    else:
+      loss = self.lf(z[self.data.train_mask], self.data.y[self.data.train_mask])
     train_acc, val_acc, tmp_test_acc = self.ode_test(z)
     log = 'ODE eval t0 {:.3f}, t1 {:.3f} Loss: {:.4f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
     # print(log.format(t0, t1, loss, train_acc, val_acc, tmp_test_acc))
@@ -93,13 +125,14 @@ SOLVERS = {
 
 
 class EarlyStopInt(torch.nn.Module):
-  def __init__(self, t, device=None):
+  def __init__(self, t, opt, device=None):
     super(EarlyStopInt, self).__init__()
     self.device = device
     self.solver = None
     self.data = None
     self.m2 = None
-    self.t = torch.tensor([0, 3 * t], dtype=torch.float).to(self.device)
+    self.opt = opt
+    self.t = torch.tensor([0, opt['earlystopxT'] * t], dtype=torch.float).to(self.device)
 
   def __call__(self, func, y0, t, method=None, rtol=1e-7, atol=1e-9, 
                adjoint_method="dopri5", adjoint_atol=1e-9, adjoint_rtol=1e-7, options=None):
@@ -146,7 +179,7 @@ class EarlyStopInt(torch.nn.Module):
     shapes, func, y0, t, rtol, atol, method, options = _check_inputs(func, y0, self.t, rtol, atol, method, options,
                                                                      SOLVERS)
 
-    self.solver = SOLVERS[method](func, y0, rtol=rtol, atol=atol, **options)
+    self.solver = SOLVERS[method](func, y0, rtol=rtol, atol=atol, opt=self.opt, **options)
     if self.solver.data is None:
       self.solver.data = self.data
     self.solver.m2 = self.m2

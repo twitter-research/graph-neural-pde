@@ -10,6 +10,8 @@ import torch
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.datasets import Planetoid, Amazon, Coauthor
 from graph_rewiring import get_two_hop, apply_gdc
+from ogb.nodeproppred import PygNodePropPredDataset
+import torch_geometric.transforms as T
 
 DATA_PATH = '../data'
 
@@ -32,6 +34,10 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     dataset = Amazon(path, ds)
   elif ds == 'CoauthorCS':
     dataset = Coauthor(path, 'CS')
+  elif ds == 'ogbn-arxiv':
+    dataset = PygNodePropPredDataset(name=ds,root=path,
+                                     transform=T.ToSparseTensor())
+    use_lcc = False  #  never need to calculate the lcc with ogb datasets
   else:
     raise Exception('Unknown dataset.')
 
@@ -61,6 +67,18 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     dataset.data.train_mask
   except AttributeError:
     train_mask_exists = False
+
+  if ds == 'ogbn-arxiv':
+    split_idx = dataset.get_idx_split()
+    data = Data(
+    x=dataset.data.x,
+    edge_index=dataset.data.edge_index,
+    y=dataset.data.y,
+    train_mask=split_idx['train'],
+    test_mask=split_idx['test'],
+    val_mask=split_idx['valid'])
+    dataset.data = data
+    train_mask_exists = True
 
   if use_lcc or not train_mask_exists:
     dataset.data = set_train_val_test_split(
