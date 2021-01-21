@@ -39,7 +39,7 @@ class ODEblock(nn.Module):
     # self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, self.data, device)
 
     self.nreg = len(regularization_fns)
-    self.reg_odefunc = RegularizedODEfunc(self.odefunc, regularization_fns)
+    # self.reg_odefunc = RegularizedODEfunc(self.odefunc, regularization_fns)
 
     if opt['adjoint']:
       from torchdiffeq import odeint_adjoint as odeint
