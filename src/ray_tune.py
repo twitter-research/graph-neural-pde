@@ -80,9 +80,9 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((models[best].state_dict(), optimizers[best].state_dict()), path)
     if opt_val:
-      tune.report(loss=loss, accuracy=np.mean(val_accs), train_acc=np.mean(train_accs))
+      tune.report(loss=loss, accuracy=np.mean(val_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
     else:
-      tune.report(loss=loss, accuracy=np.mean(tmp_test_accs), train_acc=np.mean(train_accs))
+      tune.report(loss=loss, accuracy=np.mean(tmp_test_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
 
 
 def train_ray(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
@@ -133,9 +133,9 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((models[best].state_dict(), optimizers[best].state_dict()), path)
     if opt_val:
-      tune.report(loss=loss, accuracy=np.mean(val_accs), train_acc=np.mean(train_accs))
+      tune.report(loss=loss, accuracy=np.mean(val_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
     else:
-      tune.report(loss=loss, accuracy=np.mean(tmp_test_accs), train_acc=np.mean(train_accs))
+      tune.report(loss=loss, accuracy=np.mean(tmp_test_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
 
 
 def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
@@ -175,9 +175,9 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((model.state_dict(), optimizer.state_dict()), path)
     if opt_val:
-      tune.report(loss=loss, accuracy=val_acc_int, train_acc=train_acc)
+      tune.report(loss=loss, accuracy=val_acc_int, train_acc=train_acc, forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
     else:
-      tune.report(loss=loss, accuracy=tmp_test_acc_int, train_acc=train_acc)
+      tune.report(loss=loss, accuracy=tmp_test_acc_int, train_acc=train_acc, forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
 
 
 def set_cora_search_space(opt):
