@@ -49,7 +49,7 @@ def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
   return fig
 
 @torch.no_grad()
-def create_animation(model, dataset, opt, height, width, frames):
+def create_animation(model, dataset, opt, height, width, frames, interval):
   loader = DataLoader(dataset, batch_size=opt['batch_size'], shuffle=True)
   # build the data
   for batch_idx, batch in enumerate(loader):
@@ -85,7 +85,7 @@ def create_animation(model, dataset, opt, height, width, frames):
       plt.axis('off')
 
   fig = plt.gcf()
-  animation = FuncAnimation(fig, func=update, frames=frames, interval=10)#, blit=True)
+  animation = FuncAnimation(fig, func=update, frames=frames, interval=interval)#, blit=True)
   return animation
 
 @torch.no_grad()
@@ -124,7 +124,7 @@ def plot_att_edges(model):
   pass
 
 def main(opt):
-  model_key = '20210118_095342'
+  model_key = '20210121_120746'
   directory = f"../models/"
   for filename in os.listdir(directory):
     if filename.startswith(model_key):
@@ -155,6 +155,10 @@ def main(opt):
   edge_attr_gpu = batch.edge_attr
   if edge_index_gpu is not None: edge_index_gpu.to(device)
   if edge_attr_gpu is not None: edge_index_gpu.to(device)
+  # self.T = opt['time']
+  # time_tensor = torch.tensor([0, self.T]).to(device)
+  N = 1
+  opt['time'] = opt['time'] / N
 
   model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
                     batch.edge_attr, device).to(device)
@@ -164,8 +168,8 @@ def main(opt):
   fig = plot_image_T(model, data_test, opt, modelpath, height=2, width=3)
   plt.savefig(f"{modelpath}_imageT.png", format="PNG")
   # 2)
-  animation = create_animation(model, data_test, opt, height=2, width=3, frames=10)
-  animation.save(f'{modelpath}_animation.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=0.5)
+  animation = create_animation(model, data_test, opt, height=2, width=3, frames=10, interval = 1)
+  animation.save(f'{modelpath}_animation.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=1)#0.5)
   # 3)
   fig = plot_att_heat(model, model_key, modelpath)
   plt.savefig(f"{modelpath}_AttHeat.png", format="PNG")
