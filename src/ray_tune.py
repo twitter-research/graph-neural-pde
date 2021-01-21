@@ -392,23 +392,24 @@ def set_computers_search_space(opt):
 
 
 def set_coauthors_search_space(opt):
-  opt["decay"] = tune.loguniform(2e-3, 1e-2)
+  opt["decay"] = tune.loguniform(1e-3, 2e-2)
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.01, 10.0)
 
-  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 6))
+  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 7))
   opt["lr"] = tune.loguniform(1e-5, 0.1)
-  opt["input_dropout"] = tune.uniform(0.4, 0.8)
-  opt["dropout"] = tune.uniform(0, 0.8)
+  opt["input_dropout"] = tune.uniform(0.4, 0.6)
+  opt["dropout"] = tune.uniform(0, 0.5)
   opt["self_loop_weight"] = tune.choice([0, 1])
   opt["time"] = tune.uniform(0.5, 10.0)
-  opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
+  opt["optimizer"] = tune.choice(["adam", "rmsprop"])
+  # opt["optimizer"] = 'adam'
 
   if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
-    opt['attention_norm_idx'] = tune.choice([0, 1])
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
+    opt['attention_norm_idx'] = 0
     opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
     opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
       [0, 1])  # whether or not to use self-loops
