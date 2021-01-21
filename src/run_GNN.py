@@ -97,7 +97,7 @@ def train(model, optimizer, data):
 
 
 @torch.no_grad()
-def test(model, data):
+def test(model, data, opt=None):
   model.eval()
   logits, accs = model(data.x), []
   for _, mask in data('train_mask', 'val_mask', 'test_mask'):
