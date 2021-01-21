@@ -42,7 +42,7 @@ class GNN_image(BaseGNN):
 
     self.odeblock.set_x0(x)
 
-    if self.training:
+    if self.training and self.odeblock.nreg > 0:
       z, self.reg_states = self.odeblock(x)
     else:
       z = self.odeblock(x)
