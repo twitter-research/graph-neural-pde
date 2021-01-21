@@ -484,12 +484,12 @@ def set_photo_search_space(opt):
   return opt
 
 def set_arxiv_search_space(opt):
-  opt["decay"] = tune.loguniform(0, 1e-2)
+  opt["decay"] = tune.loguniform(1e-5, 1e-2)
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
-  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
+  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 10))
   opt["lr"] = tune.loguniform(1e-2, 0.1)
   opt["input_dropout"] = tune.uniform(0., 0.6)
   opt["dropout"] = tune.uniform(0, 0.2)
