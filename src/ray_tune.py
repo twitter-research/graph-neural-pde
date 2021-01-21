@@ -508,7 +508,7 @@ def main(opt):
     reduction_factor=opt["reduction_factor"],
   )
   reporter = CLIReporter(
-    metric_columns=["accuracy", "train_acc", "loss", "training_iteration"]
+    metric_columns=["accuracy", "train_acc", "loss", "training_iteration", "forward_nfe", "backward_nfe"]
   )
   # choose a search algorithm from https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
   search_alg = AxSearch(metric="accuracy")
