@@ -87,7 +87,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
 
 def train_ray(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  dataset = get_dataset(opt, data_dir, True)
+  dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
   models = []
   optimizers = []
