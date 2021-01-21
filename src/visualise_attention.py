@@ -96,7 +96,7 @@ if __name__ == '__main__':
                       help='the size to project x to before calculating att scores')
   parser.add_argument('--mix_features', type=bool, default=False,
                       help='apply a feature transformation xW to the ODE')
-  parser.add_argument("--max_nfe", type=int, default=1000, help="Maximum number of function evaluations allowed.")
+  parser.add_argument("--max_nfe", type=int, default=1000, help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
 
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
   parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")
