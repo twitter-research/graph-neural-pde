@@ -484,7 +484,7 @@ def set_photo_search_space(opt):
   return opt
 
 def set_arxiv_search_space(opt):
-  opt["decay"] = tune.loguniform(1e-5, 1e-2)
+  opt["decay"] = tune.loguniform(1e-8, 1e-5)
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
@@ -510,9 +510,12 @@ def set_arxiv_search_space(opt):
 
   if opt["adjoint"]:
     opt["tol_scale_adjoint"] = tune.loguniform(10, 1e5)
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+    # opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+    opt["adjoint_method"] = tune.choice(["adaptive_heun", "rk4"])
 
-  opt["method"] = tune.choice(["dopri5", "rk4"])
+  # opt["method"] = tune.choice(["dopri5", "rk4"])
+  opt["method"] = tune.choice(["midpoint", "rk4"])
+
 
   if opt['rewiring'] == 'gdc':
     # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
