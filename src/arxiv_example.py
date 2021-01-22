@@ -9,7 +9,7 @@ from GNN_OGB import GNN_OGB, get_opt
 from ogb.nodeproppred import PygNodePropPredDataset, Evaluator
 from data import get_dataset
 from logger import Logger
-from run_GNN import test_OGB
+from run_GNN import test_OGB, train
 
 class GCN(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, num_layers,
@@ -76,7 +76,7 @@ class SAGE(torch.nn.Module):
         return x.log_softmax(dim=-1)
 
 
-def train(model, data, train_idx, optimizer):
+def ogb_train(model, data, train_idx, optimizer):
     model.train()
 
     optimizer.zero_grad()
@@ -166,7 +166,9 @@ def main():
         model.reset_parameters()
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
         for epoch in range(1, 1 + args.epochs):
-            loss = train(model, data, train_idx, optimizer)
+            # loss = ogb_train(model, data, train_idx, optimizer)
+            loss = train(model, optimizer, data)
+
             # result = test(model, data, split_idx, evaluator)
             result = test_OGB(model, data, opt)
             logger.add_result(run, result)

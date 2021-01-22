@@ -55,7 +55,7 @@ class GNN_OGB(BaseGNN):
   def reset_parameters(self):
     pass
 
-  def forward(self, x, adj):
+  def forward(self, x, adj=None):
     # Encode each node based on its feature.
     x = F.dropout(x, self.opt['input_dropout'], training=self.training)
     x = self.m1(x)
