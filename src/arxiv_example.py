@@ -7,9 +7,9 @@ import torch_geometric.transforms as T
 from torch_geometric.nn import GCNConv, SAGEConv
 from GNN_OGB import GNN_OGB, get_opt
 from ogb.nodeproppred import PygNodePropPredDataset, Evaluator
-
+from data import get_dataset
 from logger import Logger
-
+from run_GNN import test_OGB
 
 class GCN(torch.nn.Module):
     def __init__(self, in_channels, hidden_channels, out_channels, num_layers,
@@ -80,7 +80,8 @@ def train(model, data, train_idx, optimizer):
     model.train()
 
     optimizer.zero_grad()
-    out = model(data.x, data.adj_t)[train_idx]
+    # out = model(data.x, data.adj_t)[train_idx]
+    out = model(data.x, data)[train_idx]
     loss = F.nll_loss(out, data.y.squeeze(1)[train_idx])
     loss.backward()
     optimizer.step()
@@ -131,12 +132,19 @@ def main():
 
     dataset = PygNodePropPredDataset(name='ogbn-arxiv',
                                      transform=T.ToSparseTensor())
-
-    data = dataset[0]
-    data.adj_t = data.adj_t.to_symmetric()
-    data = data.to(device)
-
     split_idx = dataset.get_idx_split()
+    #
+    # data = dataset[0]
+
+    # data.adj_t = data.adj_t.to_symmetric()
+    # data = data.to(device)
+
+    opt = get_opt()
+    dataset = get_dataset(opt, '../data', use_lcc=False)
+    dataset.data.to(device)
+    data = dataset.data
+
+
     train_idx = split_idx['train'].to(device)
 
     if args.use_sage:
@@ -144,7 +152,6 @@ def main():
                      dataset.num_classes, args.num_layers,
                      args.dropout).to(device)
     elif args.use_gnpde:
-        opt = get_opt()
 
         model = GNN_OGB(opt,dataset,data, device).to(device)
     else:
@@ -160,7 +167,8 @@ def main():
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
         for epoch in range(1, 1 + args.epochs):
             loss = train(model, data, train_idx, optimizer)
-            result = test(model, data, split_idx, evaluator)
+            # result = test(model, data, split_idx, evaluator)
+            result = test_OGB(model, data, opt)
             logger.add_result(run, result)
 
             if epoch % args.log_steps == 0:

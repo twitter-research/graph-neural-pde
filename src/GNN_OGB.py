@@ -32,6 +32,8 @@ def get_opt():
   opt['tol_scale'] = 10
   opt['tol_scale_adjoint'] = 10
   opt['data_norm'] = 'gcn'
+  opt['dataset'] = 'ogbn-arxiv'
+  opt['rewiring'] = False
   return opt
 
 
@@ -42,11 +44,12 @@ class GNN_OGB(BaseGNN):
     self.f = OGBFunc
     self.block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
-    dataset.data.num_nodes = dataset.data.num_nodes[0]
+    if isinstance(dataset.data.num_nodes, list):
+      dataset.data.num_nodes = dataset.data.num_nodes[0]
     dataset.data.edge_index = to_undirected(dataset.data.edge_index)
     self.odeblock = self.block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
     # self.odeblock.odefunc.adj = gcn_norm(adj_t, num_nodes=opt['num_nodes'])
-    self.odeblock.odefunc.adj = data.adj_t
+    # self.odeblock.odefunc.adj = data.adj_t
 
 
   def reset_parameters(self):
