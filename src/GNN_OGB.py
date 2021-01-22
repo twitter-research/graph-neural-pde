@@ -28,7 +28,8 @@ def get_opt():
   opt["jacobian_norm2"] = None
   opt["total_deriv"] = None
   opt["directional_penalty"] = None
-  opt['tol_scale'] = 1
+  opt['tol_scale'] = 10
+  opt['tol_scale_adjoint'] = 10
   return opt
 
 
