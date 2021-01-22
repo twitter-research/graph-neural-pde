@@ -651,6 +651,8 @@ if __name__ == "__main__":
   parser.add_argument("--tol_scale_adjoint", type=float, default=1.0,
                       help="multiplier for adjoint_atol and adjoint_rtol")
   parser.add_argument("--ode_blocks", type=int, default=1, help="number of ode blocks to run")
+  parser.add_argument('--data_norm', type=str, default='rw',
+                      help='rw for random walk, gcn for symmetric gcn norm')
   parser.add_argument('--add_source', dest='add_source', action='store_true',
                       help='If try get rid of alpha param and the beta*x0 source term')
   # SDE args
