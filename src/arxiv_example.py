@@ -146,7 +146,7 @@ def main():
     elif args.use_gnpde:
         opt = get_opt()
 
-        model = GNN_OGB(opt,dataset,data.adj_t, device)
+        model = GNN_OGB(opt,dataset,data.adj_t, device).to(device)
     else:
         model = GCN(data.num_features, args.hidden_channels,
                     dataset.num_classes, args.num_layers,
