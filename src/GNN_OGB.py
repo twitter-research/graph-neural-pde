@@ -1,20 +1,51 @@
 import torch
-from torch import nn
 import torch.nn.functional as F
 from base_classes import BaseGNN
 from model_configurations import set_block, set_function
 from function_OGB import OGBFunc
+from torch_geometric.nn.conv.gcn_conv import gcn_norm
+
+
+def get_opt():
+  opt = {}
+  opt['block'] = 'constant'
+  opt['hidden_dim'] = 256
+  opt['input_dropout'] = 0.5
+  opt['dropout'] = 0
+  opt['optimizer'] = 'adam'
+  opt['lr'] = 0.0047
+  opt['decay'] = 5e-4
+  opt['self_loop_weight'] = 1
+  opt['time'] = 4
+  opt['num_nodes'] = 169343
+  opt['epoch'] = 500
+  opt['augment'] = False
+  opt['adjoint'] = True
+  opt['add_source'] = False
+  opt['method'] = 'rk4'
+  opt['adjoint_method'] = 'rk4'
+  opt["kinetic_energy"] = None
+  opt["jacobian_norm2"] = None
+  opt["total_deriv"] = None
+  opt["directional_penalty"] = None
+  opt['tol_scale'] = 1
+  return opt
+
 
 # Define the GNN model.
-class GNN(BaseGNN):
-  def __init__(self, opt, dataset, device=torch.device('cpu')):
-    super(GNN, self).__init__(opt, dataset, device)
+class GNN_OGB(BaseGNN):
+  def __init__(self, opt, dataset, adj_t, device=torch.device('cpu')):
+    super(GNN_OGB, self).__init__(opt, dataset, device)
     self.f = OGBFunc
     self.block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
+    dataset.data.num_nodes = dataset.data.num_nodes[0]
     self.odeblock = self.block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
-    # todo remove next line as in base class
-    # self.m2 = nn.Linear(opt['hidden_dim'], num_classes)
+    self.odeblock.odefunc.adj = gcn_norm(adj_t, num_nodes=opt['num_nodes'])
+
+
+  def reset_parameters(self):
+    pass
 
   def forward(self, x, adj):
     # Encode each node based on its feature.
@@ -44,4 +75,4 @@ class GNN(BaseGNN):
 
     # Decode each node embedding to get node label.
     z = self.m2(z)
-    return z
+    return z.log_softmax(dim=-1)

@@ -3,6 +3,7 @@ from torch import nn
 import torch_sparse
 
 from base_classes import ODEFunc
+from torch_sparse import SparseTensor, matmul, fill_diag, sum, mul_
 
 
 # Define the ODE function.
@@ -25,25 +26,10 @@ class OGBFunc(ODEFunc):
     self.beta_sc = nn.Parameter(torch.ones(1))
     self.adj = None
 
-  def sparse_multiply(self, x):
-    if self.opt['block'] == 'attention':  # adj is a multihead attention
-      ax = torch.mean(torch.stack(
-        [torch_sparse.spmm(self.edge_index, self.attention_weights[:, idx], x.shape[0], x.shape[0], x) for idx in
-         range(self.opt['heads'])], dim=0), dim=0)
-    elif self.opt['block'] == 'mixed':  # adj is a torch sparse matrix
-      ax = torch_sparse.spmm(self.edge_index, self.attention_weights, x.shape[0], x.shape[0], x)
-    else:  # adj is a torch sparse matrix
-      ax = torch_sparse.spmm(self.edge_index, self.edge_weight, x.shape[0], x.shape[0], x)
-    return ax
-
   def forward(self, t, x):  # the t param is needed by the ODE solver.
     self.nfe += 1
-    ax = self.sparse_multiply(x)
-    if not self.opt['no_alpha_sigmoid']:
-      alpha = torch.sigmoid(self.alpha_train)
-    else:
-      alpha = self.alpha_train
-
+    ax = matmul(self.adj, x)
+    alpha = torch.sigmoid(self.alpha_train)
     f = alpha * (ax - x)
     if self.opt['add_source']:
       f = f + self.beta_train * self.x0

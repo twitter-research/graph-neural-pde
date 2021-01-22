@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 import torch_geometric.transforms as T
 from torch_geometric.nn import GCNConv, SAGEConv
-
+from GNN_OGB import GNN_OGB, get_opt
 from ogb.nodeproppred import PygNodePropPredDataset, Evaluator
 
 from logger import Logger
@@ -116,6 +116,7 @@ def main():
     parser.add_argument('--device', type=int, default=0)
     parser.add_argument('--log_steps', type=int, default=1)
     parser.add_argument('--use_sage', action='store_true')
+    parser.add_argument('--use_gnpde', action='store_true')
     parser.add_argument('--num_layers', type=int, default=3)
     parser.add_argument('--hidden_channels', type=int, default=256)
     parser.add_argument('--dropout', type=float, default=0.5)
@@ -142,6 +143,10 @@ def main():
         model = SAGE(data.num_features, args.hidden_channels,
                      dataset.num_classes, args.num_layers,
                      args.dropout).to(device)
+    elif args.use_gnpde:
+        opt = get_opt()
+
+        model = GNN_OGB(opt,dataset,data.adj_t, device)
     else:
         model = GCN(data.num_features, args.hidden_channels,
                     dataset.num_classes, args.num_layers,
