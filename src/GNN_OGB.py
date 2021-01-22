@@ -31,7 +31,7 @@ def get_opt():
   opt["directional_penalty"] = None
   opt['tol_scale'] = 10
   opt['tol_scale_adjoint'] = 10
-  opt['data_norm'] = 'gcn'
+  opt['data_norm'] = 'rw'
   return opt
 
 
