@@ -164,7 +164,8 @@ def main():
 
     for run in range(args.runs):
         model.reset_parameters()
-        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+        # optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=opt['decay'])
         for epoch in range(1, 1 + args.epochs):
             # loss = ogb_train(model, data, train_idx, optimizer)
             loss = train(model, optimizer, data)
