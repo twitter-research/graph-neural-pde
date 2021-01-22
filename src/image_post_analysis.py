@@ -19,6 +19,7 @@ def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
     out = model.forward_plot_T(batch.x)
     break
 
+
   for i in range(height*width):
     # t == 0
     plt.subplot(2*height, width, i + 1)
@@ -45,8 +46,10 @@ def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
       plt.imshow(A)
     plt.title("t=T Ground Truth: {}".format(batch.y[i].item()))
 
+
   # plt.savefig(f"{modelpath}_imageT.png", format="PNG")
   return fig
+
 
 @torch.no_grad()
 def create_animation(model, dataset, opt, height, width, frames, interval):
@@ -88,6 +91,41 @@ def create_animation(model, dataset, opt, height, width, frames, interval):
   animation = FuncAnimation(fig, func=update, frames=frames, interval=interval)#, blit=True)
   return animation
 
+
+@torch.no_grad()
+def create_pixel_intensity(model, dataset, opt, height, width, frames, interval):
+  # max / min intensity plot
+  loader = DataLoader(dataset, batch_size=opt['batch_size'], shuffle=True)
+  # build the data
+  for batch_idx, batch in enumerate(loader):
+    paths = model.forward_plot_path(batch.x, frames)
+    break
+  # draw graph initial graph
+  fig = plt.figure() #figsize=(width*10, height*10))
+  for i in range(height * width):
+    plt.subplot(height, width, i + 1)
+    plt.tight_layout()
+    mask = batch.batch == i
+
+    if opt['im_dataset'] == 'MNIST':
+      plt.plot(torch.max(paths[0,:,:],dim=1)[0])
+      plt.plot(torch.min(paths[0,:,:],dim=1)[0])
+      plt.plot(torch.mean(paths[0,:,:],dim=1))
+    elif opt['im_dataset'] == 'CIFAR':
+      A = paths[0,:,:].view(paths.shape[1],model.opt['im_height'] * model.opt['im_width'], model.opt['im_chan'])
+      plt.plot(torch.max(A, dim=1)[0][:,0],color='red')
+      plt.plot(torch.max(A, dim=1)[0][:,1],color='green')
+      plt.plot(torch.max(A, dim=1)[0][:,2],color='blue')
+      plt.plot(torch.min(A, dim=1)[0][:,0],color='red')
+      plt.plot(torch.min(A, dim=1)[0][:,1],color='green')
+      plt.plot(torch.min(A, dim=1)[0][:,2],color='blue')
+      plt.plot(torch.mean(A, dim=1)[:,0],color='red')
+      plt.plot(torch.mean(A, dim=1)[:,1],color='green')
+      plt.plot(torch.mean(A, dim=1)[:,2],color='blue')
+
+    plt.title("Evolution of Pixel Intensity, Ground Truth: {}".format(batch.y[i].item()))
+  return fig
+
 @torch.no_grad()
 def plot_att_heat(model, model_key, modelpath):
   #visualisation of ATT for the 1st image in the batch
@@ -124,7 +162,7 @@ def plot_att_edges(model):
   pass
 
 def main(opt):
-  model_key = '20210121_200920'
+  model_key = '20210121_202608'
   directory = f"../models/"
   for filename in os.listdir(directory):
     if filename.startswith(model_key):
@@ -137,7 +175,10 @@ def main(opt):
   modelpath = f"{modelfolder}/model_{model_key}"
 
   df = pd.read_csv(f'{directory}models.csv')
-  optdf = df.loc[df['model_key'] == model_key]
+  optdf = df[df.model_key == model_key]
+
+  optdf[['num_class','im_chan','im_height','im_width','num_nodes']] = optdf[['num_class','im_chan','im_height','im_width','num_nodes']].astype(int)
+
   opt = optdf.to_dict('records')[0]
 
   print("Loading Data")
@@ -157,7 +198,7 @@ def main(opt):
   if edge_attr_gpu is not None: edge_index_gpu.to(device)
   # self.T = opt['time']
   # time_tensor = torch.tensor([0, self.T]).to(device)
-  N = 1
+  N = 10
   opt['time'] = opt['time'] / N
 
   model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
@@ -173,7 +214,9 @@ def main(opt):
   # 3)
   fig = plot_att_heat(model, model_key, modelpath)
   plt.savefig(f"{modelpath}_AttHeat.png", format="PNG")
-
+  # # 4)
+  fig = create_pixel_intensity(model, data_test, opt, height=2, width=3, frames=10, interval = 1)
+  plt.savefig(f"{modelpath}_pixel_intensity.png", format="PNG")
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
