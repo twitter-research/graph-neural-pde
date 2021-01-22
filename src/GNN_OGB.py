@@ -4,6 +4,7 @@ from base_classes import BaseGNN
 from model_configurations import set_block, set_function
 from function_OGB import OGBFunc
 from torch_geometric.nn.conv.gcn_conv import gcn_norm
+from torch_geometric.utils import to_undirected
 
 
 def get_opt():
@@ -30,20 +31,22 @@ def get_opt():
   opt["directional_penalty"] = None
   opt['tol_scale'] = 10
   opt['tol_scale_adjoint'] = 10
+  opt['data_norm'] = 'gcn'
   return opt
 
 
 # Define the GNN model.
 class GNN_OGB(BaseGNN):
-  def __init__(self, opt, dataset, adj_t, device=torch.device('cpu')):
+  def __init__(self, opt, dataset, data, device=torch.device('cpu')):
     super(GNN_OGB, self).__init__(opt, dataset, device)
     self.f = OGBFunc
     self.block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
     dataset.data.num_nodes = dataset.data.num_nodes[0]
+    dataset.data.edge_index = to_undirected(dataset.data.edge_index)
     self.odeblock = self.block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
     # self.odeblock.odefunc.adj = gcn_norm(adj_t, num_nodes=opt['num_nodes'])
-    self.odeblock.odefunc.adj = adj_t
+    self.odeblock.odefunc.adj = data.adj_t
 
 
   def reset_parameters(self):

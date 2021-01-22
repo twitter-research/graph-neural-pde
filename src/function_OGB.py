@@ -4,6 +4,7 @@ import torch_sparse
 
 from base_classes import ODEFunc
 from torch_sparse import SparseTensor, matmul, fill_diag, sum, mul_
+from torch_geometric.utils import to_undirected
 
 
 # Define the ODE function.
@@ -28,7 +29,8 @@ class OGBFunc(ODEFunc):
 
   def forward(self, t, x):  # the t param is needed by the ODE solver.
     self.nfe += 1
-    ax = matmul(self.adj, x)
+    # ax = matmul(self.adj, x)
+    ax = torch_sparse.spmm(self.edge_index, self.edge_weight, x.shape[0], x.shape[0], x)
     alpha = torch.sigmoid(self.alpha_train)
     f = alpha * (ax - x)
     if self.opt['add_source']:
