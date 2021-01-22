@@ -122,7 +122,7 @@ def test_OGB(model, data, opt):
     evaluator = Evaluator(name=name)
     model.eval()
 
-    out = model(data.x).log_softmax(dim=-1)
+    out = model(data.x, None).log_softmax(dim=-1)
     y_pred = out.argmax(dim=-1, keepdim=True)
 
     train_acc = evaluator.eval({
