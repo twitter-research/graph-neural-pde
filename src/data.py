@@ -71,9 +71,10 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
 
   if ds == 'ogbn-arxiv':
     split_idx = dataset.get_idx_split()
+    ee = to_undirected(dataset.data.edge_index)
     data = Data(
     x=dataset.data.x,
-    edge_index=to_undirected(dataset.data.edge_index),
+    edge_index=ee,
     y=dataset.data.y,
     train_mask=split_idx['train'],
     test_mask=split_idx['test'],
