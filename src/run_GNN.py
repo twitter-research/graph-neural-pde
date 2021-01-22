@@ -180,6 +180,8 @@ if __name__ == '__main__':
                       help='Whether to run with best params for cora. Overrides the choice of dataset')
   parser.add_argument('--dataset', type=str, default='Cora',
                       help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS')
+  parser.add_argument('--data_norm', type=str, default='rw',
+                      help='rw for random walk, gcn for symmetric gcn norm')
   parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
   parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')
   parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')

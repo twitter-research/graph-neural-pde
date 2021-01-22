@@ -42,7 +42,8 @@ class GNN_OGB(BaseGNN):
     time_tensor = torch.tensor([0, self.T]).to(device)
     dataset.data.num_nodes = dataset.data.num_nodes[0]
     self.odeblock = self.block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
-    self.odeblock.odefunc.adj = gcn_norm(adj_t, num_nodes=opt['num_nodes'])
+    # self.odeblock.odefunc.adj = gcn_norm(adj_t, num_nodes=opt['num_nodes'])
+    self.odeblock.odefunc.adj = adj_t
 
 
   def reset_parameters(self):
