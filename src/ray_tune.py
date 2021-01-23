@@ -484,16 +484,19 @@ def set_photo_search_space(opt):
   return opt
 
 def set_arxiv_search_space(opt):
-  opt["decay"] = tune.loguniform(1e-8, 1e-5)
+  # opt["decay"] = tune.loguniform(1e-8, 1e-5)
+  opt["decay"] = 0
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
-  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 10))
-  opt["lr"] = tune.loguniform(1e-2, 0.1)
-  opt["input_dropout"] = tune.uniform(0., 0.6)
-  opt["dropout"] = tune.uniform(0, 0.2)
-  opt["time"] = tune.uniform(0.5, 20.0)
+  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 9))
+  opt["lr"] = tune.loguniform(5e-3, 0.1)
+  # opt["input_dropout"] = tune.uniform(0., 0.6)
+  opt["input_dropout"] = 0
+  # opt["dropout"] = tune.uniform(0, 0.2)
+  opt["dropout"] = 0
+  opt["time"] = tune.uniform(2, 10.0)
   # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
   opt['optimizer'] = 'adam'
   if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
@@ -512,9 +515,11 @@ def set_arxiv_search_space(opt):
     opt["tol_scale_adjoint"] = tune.loguniform(10, 1e5)
     # opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
     opt["adjoint_method"] = tune.choice(["adaptive_heun", "rk4"])
+    opt["adjoint_method"] = "rk4"
 
   # opt["method"] = tune.choice(["dopri5", "rk4"])
-  opt["method"] = tune.choice(["midpoint", "rk4"])
+  # opt["method"] = tune.choice(["midpoint", "rk4"])
+  opt["method"] = "rk4"
 
 
   if opt['rewiring'] == 'gdc':
