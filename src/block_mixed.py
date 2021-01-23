@@ -44,6 +44,9 @@ class MixedODEblock(ODEblock):
       z = integrator(
         self.odefunc, x, t,
         method=self.opt['method'],
+        options={'step_size': self.opt['step_size']},
+        adjoint_method=self.opt['adjoint_method'],
+        adjoint_options={'step_size': self.opt['adjoint_step_size']},
         atol=self.atol,
         rtol=self.rtol,
         adjoint_atol=self.atol_adjoint,
@@ -52,6 +55,7 @@ class MixedODEblock(ODEblock):
       z = integrator(
         self.odefunc, x, t,
         method=self.opt['method'],
+        options={'step_size': self.opt['step_size']},
         atol=self.atol,
         rtol=self.rtol)[1]
 
