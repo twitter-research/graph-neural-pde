@@ -513,6 +513,7 @@ def set_arxiv_search_space(opt):
   else:
     # opt["self_loop_weight"] = tune.uniform(0, 3)
     opt["self_loop_weight"] = 1
+  opt['data_norm'] == 'gcn'
 
   opt["tol_scale"] = tune.loguniform(10, 1e4)
 
