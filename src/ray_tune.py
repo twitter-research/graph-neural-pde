@@ -500,7 +500,7 @@ def set_arxiv_search_space(opt):
   opt["dropout"] = 0
   opt['step_size'] = tune.choice([0,25, 0.5, 1, 2])
   opt['adjoint_step_size'] = tune.choice([0,25, 0.5, 1, 2])
-  opt["time"] = tune.uniform([1,2,3,4,5,6,7,8,9,10])
+  opt["time"] = tune.choice([1,2,3,4,5,6,7,8,9,10])
   # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
   opt['optimizer'] = 'adam'
   if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
