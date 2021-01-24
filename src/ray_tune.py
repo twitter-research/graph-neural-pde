@@ -490,8 +490,8 @@ def set_arxiv_search_space(opt):
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
-  # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 9))
-  opt["hidden_dim"] = 256
+  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 9))
+  # opt["hidden_dim"] = 256
   opt["lr"] = tune.loguniform(5e-3, 0.1)
   # opt['lr'] = 0.04
   # opt["input_dropout"] = tune.uniform(0., 0.1)
@@ -509,7 +509,7 @@ def set_arxiv_search_space(opt):
   if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
-    opt['attention_norm_idx'] = tune.choice([0, 1])
+    # opt['attention_norm_idx'] = tune.choice([0, 1])
     opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
       [0, 1])
     opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
