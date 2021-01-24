@@ -492,15 +492,18 @@ def set_arxiv_search_space(opt):
 
   # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 9))
   opt["hidden_dim"] = 256
-  # opt["lr"] = tune.loguniform(5e-3, 0.1)
-  opt['lr'] = 0.04
-  # opt["input_dropout"] = tune.uniform(0., 0.6)
+  opt["lr"] = tune.loguniform(5e-3, 0.1)
+  # opt['lr'] = 0.04
+  # opt["input_dropout"] = tune.uniform(0., 0.1)
   opt["input_dropout"] = 0
-  # opt["dropout"] = tune.uniform(0, 0.2)
+  # opt["dropout"] = tune.uniform(0, 0.1)
   opt["dropout"] = 0
-  opt['step_size'] = tune.choice([0.25, 0.5, 1, 2])
-  opt['adjoint_step_size'] = tune.choice([0.25, 0.5, 1, 2])
-  opt["time"] = tune.choice([1,2,3,4,5,6,7,8,9,10])
+  # opt['step_size'] = tune.choice([0.25, 0.5, 1, 2])
+  opt['step_size'] = 1
+  # opt['adjoint_step_size'] = tune.choice([0.25, 0.5, 1, 2])
+  opt['adjoint_step_size'] = 1
+  # opt["time"] = tune.choice([1,2,3,4,5,6,7,8,9,10])
+  opt['time'] = tune.uniform(3,10)
   # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
   opt['optimizer'] = 'adam'
   if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
@@ -513,9 +516,10 @@ def set_arxiv_search_space(opt):
   else:
     # opt["self_loop_weight"] = tune.uniform(0, 3)
     opt["self_loop_weight"] = 1
-  opt['data_norm'] == 'gcn'
+  opt['data_norm'] = tune.choice(['rw', 'gcn'])
+  opt['add_source'] = tune.choice([True, False])
 
-  opt["tol_scale"] = tune.loguniform(10, 1e4)
+  # opt["tol_scale"] = tune.loguniform(10, 1e4)
 
   if opt["adjoint"]:
     # opt["tol_scale_adjoint"] = tune.loguniform(10, 1e5)
