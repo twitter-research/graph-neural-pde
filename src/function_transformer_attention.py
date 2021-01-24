@@ -32,10 +32,12 @@ class ODEFuncTransformerAtt(ODEFunc):
         dim=0)
       ax = self.Wout(vx)
     else:
-      ax = torch.mean(torch.stack(
-        [torch_sparse.spmm(self.edge_index, attention[:, idx], x.shape[0], x.shape[0], x) for idx in
-         range(self.opt['heads'])], dim=0),
-        dim=0)
+      mean_attention = attention.mean(dim=1)
+      ax = torch_sparse.spmm(self.edge, mean_attention, self.x.shape[0], self.x.shape[0], self.x)
+      # ax = torch.mean(torch.stack(
+      #   [torch_sparse.spmm(self.edge_index, attention[:, idx], x.shape[0], x.shape[0], x) for idx in
+      #    range(self.opt['heads'])], dim=0),
+      #   dim=0)
     return ax
 
   def forward(self, t, x):  # t is needed when called by the integrator
