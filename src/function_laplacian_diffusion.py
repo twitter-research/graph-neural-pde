@@ -21,8 +21,7 @@ class LaplacianODEFunc(ODEFunc):
     self.out_features = out_features
     self.w = nn.Parameter(torch.eye(opt['hidden_dim']))
     self.d = nn.Parameter(torch.zeros(opt['hidden_dim']) + 1)
-    self.alpha_sc = nn.Parameter(torch.ones(1))
-    self.beta_sc = nn.Parameter(torch.ones(1))
+
 
   def sparse_multiply(self, x):
     if self.opt['block'] == 'attention':  # adj is a multihead attention

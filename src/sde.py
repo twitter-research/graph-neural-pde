@@ -43,8 +43,6 @@ class SDEFunc(MessagePassing):
     self.out_features = out_features
     self.w = nn.Parameter(torch.eye(opt['hidden_dim']))
     self.d = nn.Parameter(torch.zeros(opt['hidden_dim']) + 1)
-    self.alpha_sc = nn.Parameter(torch.ones(1))
-    self.beta_sc = nn.Parameter(torch.ones(1))
     self.gamma_sc = nn.Parameter(torch.ones(1))
     self.brownian_size = brownian_size
     self.gamma = nn.Parameter(torch.ones(self.num_nodes))
@@ -74,7 +72,7 @@ class SDEFunc(MessagePassing):
   def f(self, t, x):
     self.nfe += 1
     ax = torch.spmm(self.adj, x)  # [n_nodes, 2 * hidden]
-    f = self.alpha_sc * (ax - x) + self.beta_sc * self.x0
+    f = self.alpha_train * (ax - x) + self.beta_sc * self.x0
     return f
 
   def g(self, t, x):
