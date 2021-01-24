@@ -180,6 +180,8 @@ if __name__ == '__main__':
                       help='Whether to run with best params for cora. Overrides the choice of dataset')
   parser.add_argument('--dataset', type=str, default='Cora',
                       help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS')
+  parser.add_argument('--data_norm', type=str, default='rw',
+                      help='rw for random walk, gcn for symmetric gcn norm')
   parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
   parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')
   parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
@@ -200,11 +202,13 @@ if __name__ == '__main__':
   # ODE args
   parser.add_argument('--method', type=str, default='dopri5',
                       help="set the numerical solver: dopri5, euler, rk4, midpoint")
+  parser.add_argument('--step_size', type=float, default=1, help='fixed step size when using fixed step solvers e.g. rk4')
   parser.add_argument(
     "--adjoint_method", type=str, default="adaptive_heun",
     help="set the numerical solver for the backward pass: dopri5, euler, rk4, midpoint"
   )
-  parser.add_argument('--adjoint', default=False, help='use the adjoint ODE method to reduce memory footprint')
+  parser.add_argument('--adjoint', dest='adjoint', action='store_true', help='use the adjoint ODE method to reduce memory footprint')
+  parser.add_argument('--adjoint_step_size', type=float, default=1, help='fixed step size when using fixed step adjoint solvers e.g. rk4')
   parser.add_argument('--tol_scale', type=float, default=1., help='multiplier for atol and rtol')
   parser.add_argument("--tol_scale_adjoint", type=float, default=1.0,
                       help="multiplier for adjoint_atol and adjoint_rtol")
@@ -225,7 +229,7 @@ if __name__ == '__main__':
                       help='the size to project x to before calculating att scores')
   parser.add_argument('--mix_features', dest='mix_features', action='store_true',
                       help='apply a feature transformation xW to the ODE')
-  parser.add_argument("--max_nfe", type=int, default=1000, help="Maximum number of function evaluations allowed.")
+  parser.add_argument("--max_nfe", type=int, default=1000, help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
   parser.add_argument('--reweight_attention', dest='reweight_attention', action='store_true', help="multiply attention scores by edge weights before softmax")
   # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")

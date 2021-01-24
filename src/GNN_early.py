@@ -21,23 +21,23 @@ class GNNEarly(BaseGNN):
     time_tensor = torch.tensor([0, self.T]).to(device)
     self.f = set_function(opt)
     self.regularization_fns = ()
-    self.odeblock = block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor).to(device)
+    self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
     # overwrite the test integrator with this custom one
     self.odeblock.test_integrator = EarlyStopInt(self.T, opt, device)
-    self.odeblock.test_integrator.data = self.data
+    # self.odeblock.test_integrator.data = dataset.data
     if opt['adjoint']:
       from torchdiffeq import odeint_adjoint as odeint
     else:
       from torchdiffeq import odeint
     self.odeblock.train_integrator = odeint
 
-    self.set_solver_data()
+    self.set_solver_data(dataset.data)
 
   def set_solver_m2(self):
     self.odeblock.test_integrator.m2 = self.m2
 
-  def set_solver_data(self):
-    self.odeblock.test_integrator.data = self.data
+  def set_solver_data(self, data):
+    self.odeblock.test_integrator.data = data
 
   def forward(self, x):
     # Encode each node based on its feature.
@@ -155,6 +155,8 @@ if __name__ == '__main__':
 
   parser.add_argument('--kinetic_energy', type=float, default=0.01, help="int_t ||f||_2^2")
   parser.add_argument('--directional_penalty', type=float, default=0.01, help="int_t ||(df/dx)^T f||^2")
+  parser.add_argument('--rewiring', type=str, default=None, help="two_hop, gdc")
+
 
   args = parser.parse_args()
 
