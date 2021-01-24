@@ -7,8 +7,7 @@ import unittest
 import torch
 from torch import tensor
 from torch import nn
-from unittest.mock import patch
-import logging
+import torch_sparse
 from function_transformer_attention import SpGraphTransAttentionLayer, ODEFuncTransformerAtt
 from torch_geometric.utils import softmax, to_dense_adj
 from data import get_dataset
@@ -98,6 +97,19 @@ class AttentionTests(unittest.TestCase):
     out = func(t, dataset.data.x)
     print(out.shape)
     self.assertTrue(out.shape == (dataset.data.num_nodes, dataset.num_features))
+
+  def test_head_aggregation(self):
+    in_features = self.x.shape[1]
+    out_features = self.x.shape[1]
+    self.opt['head'] = 4
+    att_layer = SpGraphTransAttentionLayer(in_features, out_features, self.opt, self.device, concat=True)
+    attention, _ = att_layer(self.x, self.edge)
+    ax1 = torch.mean(torch.stack(
+        [torch_sparse.spmm(self.edge, attention[:, idx], self.x.shape[0], self.x.shape[0], self.x) for idx in
+         range(self.opt['heads'])], dim=0), dim=0)
+    mean_attention = attention.mean(dim=1)
+    ax2 = torch_sparse.spmm(self.edge, mean_attention, self.x.shape[0], self.x.shape[0], self.x)
+    self.assertTrue(torch.equal(ax1, ax2))
 
   def test_two_way_edge(self):
     dataset = get_dataset(self.opt, '../data', False)
