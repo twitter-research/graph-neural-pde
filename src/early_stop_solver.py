@@ -62,7 +62,7 @@ class EarlyStopRK4(RKAdaptiveStepsizeODESolver):
     return (new_t, _interp_evaluate(self.rk_state.interp_coeff, self.rk_state.t0, self.rk_state.t1, next_t))
 
   @torch.no_grad()
-  def ode_test(self, logits):
+  def test(self, logits):
     accs = []
     for _, mask in self.data('train_mask', 'val_mask', 'test_mask'):
       pred = logits[mask].max(1)[1]

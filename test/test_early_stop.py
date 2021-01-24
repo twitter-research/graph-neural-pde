@@ -30,7 +30,8 @@ class EarlyStopTests(unittest.TestCase):
                 'hidden_dim': 6, 'block': 'constant', 'function': 'laplacian', 'augment': False, 'adjoint': False,
                 'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler',
                 'rewiring': None, 'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None,
-                'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None}
+                'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None, 'step_size': 1, 'data_norm': 'rw',
+                'earlystopxT': 3, 'max_iters': 10}
     self.dataset = get_dataset(self.opt, '../data', False)
 
   def tearDown(self) -> None:
@@ -54,11 +55,11 @@ class EarlyStopTests(unittest.TestCase):
     self.assertTrue(isinstance(odeblock.odefunc, LaplacianODEFunc))
     self.assertTrue(odeblock.test_integrator.data.x.shape == data.x.shape)
     gnn.train()
-    out = odeblock(data.x)[0]
+    out = odeblock(data.x)
     self.assertTrue(data.x.shape == out.shape)
     gnn.eval()
     gnn.set_solver_m2()
-    gnn.set_solver_data()
+    gnn.set_solver_data(data)
     out = odeblock(data.x)
     print('ode block out', out)
     self.assertTrue(data.x.shape == out.shape)
