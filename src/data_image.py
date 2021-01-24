@@ -136,8 +136,8 @@ class ImageInMemory(InMemoryDataset):
 
   def read_data(self):
     if self.opt['im_dataset'] == 'MNIST':
-      transform = transforms.Compose([transforms.ToTensor(),
-                                      transforms.Normalize((0.1307,), (0.3081,))])
+      transform = transforms.Compose([transforms.ToTensor()])#,
+                                      # transforms.Normalize((0.1307,), (0.3081,))])
       if self.type == "Train":
         data = torchvision.datasets.MNIST('../data/MNIST/', train=True, download=True,
                                           transform=transform)
@@ -145,8 +145,8 @@ class ImageInMemory(InMemoryDataset):
         data = torchvision.datasets.MNIST('../data/MNIST/', train=False, download=True,
                                           transform=transform)
     elif self.opt['im_dataset'] == 'CIFAR':
-      transform = transforms.Compose([transforms.ToTensor(),
-                                      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+      transform = transforms.Compose([transforms.ToTensor()])#,
+                                      # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
       if self.type == "Train":
         data = torchvision.datasets.CIFAR10('../data/CIFAR/', train=True, download=True,
                                              transform=transform)

@@ -25,6 +25,8 @@ class GNN_image(BaseGNN):
     #   [self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor) for dummy_i in range(self.n_ode_blocks)]).to(self.device)
     self.odeblock = self.block(self.f, self.regularization_fns, opt, num_nodes, edge_index, edge_attr, device, t=time_tensor).to(self.device)
 
+    self.batchnorm = nn.BatchNorm2d(num_features=opt['im_chan'])
+
     self.m2 = nn.Linear(opt['im_width'] * opt['im_height'] * opt['im_chan'], num_classes)
 
   def forward(self, x):
@@ -39,7 +41,7 @@ class GNN_image(BaseGNN):
     # if self.opt['augment']: #no augmenting for image viz
     #   c_aux = torch.zeros(x.shape).to(self.device)
     #   x = torch.cat([x, c_aux], dim=1)
-
+    x = self.batchnorm(x)
     self.odeblock.set_x0(x)
 
     if self.training and self.odeblock.nreg > 0:
@@ -73,7 +75,7 @@ class GNN_image(BaseGNN):
     # if self.opt['augment']: #no augmenting for image viz
     #   c_aux = torch.zeros(x.shape).to(self.device)
     #   x = torch.cat([x, c_aux], dim=1)
-
+    x = self.batchnorm(x)
     self.odeblock.set_x0(x)
 
     if self.training:
@@ -106,6 +108,8 @@ class GNN_image(BaseGNN):
     # if self.opt['augment']: #no augmenting for image viz
     #   c_aux = torch.zeros(x.shape).to(self.device)
     #   x = torch.cat([x, c_aux], dim=1)
+
+    x = self.batchnorm(x)
 
     z = x
     paths = [z.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])]

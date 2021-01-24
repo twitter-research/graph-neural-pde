@@ -10,6 +10,10 @@ import pandas as pd
 from data_image import load_data
 from image_opt import get_image_opt
 
+
+def NormalizeData(data):
+  return (data - torch.min(data)) / (torch.max(data) - torch.min(data))
+
 @torch.no_grad()
 def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
 
@@ -26,12 +30,17 @@ def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
     plt.tight_layout()
     plt.axis('off')
     mask = batch.batch == i
-    if opt['im_dataset'] == 'MNIST':
-      plt.imshow(batch.x[torch.nonzero(mask)].view(model.opt['im_height'],model.opt['im_width']), cmap='gray', interpolation='none')
-    elif opt['im_dataset'] == 'CIFAR':
-      A = batch.x[torch.nonzero(mask)].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
-      A = A / 2 + 0.5
-      plt.imshow(A)
+    A = batch.x[torch.nonzero(mask)].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
+    # if opt['im_dataset'] == 'MNIST':
+    #   A = batch.x[torch.nonzero(mask)].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
+    #   A =
+    #   plt.imshow(A), cmap='gray', interpolation='none')
+    # elif opt['im_dataset'] == 'CIFAR':
+    #   A = batch.x[torch.nonzero(mask)].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
+    #   A = A / 2 + 0.5
+    #   plt.imshow(A)
+    A = NormalizeData(A)
+    plt.imshow(A)
     plt.title("t=0 Ground Truth: {}".format(batch.y[i].item()))
 
     #t == T
@@ -176,9 +185,8 @@ def main(opt):
 
   df = pd.read_csv(f'{directory}models.csv')
   optdf = df[df.model_key == model_key]
-
-  optdf[['num_class','im_chan','im_height','im_width','num_nodes']] = optdf[['num_class','im_chan','im_height','im_width','num_nodes']].astype(int)
-
+  intcols = ['num_class','im_chan','im_height','im_width','num_nodes']
+  optdf[intcols].astype(int)
   opt = optdf.to_dict('records')[0]
 
   print("Loading Data")
@@ -205,15 +213,15 @@ def main(opt):
                     batch.edge_attr, device).to(device)
   model.eval()
 
-  # 1)
-  fig = plot_image_T(model, data_test, opt, modelpath, height=2, width=3)
-  plt.savefig(f"{modelpath}_imageT.png", format="PNG")
-  # 2)
-  animation = create_animation(model, data_test, opt, height=2, width=3, frames=10, interval = 1)
-  animation.save(f'{modelpath}_animation.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=1)#0.5)
-  # 3)
-  fig = plot_att_heat(model, model_key, modelpath)
-  plt.savefig(f"{modelpath}_AttHeat.png", format="PNG")
+  # # 1)
+  # fig = plot_image_T(model, data_test, opt, modelpath, height=2, width=3)
+  # plt.savefig(f"{modelpath}_imageT.png", format="PNG")
+  # # 2)
+  # animation = create_animation(model, data_test, opt, height=2, width=3, frames=10, interval = 1)
+  # animation.save(f'{modelpath}_animation.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=1)#0.5)
+  # # 3)
+  # fig = plot_att_heat(model, model_key, modelpath)
+  # plt.savefig(f"{modelpath}_AttHeat.png", format="PNG")
   # # 4)
   fig = create_pixel_intensity(model, data_test, opt, height=2, width=3, frames=10, interval = 1)
   plt.savefig(f"{modelpath}_pixel_intensity.png", format="PNG")
