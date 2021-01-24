@@ -25,7 +25,7 @@ class GNN_image(BaseGNN):
     #   [self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor) for dummy_i in range(self.n_ode_blocks)]).to(self.device)
     self.odeblock = self.block(self.f, self.regularization_fns, opt, num_nodes, edge_index, edge_attr, device, t=time_tensor).to(self.device)
 
-    self.batchnorm = nn.BatchNorm2d(num_features=opt['im_chan'])
+    self.batchnorm = nn.BatchNorm1d(num_features=opt['im_chan'])
 
     self.m2 = nn.Linear(opt['im_width'] * opt['im_height'] * opt['im_chan'], num_classes)
 

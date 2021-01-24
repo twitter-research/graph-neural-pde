@@ -47,12 +47,17 @@ def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
     plt.subplot(2*height, width, height*width + i + 1)
     plt.tight_layout()
     plt.axis('off')
-    if opt['im_dataset'] == 'MNIST':
-      plt.imshow(out[i, :].view(model.opt['im_height'], model.opt['im_width']), cmap='gray', interpolation='none')
-    elif opt['im_dataset'] == 'CIFAR':
-      A = out[i, :].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
-      A = A / 2 + 0.5
-      plt.imshow(A)
+
+    A = out[i, :].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
+    A = NormalizeData(A)
+
+    # if opt['im_dataset'] == 'MNIST':
+    #   plt.imshow(out[i, :].view(model.opt['im_height'], model.opt['im_width']), cmap='gray', interpolation='none')
+    # elif opt['im_dataset'] == 'CIFAR':
+    #   A = out[i, :].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
+    #   A = A / 2 + 0.5
+    #   plt.imshow(A)
+    plt.imshow(A)
     plt.title("t=T Ground Truth: {}".format(batch.y[i].item()))
 
 
