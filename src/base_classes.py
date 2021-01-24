@@ -6,26 +6,27 @@ from regularized_ODE_function import RegularizedODEfunc
 import regularized_ODE_function as reg_lib
 import six
 
+
 REGULARIZATION_FNS = {
-  "kinetic_energy": reg_lib.quadratic_cost,
-  "jacobian_norm2": reg_lib.jacobian_frobenius_regularization_fn,
-  "total_deriv": reg_lib.total_derivative,
-  "directional_penalty": reg_lib.directional_derivative
+    "kinetic_energy": reg_lib.quadratic_cost,
+    "jacobian_norm2": reg_lib.jacobian_frobenius_regularization_fn,
+    "total_deriv": reg_lib.total_derivative,
+    "directional_penalty": reg_lib.directional_derivative
 }
 
 
 def create_regularization_fns(args):
-  regularization_fns = []
-  regularization_coeffs = []
+    regularization_fns = []
+    regularization_coeffs = []
 
-  for arg_key, reg_fn in six.iteritems(REGULARIZATION_FNS):
-    if args[arg_key] is not None:
-      regularization_fns.append(reg_fn)
-      regularization_coeffs.append(args[arg_key])
+    for arg_key, reg_fn in six.iteritems(REGULARIZATION_FNS):
+        if args[arg_key] is not None:
+            regularization_fns.append(reg_fn)
+            regularization_coeffs.append(args[arg_key])
 
-  regularization_fns = regularization_fns
-  regularization_coeffs = regularization_coeffs
-  return regularization_fns, regularization_coeffs
+    regularization_fns = regularization_fns
+    regularization_coeffs = regularization_coeffs
+    return regularization_fns, regularization_coeffs
 
 
 class ODEblock(nn.Module):

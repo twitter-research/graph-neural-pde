@@ -12,7 +12,8 @@ from image_opt import get_image_opt
 
 
 def NormalizeData(data):
-  return (data - torch.min(data)) / (torch.max(data) - torch.min(data))
+  #normalises each image channel to range [0,1]
+  return (data - torch.amin(data,dim=(0,1))) / (torch.amax(data,dim=(0,1)) - torch.amin(data,dim=(0,1)))
 
 @torch.no_grad()
 def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
@@ -23,7 +24,6 @@ def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
     out = model.forward_plot_T(batch.x)
     break
 
-
   for i in range(height*width):
     # t == 0
     plt.subplot(2*height, width, i + 1)
@@ -31,37 +31,22 @@ def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
     plt.axis('off')
     mask = batch.batch == i
     A = batch.x[torch.nonzero(mask)].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
-    # if opt['im_dataset'] == 'MNIST':
-    #   A = batch.x[torch.nonzero(mask)].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
-    #   A =
-    #   plt.imshow(A), cmap='gray', interpolation='none')
-    # elif opt['im_dataset'] == 'CIFAR':
-    #   A = batch.x[torch.nonzero(mask)].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
-    #   A = A / 2 + 0.5
-    #   plt.imshow(A)
     A = NormalizeData(A)
-    plt.imshow(A)
+    if opt['im_dataset'] == 'MNIST':
+      plt.imshow(A, cmap='gray', interpolation = 'none')
+    elif opt['im_dataset'] == 'CIFAR':
+      plt.imshow(A, interpolation = 'none')
     plt.title("t=0 Ground Truth: {}".format(batch.y[i].item()))
 
     #t == T
     plt.subplot(2*height, width, height*width + i + 1)
     plt.tight_layout()
     plt.axis('off')
-
     A = out[i, :].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
     A = NormalizeData(A)
-
-    # if opt['im_dataset'] == 'MNIST':
-    #   plt.imshow(out[i, :].view(model.opt['im_height'], model.opt['im_width']), cmap='gray', interpolation='none')
-    # elif opt['im_dataset'] == 'CIFAR':
-    #   A = out[i, :].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
-    #   A = A / 2 + 0.5
-    #   plt.imshow(A)
     plt.imshow(A)
     plt.title("t=T Ground Truth: {}".format(batch.y[i].item()))
 
-
-  # plt.savefig(f"{modelpath}_imageT.png", format="PNG")
   return fig
 
 
@@ -176,7 +161,7 @@ def plot_att_edges(model):
   pass
 
 def main(opt):
-  model_key = '20210121_202608'
+  model_key = '20210121_202608' #'20210121_200920'#
   directory = f"../models/"
   for filename in os.listdir(directory):
     if filename.startswith(model_key):
@@ -219,14 +204,14 @@ def main(opt):
   model.eval()
 
   # # 1)
-  # fig = plot_image_T(model, data_test, opt, modelpath, height=2, width=3)
-  # plt.savefig(f"{modelpath}_imageT.png", format="PNG")
-  # # 2)
-  # animation = create_animation(model, data_test, opt, height=2, width=3, frames=10, interval = 1)
-  # animation.save(f'{modelpath}_animation.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=1)#0.5)
-  # # 3)
-  # fig = plot_att_heat(model, model_key, modelpath)
-  # plt.savefig(f"{modelpath}_AttHeat.png", format="PNG")
+  fig = plot_image_T(model, data_test, opt, modelpath, height=2, width=3)
+  plt.savefig(f"{modelpath}_imageT.png", format="PNG")
+  # 2)
+  animation = create_animation(model, data_test, opt, height=2, width=3, frames=10, interval = 1)
+  animation.save(f'{modelpath}_animation.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=1)#0.5)
+  # 3)
+  fig = plot_att_heat(model, model_key, modelpath)
+  plt.savefig(f"{modelpath}_AttHeat.png", format="PNG")
   # # 4)
   fig = create_pixel_intensity(model, data_test, opt, height=2, width=3, frames=10, interval = 1)
   plt.savefig(f"{modelpath}_pixel_intensity.png", format="PNG")
