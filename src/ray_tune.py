@@ -594,6 +594,7 @@ if __name__ == "__main__":
     "--method", type=str, default="dopri5", help="set the numerical solver: dopri5, euler, rk4, midpoint"
   )
   parser.add_argument('--step_size', type=float, default=1, help='fixed step size when using fixed step solvers e.g. rk4')
+  parser.add_argument('--max_iters', type=float, default=100, help='maximum number of integration steps')
   parser.add_argument(
     "--adjoint_method", type=str, default="adaptive_heun",
     help="set the numerical solver for the backward pass: dopri5, euler, rk4, midpoint"

@@ -50,6 +50,8 @@ def run_best_params(opt):
     name=name,
     resources_per_trial={"cpu": opt['cpus'], "gpu": opt['gpus']},
     search_alg=None,
+    keep_checkpoints_num=3,
+    checkpoint_score_attr='accuracy',
     config=best_params_ret,
     num_samples=opt['reps'] if opt["num_splits"] == 0 else opt["num_splits"] * opt["reps"],
     scheduler=None,
