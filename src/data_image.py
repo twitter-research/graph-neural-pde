@@ -145,8 +145,9 @@ class ImageInMemory(InMemoryDataset):
         data = torchvision.datasets.MNIST('../data/MNIST/', train=False, download=True,
                                           transform=transform)
     elif self.opt['im_dataset'] == 'CIFAR':
-      transform = transforms.Compose([transforms.ToTensor()])#,
-                                      # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+      # https: // discuss.pytorch.org / t / normalization - in -the - mnist - example / 457 / 7
+      transform = transforms.Compose([transforms.ToTensor(),
+                                       transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
       if self.type == "Train":
         data = torchvision.datasets.CIFAR10('../data/CIFAR/', train=True, download=True,
                                              transform=transform)
@@ -201,7 +202,7 @@ def load_data(opt):
   #
   # edge_index = edge_index_calc(im_height, im_width, im_chan, diags=opt['diags'])
 
-  print("creating in_memory_datasets")
+  print("loading PyG in_memory_datasets")
   # rootstr_train = '../data/PyG' + data_name + str(opt['train_size']) + 'Train/'
   # filestr_train = 'PyG' + data_name + str(opt['train_size']) + 'Train.pt'
   # rootstr_test = '../data/PyG' + data_name + str(opt['test_size']) + 'Test/'
