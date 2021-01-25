@@ -27,7 +27,7 @@ def get_image_opt(opt):
   opt['augment'] = False #True   #False need to view image
   opt['attention_dropout'] = 0
 
-  opt['epoch'] = 2 #2 #3 #1
+  opt['epoch'] = 0 #2 #2 #3 #1
   opt['batched'] = True
   if opt['testing_code']:
     opt['batch_size'] = 64  # 64 #64  # doing batch size for mnist
