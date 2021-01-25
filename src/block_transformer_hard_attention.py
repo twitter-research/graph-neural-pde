@@ -7,7 +7,7 @@ from utils import get_rw_adj
 class HardAttODEblock(ODEblock):
   def __init__(self, odefunc, regularization_fns, opt, data, device, t=torch.tensor([0, 1]), gamma=0.5):
     super(HardAttODEblock, self).__init__(odefunc, regularization_fns, opt, data, device, t)
-
+    assert opt['att_samp_pct'] > 0 and opt['att_samp_pct'] <= 1, "attention sampling threshold must be in (0,1]"
     self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, data, device)
     # self.odefunc.edge_index, self.odefunc.edge_weight = data.edge_index, edge_weight=data.edge_attr
     edge_index, edge_weight = get_rw_adj(data.edge_index, edge_weight=data.edge_attr, norm_dim=1,
@@ -40,7 +40,7 @@ class HardAttODEblock(ODEblock):
     # create attention mask
     with torch.no_grad():
       mean_att = attention_weights.mean(dim=1, keepdim=False)
-      threshold = torch.quantile(mean_att, 0.5)
+      threshold = torch.quantile(mean_att, 1-self.opt['att_samp_pct'])
       mask = mean_att > threshold
       self.odefunc.edge_index = self.data_edge_index[:, mask.T]
       print('retaining {} of {} edges'.format(self.odefunc.edge_index.shape[1], self.data_edge_index.shape[1]))

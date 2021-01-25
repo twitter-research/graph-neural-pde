@@ -676,6 +676,7 @@ if __name__ == "__main__":
   parser.add_argument("--not_lcc", action="store_false", help="don't use the largest connected component")
   parser.add_argument("--exact", action="store_true",
                       help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
+  parser.add_argument('--att_samp_pct', type=float, default=1, help="float in [0,1). The percentage of edges to retain based on attention scores")
 
   args = parser.parse_args()
 
