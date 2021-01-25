@@ -14,7 +14,7 @@ class HardAttODEblock(ODEblock):
                                          fill_value=opt['self_loop_weight'],
                                          num_nodes=data.num_nodes,
                                          dtype=data.x.dtype)
-    self.data_edge_index = edge_index
+    self.data_edge_index = edge_index.to(device)
     self.odefunc.edge_index = edge_index.to(device)  # this will be changed by attention scores
     self.odefunc.edge_weight = edge_weight.to(device)
     self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight
