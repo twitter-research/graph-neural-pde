@@ -170,17 +170,19 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
 
     if opt["no_early"]:
       train_acc, val_acc_int, tmp_test_acc_int = this_test(model, data, opt)
+      best_time = opt['time']
     else:
       train_acc, _, _ = this_test(model, data, opt)
       val_acc_int = model.odeblock.test_integrator.solver.best_val
       tmp_test_acc_int = model.odeblock.test_integrator.solver.best_test
+      best_time = model.odeblock.test_integrator.solver.best_time
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((model.state_dict(), optimizer.state_dict()), path)
     if opt_val:
-      tune.report(loss=loss, accuracy=val_acc_int, train_acc=train_acc, forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
+      tune.report(loss=loss, accuracy=val_acc_int, train_acc=train_acc, best_time=best_time, forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
     else:
-      tune.report(loss=loss, accuracy=tmp_test_acc_int, train_acc=train_acc, forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
+      tune.report(loss=loss, accuracy=tmp_test_acc_int, train_acc=train_acc, best_time=best_time, forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
 
 
 def set_cora_search_space(opt):

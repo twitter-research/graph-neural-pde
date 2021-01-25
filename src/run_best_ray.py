@@ -66,7 +66,7 @@ def run_best_params(opt):
   except:
     pass
 
-  print(df['accuracy'])
+  print(df[['accuracy', 'best_time']])
 
   test_accs = df['accuracy'].values
   print("test accuracy {}".format(test_accs))
@@ -86,13 +86,13 @@ if __name__ == '__main__':
   parser.add_argument('--gpus', type=float, default=0, help='number of gpus per trial. Can be fractional')
   parser.add_argument('--cpus', type=float, default=1, help='number of cpus per trial. Can be fractional')
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random slpits >= 0. 0 for planetoid split")
-  parser.add_argument("--adjoint", dest='adjoint', action='store_true', help="use the adjoint ODE method to reduce memory footprint")
+  parser.add_argument("--adjoint", dest='adjoint', action='store_true',
+                      help="use the adjoint ODE method to reduce memory footprint")
   parser.add_argument("--max_nfe", type=int, default=5000, help="Maximum number of function evaluations allowed.")
   parser.add_argument("--no_early", action="store_true",
                       help="Whether or not to use early stopping of the ODE integrator when testing.")
 
   parser.add_argument('--earlystopxT', type=float, default=3, help='multiplier for T used to evaluate best model')
-
 
   args = parser.parse_args()
 

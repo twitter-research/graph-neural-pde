@@ -41,7 +41,7 @@ class ConstantODEblock(ODEblock):
     func = self.reg_odefunc if self.training and self.nreg > 0 else self.odefunc
     state = (x,) + reg_states if self.training and self.nreg > 0 else x
 
-    if self.opt["adjoint"]:
+    if self.opt["adjoint"] and self.training:
       state_dt = integrator(
         func, state, t,
         method=self.opt['method'],

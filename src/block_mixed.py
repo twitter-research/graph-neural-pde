@@ -45,7 +45,7 @@ class MixedODEblock(ODEblock):
     t = self.t.type_as(x)
     self.odefunc.attention_weights = self.get_mixed_attention(x)
     integrator = self.train_integrator if self.training else self.test_integrator
-    if self.opt["adjoint"]:
+    if self.opt["adjoint"] and self.training:
       z = integrator(
         self.odefunc, x, t,
         method=self.opt['method'],
