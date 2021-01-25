@@ -55,7 +55,7 @@ def run_best_params(opt):
     config=best_params_ret,
     num_samples=opt['reps'] if opt["num_splits"] == 0 else opt["num_splits"] * opt["reps"],
     scheduler=None,
-    max_failures=0,
+    max_failures=2,
     local_dir='../ray_tune',
     progress_reporter=reporter,
     raise_on_failed_trial=False)

@@ -33,7 +33,7 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
   def set_accs(self, val, test, time):
     self.best_val = val
     self.best_test = test
-    self.best_time = time
+    self.best_time = time.item()
 
   def integrate(self, t):
     solution = torch.empty(len(t), *self.y0.shape, dtype=self.y0.dtype, device=self.y0.device)
@@ -143,7 +143,7 @@ class EarlyStopRK4(FixedGridODESolver):
   def set_accs(self, val, test, time):
     self.best_val = val
     self.best_test = test
-    self.best_time = time
+    self.best_time = time.item()
 
   def integrate(self, t):
     time_grid = self.grid_constructor(self.func, self.y0, t)
