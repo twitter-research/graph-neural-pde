@@ -41,7 +41,11 @@ class HardAttODEblock(ODEblock):
     if self.training:
       with torch.no_grad():
         mean_att = attention_weights.mean(dim=1, keepdim=False)
-        threshold = torch.quantile(mean_att, 1-self.opt['att_samp_pct'])
+        src_features = x[self.data_edge_index[0, :], :]
+        dst_features = x[self.data_edge_index[1, :], :]
+        delta = torch.linalg.norm(src_features-dst_features, dim=1)
+        flux = mean_att * delta
+        threshold = torch.quantile(flux, 1-self.opt['att_samp_pct'])
         mask = mean_att > threshold
         self.odefunc.edge_index = self.data_edge_index[:, mask.T]
         print('retaining {} of {} edges'.format(self.odefunc.edge_index.shape[1], self.data_edge_index.shape[1]))
