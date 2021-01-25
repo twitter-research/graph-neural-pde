@@ -491,8 +491,8 @@ def set_arxiv_search_space(opt):
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 9))
-  opt["hidden_dim"] = 128  # best choice with attention
-  # opt["hidden_dim"] = 256  # best choice without attention
+  # opt["hidden_dim"] = 128  # best choice with attention
+  opt["hidden_dim"] = 256  # best choice without attention
   opt["lr"] = tune.loguniform(5e-3, 0.02)
   # opt['lr'] = 0.04
   # opt["input_dropout"] = tune.uniform(0., 0.1)
