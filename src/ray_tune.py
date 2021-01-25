@@ -490,9 +490,10 @@ def set_arxiv_search_space(opt):
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
-  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 9))
-  # opt["hidden_dim"] = 256
-  opt["lr"] = tune.loguniform(5e-3, 0.1)
+  # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 9))
+  opt["hidden_dim"] = 128  # best choice with attention
+  # opt["hidden_dim"] = 256  # best choice without attention
+  opt["lr"] = tune.loguniform(5e-3, 0.02)
   # opt['lr'] = 0.04
   # opt["input_dropout"] = tune.uniform(0., 0.1)
   opt["input_dropout"] = 0
@@ -516,7 +517,7 @@ def set_arxiv_search_space(opt):
   else:
     # opt["self_loop_weight"] = tune.uniform(0, 3)
     opt["self_loop_weight"] = 1
-  opt['data_norm'] = tune.choice(['rw', 'gcn'])
+  # opt['data_norm'] = tune.choice(['rw', 'gcn'])
   opt['add_source'] = tune.choice([True, False])
 
   # opt["tol_scale"] = tune.loguniform(10, 1e4)
