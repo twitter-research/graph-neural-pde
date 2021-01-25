@@ -38,7 +38,7 @@ def run_best_params(opt):
 
   data_dir = os.path.abspath("../data")
   reporter = CLIReporter(
-    metric_columns=["accuracy", "loss", "training_iteration", "forward_nfe", "backward_nfe"])
+    metric_columns=["accuracy", "loss", "train_acc", "training_iteration", "forward_nfe", "backward_nfe"])
 
   if opt['name'] is None:
     name = opt['folder'] + '_test'
