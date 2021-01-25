@@ -132,7 +132,7 @@ def main(opt):
   for epoch in range(opt['epoch']):
     print("Epoch {}".format(epoch))
     start_time = time.time()
-    loss = train(model, optimizer, data_train)
+    loss = train(model, optimizer, data_train, data_test)
     test_acc = test(model, data_test)
     log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
     print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
