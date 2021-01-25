@@ -55,12 +55,12 @@ def train(model, optimizer, dataset, data_test):
         print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
                                                                               time.time() - start_time))
     else:
-      if batch_idx % (model.opt['train_size'] / model.opt['batch_size'] / 10) == 0:
-      # if batch_idx % 5 == 0:
-        test_acc = test(model, data_test)
-        log = 'Batch Index: {}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
-        print(log.format(batch_idx, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
-      elif batch_idx % 1 == 0:
+      # if batch_idx % (model.opt['train_size'] / model.opt['batch_size'] / 10) == 0:
+      # # if batch_idx % 5 == 0:
+      #   test_acc = test(model, data_test)
+      #   log = 'Batch Index: {}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
+      #   print(log.format(batch_idx, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
+      if batch_idx % 1 == 0:
         print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
                                                                               time.time() - start_time))
 
