@@ -38,13 +38,14 @@ class HardAttODEblock(ODEblock):
     t = self.t.type_as(x)
     attention_weights = self.get_attention_weights(x)
     # create attention mask
-    with torch.no_grad():
-      mean_att = attention_weights.mean(dim=1, keepdim=False)
-      threshold = torch.quantile(mean_att, 1-self.opt['att_samp_pct'])
-      mask = mean_att > threshold
-      self.odefunc.edge_index = self.data_edge_index[:, mask.T]
-      print('retaining {} of {} edges'.format(self.odefunc.edge_index.shape[1], self.data_edge_index.shape[1]))
-      self.odefunc.attention_weights = attention_weights[mask]
+    if self.training:
+      with torch.no_grad():
+        mean_att = attention_weights.mean(dim=1, keepdim=False)
+        threshold = torch.quantile(mean_att, 1-self.opt['att_samp_pct'])
+        mask = mean_att > threshold
+        self.odefunc.edge_index = self.data_edge_index[:, mask.T]
+        print('retaining {} of {} edges'.format(self.odefunc.edge_index.shape[1], self.data_edge_index.shape[1]))
+        self.odefunc.attention_weights = attention_weights[mask]
     self.reg_odefunc.odefunc.attention_weights = self.odefunc.attention_weights
     integrator = self.train_integrator if self.training else self.test_integrator
 
