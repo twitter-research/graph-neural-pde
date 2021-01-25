@@ -40,7 +40,9 @@ class ConstantODEblock(ODEblock):
       state_dt = integrator(
         func, state, t,
         method=self.opt['method'],
+        options=dict(step_size=self.opt['step_size'], max_iters=self.opt['max_iters']),
         adjoint_method=self.opt['adjoint_method'],
+        adjoint_options=dict(step_size = self.opt['adjoint_step_size'], max_iters=self.opt['max_iters']),
         atol=self.atol,
         rtol=self.rtol,
         adjoint_atol=self.atol_adjoint,
@@ -49,6 +51,7 @@ class ConstantODEblock(ODEblock):
       state_dt = integrator(
         func, state, t,
         method=self.opt['method'],
+        options=dict(step_size=self.opt['step_size'], max_iters=self.opt['max_iters']),
         atol=self.atol,
         rtol=self.rtol)
 

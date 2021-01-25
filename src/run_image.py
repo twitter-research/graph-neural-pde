@@ -214,6 +214,9 @@ if __name__ == '__main__':
   parser.add_argument('--ode_blocks', type=int, default=1, help='number of ode blocks to run')
   parser.add_argument('--simple', type=bool, default=True,
                       help='If try get rid of alpha param and the beta*x0 source term')
+  parser.add_argument('--step_size', type=float, default=1, help='fixed step size when using fixed step solvers e.g. rk4')
+  parser.add_argument('--adjoint_step_size', type=float, default=1, help='fixed step size when using fixed step adjoint solvers e.g. rk4')
+
   # SDE args
   parser.add_argument('--dt_min', type=float, default=1e-5, help='minimum timestep for the SDE solver')
   parser.add_argument('--dt', type=float, default=1e-3, help='fixed step size')

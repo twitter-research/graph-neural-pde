@@ -7,6 +7,13 @@ def get_image_opt(opt):
   opt['simple'] = True #True
   opt['adjoint'] = True
 
+
+  opt['method'] = 'rk4'
+  opt['adjoint_method'] = 'rk4'
+  opt['adjoint'] = True
+  opt['step_size'] = 1.0
+  opt['adjoint_step_size'] = 1.0
+
   # opt['tol_scale'] = 2.0 #., help = 'multiplier for atol and rtol')
   # opt['tol_scale_adjoint'] = 2.0
 
@@ -21,10 +28,10 @@ def get_image_opt(opt):
   opt['augment'] = False #True   #False need to view image
   opt['attention_dropout'] = 0
 
-  opt['epoch'] = 4 #2 #3 #1
+  opt['epoch'] = 2 #2 #3 #1
   opt['batched'] = True
-  opt['batch_size'] = 64  # 64 #64  # doing batch size for mnist
   if opt['testing_code']:
+    opt['batch_size'] = 64  # 64 #64  # doing batch size for mnist
     opt['train_size'] = 512#0 #128 #10240 #512 #10240
     opt['test_size'] = 128#0  #512#64#128
 
