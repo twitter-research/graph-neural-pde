@@ -7,6 +7,8 @@ def get_image_opt(opt):
   opt['simple'] = True #True
   opt['adjoint'] = True
 
+  # opt['tol_scale'] = 2.0 #., help = 'multiplier for atol and rtol')
+  # opt['tol_scale_adjoint'] = 2.0
 
   opt['input_dropout'] = 0.5
   opt['dropout'] = 0
@@ -18,7 +20,6 @@ def get_image_opt(opt):
   opt['time'] = 5 #2
   opt['augment'] = False #True   #False need to view image
   opt['attention_dropout'] = 0
-  opt['adjoint'] = False
 
   opt['epoch'] = 2 #2 #3 #1
   opt['batched'] = True

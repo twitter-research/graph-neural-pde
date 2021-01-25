@@ -335,7 +335,13 @@ def main(model_keys):
     plt.savefig(f"{modelpath}_imageT.png", format="PNG")
     # 2)
     animation = create_animation_old(model, data_test, opt, height=2, width=3, frames=10)
-    animation.save(f'{modelpath}_animation.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=1)#0.5)
+    # animation.save(f'{modelpath}_animation.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=2)
+    # animation.save(f'{modelpath}_animation2.gif', fps=2)
+
+    # from IPython.display import HTML
+    # HTML(animation.to_html5_video())
+    plt.rcParams['animation.ffmpeg_path'] = '/home/jr1419home/anaconda3/envs/GNN_WSL/bin/ffmpeg'
+    animation.save(f'{modelpath}_animation3.mp4', writer='ffmpeg', fps=2)
     # 3)
     # fig = plot_att_heat(model, model_key, modelpath)
     # plt.savefig(f"{modelpath}_AttHeat.png", format="PNG")
@@ -344,6 +350,8 @@ def main(model_keys):
     plt.savefig(f"{modelpath}_pixel_intensity.png", format="PNG")
 
 if __name__ == '__main__':
-  model_keys = ['20210125_002517', '20210125_002603']
+  # model_keys = ['20210125_002517', '20210125_002603']
+  # model_keys = ['20210125_111920', '20210125_115601']
+  model_keys = ['20210125_115601']
   main(model_keys)
-  build_all(model_keys)
+  # build_all(model_keys)
