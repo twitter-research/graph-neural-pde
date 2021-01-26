@@ -156,7 +156,11 @@ def plot_image(labels, paths, time, opt, pic_folder, samples):
   try:
     os.mkdir(savefolder)
   except OSError:
-    print("Creation of the directory %s failed" % savefolder)
+    if os.path.exists(savefolder):
+      print("%s exists, clearing existing images" % savefolder)
+    else:
+      print("Creation of the directory %s failed" % savefolder)
+
   else:
     print("Successfully created the directory %s " % savefolder)
   for i in range(samples):
@@ -181,9 +185,10 @@ def create_animation(labels, paths, frames, fps, opt, pic_folder, samples):
   try:
     os.mkdir(savefolder)
   except OSError:
-    print("Creation of the directory %s failed" % savefolder)
-  else:
-    print("Successfully created the directory %s " % savefolder)
+    if os.path.exists(savefolder):
+      print("%s exists, clearing existing images" % savefolder)
+    else:
+      print("Creation of the directory %s failed" % savefolder)
   # draw graph initial graph
   for i in range(samples):
     fig = plt.figure()
@@ -219,9 +224,11 @@ def create_pixel_intensity(labels, paths, opt, pic_folder, samples):
   try:
     os.mkdir(savefolder)
   except OSError:
-    print("Creation of the directory %s failed" % savefolder)
-  else:
-    print("Successfully created the directory %s " % savefolder)
+    if os.path.exists(savefolder):
+      print("%s exists, clearing existing images" % savefolder)
+    else:
+      print("Creation of the directory %s failed" % savefolder)
+
   for i in range(samples):
     fig = plt.figure()
     plt.tight_layout()
@@ -356,10 +363,10 @@ def main(model_keys):
 if __name__ == '__main__':
   # model_keys = ['20210125_002517', '20210125_002603']
   # model_keys = ['20210125_111920', '20210125_115601']
-  model_keys = ['20210126_194117']
-  # directory = f"../models/"
-  # df = pd.read_csv(f'{directory}models.csv')
-  # model_keys = df['model_key'].to_list()
+  # model_keys = ['20210126_194117']
+  directory = f"../models/"
+  df = pd.read_csv(f'{directory}models.csv')
+  model_keys = df['model_key'].to_list()
   # model_keys = [
   #   '20210125_002517',
   #   '20210125_002603',
