@@ -170,7 +170,7 @@ def plot_image(labels, paths, time, opt, pic_folder, samples):
       A = UnNormalizeCIFAR(A)
       plt.imshow(A, interpolation = 'none')
     plt.title(f"t={time} Ground Truth: {labels[i].item()}")
-    plt.savefig(f"{savefolder}/image_{time}_{i}.png", format="PNG")
+    plt.savefig(f"{savefolder}/image_{time}_{i}.pdf", format="pdf")
   return fig
 
 
@@ -242,7 +242,7 @@ def create_pixel_intensity(labels, paths, opt, pic_folder, samples):
       plt.plot(torch.mean(A, dim=1)[:, 1], color='green')
       plt.plot(torch.mean(A, dim=1)[:, 2], color='blue')
     plt.title("Max/Min, Ground Truth: {}".format(labels[i].item()))
-    plt.savefig(f"{savefolder}/max_min_{i}.png", format="PNG")
+    plt.savefig(f"{savefolder}/max_min_{i}.pdf", format="pdf")
 
   return fig
 
@@ -314,7 +314,7 @@ def main(model_keys):
     print("Loading Data")
     data_train, data_test = load_data(opt)
     print("creating GNN model")
-    loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=True)
+    loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=False) #, shuffle=True)
     for batch_idx, batch in enumerate(loader):
         break
     batch.to(device)
@@ -333,9 +333,9 @@ def main(model_keys):
 
     # # 1)
     fig = plot_image_T(model, data_test, opt, modelpath, height=2, width=3)
-    plt.savefig(f"{modelpath}_imageT.png", format="PNG")
+    plt.savefig(f"{modelpath}_imageT.pdf", format="pdf")
     # 2)
-    animation = create_animation_old(model, data_test, opt, height=2, width=3, frames=10)
+    animation = create_animation_old(model, data_test, opt, height=2, width=3, frames=N)
     # animation.save(f'{modelpath}_animation.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=2)
     animation.save(f'{modelpath}_animation.gif', fps=2)
 
@@ -345,23 +345,23 @@ def main(model_keys):
     # animation.save(f'{modelpath}_animation3.mp4', writer='ffmpeg', fps=2)
     # 3)
     # fig = plot_att_heat(model, model_key, modelpath)
-    # plt.savefig(f"{modelpath}_AttHeat.png", format="PNG")
+    # plt.savefig(f"{modelpath}_AttHeat.pdf", format="pdf")
     # # 4)
-    fig = create_pixel_intensity_old(model, data_test, opt, height=2, width=3, frames=10)
-    plt.savefig(f"{modelpath}_pixel_intensity.png", format="PNG")
+    fig = create_pixel_intensity_old(model, data_test, opt, height=2, width=3, frames=N)
+    plt.savefig(f"{modelpath}_pixel_intensity.pdf", format="pdf")
 
 if __name__ == '__main__':
   # model_keys = ['20210125_002517', '20210125_002603']
   # model_keys = ['20210125_111920', '20210125_115601']
   # model_keys = ['20210126_110356']
-  # directory = f"../models/"
-  # df = pd.read_csv(f'{directory}models.csv')
-  # model_keys = df['model_keys'].to_list()
-  model_keys = [
-    '20210125_002517',
-    '20210125_002603',
-    '20210125_111920',
-    '20210125_115601']
+  directory = f"../models/"
+  df = pd.read_csv(f'{directory}models.csv')
+  model_keys = df['model_keys'].to_list()
+  # model_keys = [
+  #   '20210125_002517',
+  #   '20210125_002603',
+  #   '20210125_111920',
+  #   '20210125_115601']
 
   main(model_keys)
   build_all(model_keys)
