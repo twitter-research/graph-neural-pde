@@ -18,7 +18,7 @@ def UnNormalizeCIFAR(data):
 
 @torch.no_grad()
 def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
-  loader = DataLoader(dataset, batch_size=opt['batch_size'], shuffle=True)
+  loader = DataLoader(dataset, batch_size=opt['batch_size'], shuffle=False) #True)
   fig = plt.figure() #figsize=(width*10, height*10))
   for batch_idx, batch in enumerate(loader):
     out = model.forward_plot_T(batch.x.to(model.device))
@@ -55,7 +55,7 @@ def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
 
 @torch.no_grad()
 def create_animation_old(model, dataset, opt, height, width, frames):
-  loader = DataLoader(dataset, batch_size=opt['batch_size'], shuffle=True)
+  loader = DataLoader(dataset, batch_size=opt['batch_size'], shuffle=False) #True)
   for batch_idx, batch in enumerate(loader):
     paths = model.forward_plot_path(batch.x.to(model.device), frames)
     break
@@ -94,7 +94,7 @@ def create_animation_old(model, dataset, opt, height, width, frames):
 @torch.no_grad()
 def create_pixel_intensity_old(model, dataset, opt, height, width, frames):
   # max / min intensity plot
-  loader = DataLoader(dataset, batch_size=opt['batch_size'], shuffle=True)
+  loader = DataLoader(dataset, batch_size=opt['batch_size'], shuffle=False) #True)
   for batch_idx, batch in enumerate(loader):
     paths = model.forward_plot_path(batch.x.to(model.device), frames)
     break
@@ -267,7 +267,7 @@ def build_all(model_keys, frames = 10, samples=6):
     ###load data and model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     data_train, data_test = load_data(opt)
-    loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=True)
+    loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=False) #True)
     for batch_idx, batch in enumerate(loader):
         break
     batch.to(device)
