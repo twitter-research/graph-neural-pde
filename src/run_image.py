@@ -108,11 +108,11 @@ def main(opt):
     print(f"This is run permutation {opt['im_dataset']} {opt['block']} {opt['function']}")
     opt = get_image_opt(opt)
 
-  # try:
-  #   if opt['use_image_defaults']:
-  #     opt = get_image_opt(opt)  # get_cora_opt(opt)
-  # except KeyError:
-  #   pass  # not always present when called as lib
+    # try:
+    #   if opt['use_image_defaults']:
+    #     opt = get_image_opt(opt)  # get_cora_opt(opt)
+    # except KeyError:
+    #   pass  # not always present when called as lib
 
     print("Loading Data")
     data_train, data_test = load_data(opt)

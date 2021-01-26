@@ -5,7 +5,7 @@ from torch_geometric.nn import GCNConv, ChebConv  # noqa
 from GNN import GNN
 import time
 from data import get_dataset
-
+from ogb.nodeproppred import Evaluator
 
 def get_cora_opt(opt):
   opt['dataset'] = 'Cora'
@@ -71,8 +71,12 @@ def train(model, optimizer, data):
   model.train()
   optimizer.zero_grad()
   out = model(data.x)
-  lf = torch.nn.CrossEntropyLoss()
-  loss = lf(out[data.train_mask], data.y[data.train_mask])
+  if model.opt['dataset'] == 'ogbn-arxiv':
+    lf = torch.nn.functional.nll_loss
+    loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
+  else:
+    lf = torch.nn.CrossEntropyLoss()
+    loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
   if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
     reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
     regularization_coeffs = model.regularization_coeffs
@@ -93,7 +97,7 @@ def train(model, optimizer, data):
 
 
 @torch.no_grad()
-def test(model, data):
+def test(model, data, opt=None):  # opt required for runtime polymorphism
   model.eval()
   logits, accs = model(data.x), []
   for _, mask in data('train_mask', 'val_mask', 'test_mask'):
@@ -110,6 +114,31 @@ def print_model_params(model):
       print(name)
       print(param.data.shape)
 
+@torch.no_grad()
+def test_OGB(model, data, opt):
+    if opt['dataset'] == 'ogbn-arxiv':
+      name = 'ogbn-arxiv'
+
+    evaluator = Evaluator(name=name)
+    model.eval()
+
+    out = model(data.x).log_softmax(dim=-1)
+    y_pred = out.argmax(dim=-1, keepdim=True)
+
+    train_acc = evaluator.eval({
+        'y_true': data.y[data.train_mask],
+        'y_pred': y_pred[data.train_mask],
+    })['acc']
+    valid_acc = evaluator.eval({
+        'y_true': data.y[data.val_mask],
+        'y_pred': y_pred[data.val_mask],
+    })['acc']
+    test_acc = evaluator.eval({
+        'y_true': data.y[data.test_mask],
+        'y_pred': y_pred[data.test_mask],
+    })['acc']
+
+    return train_acc, valid_acc, test_acc
 
 def main(opt):
   try:
@@ -119,21 +148,19 @@ def main(opt):
     pass  # not always present when called as lib
   dataset = get_dataset(opt, '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-
-  model, data = GNN(opt, dataset.num_features, dataset.data.num_nodes, dataset.num_classes, dataset.data.edge_index,
-                    dataset.data.edge_attr, device).to(device), dataset.data.to(device)
+  model, data = GNN(opt, dataset, device).to(device), dataset.data.to(device)
   print(opt)
   # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
   parameters = [p for p in model.parameters() if p.requires_grad]
   print_model_params(model)
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-  best_val_acc = test_acc = best_epoch = 0
+  best_val_acc = test_acc = train_acc = best_epoch = 0
+  test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
 
     loss = train(model, optimizer, data)
-    train_acc, val_acc, tmp_test_acc = test(model, data)
+    train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
 
     if val_acc > best_val_acc:
       best_val_acc = val_acc
@@ -153,6 +180,8 @@ if __name__ == '__main__':
                       help='Whether to run with best params for cora. Overrides the choice of dataset')
   parser.add_argument('--dataset', type=str, default='Cora',
                       help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS')
+  parser.add_argument('--data_norm', type=str, default='rw',
+                      help='rw for random walk, gcn for symmetric gcn norm')
   parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
   parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')
   parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
@@ -166,28 +195,30 @@ if __name__ == '__main__':
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilist ODE learning')
   parser.add_argument('--alpha_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) alpha')
-  parser.add_argument('--alpha_sigmoid', type=bool, default=True, help='apply sigmoid before multiplying by alpha')
+  parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true', help='apply sigmoid before multiplying by alpha')
   parser.add_argument('--beta_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) beta')
   parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention, SDE')
   parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
   # ODE args
   parser.add_argument('--method', type=str, default='dopri5',
                       help="set the numerical solver: dopri5, euler, rk4, midpoint")
+  parser.add_argument('--step_size', type=float, default=1, help='fixed step size when using fixed step solvers e.g. rk4')
   parser.add_argument(
     "--adjoint_method", type=str, default="adaptive_heun",
     help="set the numerical solver for the backward pass: dopri5, euler, rk4, midpoint"
   )
-  parser.add_argument('--adjoint', default=False, help='use the adjoint ODE method to reduce memory footprint')
+  parser.add_argument('--adjoint', dest='adjoint', action='store_true', help='use the adjoint ODE method to reduce memory footprint')
+  parser.add_argument('--adjoint_step_size', type=float, default=1, help='fixed step size when using fixed step adjoint solvers e.g. rk4')
   parser.add_argument('--tol_scale', type=float, default=1., help='multiplier for atol and rtol')
   parser.add_argument("--tol_scale_adjoint", type=float, default=1.0,
                       help="multiplier for adjoint_atol and adjoint_rtol")
   parser.add_argument('--ode_blocks', type=int, default=1, help='number of ode blocks to run')
-  parser.add_argument('--simple', type=bool, default=True,
+  parser.add_argument('--add_source', dest='add_source', action='store_true',
                       help='If try get rid of alpha param and the beta*x0 source term')
   # SDE args
   parser.add_argument('--dt_min', type=float, default=1e-5, help='minimum timestep for the SDE solver')
   parser.add_argument('--dt', type=float, default=1e-3, help='fixed step size')
-  parser.add_argument('--adaptive', type=bool, default=False, help='use adaptive step sizes')
+  parser.add_argument('--adaptive', dest='adaptive', action='store_true', help='use adaptive step sizes')
   # Attention args
   parser.add_argument('--leaky_relu_slope', type=float, default=0.2,
                       help='slope of the negative part of the leaky relu used in attention')
@@ -196,11 +227,10 @@ if __name__ == '__main__':
   parser.add_argument('--attention_norm_idx', type=int, default=0, help='0 = normalise rows, 1 = normalise cols')
   parser.add_argument('--attention_dim', type=int, default=64,
                       help='the size to project x to before calculating att scores')
-  parser.add_argument('--mix_features', type=bool, default=False,
+  parser.add_argument('--mix_features', dest='mix_features', action='store_true',
                       help='apply a feature transformation xW to the ODE')
-  parser.add_argument("--max_nfe", type=int, default=1000, help="Maximum number of function evaluations allowed.")
-  parser.add_argument('--reweight_attention', type=bool, default=False,
-                      help="multiply attention scores by edge weights before softmax")
+  parser.add_argument("--max_nfe", type=int, default=1000, help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
+  parser.add_argument('--reweight_attention', dest='reweight_attention', action='store_true', help="multiply attention scores by edge weights before softmax")
   # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
   parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")
@@ -213,8 +243,7 @@ if __name__ == '__main__':
   parser.add_argument('--gdc_method', type=str, default='ppr', help="ppr, heat, coeff")
   parser.add_argument('--gdc_sparsification', type=str, default='topk', help="threshold, topk")
   parser.add_argument('--gdc_k', type=int, default=64, help="number of neighbours to sparsify to when using topk")
-  parser.add_argument('--gdc_threshold', type=float, default=0.0001,
-                      help="obove this edge weight, keep edges when using threshold")
+  parser.add_argument('--gdc_threshold', type=float, default=0.0001, help="obove this edge weight, keep edges when using threshold")
   parser.add_argument('--gdc_avg_degree', type=int, default=64,
                       help="if gdc_threshold is not given can be calculated by specifying avg degree")
   parser.add_argument('--ppr_alpha', type=float, default=0.05, help="teleport probability")

@@ -3,14 +3,32 @@ def opt_perms(opt):
   im_dataset = ['MNIST','CIFAR']
   blocks = ['transformer', 'laplacian']
   functions = ['constant', 'attention']
+
+
   opt_perms = {}
   for dataset in im_dataset:
-    for block in blocks:
-      for function in functions:
-        opt['im_dataset'] = dataset
-        opt['block'] = block
-        opt['function'] = function
-        opt_perms[dataset+"_"+block+"_"+function] = opt
+    opt['im_dataset'] = dataset
+
+    opt['block'] = 'transformer'
+    opt['function'] = 'attention'
+    opt_perms[f"{dataset}_{opt['block']}_{opt['function']}"] = opt
+
+    opt['block'] = 'transfomer'
+    opt['function'] = 'constant'
+    opt_perms[f"{dataset}_{opt['block']}_{opt['function']}"] = opt
+
+    opt['block'] = 'laplacian'
+    opt['function'] = 'constant'
+    opt_perms[f"{dataset}_{opt['block']}_{opt['function']}"] = opt
+
+    #
+    # for block in blocks:
+    #   for function in functions:
+    #     if opt['block'] != and opt['function'] != :
+    #       opt['im_dataset'] = dataset
+    #       opt['block'] = block
+    #       opt['function'] = function
+    # opt_perms[dataset+"_"+block+"_"+function] = opt
   return opt_perms
 
 
