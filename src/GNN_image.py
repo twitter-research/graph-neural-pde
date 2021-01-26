@@ -130,7 +130,7 @@ class GNN_image(BaseGNN):
 
       if self.eval: #undo batch norm
         path = z * (self.bn.running_var + self.bn.eps) ** 0.5 + self.bn.running_mean
-      path = z.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])
+      path = path.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])
       paths.append(path)
 
     paths = torch.stack(paths,dim=1)
