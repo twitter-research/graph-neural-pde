@@ -519,10 +519,11 @@ def main(opt):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   opt = set_search_space(opt)
   scheduler = ASHAScheduler(
+    time_attr='time_total_s',
     metric="accuracy",
     mode="max",
-    max_t=opt["epoch"],
-    grace_period=opt["grace_period"],
+    max_t=600,
+    grace_period=opt['grace_period'],
     reduction_factor=opt["reduction_factor"],
   )
   reporter = CLIReporter(
