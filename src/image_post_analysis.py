@@ -170,6 +170,7 @@ def plot_image(labels, paths, time, opt, pic_folder, samples):
       A = UnNormalizeCIFAR(A)
       plt.imshow(A, interpolation = 'none')
     plt.title(f"t={time} Ground Truth: {labels[i].item()}")
+    plt.savefig(f"{savefolder}/image_{time}_{i}.png", format="png")
     plt.savefig(f"{savefolder}/image_{time}_{i}.pdf", format="pdf")
   return fig
 
@@ -242,8 +243,8 @@ def create_pixel_intensity(labels, paths, opt, pic_folder, samples):
       plt.plot(torch.mean(A, dim=1)[:, 1], color='green')
       plt.plot(torch.mean(A, dim=1)[:, 2], color='blue')
     plt.title("Max/Min, Ground Truth: {}".format(labels[i].item()))
+    plt.savefig(f"{savefolder}/max_min_{i}.png", format="png")
     plt.savefig(f"{savefolder}/max_min_{i}.pdf", format="pdf")
-
   return fig
 
 
@@ -333,6 +334,7 @@ def main(model_keys):
 
     # # 1)
     fig = plot_image_T(model, data_test, opt, modelpath, height=2, width=3)
+    plt.savefig(f"{modelpath}_imageT.png", format="png")
     plt.savefig(f"{modelpath}_imageT.pdf", format="pdf")
     # 2)
     animation = create_animation_old(model, data_test, opt, height=2, width=3, frames=N)
@@ -348,6 +350,7 @@ def main(model_keys):
     # plt.savefig(f"{modelpath}_AttHeat.pdf", format="pdf")
     # # 4)
     fig = create_pixel_intensity_old(model, data_test, opt, height=2, width=3, frames=N)
+    plt.savefig(f"{modelpath}_pixel_intensity.png", format="png")
     plt.savefig(f"{modelpath}_pixel_intensity.pdf", format="pdf")
 
 if __name__ == '__main__':
@@ -356,7 +359,7 @@ if __name__ == '__main__':
   # model_keys = ['20210126_110356']
   directory = f"../models/"
   df = pd.read_csv(f'{directory}models.csv')
-  model_keys = df['model_keys'].to_list()
+  model_keys = df['model_key'].to_list()
   # model_keys = [
   #   '20210125_002517',
   #   '20210125_002603',
