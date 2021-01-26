@@ -280,9 +280,9 @@ if __name__ == '__main__':
   #main(opt, 0)
 
   # Run combination of experiments
-  for stepsize in [0.5, 0.25, 0.1, 0.01]: # 2.0, 1.0
+  for stepsize in [0.01]: # 2.0, 1.0, 0.5, 0.25, 0.1, 
     print(f'*** Doing stepsize {stepsize} ***')
-    for idx in range(opt['count_runs']):
+    for idx in range(3, opt['count_runs']):
       print(f'*** Doing run {idx} ***')
       # NOTE: I think setting dt_min may not be necessary, doing it just to be safe!
       opt['dt'] = opt['dt_min'] = stepsize
