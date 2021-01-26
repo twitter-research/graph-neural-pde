@@ -9,7 +9,7 @@ from torch_geometric.utils import to_dense_adj
 import pandas as pd
 from data_image import load_data
 from image_opt import get_image_opt
-
+import shutil
 
 def UnNormalizeCIFAR(data):
   #normalises each image channel to range [0,1] from [-1, 1]
@@ -157,6 +157,8 @@ def plot_image(labels, paths, time, opt, pic_folder, samples):
     os.mkdir(savefolder)
   except OSError:
     if os.path.exists(savefolder):
+      shutil.rmtree(savefolder)
+      os.mkdir(savefolder)
       print("%s exists, clearing existing images" % savefolder)
     else:
       print("Creation of the directory %s failed" % savefolder)
@@ -186,6 +188,8 @@ def create_animation(labels, paths, frames, fps, opt, pic_folder, samples):
     os.mkdir(savefolder)
   except OSError:
     if os.path.exists(savefolder):
+      shutil.rmtree(savefolder)
+      os.mkdir(savefolder)
       print("%s exists, clearing existing images" % savefolder)
     else:
       print("Creation of the directory %s failed" % savefolder)
@@ -225,6 +229,8 @@ def create_pixel_intensity(labels, paths, opt, pic_folder, samples):
     os.mkdir(savefolder)
   except OSError:
     if os.path.exists(savefolder):
+      shutil.rmtree(savefolder)
+      os.mkdir(savefolder)
       print("%s exists, clearing existing images" % savefolder)
     else:
       print("Creation of the directory %s failed" % savefolder)
@@ -294,8 +300,9 @@ def build_all(model_keys, frames = 10, samples=6):
       batch_paths = model.forward_plot_path(batch.x.to(model.device), 2*frames)
       break
     plot_image(batch.y, batch_paths, time=0, opt=opt, pic_folder=modelfolder, samples=samples)
+    plot_image(batch.y, batch_paths, time=5, opt=opt, pic_folder=modelfolder, samples=samples)
     plot_image(batch.y, batch_paths, time=10, opt=opt, pic_folder=modelfolder, samples=samples)
-    create_animation(batch.y, batch_paths, 2*frames, fps=0.75, opt=opt, pic_folder=modelfolder, samples=samples)
+    create_animation(batch.y, batch_paths, 2*frames, fps=2, opt=opt, pic_folder=modelfolder, samples=samples)
     create_pixel_intensity(batch.y, batch_paths, opt, pic_folder=modelfolder, samples=samples)
 
 def main(model_keys):
