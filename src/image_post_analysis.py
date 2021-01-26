@@ -355,4 +355,4 @@ if __name__ == '__main__':
   # model_keys = ['20210125_111920', '20210125_115601']
   model_keys = ['20210126_110356']
   main(model_keys)
-  # build_all(model_keys)
+  build_all(model_keys)
