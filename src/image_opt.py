@@ -3,24 +3,38 @@ def opt_perms(opt):
   im_dataset = ['MNIST','CIFAR']
   blocks = ['attention', 'constant']
   functions = ['laplacian', 'transformer']
-
   opt_perms = {}
-  for dataset in im_dataset:
-    opt['im_dataset'] = dataset
-
-    opt['block'] = 'constant'
-    opt['function'] = 'laplacian'
-    opt_perms[f"{dataset}_{opt['block']}_{opt['function']}"] = opt
-
-    opt['block'] = 'attention'
-    opt['function'] = 'laplacian'
-    opt_perms[f"{dataset}_{opt['block']}_{opt['function']}"] = opt
-
-    opt['block'] = 'attention'
-    opt['function'] = 'transformer'
-    opt_perms[f"{dataset}_{opt['block']}_{opt['function']}"] = opt
-
-    #
+  opt1 = opt.copy()
+  opt1['im_dataset'] = 'MNIST'
+  opt1['block'] = 'constant'
+  opt1['function'] = 'laplacian'
+  opt_perms[f"{opt1['im_dataset']}_{opt1['block']}_{opt1['function']}"] = opt1
+  opt2 = opt.copy()
+  opt2['im_dataset'] = 'MNIST'
+  opt2['block'] = 'attention'
+  opt2['function'] = 'laplacian'
+  opt_perms[f"{opt2['im_dataset']}_{opt2['block']}_{opt2['function']}"] = opt2
+  opt3 = opt.copy()
+  opt3['im_dataset'] = 'MNIST'
+  opt3['block'] = 'attention'
+  opt3['function'] = 'transformer'
+  opt_perms[f"{opt3['im_dataset']}_{opt3['block']}_{opt3['function']}"] = opt3
+  opt4 = opt.copy()
+  opt4['im_dataset'] = 'CIFAR'
+  opt4['block'] = 'constant'
+  opt4['function'] = 'laplacian'
+  opt_perms[f"{opt4['im_dataset']}_{opt4['block']}_{opt4['function']}"] = opt4
+  opt5 = opt.copy()
+  opt5['im_dataset'] = 'CIFAR'
+  opt5['block'] = 'attention'
+  opt5['function'] = 'laplacian'
+  opt_perms[f"{opt5['im_dataset']}_{opt5['block']}_{opt5['function']}"] = opt5
+  # opt6 = opt.copy()
+  # opt6['im_dataset'] = 'CIFAR'
+  # opt6['block'] = 'attention'
+  # opt6['function'] = 'transformer'
+  # opt_perms[f"{opt6['im_dataset']}_{opt6['block']}_{opt6['function']}"] = opt6
+    # for dataset in im_dataset:
     # for block in blocks:
     #   for function in functions:
     #     if opt['block'] != and opt['function'] != :
@@ -57,7 +71,7 @@ def get_image_opt(opt):
   opt['augment'] = False #True   #False need to view image
   opt['attention_dropout'] = 0
 
-  opt['epoch'] = 2 #2 #2 #3 #1
+  opt['epoch'] = 2 #2 #3 #1
   opt['batched'] = True
   if opt['testing_code']:
     opt['batch_size'] = 64  # 64 #64  # doing batch size for mnist
