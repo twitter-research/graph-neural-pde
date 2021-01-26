@@ -458,7 +458,8 @@ def set_arxiv_search_space(opt):
     # opt['attention_norm_idx'] = tune.choice([0, 1])
     opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
       [0, 1])
-    opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+    # opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+    opt["leaky_relu_slope"] = 0.2
   else:
     # opt["self_loop_weight"] = tune.uniform(0, 3)
     opt["self_loop_weight"] = 1
@@ -466,6 +467,7 @@ def set_arxiv_search_space(opt):
   # opt['add_source'] = tune.choice([True, False])
   opt['add_source'] = True
   opt['att_samp_pct'] = tune.uniform(0,1)
+  opt['use_flux'] = tune.choice([True, False])
 
   # opt["tol_scale"] = tune.loguniform(10, 1e4)
 
