@@ -52,8 +52,8 @@ class HardAttODEblock(ODEblock):
           dst_features = x[self.data_edge_index[1, :], :]
           delta = torch.linalg.norm(src_features-dst_features, dim=1)
           meant_att = mean_att * delta
-        threshold = torch.quantile(meant_att, 1-self.opt['att_samp_pct'])
-        mask = meant_att > threshold
+        threshold = torch.quantile(mean_att, 1-self.opt['att_samp_pct'])
+        mask = mean_att > threshold
         self.odefunc.edge_index = self.data_edge_index[:, mask.T]
         sampled_attention_weights = self.renormalise_attention(mean_att[mask])
         print('retaining {} of {} edges'.format(self.odefunc.edge_index.shape[1], self.data_edge_index.shape[1]))

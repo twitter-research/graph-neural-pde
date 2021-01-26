@@ -249,6 +249,8 @@ if __name__ == '__main__':
   parser.add_argument('--ppr_alpha', type=float, default=0.05, help="teleport probability")
   parser.add_argument('--heat_time', type=float, default=3., help="time to run gdc heat kernal diffusion for")
   parser.add_argument('--att_samp_pct', type=float, default=1, help="float in [0,1). The percentage of edges to retain based on attention scores")
+  parser.add_argument('--use_flux', dest='use_flux', action='store_true',
+                      help='incorporate the feature grad in attention based edge dropout')
 
   args = parser.parse_args()
 
