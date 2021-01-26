@@ -21,7 +21,7 @@ def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
   loader = DataLoader(dataset, batch_size=opt['batch_size'], shuffle=True)
   fig = plt.figure() #figsize=(width*10, height*10))
   for batch_idx, batch in enumerate(loader):
-    out = model.forward_plot_T(batch.x)
+    out = model.forward_plot_T(batch.x.to(model.device))
     break
   for i in range(height*width):
     # t == 0
@@ -57,7 +57,7 @@ def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
 def create_animation_old(model, dataset, opt, height, width, frames):
   loader = DataLoader(dataset, batch_size=opt['batch_size'], shuffle=True)
   for batch_idx, batch in enumerate(loader):
-    paths = model.forward_plot_path(batch.x, frames)
+    paths = model.forward_plot_path(batch.x.to(model.device), frames)
     break
   # draw graph initial graph
   fig = plt.figure()
@@ -96,7 +96,7 @@ def create_pixel_intensity_old(model, dataset, opt, height, width, frames):
   # max / min intensity plot
   loader = DataLoader(dataset, batch_size=opt['batch_size'], shuffle=True)
   for batch_idx, batch in enumerate(loader):
-    paths = model.forward_plot_path(batch.x, frames)
+    paths = model.forward_plot_path(batch.x.to(model.device), frames)
     break
   # draw graph initial graph
   fig = plt.figure() #figsize=(width*10, height*10))
@@ -125,26 +125,27 @@ def create_pixel_intensity_old(model, dataset, opt, height, width, frames):
 
 @torch.no_grad()
 def plot_att_heat(model, model_key, modelpath):
-  #visualisation of ATT for the 1st image in the batch
-  im_height = model.opt['im_height']
-  im_width = model.opt['im_width']
-  im_chan = model.opt['im_chan']
-  hwc = im_height * im_width
-  edge_index = model.odeblock.odefunc.edge_index
-  num_nodes = model.opt['num_nodes']
-  batch_size = model.opt['batch_size']
-  edge_weight = model.odeblock.odefunc.edge_weight
-  dense_att = to_dense_adj(edge_index=edge_index, edge_attr=edge_weight,
-                           max_num_nodes=num_nodes*batch_size)[0,:num_nodes,:num_nodes]
-  square_att = dense_att.view(num_nodes, num_nodes)
-  x_np = square_att.numpy()
-  x_df = pd.DataFrame(x_np)
-  x_df.to_csv(f"{modelpath}_att.csv")
-  fig = plt.figure()
-  plt.tight_layout()
-  plt.imshow(square_att, cmap='hot', interpolation='nearest')
-  plt.title("Attention Heat Map {}".format(model_key))
-  return fig
+  pass
+  # #visualisation of ATT for the 1st image in the batch
+  # im_height = model.opt['im_height']
+  # im_width = model.opt['im_width']
+  # im_chan = model.opt['im_chan']
+  # hwc = im_height * im_width
+  # edge_index = model.odeblock.odefunc.edge_index
+  # num_nodes = model.opt['num_nodes']
+  # batch_size = model.opt['batch_size']
+  # edge_weight = model.odeblock.odefunc.edge_weight
+  # dense_att = to_dense_adj(edge_index=edge_index, edge_attr=edge_weight,
+  #                          max_num_nodes=num_nodes*batch_size)[0,:num_nodes,:num_nodes]
+  # square_att = dense_att.view(num_nodes, num_nodes)
+  # x_np = square_att.numpy()
+  # x_df = pd.DataFrame(x_np)
+  # x_df.to_csv(f"{modelpath}_att.csv")
+  # fig = plt.figure()
+  # plt.tight_layout()
+  # plt.imshow(square_att, cmap='hot', interpolation='nearest')
+  # plt.title("Attention Heat Map {}".format(model_key))
+  # return fig
   # useful code to overcome normalisation colour bar
   # https: // matplotlib.org / 3.3.3 / gallery / images_contours_and_fields / multi_image.html  # sphx-glr-gallery-images-contours-and-fields-multi-image-py
 
@@ -282,7 +283,7 @@ def build_all(model_keys, frames = 10, samples=6):
     model.eval()
     ###do forward pass
     for batch_idx, batch in enumerate(loader):
-      batch_paths = model.forward_plot_path(batch.x, 2*frames)
+      batch_paths = model.forward_plot_path(batch.x.to(model.device), 2*frames)
       break
     plot_image(batch.y, batch_paths, time=0, opt=opt, pic_folder=modelfolder, samples=samples)
     plot_image(batch.y, batch_paths, time=10, opt=opt, pic_folder=modelfolder, samples=samples)
