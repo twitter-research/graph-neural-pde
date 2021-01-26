@@ -56,7 +56,7 @@ def get_image_opt(opt):
   opt['adjoint'] = True
   opt['step_size'] = 1.0
   opt['adjoint_step_size'] = 1.0
-
+  opt['max_iters'] = 5000
   # opt['tol_scale'] = 2.0 #., help = 'multiplier for atol and rtol')
   # opt['tol_scale_adjoint'] = 2.0
 
