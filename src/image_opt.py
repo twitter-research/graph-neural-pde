@@ -4,31 +4,31 @@ def opt_perms(opt):
   blocks = ['attention', 'constant']
   functions = ['laplacian', 'transformer']
   opt_perms = {}
-  opt1 = opt.copy()
-  opt1['im_dataset'] = 'MNIST'
-  opt1['block'] = 'constant'
-  opt1['function'] = 'laplacian'
-  opt_perms[f"{opt1['im_dataset']}_{opt1['block']}_{opt1['function']}"] = opt1
-  opt2 = opt.copy()
-  opt2['im_dataset'] = 'MNIST'
-  opt2['block'] = 'attention'
-  opt2['function'] = 'laplacian'
-  opt_perms[f"{opt2['im_dataset']}_{opt2['block']}_{opt2['function']}"] = opt2
-  opt3 = opt.copy()
-  opt3['im_dataset'] = 'MNIST'
-  opt3['block'] = 'attention'
-  opt3['function'] = 'transformer'
-  opt_perms[f"{opt3['im_dataset']}_{opt3['block']}_{opt3['function']}"] = opt3
+  # opt1 = opt.copy()
+  # opt1['im_dataset'] = 'MNIST'
+  # opt1['block'] = 'constant'
+  # opt1['function'] = 'laplacian'
+  # opt_perms[f"{opt1['im_dataset']}_{opt1['block']}_{opt1['function']}"] = opt1
+  # opt2 = opt.copy()
+  # opt2['im_dataset'] = 'MNIST'
+  # opt2['block'] = 'attention'
+  # opt2['function'] = 'laplacian'
+  # opt_perms[f"{opt2['im_dataset']}_{opt2['block']}_{opt2['function']}"] = opt2
+  # opt3 = opt.copy()
+  # opt3['im_dataset'] = 'MNIST'
+  # opt3['block'] = 'attention'
+  # opt3['function'] = 'transformer'
+  # opt_perms[f"{opt3['im_dataset']}_{opt3['block']}_{opt3['function']}"] = opt3
   opt4 = opt.copy()
   opt4['im_dataset'] = 'CIFAR'
   opt4['block'] = 'constant'
   opt4['function'] = 'laplacian'
   opt_perms[f"{opt4['im_dataset']}_{opt4['block']}_{opt4['function']}"] = opt4
-  opt5 = opt.copy()
-  opt5['im_dataset'] = 'CIFAR'
-  opt5['block'] = 'attention'
-  opt5['function'] = 'laplacian'
-  opt_perms[f"{opt5['im_dataset']}_{opt5['block']}_{opt5['function']}"] = opt5
+  # opt5 = opt.copy()
+  # opt5['im_dataset'] = 'CIFAR'
+  # opt5['block'] = 'attention'
+  # opt5['function'] = 'laplacian'
+  # opt_perms[f"{opt5['im_dataset']}_{opt5['block']}_{opt5['function']}"] = opt5
   # opt6 = opt.copy()
   # opt6['im_dataset'] = 'CIFAR'
   # opt6['block'] = 'attention'
@@ -46,7 +46,7 @@ def opt_perms(opt):
 
 
 def get_image_opt(opt):
-  opt['testing_code'] = False  # True #to work with smaller dataset
+  opt['testing_code'] = True  # True #to work with smaller dataset
 
   opt['simple'] = True #True
   opt['adjoint'] = True
