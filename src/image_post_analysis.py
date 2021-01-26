@@ -29,7 +29,7 @@ def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
     plt.tight_layout()
     plt.axis('off')
     mask = batch.batch == i
-    A = batch.x[torch.nonzero(mask)].squeeze()
+    A = batch.x[torch.nonzero(mask)].squeeze().cpu()
     A = A.view(opt['im_height'], opt['im_width'], opt['im_chan'])
     if opt['im_dataset'] == 'MNIST':
       plt.imshow(A, cmap='gray', interpolation = 'none')
@@ -42,7 +42,7 @@ def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
     plt.subplot(2*height, width, height*width + i + 1)
     plt.tight_layout()
     plt.axis('off')
-    A = out[torch.nonzero(mask)].squeeze()
+    A = out[torch.nonzero(mask)].squeeze().cpu()
     A = A.view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
     if opt['im_dataset'] == 'MNIST':
       plt.imshow(A, cmap='gray', interpolation = 'none')
@@ -65,7 +65,7 @@ def create_animation_old(model, dataset, opt, height, width, frames):
     plt.subplot(height, width, i + 1)
     plt.tight_layout()
     # mask = batch.batch == i
-    A = paths[i, 0, :].view(opt['im_height'], opt['im_width'], opt['im_chan'])
+    A = paths[i, 0, :].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
     if opt['im_dataset'] == 'MNIST':
       plt.imshow(A, cmap='gray', interpolation='none')
     elif opt['im_dataset'] == 'CIFAR':
@@ -78,7 +78,7 @@ def create_animation_old(model, dataset, opt, height, width, frames):
     for i in range(height * width):
       plt.subplot(height, width, i + 1)
       plt.tight_layout()
-      A = paths[i, ii, :].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
+      A = paths[i, ii, :].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan']).cpu()
       if opt['im_dataset'] == 'MNIST':
         plt.imshow(A, cmap='gray', interpolation='none')
       elif opt['im_dataset'] == 'CIFAR':
@@ -104,12 +104,12 @@ def create_pixel_intensity_old(model, dataset, opt, height, width, frames):
     plt.subplot(height, width, i + 1)
     plt.tight_layout()
     if opt['im_dataset'] == 'MNIST':
-      A = paths[i, :, :]
+      A = paths[i, :, :].cpu()
       plt.plot(torch.max(A,dim=1)[0], color='red')
       plt.plot(torch.min(A,dim=1)[0], color='green')
       plt.plot(torch.mean(A,dim=1), color='blue')
     elif opt['im_dataset'] == 'CIFAR':
-      A = paths[i,:,:].view(paths.shape[1], opt['im_height'] * opt['im_width'], opt['im_chan'])
+      A = paths[i,:,:].view(paths.shape[1], opt['im_height'] * opt['im_width'], opt['im_chan']).cpu()
       plt.plot(torch.max(A, dim=1)[0][:,0],color='red')
       plt.plot(torch.max(A, dim=1)[0][:,1],color='green')
       plt.plot(torch.max(A, dim=1)[0][:,2],color='blue')
@@ -163,7 +163,7 @@ def plot_image(labels, paths, time, opt, pic_folder, samples):
     fig = plt.figure()
     plt.tight_layout()
     plt.axis('off')
-    A = paths[i,time,:].view(opt['im_height'], opt['im_width'], opt['im_chan'])
+    A = paths[i,time,:].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
     if opt['im_dataset'] == 'MNIST':
       plt.imshow(A, cmap='gray', interpolation = 'none')
     elif opt['im_dataset'] == 'CIFAR':
@@ -188,7 +188,7 @@ def create_animation(labels, paths, frames, fps, opt, pic_folder, samples):
     fig = plt.figure()
     plt.tight_layout()
     plt.axis('off')
-    A = paths[i,0,:].view(opt['im_height'], opt['im_width'], opt['im_chan'])
+    A = paths[i,0,:].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
 
     if opt['im_dataset'] == 'MNIST':
       plt.imshow(A, cmap='gray', interpolation = 'none')
@@ -226,12 +226,12 @@ def create_pixel_intensity(labels, paths, opt, pic_folder, samples):
     plt.tight_layout()
     plt.axis('off')
     if opt['im_dataset'] == 'MNIST':
-      A = paths[i, :, :]
+      A = paths[i, :, :].cpu()
       plt.plot(torch.max(A, dim=1)[0], color='red')
       plt.plot(torch.min(A, dim=1)[0], color='green')
       plt.plot(torch.mean(A, dim=1), color='blue')
     elif opt['im_dataset'] == 'CIFAR':
-      A = paths[i, :, :].view(paths.shape[1], opt['im_height'] * opt['im_width'], opt['im_chan'])
+      A = paths[i, :, :].view(paths.shape[1], opt['im_height'] * opt['im_width'], opt['im_chan']).cpu()
       plt.plot(torch.max(A, dim=1)[0][:, 0], color='red')
       plt.plot(torch.max(A, dim=1)[0][:, 1], color='green')
       plt.plot(torch.max(A, dim=1)[0][:, 2], color='blue')
