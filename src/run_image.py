@@ -7,7 +7,7 @@ import time
 from torch_geometric.data import DataLoader
 from data_image import load_data
 import pandas as pd
-from image_opt import get_image_opt
+from image_opt import get_image_opt, opt_perms
 
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
@@ -102,87 +102,92 @@ def main(opt):
     except OSError:
       print(f'Error {csv_path} is still open, please close and rerun.')
       sys.exit(1)
-  try:
-    if opt['use_image_defaults']:
-      opt = get_image_opt(opt)  # get_cora_opt(opt)
-  except KeyError:
-    pass  # not always present when called as lib
 
-  print("Loading Data")
-  data_train, data_test = load_data(opt)
+  opt_permutations = opt_perms(opt)
+  for opt_perm, opt in opt_permutations.items():
+    print(f"This is run permutation {opt['im_dataset']} {opt['block']} {opt['function']}")
+    opt = get_image_opt(opt)
 
-  print("creating GNN model")
-  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=True)
-  for batch_idx, batch in enumerate(loader):
-    break
-  batch.to(device)
-  edge_index_gpu = batch.edge_index
-  edge_attr_gpu = batch.edge_attr
-  if edge_index_gpu is not None: edge_index_gpu.to(device)
-  if edge_attr_gpu is not None: edge_index_gpu.to(device)
-  model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
-                    batch.edge_attr, device).to(device)
+  # try:
+  #   if opt['use_image_defaults']:
+  #     opt = get_image_opt(opt)  # get_cora_opt(opt)
+  # except KeyError:
+  #   pass  # not always present when called as lib
 
-  print(opt)
-  parameters = [p for p in model.parameters() if p.requires_grad]
-  print_model_params(model)
-  optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
+    print("Loading Data")
+    data_train, data_test = load_data(opt)
+    print("creating GNN model")
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=True)
+    for batch_idx, batch in enumerate(loader):
+      break
+    batch.to(device)
+    edge_index_gpu = batch.edge_index
+    edge_attr_gpu = batch.edge_attr
+    if edge_index_gpu is not None: edge_index_gpu.to(device)
+    if edge_attr_gpu is not None: edge_index_gpu.to(device)
+    model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
+                      batch.edge_attr, device).to(device)
 
-  for epoch in range(opt['epoch']):
-    print("Epoch {}".format(epoch))
-    start_time = time.time()
-    loss = train(model, optimizer, data_train, data_test)
-    test_acc = test(model, data_test)
-    log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
-    print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
+    print(opt)
+    parameters = [p for p in model.parameters() if p.requires_grad]
+    print_model_params(model)
+    optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
 
-  timestr = time.strftime("%Y%m%d_%H%M%S")
-  # save model - params only - no point repeatedly saving data
-  data_name = opt['im_dataset']
-  blck = opt['block']
-  fct = opt['function']
-  model_key = f"{timestr}"
-  savefolder = f"../models/{timestr}_{data_name}_{blck}_{fct}"
-  savepath = f"{savefolder}/model_{model_key}"
-  try:
-    os.mkdir(savefolder)
-  except OSError:
-    print("Creation of the directory %s failed" % savefolder)
-  else:
-    print("Successfully created the directory %s " % savefolder)
-  torch.save(model.state_dict(), savepath)
+    for epoch in range(opt['epoch']):
+      print("Epoch {}".format(epoch))
+      start_time = time.time()
+      loss = train(model, optimizer, data_train, data_test)
+      test_acc = test(model, data_test)
+      log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
+      print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
 
-  # save run details to csv
-  opt['model_key'] = model_key
-  opt['Test Acc'] = test_acc
-  # TODO would be good to keep a record of wall-clock time
-  df = pd.DataFrame({k: [v] for k, v in opt.items()})
-  cols = list(df)
-  top_cols = ['model_key', 'testing_code', 'im_dataset', 'function', 'block', 'simple', 'batched',
-              'diags', 'batch_size', 'train_size', 'test_size', 'Test Acc', 'alpha']
-  for head in reversed(top_cols):
-    cols.insert(0, cols.pop(cols.index(head)))
-  df = df.loc[:, cols]
-  header = False if os.path.exists(csv_path) else True
-  df.to_csv(csv_path, mode='a', header=header)
+    timestr = time.strftime("%Y%m%d_%H%M%S")
+    # save model - params only - no point repeatedly saving data
+    data_name = opt['im_dataset']
+    blck = opt['block']
+    fct = opt['function']
+    model_key = f"{timestr}"
+    savefolder = f"../models/{timestr}_{data_name}_{blck}_{fct}"
+    savepath = f"{savefolder}/model_{model_key}"
+    try:
+      os.mkdir(savefolder)
+    except OSError:
+      print("Creation of the directory %s failed" % savefolder)
+    else:
+      print("Successfully created the directory %s " % savefolder)
+    torch.save(model.state_dict(), savepath)
 
-  # print("creating GNN model")
-  # batch.to(device)
-  # edge_index_gpu = batch.edge_index
-  # edge_attr_gpu = batch.edge_attr
-  # if edge_index_gpu is not None: edge_index_gpu.to(device)
-  # if edge_attr_gpu is not None: edge_index_gpu.to(device)
-  #
-  # model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
-  #                   batch.edge_attr, device).to(device)  #
-  # model.load_state_dict(torch.load(savepath))
-  # out = model(batch.x)
-  # model.eval()
-  # print_image_T(model, Graph_test, opt, height=2, width=3,)
-  # animation = print_image_path(model, Graph_test, height=2, width=3, frames=10)
-  # animation.save(f'../images/Graph{exdataset}_ani_{timestr}.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=0.5)
-  # plot_att_heat(model)
+    # save run details to csv
+    opt['model_key'] = model_key
+    opt['Test Acc'] = test_acc
+    df = pd.DataFrame({k: [v] for k, v in opt.items()})
+    cols = list(df)
+    top_cols = ['model_key', 'testing_code', 'im_dataset', 'function', 'block', 'simple', 'batched',
+                'diags', 'batch_size', 'train_size', 'test_size', 'Test Acc', 'alpha']
+    for head in reversed(top_cols):
+      cols.insert(0, cols.pop(cols.index(head)))
+    df = df.loc[:, cols]
+    header = False if os.path.exists(csv_path) else True
+    df.to_csv(csv_path, mode='a', header=header)
+
+    # print("creating GNN model")
+    # batch.to(device)
+    # edge_index_gpu = batch.edge_index
+    # edge_attr_gpu = batch.edge_attr
+    # if edge_index_gpu is not None: edge_index_gpu.to(device)
+    # if edge_attr_gpu is not None: edge_index_gpu.to(device)
+    #
+    # model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
+    #                   batch.edge_attr, device).to(device)  #
+    # model.load_state_dict(torch.load(savepath))
+    # out = model(batch.x)
+    # model.eval()
+    # print_image_T(model, Graph_test, opt, height=2, width=3,)
+    # animation = print_image_path(model, Graph_test, height=2, width=3, frames=10)
+    # animation.save(f'../images/Graph{exdataset}_ani_{timestr}.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=0.5)
+    # plot_att_heat(model)
+    print(f"Test acc {test_acc}")
   return test_acc
 
 
@@ -261,7 +266,7 @@ if __name__ == '__main__':
   parser.add_argument('--heat_time', type=float, default=3., help="time to run gdc heat kernal diffusion for")
   # visualisation args
   parser.add_argument('--testing_code', type=bool, default=False, help='run on limited size training/test sets')
-  parser.add_argument('--use_image_defaults', default='MNIST', help='sets as per function get_image_opt')
+  parser.add_argument('--use_image_defaults', default='True', help='sets as per function get_image_opt')
   parser.add_argument('--batch_size', type=int, default=64, help='Batch size')
   parser.add_argument('--train_size', type=int, default=128, help='Batch size')
   parser.add_argument('--test_size', type=int, default=128, help='Batch size')

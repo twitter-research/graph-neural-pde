@@ -1,9 +1,22 @@
 
+def opt_perms(opt):
+  im_dataset = ['MNIST','CIFAR']
+  blocks = ['transformer', 'laplacian']
+  functions = ['constant', 'attention']
+  opt_perms = {}
+  for dataset in im_dataset:
+    for block in blocks:
+      for function in functions:
+        opt['im_dataset'] = dataset
+        opt['block'] = block
+        opt['function'] = function
+        opt_perms[dataset+"_"+block+"_"+function] = opt
+  return opt_perms
+
+
 def get_image_opt(opt):
-  opt['im_dataset'] =  'CIFAR' #'MNIST'  #datasets = ['MNIST','CIFAR']
-  opt['testing_code'] = False #True #to work with smaller dataset
-  opt['function'] = 'transformer' #'transformer' #'laplacian' #'transformer'
-  opt['block'] = 'attention' #'constant' #'attention' 'mixed
+  opt['testing_code'] = False  # True #to work with smaller dataset
+
   opt['simple'] = True #True
   opt['adjoint'] = True
 
@@ -27,7 +40,7 @@ def get_image_opt(opt):
   opt['augment'] = False #True   #False need to view image
   opt['attention_dropout'] = 0
 
-  opt['epoch'] = 1 #2 #2 #3 #1
+  opt['epoch'] = 2 #2 #2 #3 #1
   opt['batched'] = True
   if opt['testing_code']:
     opt['batch_size'] = 64  # 64 #64  # doing batch size for mnist
