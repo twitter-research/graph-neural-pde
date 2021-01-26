@@ -356,10 +356,10 @@ def main(model_keys):
 if __name__ == '__main__':
   # model_keys = ['20210125_002517', '20210125_002603']
   # model_keys = ['20210125_111920', '20210125_115601']
-  # model_keys = ['20210126_194117']
-  directory = f"../models/"
-  df = pd.read_csv(f'{directory}models.csv')
-  model_keys = df['model_key'].to_list()
+  model_keys = ['20210126_194117']
+  # directory = f"../models/"
+  # df = pd.read_csv(f'{directory}models.csv')
+  # model_keys = df['model_key'].to_list()
   # model_keys = [
   #   '20210125_002517',
   #   '20210125_002603',

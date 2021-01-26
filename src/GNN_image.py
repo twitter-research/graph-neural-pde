@@ -112,10 +112,12 @@ class GNN_image(BaseGNN):
     #   c_aux = torch.zeros(x.shape).to(self.device)
     #   x = torch.cat([x, c_aux], dim=1)
 
+    paths = [x.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])]
+
     x = self.bn(x)
 
     z = x
-    paths = [z.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])]
+
     for f in range(frames):
       self.odeblock.set_x0(z) #(x)
       if self.training:
@@ -130,8 +132,8 @@ class GNN_image(BaseGNN):
 
       if self.eval: #undo batch norm
         path = z * (self.bn.running_var + self.bn.eps) ** 0.5 + self.bn.running_mean
-      path = path.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])
-      paths.append(path)
+        path = path.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])
+        paths.append(path)
 
     paths = torch.stack(paths,dim=1)
     return paths #output as 1d
