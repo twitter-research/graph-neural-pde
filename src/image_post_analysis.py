@@ -337,12 +337,12 @@ def main(model_keys):
     # 2)
     animation = create_animation_old(model, data_test, opt, height=2, width=3, frames=10)
     # animation.save(f'{modelpath}_animation.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=2)
-    # animation.save(f'{modelpath}_animation2.gif', fps=2)
+    animation.save(f'{modelpath}_animation.gif', fps=2)
 
     # from IPython.display import HTML
     # HTML(animation.to_html5_video())
-    plt.rcParams['animation.ffmpeg_path'] = '/home/jr1419home/anaconda3/envs/GNN_WSL/bin/ffmpeg'
-    animation.save(f'{modelpath}_animation3.mp4', writer='ffmpeg', fps=2)
+    # plt.rcParams['animation.ffmpeg_path'] = '/home/jr1419home/anaconda3/envs/GNN_WSL/bin/ffmpeg'
+    # animation.save(f'{modelpath}_animation3.mp4', writer='ffmpeg', fps=2)
     # 3)
     # fig = plot_att_heat(model, model_key, modelpath)
     # plt.savefig(f"{modelpath}_AttHeat.png", format="PNG")
