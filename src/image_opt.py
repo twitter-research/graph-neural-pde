@@ -1,24 +1,23 @@
 
 def opt_perms(opt):
   im_dataset = ['MNIST','CIFAR']
-  blocks = ['transformer', 'laplacian']
-  functions = ['constant', 'attention']
-
+  blocks = ['attention', 'constant']
+  functions = ['laplacian', 'transformer']
 
   opt_perms = {}
   for dataset in im_dataset:
     opt['im_dataset'] = dataset
 
-    opt['block'] = 'transformer'
-    opt['function'] = 'attention'
+    opt['block'] = 'constant'
+    opt['function'] = 'laplacian'
     opt_perms[f"{dataset}_{opt['block']}_{opt['function']}"] = opt
 
-    opt['block'] = 'transfomer'
-    opt['function'] = 'constant'
+    opt['block'] = 'attention'
+    opt['function'] = 'laplacian'
     opt_perms[f"{dataset}_{opt['block']}_{opt['function']}"] = opt
 
-    opt['block'] = 'laplacian'
-    opt['function'] = 'constant'
+    opt['block'] = 'attention'
+    opt['function'] = 'transformer'
     opt_perms[f"{dataset}_{opt['block']}_{opt['function']}"] = opt
 
     #
