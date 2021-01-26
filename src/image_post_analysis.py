@@ -199,7 +199,7 @@ def create_animation(labels, paths, frames, fps, opt, pic_folder, samples):
     # loop through data and update plot
     def update(ii):
       plt.tight_layout()
-      A = paths[i,ii,:].view(opt['im_height'], opt['im_width'], opt['im_chan'])
+      A = paths[i,ii,:].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
       if opt['im_dataset'] == 'MNIST':
         plt.imshow(A, cmap='gray', interpolation = 'none')
       elif opt['im_dataset'] == 'CIFAR':
