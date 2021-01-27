@@ -25,7 +25,7 @@ class MNISTConvNet(nn.Module):
   def forward(self, x):
     x = self.pool(F.relu(self.conv1(x)))
     x = self.pool(F.relu(self.conv2(x)))
-    x = x.view(-1, 16 * 16)
+    x = x.reshape(-1, 16 * 16)
     x = F.relu(self.fc1(x))
     # x = F.relu(self.fc2(x))
     # x = self.fc3(x)
@@ -43,7 +43,7 @@ class CIFARConvNet(nn.Module):
   def forward(self, x):
     x = self.pool(F.relu(self.conv1(x)))
     x = self.pool(F.relu(self.conv2(x)))
-    x = x.view(-1, 5 * 5 * 16)
+    x = x.reshape(-1, 5 * 5 * 16)
     x = F.relu(self.fc1(x))
     # x = F.relu(self.fc2(x))
     # x = self.fc3(x)
