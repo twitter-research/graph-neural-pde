@@ -232,8 +232,8 @@ def main(opt):
             node_color=x.sum(axis=1, keepdim=False), cmap=plt.get_cmap('Spectral'))
     # fig.colorbar(cm.ScalarMappable(cmap=plt.get_cmap('Spectral')),
     #              cax=cbar_ax, orientation="vertical")
+    plt.savefig("../models/superpix.pdf",format="pdf")
     plt.show()  # FINAL IMAGE
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -1,5 +1,6 @@
 import argparse
 import torch
+import numpy as np
 import os
 from GNN_image import GNN_image
 from torch_geometric.data import DataLoader
@@ -9,7 +10,7 @@ from torch_geometric.utils import to_dense_adj
 import pandas as pd
 from data_image import load_data
 from image_opt import get_image_opt
-
+import shutil
 
 def UnNormalizeCIFAR(data):
   #normalises each image channel to range [0,1] from [-1, 1]
@@ -17,74 +18,64 @@ def UnNormalizeCIFAR(data):
   return data * 0.5 + 0.5
 
 @torch.no_grad()
-def plot_image_T(model, dataset, opt, modelpath, height=2, width=3):
-  loader = DataLoader(dataset, batch_size=opt['batch_size'], shuffle=False) #True)
-  fig = plt.figure() #figsize=(width*10, height*10))
-  for batch_idx, batch in enumerate(loader):
-    out = model.forward_plot_T(batch.x.to(model.device))
-    break
+def plot_image_T(paths, labels, T_idx, opt, height=2, width=3):
+  fig = plt.figure()
   for i in range(height*width):
     # t == 0
     plt.subplot(2*height, width, i + 1)
     plt.tight_layout()
     plt.axis('off')
-    mask = batch.batch == i
-    A = batch.x[torch.nonzero(mask)].squeeze().cpu()
+    A = paths[i,0,:].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
+    if opt['im_dataset'] == 'MNIST':
+      plt.imshow(A, cmap='gray', interpolation = 'none')
+    elif opt['im_dataset'] == 'CIFAR':
+      A = UnNormalizeCIFAR(A)
+      plt.imshow(A, interpolation = 'none')
+    plt.title("t=0 Ground Truth: {}".format(labels[i].item()))
+
+    #t == T
+    plt.subplot(2*height, width, height*width + i + 1)
+    plt.tight_layout()
+    plt.axis('off')
+    A = paths[i, T_idx, :].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
     A = A.view(opt['im_height'], opt['im_width'], opt['im_chan'])
     if opt['im_dataset'] == 'MNIST':
       plt.imshow(A, cmap='gray', interpolation = 'none')
     elif opt['im_dataset'] == 'CIFAR':
       A = UnNormalizeCIFAR(A)
       plt.imshow(A, interpolation = 'none')
-    plt.title("t=0 Ground Truth: {}".format(batch.y[i].item()))
-
-    #t == T
-    plt.subplot(2*height, width, height*width + i + 1)
-    plt.tight_layout()
-    plt.axis('off')
-    A = out[torch.nonzero(mask)].squeeze().cpu()
-    A = A.view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan'])
-    if opt['im_dataset'] == 'MNIST':
-      plt.imshow(A, cmap='gray', interpolation = 'none')
-    elif opt['im_dataset'] == 'CIFAR':
-      A = UnNormalizeCIFAR(A)
-      plt.imshow(A, interpolation = 'none')
-    plt.title("t=T Ground Truth: {}".format(batch.y[i].item()))
+    plt.title("t=T Ground Truth: {}".format(labels[i].item()))
   return fig
 
 
 @torch.no_grad()
-def create_animation_old(model, dataset, opt, height, width, frames):
-  loader = DataLoader(dataset, batch_size=opt['batch_size'], shuffle=False) #True)
-  for batch_idx, batch in enumerate(loader):
-    paths = model.forward_plot_path(batch.x.to(model.device), frames)
-    break
+def create_animation_old(paths, labels, opt, height, width, frames):
   # draw graph initial graph
   fig = plt.figure()
   for i in range(height * width):
     plt.subplot(height, width, i + 1)
     plt.tight_layout()
-    # mask = batch.batch == i
     A = paths[i, 0, :].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
     if opt['im_dataset'] == 'MNIST':
       plt.imshow(A, cmap='gray', interpolation='none')
     elif opt['im_dataset'] == 'CIFAR':
       A = UnNormalizeCIFAR(A)
       plt.imshow(A)
-    plt.title("t=0 Ground Truth: {}".format(batch.y[i].item()))
+    plt.title("t=0 Ground Truth: {}".format(labels[i].item()))
     plt.axis('off')
+
   # loop through data and update plot
   def update(ii):
     for i in range(height * width):
       plt.subplot(height, width, i + 1)
       plt.tight_layout()
-      A = paths[i, ii, :].view(model.opt['im_height'], model.opt['im_width'], model.opt['im_chan']).cpu()
+      A = paths[i, ii, :].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
       if opt['im_dataset'] == 'MNIST':
         plt.imshow(A, cmap='gray', interpolation='none')
       elif opt['im_dataset'] == 'CIFAR':
         A = UnNormalizeCIFAR(A)
         plt.imshow(A)
-      plt.title("t={} Ground Truth: {}".format(ii, batch.y[i].item()))
+      plt.title("t={} Ground Truth: {}".format(ii, labels[i].item()))
       plt.axis('off')
   fig = plt.gcf()
   animation = FuncAnimation(fig, func=update, frames=frames)#, blit=True)
@@ -92,12 +83,8 @@ def create_animation_old(model, dataset, opt, height, width, frames):
 
 
 @torch.no_grad()
-def create_pixel_intensity_old(model, dataset, opt, height, width, frames):
+def create_pixel_intensity_old(paths, labels, opt, height, width):
   # max / min intensity plot
-  loader = DataLoader(dataset, batch_size=opt['batch_size'], shuffle=False) #True)
-  for batch_idx, batch in enumerate(loader):
-    paths = model.forward_plot_path(batch.x.to(model.device), frames)
-    break
   # draw graph initial graph
   fig = plt.figure() #figsize=(width*10, height*10))
   for i in range(height * width):
@@ -119,7 +106,7 @@ def create_pixel_intensity_old(model, dataset, opt, height, width, frames):
       plt.plot(torch.mean(A, dim=1)[:,0],color='red')
       plt.plot(torch.mean(A, dim=1)[:,1],color='green')
       plt.plot(torch.mean(A, dim=1)[:,2],color='blue')
-    plt.title("Evolution of Pixel Intensity, Ground Truth: {}".format(batch.y[i].item()))
+    plt.title("Evolution of Pixel Intensity, Ground Truth: {}".format(labels[i].item()))
   return fig
 
 
@@ -151,12 +138,18 @@ def plot_att_heat(model, model_key, modelpath):
 
 
 @torch.no_grad()
-def plot_image(labels, paths, time, opt, pic_folder, samples):
+def plot_image(paths, labels, time, opt, pic_folder, samples):
   savefolder = f"{pic_folder}/image_{time}"
   try:
     os.mkdir(savefolder)
   except OSError:
-    print("Creation of the directory %s failed" % savefolder)
+    if os.path.exists(savefolder):
+      shutil.rmtree(savefolder)
+      os.mkdir(savefolder)
+      print("%s exists, clearing existing images" % savefolder)
+    else:
+      print("Creation of the directory %s failed" % savefolder)
+
   else:
     print("Successfully created the directory %s " % savefolder)
   for i in range(samples):
@@ -176,14 +169,17 @@ def plot_image(labels, paths, time, opt, pic_folder, samples):
 
 
 @torch.no_grad()
-def create_animation(labels, paths, frames, fps, opt, pic_folder, samples):
+def create_animation(paths, labels, frames, fps, opt, pic_folder, samples):
   savefolder = f"{pic_folder}/animations"
   try:
     os.mkdir(savefolder)
   except OSError:
-    print("Creation of the directory %s failed" % savefolder)
-  else:
-    print("Successfully created the directory %s " % savefolder)
+    if os.path.exists(savefolder):
+      shutil.rmtree(savefolder)
+      os.mkdir(savefolder)
+      print("%s exists, clearing existing images" % savefolder)
+    else:
+      print("Creation of the directory %s failed" % savefolder)
   # draw graph initial graph
   for i in range(samples):
     fig = plt.figure()
@@ -214,14 +210,17 @@ def create_animation(labels, paths, frames, fps, opt, pic_folder, samples):
 
 
 @torch.no_grad()
-def create_pixel_intensity(labels, paths, opt, pic_folder, samples):
+def create_pixel_intensity(paths, labels, opt, pic_folder, samples):
   savefolder = f"{pic_folder}/maxmin"
   try:
     os.mkdir(savefolder)
   except OSError:
-    print("Creation of the directory %s failed" % savefolder)
-  else:
-    print("Successfully created the directory %s " % savefolder)
+    if os.path.exists(savefolder):
+      shutil.rmtree(savefolder)
+      os.mkdir(savefolder)
+      print("%s exists, clearing existing images" % savefolder)
+    else:
+      print("Creation of the directory %s failed" % savefolder)
   for i in range(samples):
     fig = plt.figure()
     plt.tight_layout()
@@ -248,7 +247,87 @@ def create_pixel_intensity(labels, paths, opt, pic_folder, samples):
   return fig
 
 
-def build_all(model_keys, frames = 10, samples=6):
+def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
+  path_folder = f"../paths/{model_key}"
+  if not os.path.exists(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_paths.pt"):
+    os.mkdir(path_folder)
+    #load data and model
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    data_train, data_test = load_data(opt)
+    loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=False)  # True)
+    for batch_idx, batch in enumerate(loader):
+      break
+    batch.to(device)
+    edge_index_gpu = batch.edge_index
+    edge_attr_gpu = batch.edge_attr
+    if edge_index_gpu is not None: edge_index_gpu.to(device)
+    if edge_attr_gpu is not None: edge_index_gpu.to(device)
+    opt['time'] = opt['time'] / partitions
+    model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
+                      batch.edge_attr, device).to(device)
+    model.load_state_dict(torch.load(modelpath, map_location=device))
+    model.to(device)
+    model.eval()
+    ###do forward pass
+    for batch_idx, batch in enumerate(loader):
+      if batch_idx == batch_num:
+        paths = model.forward_plot_path(batch.x.to(model.device), Tmultiple * partitions)
+        labels = batch.y
+        break
+    torch.save(paths,f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_paths.pt")
+    torch.save(labels, f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_y.pt")
+  else:
+    paths = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_paths.pt")
+    labels = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_y.pt")
+  paths.cpu().requires_grad = False
+  labels.cpu().requires_grad = False
+  return paths, labels
+
+
+def single_images(model_keys, samples, Tmultiple, partitions, batch_num):
+  for model_key in model_keys:
+    directory = f"../models/"
+    for filename in os.listdir(directory):
+      if filename.startswith(model_key):
+        path = os.path.join(directory, filename)
+        print(path)
+        break
+    [_, _, data_name, blck, fct] = path.split("_")
+
+    modelfolder = f"{directory}{model_key}_{data_name}_{blck}_{fct}"
+    modelpath = f"{modelfolder}/model_{model_key}"
+    df = pd.read_csv(f'{directory}models.csv')
+    optdf = df[df.model_key == model_key]
+    intcols = ['num_class','im_chan','im_height','im_width','num_nodes']
+    optdf[intcols].astype(int)
+    opt = optdf.to_dict('records')[0]
+
+    paths, labels = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
+
+    # # 1)
+    T_idx = Tmultiple * partitions // 2
+    fig = plot_image_T(paths, labels, T_idx, opt, height=2, width=3)
+    plt.savefig(f"{modelpath}_imageT.png", format="png")
+    plt.savefig(f"{modelpath}_imageT.pdf", format="pdf")
+    # 2)
+    animation = create_animation_old(paths, labels, opt, height=2, width=3, frames=partitions)
+    # animation.save(f'{modelpath}_animation.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=2)
+    animation.save(f'{modelpath}_animation.gif', fps=2)
+
+    # from IPython.display import HTML
+    # HTML(animation.to_html5_video())
+    # plt.rcParams['animation.ffmpeg_path'] = '/home/jr1419home/anaconda3/envs/GNN_WSL/bin/ffmpeg'
+    # animation.save(f'{modelpath}_animation3.mp4', writer='ffmpeg', fps=2)
+    # 3)
+    # fig = plot_att_heat(model, model_key, modelpath)
+    # plt.savefig(f"{modelpath}_AttHeat.pdf", format="pdf")
+    # # 4)
+    fig = create_pixel_intensity_old(paths, labels, opt, height=2, width=3)
+    plt.savefig(f"{modelpath}_pixel_intensity.png", format="png")
+    plt.savefig(f"{modelpath}_pixel_intensity.pdf", format="pdf")
+
+
+def build_all(model_keys, samples, Tmultiple, partitions, batch_num):
   directory = f"../models/"
   df = pd.read_csv(f'{directory}models.csv')
   for model_key in model_keys:
@@ -264,107 +343,114 @@ def build_all(model_keys, frames = 10, samples=6):
     intcols = ['num_class','im_chan','im_height','im_width','num_nodes']
     optdf[intcols].astype(int)
     opt = optdf.to_dict('records')[0]
-    ###load data and model
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    data_train, data_test = load_data(opt)
-    loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=False) #True)
-    for batch_idx, batch in enumerate(loader):
-        break
-    batch.to(device)
-    edge_index_gpu = batch.edge_index
-    edge_attr_gpu = batch.edge_attr
-    if edge_index_gpu is not None: edge_index_gpu.to(device)
-    if edge_attr_gpu is not None: edge_index_gpu.to(device)
 
-    opt['time'] = opt['time'] / frames
-    model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
-                      batch.edge_attr, device).to(device)
-    model.load_state_dict(torch.load(modelpath, map_location=device))
-    model.to(device)
-    model.eval()
-    ###do forward pass
-    for batch_idx, batch in enumerate(loader):
-      batch_paths = model.forward_plot_path(batch.x.to(model.device), 2*frames)
-      break
-    plot_image(batch.y, batch_paths, time=0, opt=opt, pic_folder=modelfolder, samples=samples)
-    plot_image(batch.y, batch_paths, time=10, opt=opt, pic_folder=modelfolder, samples=samples)
-    create_animation(batch.y, batch_paths, 2*frames, fps=0.75, opt=opt, pic_folder=modelfolder, samples=samples)
-    create_pixel_intensity(batch.y, batch_paths, opt, pic_folder=modelfolder, samples=samples)
+    paths, labels = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
+
+    plot_image(paths, labels, time=0, opt=opt, pic_folder=modelfolder, samples=samples)
+    plot_image(paths, labels, time=5, opt=opt, pic_folder=modelfolder, samples=samples)
+    plot_image(paths, labels, time=10, opt=opt, pic_folder=modelfolder, samples=samples)
+    create_animation(paths, labels, Tmultiple*partitions, fps=2, opt=opt, pic_folder=modelfolder, samples=samples)
+    create_pixel_intensity(paths, labels, opt, pic_folder=modelfolder, samples=samples)
+
+@torch.no_grad()
+def create_grid(grid_keys, times, sample_name, samples, Tmultiple, partitions, batch_num):
+    directory = f"../models/"
+    df = pd.read_csv(f'{directory}models.csv')
+    savefolder = f"../images/{sample_name}"
+    try:
+      os.mkdir(savefolder)
+    except OSError:
+      if os.path.exists(savefolder):
+        shutil.rmtree(savefolder)
+        os.mkdir(savefolder)
+        print("%s exists, clearing existing images" % savefolder)
+      else:
+        print("Creation of the directory %s failed" % savefolder)
+    else:
+      print("Successfully created the directory %s " % savefolder)
+
+    plot_times = [time/partitions for time in times]
+    for sample in range(samples):
+      images_A = []
+      images_B = []
+      images_C = []
+      labels = []
+      datasets = []
+      for model_key in grid_keys:
+        for filename in os.listdir(directory):
+          if filename.startswith(model_key):
+            path = os.path.join(directory, filename)
+            print(path)
+            break
+        [_, _, data_name, blck, fct] = path.split("_")
+        modelfolder = f"{directory}{model_key}_{data_name}_{blck}_{fct}"
+        modelpath = f"{modelfolder}/model_{model_key}"
+        optdf = df[df.model_key == model_key]
+        intcols = ['num_class', 'im_chan', 'im_height', 'im_width', 'num_nodes']
+        optdf[intcols].astype(int)
+        opt = optdf.to_dict('records')[0]
+
+        paths, _ = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
+
+        A = paths[sample, times[0], :].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
+        B = paths[sample, times[1], :].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
+        C = paths[sample, times[2], :].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
+        if opt['im_dataset'] == 'MNIST':
+          images_A.append(A)
+          images_B.append(B)
+          images_C.append(C)
+        elif opt['im_dataset'] == 'CIFAR':
+          images_A.append(UnNormalizeCIFAR(A))
+          images_B.append(UnNormalizeCIFAR(B))
+          images_C.append(UnNormalizeCIFAR(C))
+        labels.append(f"{opt['block']}\n{opt['function']}")
+        datasets.append(opt['im_dataset'])
+      images = [images_A, images_B, images_C]
+
+      fig, axs = plt.subplots(3,3, figsize=(9, 6), sharex=True, sharey=True)
+      fig.suptitle('Pixel Diffusion')
+      for i in range(3):
+          for j in range(3):
+              # axs[i,j].imshow(plt.imread(images[j][i]))
+              if datasets[i] == 'MNIST':
+                axs[i, j].imshow(images[j][i], cmap='gray', interpolation='none')
+              elif datasets[i] == 'CIFAR':
+                A = UnNormalizeCIFAR(A)
+                axs[i, j].imshow(images[j][i], interpolation='none')
+              axs[i,j].set_yticks([])
+              axs[i,j].set_xticks([])
+      plt.subplots_adjust(wspace=0, hspace=0)
+      for ax, t in zip(axs[0], plot_times):
+          ax.set_title(t, size=18)
+      pad = 2
+      for ax, row in zip(axs[:,0], labels):
+          ax.annotate(row, xy=(0, 0.5), xytext=(-ax.yaxis.labelpad - pad, 0),
+                      xycoords=ax.yaxis.label, textcoords='offset points',
+                      size='large', ha='right', va='center')
+      plt.savefig(f"{savefolder}/sample_{sample}.pdf",format="pdf")
 
 def main(model_keys):
-  for model_key in model_keys:
-  # model_key = '20210124_202732' #'20210121_200920'#
-    directory = f"../models/"
-    for filename in os.listdir(directory):
-      if filename.startswith(model_key):
-        path = os.path.join(directory, filename)
-        print(path)
-        break
-    [_, _, data_name, blck, fct] = path.split("_")
-
-    modelfolder = f"{directory}{model_key}_{data_name}_{blck}_{fct}"
-    modelpath = f"{modelfolder}/model_{model_key}"
-
-    df = pd.read_csv(f'{directory}models.csv')
-    optdf = df[df.model_key == model_key]
-    intcols = ['num_class','im_chan','im_height','im_width','num_nodes']
-    optdf[intcols].astype(int)
-    opt = optdf.to_dict('records')[0]
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print("Loading Data")
-    data_train, data_test = load_data(opt)
-    print("creating GNN model")
-    loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=False) #, shuffle=True)
-    for batch_idx, batch in enumerate(loader):
-        break
-    batch.to(device)
-    edge_index_gpu = batch.edge_index
-    edge_attr_gpu = batch.edge_attr
-    if edge_index_gpu is not None: edge_index_gpu.to(device)
-    if edge_attr_gpu is not None: edge_index_gpu.to(device)
-
-    N = 10
-    opt['time'] = opt['time'] / N
-    model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
-                      batch.edge_attr, device)
-    model.load_state_dict(torch.load(modelpath, map_location=device))
-    model.to(device)
-    model.eval()
-
-    # # 1)
-    fig = plot_image_T(model, data_test, opt, modelpath, height=2, width=3)
-    plt.savefig(f"{modelpath}_imageT.png", format="png")
-    plt.savefig(f"{modelpath}_imageT.pdf", format="pdf")
-    # 2)
-    animation = create_animation_old(model, data_test, opt, height=2, width=3, frames=N)
-    # animation.save(f'{modelpath}_animation.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=2)
-    animation.save(f'{modelpath}_animation.gif', fps=2)
-
-    # from IPython.display import HTML
-    # HTML(animation.to_html5_video())
-    # plt.rcParams['animation.ffmpeg_path'] = '/home/jr1419home/anaconda3/envs/GNN_WSL/bin/ffmpeg'
-    # animation.save(f'{modelpath}_animation3.mp4', writer='ffmpeg', fps=2)
-    # 3)
-    # fig = plot_att_heat(model, model_key, modelpath)
-    # plt.savefig(f"{modelpath}_AttHeat.pdf", format="pdf")
-    # # 4)
-    fig = create_pixel_intensity_old(model, data_test, opt, height=2, width=3, frames=N)
-    plt.savefig(f"{modelpath}_pixel_intensity.png", format="png")
-    plt.savefig(f"{modelpath}_pixel_intensity.pdf", format="pdf")
+  pass
 
 if __name__ == '__main__':
-  # model_keys = ['20210125_002517', '20210125_002603']
-  # model_keys = ['20210125_111920', '20210125_115601']
-  model_keys = ['20210126_194117']
+  Tmultiple = 2
+  partitions = 10
+  batch_num = 0
+  samples = 6
+
+  model_keys = ['20210125_002603']
   # directory = f"../models/"
   # df = pd.read_csv(f'{directory}models.csv')
   # model_keys = df['model_key'].to_list()
   # model_keys = [
-  #   '20210125_002517',
-  #   '20210125_002603',
   #   '20210125_111920',
-  #   '20210125_115601']
+  #   '20210125_115601',
+  #   '20210126_152948']
 
-  main(model_keys)
-  build_all(model_keys)
+  # single_images(model_keys, samples, Tmultiple, partitions, batch_num)
+  # build_all(model_keys, samples, Tmultiple, partitions, batch_num)
+  # grid_keys = ['20210125_002603','20210125_002603','20210125_002603']
+  grid_keys = ['20210125_002603','20210125_111920','20210125_115601']
+  times = [0, 10, 20]
+  image_folder = 'Test_diff1'
+  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)

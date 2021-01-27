@@ -95,8 +95,8 @@ class GNN_image(BaseGNN):
 
     #UNDO batch norm - see https: // pytorch.org / docs / stable / generated / torch.nn.BatchNorm1d.html
     if self.eval: #undo batch norm
-      z = z  * (self.bn.running_var + self.bn.eps)**0.5 + self.bn.running_mean
-
+      # z = z  * (self.bn.running_var + self.bn.eps)**0.5 + self.bn.running_mean
+      z = (z - self.bn.bias) * (self.bn.running_var + self.bn.eps) ** 0.5 / self.bn.weight + self.bn.running_mean
     return z #output as 2d
 
   def forward_plot_path(self, x, frames): #stitch together ODE integrations
@@ -129,9 +129,9 @@ class GNN_image(BaseGNN):
       # Dropout.
       # z = F.dropout(z, self.opt['dropout'], training=self.training)
 
-
       if self.eval: #undo batch norm
-        path = z * (self.bn.running_var + self.bn.eps) ** 0.5 + self.bn.running_mean
+        # path = z  * (self.bn.running_var + self.bn.eps)**0.5 + self.bn.running_mean
+        path = (z-self.bn.bias) * (self.bn.running_var + self.bn.eps) ** 0.5 / self.bn.weight + self.bn.running_mean
         path = path.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])
         paths.append(path)
 
