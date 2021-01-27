@@ -437,8 +437,14 @@ if __name__ == '__main__':
   partitions = 10
   batch_num = 0
   samples = 6
-
-  model_keys = ['20210125_002603']
+  model_keys = [
+  '20210127_015525',
+  '20210127_021404',
+  '20210127_043024',
+  '20210127_074633',
+  '20210127_044929',
+  '20210127_051136']
+  # model_keys = ['20210125_002603']
   # directory = f"../models/"
   # df = pd.read_csv(f'{directory}models.csv')
   # model_keys = df['model_key'].to_list()
@@ -447,10 +453,14 @@ if __name__ == '__main__':
   #   '20210125_115601',
   #   '20210126_152948']
 
-  # single_images(model_keys, samples, Tmultiple, partitions, batch_num)
-  # build_all(model_keys, samples, Tmultiple, partitions, batch_num)
-  # grid_keys = ['20210125_002603','20210125_002603','20210125_002603']
-  grid_keys = ['20210125_002603','20210125_111920','20210125_115601']
+  single_images(model_keys, samples, Tmultiple, partitions, batch_num)
+  build_all(model_keys, samples, Tmultiple, partitions, batch_num)
+
+  grid_keys = ['20210127_015525','20210127_021404','20210127_043024']
   times = [0, 10, 20]
-  image_folder = 'Test_diff1'
+  image_folder = 'MNIST1'
+  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
+
+  image_folder = 'CIFAR1'
+  grid_keys = ['20210127_074633','20210127_044929','20210127_051136']
   create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
