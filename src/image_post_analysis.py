@@ -279,11 +279,13 @@ def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
   else:
     paths = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_paths.pt")
     labels = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_y.pt")
-  # paths.cpu().requires_grad = False
-  # labels.cpu().requires_grad = False
-  paths.cpu().detach()
-  labels.cpu().detach()
-  return paths, labels
+  paths.cpu().requires_grad = False
+  labels.cpu().requires_grad = False
+  paths_nograd = paths.cpu().detach()
+  labels_nograd = labels.cpu().detach()
+  # paths.cpu().no_grad()
+  # labels.cpu().no_grad()
+  return paths_nograd, labels_nograd
 
 
 def single_images(model_keys, samples, Tmultiple, partitions, batch_num):
@@ -450,13 +452,20 @@ if __name__ == '__main__':
   # directory = f"../models/"
   # df = pd.read_csv(f'{directory}models.csv')
   # model_keys = df['model_key'].to_list()
-  # model_keys = [
+  # model_keys = ['20210125_002603',
   #   '20210125_111920',
-  #   '20210125_115601',
-  #   '20210126_152948']
+  #   '20210125_115601']
 
   single_images(model_keys, samples, Tmultiple, partitions, batch_num)
   build_all(model_keys, samples, Tmultiple, partitions, batch_num)
+
+  times = [0, 10, 20]
+
+  # grid_keys = ['20210125_002603',
+  #   '20210125_111920',
+  #   '20210125_115601']
+  # image_folder = 'Test2'
+  # create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
 
   grid_keys = ['20210127_015525','20210127_021404','20210127_043024']
   times = [0, 10, 20]
