@@ -101,7 +101,15 @@ class GNN_image(BaseGNN):
     # z = self.m2(z)
 
     z = z.view(-1, self.opt['im_width'], self.opt['im_height'], self.opt['im_chan'])
-    z = torch.movedim(z,3,1)
+    #to check image resizes
+    # with torch.no_grad():
+    #   import matplotlib.pyplot as plt
+    #   fig = plt.figure()
+    #   plt.imshow(z[0,:,:,:])
+    #   plt.show()
+    # z = torch.movedim(z,3,1)
+    z = z.permute(0,3,1,2)
+
     z = self.ConvNet(z)
 
     return z
