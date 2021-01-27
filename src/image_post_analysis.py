@@ -279,8 +279,8 @@ def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
   else:
     paths = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_paths.pt")
     labels = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_y.pt")
-  paths.cpu().requires_grad = False
-  labels.cpu().requires_grad = False
+  # paths.cpu().requires_grad = False
+  # labels.cpu().requires_grad = False
   paths_nograd = paths.cpu().detach()
   labels_nograd = labels.cpu().detach()
   # paths.cpu().no_grad()
