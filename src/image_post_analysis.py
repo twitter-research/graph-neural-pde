@@ -11,6 +11,8 @@ import pandas as pd
 from data_image import load_data
 from image_opt import get_image_opt
 import shutil
+from collections import OrderedDict
+
 
 def UnNormalizeCIFAR(data):
   #normalises each image channel to range [0,1] from [-1, 1]
@@ -250,7 +252,11 @@ def create_pixel_intensity(paths, labels, opt, pic_folder, samples):
 def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
   path_folder = f"../paths/{model_key}"
   if not os.path.exists(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_paths.pt"):
-    os.mkdir(path_folder)
+    try:
+      os.mkdir(path_folder)
+    except OSError:
+      print("Creation of the directory %s failed" % path_folder)
+
     #load data and model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     data_train, data_test = load_data(opt)
@@ -265,6 +271,20 @@ def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
     opt['time'] = opt['time'] / partitions
     model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
                       batch.edge_attr, device).to(device)
+
+    # # original saved file with DataParallel
+    # state_dict = torch.load(modelpath, map_location=device)
+    # # create new OrderedDict that does not contain module.
+    # new_state_dict = OrderedDict()
+    # for k, v in state_dict.items():
+    #   name = k.replace(".module", "")  # removing ‘.moldule’ from key
+    #   # name = k[7:]  # remove module.
+    #   new_state_dict[name] = v
+    # # load params
+    # model.load_state_dict(new_state_dict)
+
+
+    # broken
     model.load_state_dict(torch.load(modelpath, map_location=device))
     model.to(device)
     model.eval()
@@ -373,7 +393,7 @@ def create_grid(grid_keys, times, sample_name, samples, Tmultiple, partitions, b
     else:
       print("Successfully created the directory %s " % savefolder)
 
-    plot_times = [time/partitions for time in times]
+    plot_times = [f"t={time/partitions}" for time in times]
     for sample in range(samples):
       images_A = []
       images_B = []
@@ -412,7 +432,7 @@ def create_grid(grid_keys, times, sample_name, samples, Tmultiple, partitions, b
       images = [images_A, images_B, images_C]
 
       fig, axs = plt.subplots(3,3, figsize=(9, 6), sharex=True, sharey=True)
-      fig.suptitle('Pixel Diffusion')
+      fig.suptitle(f"{opt['im_dataset']} Pixel Diffusion")
       for i in range(3):
           for j in range(3):
               # axs[i,j].imshow(plt.imread(images[j][i]))
@@ -439,15 +459,20 @@ def main(model_keys):
 if __name__ == '__main__':
   Tmultiple = 2
   partitions = 10
-  batch_num = 0
+  batch_num = 2
   samples = 6
-  model_keys = [
-  '20210127_015525',
-  '20210127_021404',
-  '20210127_043024',
-  '20210127_074633',
-  '20210127_044929',
-  '20210127_051136']
+  # model_keys = [
+  # '20210127_015525',
+  # '20210127_021404',
+  # '20210127_043024',
+  # '20210127_074633',
+  # '20210127_044929',
+  # '20210127_051136']
+  model_keys = ['20210127_214736',
+  '20210127_214308',
+  '20210127_214736']
+
+  #
   # model_keys = ['20210125_002603']
   # directory = f"../models/"
   # df = pd.read_csv(f'{directory}models.csv')
@@ -464,14 +489,18 @@ if __name__ == '__main__':
   # grid_keys = ['20210125_002603',
   #   '20210125_111920',
   #   '20210125_115601']
-  # image_folder = 'Test2'
+  grid_keys = ['20210127_214736',
+                '20210127_214308',
+                '20210127_214736']
+
+  image_folder = 'Testbatch3'
+  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
+
+  # grid_keys = ['20210127_015525','20210127_021404','20210127_043024']
+  # times = [0, 10, 20]
+  # image_folder = 'MNIST1'
   # create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
-
-  grid_keys = ['20210127_015525','20210127_021404','20210127_043024']
-  times = [0, 10, 20]
-  image_folder = 'MNIST1'
-  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
-
-  image_folder = 'CIFAR1'
-  grid_keys = ['20210127_074633','20210127_044929','20210127_051136']
-  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  #
+  # image_folder = 'CIFAR1'
+  # grid_keys = ['20210127_074633','20210127_044929','20210127_051136']
+  # create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)

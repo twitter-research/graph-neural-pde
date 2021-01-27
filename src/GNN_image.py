@@ -13,6 +13,43 @@ from base_classes import BaseGNN
 from model_configurations import set_block, set_function
 
 
+class MNISTConvNet(nn.Module):
+  def __init__(self, opt):
+    super(MNISTConvNet, self).__init__()
+    self.conv1 = nn.Conv2d(in_channels = opt['im_chan'], out_channels=6, kernel_size=5)
+    self.pool = nn.MaxPool2d(2, 2)
+    self.conv2 = nn.Conv2d(6, 16, 5)
+    self.fc1 = nn.Linear(16 * 16, 10) #120)
+    # self.fc2 = nn.Linear(120, 84)
+    # self.fc3 = nn.Linear(84, 10)
+  def forward(self, x):
+    x = self.pool(F.relu(self.conv1(x)))
+    x = self.pool(F.relu(self.conv2(x)))
+    x = x.view(-1, 16 * 16)
+    x = F.relu(self.fc1(x))
+    # x = F.relu(self.fc2(x))
+    # x = self.fc3(x)
+    return x
+
+class CIFARConvNet(nn.Module):
+  def __init__(self, opt):
+    super(CIFARConvNet, self).__init__()
+    self.conv1 = nn.Conv2d(in_channels = opt['im_chan'], out_channels=6, kernel_size=5)
+    self.pool = nn.MaxPool2d(2, 2)
+    self.conv2 = nn.Conv2d(6, 16, 5)
+    self.fc1 = nn.Linear(5 * 5 * 16, 10) #20)
+    # self.fc2 = nn.Linear(120, 84)
+    # self.fc3 = nn.Linear(84, 10)
+  def forward(self, x):
+    x = self.pool(F.relu(self.conv1(x)))
+    x = self.pool(F.relu(self.conv2(x)))
+    x = x.view(-1, 5 * 5 * 16)
+    x = F.relu(self.fc1(x))
+    # x = F.relu(self.fc2(x))
+    # x = self.fc3(x)
+    return x
+
+
 # Define the GNN model.
 class GNN_image(BaseGNN):
   def __init__(self, opt, num_features, num_nodes, num_classes, edge_index, edge_attr=None, device=torch.device('cpu')):
@@ -26,7 +63,9 @@ class GNN_image(BaseGNN):
 
     self.bn = nn.BatchNorm1d(num_features=opt['im_chan'])
 
-    self.m2 = nn.Linear(opt['im_width'] * opt['im_height'] * opt['im_chan'], num_classes)
+    # self.m2 = nn.Linear(opt['im_width'] * opt['im_height'] * opt['im_chan'], num_classes)
+    self.m2 = None #replace base block m2
+    self.ConvNet = MNISTConvNet(opt) if opt['im_dataset'] == 'MNIST' else CIFARConvNet(opt)
 
   def forward(self, x):
     # Encode each node based on its feature.
@@ -58,9 +97,13 @@ class GNN_image(BaseGNN):
     # Dropout.
     z = F.dropout(z, self.opt['dropout'], training=self.training)
 
-    z = z.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])
-    # Decode each node embedding to get node label.
-    z = self.m2(z)
+    # z = z.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])
+    # z = self.m2(z)
+
+    z = z.view(-1, self.opt['im_width'], self.opt['im_height'], self.opt['im_chan'])
+    z = torch.movedim(z,3,1)
+    z = self.ConvNet(z)
+
     return z
 
   def forward_plot_T(self, x): #the same as forward but without the decoder

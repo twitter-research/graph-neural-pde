@@ -1,8 +1,10 @@
 
 def opt_perms(opt):
+  """
   im_dataset = ['MNIST','CIFAR']
   blocks = ['attention', 'constant']
   functions = ['laplacian', 'transformer']
+  """
   opt_perms = {}
   opt1 = opt.copy()
   opt1['im_dataset'] = 'MNIST'
@@ -67,7 +69,7 @@ def get_image_opt(opt):
   opt['decay'] = 5e-4
   opt['self_loop_weight'] = 0.555
   # opt['alpha'] = 0
-  opt['time'] = 5 #2
+  opt['time'] = 8 #5 #2
   opt['augment'] = False #True   #False need to view image
   opt['attention_dropout'] = 0
 
@@ -75,8 +77,8 @@ def get_image_opt(opt):
   opt['batched'] = True
   if opt['testing_code']:
     opt['batch_size'] = 64  # 64 #64  # doing batch size for mnist
-    opt['train_size'] = 512#0 #128 #10240 #512 #10240
-    opt['test_size'] = 128#0  #512#64#128
+    opt['train_size'] = 512 #0 #128 #10240 #512 #10240
+    opt['test_size'] = 128 #0  #512#64#128
 
   assert (opt['train_size']) % opt['batch_size'] == 0, "train_size needs to be multiple of batch_size"
   assert (opt['test_size']) % opt['batch_size'] == 0, "test_size needs to be multiple of batch_size"
