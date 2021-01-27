@@ -465,8 +465,8 @@ def set_arxiv_search_space(opt):
     opt["self_loop_weight"] = 1
   # opt['data_norm'] = tune.choice(['rw', 'gcn'])
   # opt['add_source'] = tune.choice([True, False])
-  opt['add_source'] = tune.choice([True, False])
-  opt['att_samp_pct'] = tune.uniform(0,1)
+  opt['add_source'] = False
+  opt['att_samp_pct'] = tune.uniform(0,0.6)
   opt['use_flux'] = False
   # opt['use_flux'] = tune.choice([True, False])
 
