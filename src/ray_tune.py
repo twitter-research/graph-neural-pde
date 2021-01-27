@@ -466,7 +466,7 @@ def set_arxiv_search_space(opt):
   # opt['data_norm'] = tune.choice(['rw', 'gcn'])
   # opt['add_source'] = tune.choice([True, False])
   opt['add_source'] = tune.choice([True, False])
-  opt['att_samp_pct'] = tune.uniform(0.6,1)
+  opt['att_samp_pct'] = tune.uniform(0,1)
   opt['use_flux'] = False
   # opt['use_flux'] = tune.choice([True, False])
 
@@ -480,8 +480,8 @@ def set_arxiv_search_space(opt):
 
   # opt["method"] = tune.choice(["dopri5", "rk4"])
   # opt["method"] = tune.choice(["midpoint", "rk4"])
-  # opt["method"] = "rk4"
-  opt["method"] = 'dopri5'
+  opt["method"] = "rk4"
+  # opt["method"] = 'dopri5'
 
 
   if opt['rewiring'] == 'gdc':

@@ -18,7 +18,7 @@ class HardAttODEblock(ODEblock):
     self.data_edge_index = edge_index.to(device)
     self.odefunc.edge_index = edge_index.to(device)  # this will be changed by attention scores
     self.odefunc.edge_weight = edge_weight.to(device)
-    self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight
+    # self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight
 
     if opt['adjoint']:
       from torchdiffeq import odeint_adjoint as odeint
@@ -51,13 +51,17 @@ class HardAttODEblock(ODEblock):
           src_features = x[self.data_edge_index[0, :], :]
           dst_features = x[self.data_edge_index[1, :], :]
           delta = torch.linalg.norm(src_features-dst_features, dim=1)
-          meant_att = mean_att * delta
+          mean_att = mean_att * delta
         threshold = torch.quantile(mean_att, 1-self.opt['att_samp_pct'])
         mask = mean_att > threshold
         self.odefunc.edge_index = self.data_edge_index[:, mask.T]
         sampled_attention_weights = self.renormalise_attention(mean_att[mask])
         print('retaining {} of {} edges'.format(self.odefunc.edge_index.shape[1], self.data_edge_index.shape[1]))
         self.odefunc.attention_weights = sampled_attention_weights
+    else:
+      self.odefunc.edge_index = self.data_edge_index
+      self.odefunc.attention_weights = attention_weights.mean(dim=1, keepdim=False)
+    self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight
     self.reg_odefunc.odefunc.attention_weights = self.odefunc.attention_weights
     integrator = self.train_integrator if self.training else self.test_integrator
 
