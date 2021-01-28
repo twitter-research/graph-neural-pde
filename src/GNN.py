@@ -16,11 +16,15 @@ class GNN(BaseGNN):
 
   def forward(self, x):
     # Encode each node based on its feature.
+    if self.opt['use_labels']:
+      y = x[:, self.num_features:]
+      x = x[:, :self.num_features]
     x = F.dropout(x, self.opt['input_dropout'], training=self.training)
     x = self.m1(x)
     # todo investigate if some input non-linearity solves the problem with smooth deformations identified in the ANODE paper
     # if True:
     #   x = F.relu(x)
+    x = torch.cat([x, y], dim=-1)
 
     if self.opt['batch_norm']:
       x = self.bn_in(x)
