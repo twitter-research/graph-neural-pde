@@ -24,7 +24,8 @@ class GNN(BaseGNN):
     # todo investigate if some input non-linearity solves the problem with smooth deformations identified in the ANODE paper
     # if True:
     #   x = F.relu(x)
-    x = torch.cat([x, y], dim=-1)
+    if self.opt['use_labels']:
+      x = torch.cat([x, y], dim=-1)
 
     if self.opt['batch_norm']:
       x = self.bn_in(x)

@@ -41,8 +41,14 @@ class GNNEarly(BaseGNN):
 
   def forward(self, x):
     # Encode each node based on its feature.
+    if self.opt['use_labels']:
+      y = x[:, self.num_features:]
+      x = x[:, :self.num_features]
     x = F.dropout(x, self.opt['input_dropout'], training=self.training)
     x = self.m1(x)
+
+    if self.opt['use_labels']:
+      x = torch.cat([x, y], dim=-1)
 
     # Solve the initial value problem of the ODE.
     if self.opt['augment']:
