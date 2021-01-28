@@ -185,6 +185,7 @@ if __name__ == '__main__':
   parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
   parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')
   parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
+  parser.add_argument("--batch_norm", dest='batch_norm', action='store_true', help='search over reg params')
   parser.add_argument('--optimizer', type=str, default='adam', help='One from sgd, rmsprop, adam, adagrad, adamax.')
   parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
   parser.add_argument('--decay', type=float, default=5e-4, help='Weight decay for optimization')
@@ -203,6 +204,7 @@ if __name__ == '__main__':
   parser.add_argument('--method', type=str, default='dopri5',
                       help="set the numerical solver: dopri5, euler, rk4, midpoint")
   parser.add_argument('--step_size', type=float, default=1, help='fixed step size when using fixed step solvers e.g. rk4')
+  parser.add_argument('--max_iters', type=float, default=100, help='maximum number of integration steps')
   parser.add_argument(
     "--adjoint_method", type=str, default="adaptive_heun",
     help="set the numerical solver for the backward pass: dopri5, euler, rk4, midpoint"
@@ -249,6 +251,10 @@ if __name__ == '__main__':
   parser.add_argument('--ppr_alpha', type=float, default=0.05, help="teleport probability")
   parser.add_argument('--heat_time', type=float, default=3., help="time to run gdc heat kernal diffusion for")
   parser.add_argument('--att_samp_pct', type=float, default=1, help="float in [0,1). The percentage of edges to retain based on attention scores")
+  parser.add_argument('--use_flux', dest='use_flux', action='store_true',
+                      help='incorporate the feature grad in attention based edge dropout')
+  parser.add_argument("--exact", action="store_true",
+                      help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
 
   args = parser.parse_args()
 
