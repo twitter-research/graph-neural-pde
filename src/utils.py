@@ -17,6 +17,12 @@ from torch_geometric.nn.conv.gcn_conv import gcn_norm
 class MaxNFEException(Exception): pass
 
 
+def adjust_learning_rate(optimizer, lr, epoch, burnin=50):
+  if epoch <= burnin:
+    for param_group in optimizer.param_groups:
+      param_group["lr"] = lr * epoch / burnin
+
+
 def gcn_norm_fill_val(edge_index, edge_weight=None, fill_value=0., num_nodes=None, dtype=None):
   num_nodes = maybe_num_nodes(edge_index, num_nodes)
 
