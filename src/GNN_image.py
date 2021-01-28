@@ -49,7 +49,6 @@ class CIFARConvNet(nn.Module):
     # x = self.fc3(x)
     return x
 
-
 # Define the GNN model.
 class GNN_image(BaseGNN):
   def __init__(self, opt, num_features, num_nodes, num_classes, edge_index, edge_attr=None, device=torch.device('cpu')):

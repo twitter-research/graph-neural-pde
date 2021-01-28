@@ -174,6 +174,10 @@ class ImageInMemory(InMemoryDataset):
       x = data.view(c, w * h)
       x = x.T
 
+      train_mask=torch.zeros(y_new.size()[0], dtype=torch.bool),
+      test_mask=torch.zeros(y_new.size()[0], dtype=torch.bool),
+      val_mask=torch.zeros(y_new.size()[0], dtype=torch.bool)
+
       graph = Data(x=x, y=y.unsqueeze(dim=0), edge_index=edge_index)
       graph_list.append(graph)
 
