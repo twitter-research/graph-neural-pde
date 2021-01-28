@@ -428,8 +428,8 @@ def set_photo_search_space(opt):
   return opt
 
 def set_arxiv_search_space(opt):
-  # opt["decay"] = tune.loguniform(1e-8, 1e-5)
-  opt["decay"] = 0
+  opt["decay"] = tune.loguniform(1e-8, 1e-5)
+  # opt["decay"] = 0
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
@@ -437,7 +437,8 @@ def set_arxiv_search_space(opt):
   # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 9))
   # opt["hidden_dim"] = 200  # best choice with attention
   # opt["hidden_dim"] = 256  # best choice without attention
-  opt["lr"] = tune.loguniform(5e-3, 0.05)
+  # opt["lr"] = tune.loguniform(5e-3, 0.05)
+  opt["lr"] = tune.loguniform(5e-2, 0.3) # bn
   # opt['lr'] = 0.02
   # opt["input_dropout"] = tune.uniform(0., 0.1)
   opt["input_dropout"] = 0
