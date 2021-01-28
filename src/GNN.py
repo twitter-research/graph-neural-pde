@@ -44,8 +44,8 @@ class GNN(BaseGNN):
     if self.opt['augment']:
       z = torch.split(z, x.shape[1] // 2, dim=1)[0]
 
-    if self.opt['batch_norm']:
-      z = self.bn_in(z)
+    # if self.opt['batch_norm']:
+    #   z = self.bn_in(z)
 
     # Activation.
     z = F.relu(z)
