@@ -437,8 +437,8 @@ def set_arxiv_search_space(opt):
   # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 9))
   # opt["hidden_dim"] = 200  # best choice with attention
   # opt["hidden_dim"] = 256  # best choice without attention
-  # opt["lr"] = tune.loguniform(5e-3, 0.05)
-  opt['lr'] = 0.02
+  opt["lr"] = tune.loguniform(5e-3, 0.05)
+  # opt['lr'] = 0.02
   # opt["input_dropout"] = tune.uniform(0., 0.1)
   opt["input_dropout"] = 0
   # opt["dropout"] = tune.uniform(0, 0.2)
@@ -448,8 +448,8 @@ def set_arxiv_search_space(opt):
   # opt['adjoint_step_size'] = tune.choice([0.25, 0.5, 1, 2])
   opt['adjoint_step_size'] = 1
   # opt["time"] = tune.choice([1,2,3,4,5,6,7,8,9,10])
-  # opt['time'] = tune.uniform(3,10)
-  opt['time'] = 5
+  opt['time'] = tune.uniform(3,10)
+  # opt['time'] = 5
   # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
   opt['optimizer'] = 'adam'
   if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
@@ -464,8 +464,9 @@ def set_arxiv_search_space(opt):
     opt["self_loop_weight"] = 1
   # opt['data_norm'] = tune.choice(['rw', 'gcn'])
   # opt['add_source'] = tune.choice([True, False])
-  opt['add_source'] = True
-  opt['att_samp_pct'] = tune.uniform(0,1)
+  opt['add_source'] = tune.choice([True, False])
+  opt['att_samp_pct'] = tune.uniform(0.6,1)
+  opt['batch_norm'] = tune.choice([True, False])
 
   # opt["tol_scale"] = tune.loguniform(10, 1e4)
 
