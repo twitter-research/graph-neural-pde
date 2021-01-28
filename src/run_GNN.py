@@ -66,17 +66,38 @@ def get_optimizer(name, parameters, lr, weight_decay=0):
   else:
     raise Exception("Unsupported optimizer: {}".format(name))
 
+def add_labels(feat, labels, idx, num_classes, device):
+  onehot = torch.zeros([feat.shape[0], num_classes]).to(device)
+  # onehot[idx, labels[idx]] = 1
+  onehot[idx, labels[idx, 0]] = 1
+  return torch.cat([feat, onehot], dim=-1)
 
 def train(model, optimizer, data):
   model.train()
   optimizer.zero_grad()
-  out = model(data.x)
+  feat = data.x
+  if model.opt['use_labels']:
+    mask_rate = 0.5
+    mask = torch.rand(data.train_mask.shape) < mask_rate
+
+    train_labels_idx = data.train_mask[mask]
+    train_pred_idx = data.train_mask[~mask]
+    feat = add_labels(feat, data.y, train_labels_idx, model.num_classes, model.device)
+  else:
+    # todo in the DGL code from OGB, they seem to apply an additional mask to the training data - currently commented
+    # mask_rate = 0.5
+    # mask = torch.rand(data.train_index.shape) < mask_rate
+    #
+    # train_pred_idx = data.train_idx[mask]
+    train_pred_idx = data.train_mask
+
+  out = model(feat)
   if model.opt['dataset'] == 'ogbn-arxiv':
     lf = torch.nn.functional.nll_loss
-    loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
+    loss = lf(out.log_softmax(dim=-1)[train_pred_idx], data.y.squeeze(1)[train_pred_idx])
   else:
     lf = torch.nn.CrossEntropyLoss()
-    loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
+    loss = lf(out[train_pred_idx], data.y.squeeze()[train_pred_idx])
   if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
     reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
     regularization_coeffs = model.regularization_coeffs
@@ -99,7 +120,10 @@ def train(model, optimizer, data):
 @torch.no_grad()
 def test(model, data, opt=None):  # opt required for runtime polymorphism
   model.eval()
-  logits, accs = model(data.x), []
+  feat = data.x
+  if model.opt['use_labels']:
+    feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
+  logits, accs = model(feat), []
   for _, mask in data('train_mask', 'val_mask', 'test_mask'):
     pred = logits[mask].max(1)[1]
     acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
@@ -119,10 +143,14 @@ def test_OGB(model, data, opt):
     if opt['dataset'] == 'ogbn-arxiv':
       name = 'ogbn-arxiv'
 
+    feat = data.x
+    if model.opt['use_labels']:
+        feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
+
     evaluator = Evaluator(name=name)
     model.eval()
 
-    out = model(data.x).log_softmax(dim=-1)
+    out = model(feat).log_softmax(dim=-1)
     y_pred = out.argmax(dim=-1, keepdim=True)
 
     train_acc = evaluator.eval({
@@ -178,10 +206,14 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--use_cora_defaults', action='store_true',
                       help='Whether to run with best params for cora. Overrides the choice of dataset')
+  # data args
   parser.add_argument('--dataset', type=str, default='Cora',
                       help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS')
   parser.add_argument('--data_norm', type=str, default='rw',
                       help='rw for random walk, gcn for symmetric gcn norm')
+  parser.add_argument('--self_loop_weight', type=float, default=1.0, help='Weight of self-loops.')
+  parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
+  # GNN args
   parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
   parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')
   parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
@@ -189,18 +221,16 @@ if __name__ == '__main__':
   parser.add_argument('--optimizer', type=str, default='adam', help='One from sgd, rmsprop, adam, adagrad, adamax.')
   parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
   parser.add_argument('--decay', type=float, default=5e-4, help='Weight decay for optimization')
-  parser.add_argument('--self_loop_weight', type=float, default=1.0, help='Weight of self-loops.')
   parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')
   parser.add_argument('--alpha', type=float, default=1.0, help='Factor in front matrix A.')
-  parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
-  parser.add_argument('--augment', action='store_true',
-                      help='double the length of the feature vector by appending zeros to stabilist ODE learning')
   parser.add_argument('--alpha_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) alpha')
   parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true', help='apply sigmoid before multiplying by alpha')
   parser.add_argument('--beta_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) beta')
   parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention, hard_attention, SDE')
   parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
   # ODE args
+  parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
+  parser.add_argument('--augment', action='store_true', help='double the length of the feature vector by appending zeros to stabilist ODE learning')
   parser.add_argument('--method', type=str, default='dopri5',
                       help="set the numerical solver: dopri5, euler, rk4, midpoint")
   parser.add_argument('--step_size', type=float, default=1, help='fixed step size when using fixed step solvers e.g. rk4')
@@ -255,6 +285,7 @@ if __name__ == '__main__':
                       help='incorporate the feature grad in attention based edge dropout')
   parser.add_argument("--exact", action="store_true",
                       help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
+
 
   args = parser.parse_args()
 

@@ -13,10 +13,6 @@ class GNN(BaseGNN):
     self.block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
     self.odeblock = self.block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
-    # todo remove next line as in base class
-    # self.m2 = nn.Linear(opt['hidden_dim'], num_classes)
-    self.bn_in = torch.nn.BatchNorm1d(opt['hidden_dim'])
-    self.bn_out = torch.nn.BatchNorm1d(opt['hidden_dim'])
 
   def forward(self, x):
     # Encode each node based on its feature.
