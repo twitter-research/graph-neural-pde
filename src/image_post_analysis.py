@@ -283,8 +283,6 @@ def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
     # # load params
     # model.load_state_dict(new_state_dict)
 
-
-    # broken
     model.load_state_dict(torch.load(modelpath, map_location=device))
     model.to(device)
     model.eval()
@@ -461,25 +459,20 @@ if __name__ == '__main__':
   partitions = 10
   batch_num = 2
   samples = 6
-  # model_keys = [
-  # '20210127_015525',
-  # '20210127_021404',
-  # '20210127_043024',
-  # '20210127_074633',
-  # '20210127_044929',
-  # '20210127_051136']
-  model_keys = ['20210127_214736',
-  '20210127_214308',
-  '20210127_214736']
+  model_keys = [
+  '20210127_233213',
+  '20210127_235901',
+  '20210128_033312',
+  '20210128_040117',
+  '20210128_043323',
+  '20210128_083642']
 
-  #
-  # model_keys = ['20210125_002603']
+
+
   # directory = f"../models/"
   # df = pd.read_csv(f'{directory}models.csv')
   # model_keys = df['model_key'].to_list()
-  # model_keys = ['20210125_002603',
-  #   '20210125_111920',
-  #   '20210125_115601']
+
 
   single_images(model_keys, samples, Tmultiple, partitions, batch_num)
   build_all(model_keys, samples, Tmultiple, partitions, batch_num)
@@ -489,18 +482,14 @@ if __name__ == '__main__':
   # grid_keys = ['20210125_002603',
   #   '20210125_111920',
   #   '20210125_115601']
-  grid_keys = ['20210127_214736',
-                '20210127_214308',
-                '20210127_214736']
+  # image_folder = 'Testbatch3'
+  # create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
 
-  image_folder = 'Testbatch3'
+  grid_keys = ['20210127_233213','20210127_235901','20210128_033312']
+  times = [0, 10, 20]
+  image_folder = 'MNIST1'
   create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
 
-  # grid_keys = ['20210127_015525','20210127_021404','20210127_043024']
-  # times = [0, 10, 20]
-  # image_folder = 'MNIST1'
-  # create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
-  #
-  # image_folder = 'CIFAR1'
-  # grid_keys = ['20210127_074633','20210127_044929','20210127_051136']
-  # create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  image_folder = 'CIFAR1'
+  grid_keys = ['20210128_040117','20210128_043323','20210128_083642']
+  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
