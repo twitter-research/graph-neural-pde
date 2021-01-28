@@ -592,6 +592,7 @@ if __name__ == "__main__":
   parser.add_argument("--lr", type=float, default=0.01, help="Learning rate.")
   parser.add_argument("--decay", type=float, default=5e-4, help="Weight decay for optimization")
   parser.add_argument("--self_loop_weight", type=float, default=1.0, help="Weight of self-loops.")
+  parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
   parser.add_argument("--epoch", type=int, default=10, help="Number of training epochs per iteration.")
   parser.add_argument("--alpha", type=float, default=1.0, help="Factor in front matrix A.")
   parser.add_argument("--time", type=float, default=1.0, help="End time of ODE function.")
