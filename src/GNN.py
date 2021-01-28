@@ -15,6 +15,8 @@ class GNN(BaseGNN):
     self.odeblock = self.block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
     # todo remove next line as in base class
     # self.m2 = nn.Linear(opt['hidden_dim'], num_classes)
+    self.bn_in = torch.nn.BatchNorm1d(opt['hidden_dim'])
+    self.bn_out = torch.nn.BatchNorm1d(opt['hidden_dim'])
 
   def forward(self, x):
     # Encode each node based on its feature.
@@ -24,10 +26,15 @@ class GNN(BaseGNN):
     # if True:
     #   x = F.relu(x)
 
+    if self.opt['batch_norm']:
+      x = self.bn_in(x)
+
     # Solve the initial value problem of the ODE.
     if self.opt['augment']:
       c_aux = torch.zeros(x.shape).to(self.device)
       x = torch.cat([x, c_aux], dim=1)
+
+
 
     self.odeblock.set_x0(x)
 
@@ -38,6 +45,9 @@ class GNN(BaseGNN):
 
     if self.opt['augment']:
       z = torch.split(z, x.shape[1] // 2, dim=1)[0]
+
+    if self.opt['batch_norm']:
+      z = self.bn_in(z)
 
     # Activation.
     z = F.relu(z)

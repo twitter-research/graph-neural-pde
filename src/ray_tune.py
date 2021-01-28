@@ -466,7 +466,7 @@ def set_arxiv_search_space(opt):
   # opt['data_norm'] = tune.choice(['rw', 'gcn'])
   # opt['add_source'] = tune.choice([True, False])
   opt['add_source'] = False
-  opt['att_samp_pct'] = tune.uniform(0.1,0.3)
+  opt['att_samp_pct'] = tune.uniform(0.6,1)
   opt['use_flux'] = False
   # opt['use_flux'] = tune.choice([True, False])
 
@@ -482,6 +482,7 @@ def set_arxiv_search_space(opt):
   # opt["method"] = tune.choice(["midpoint", "rk4"])
   opt["method"] = "rk4"
   # opt["method"] = 'dopri5'
+  opt['batch_norm'] = tune.choice([True, False])
 
 
   if opt['rewiring'] == 'gdc':
@@ -592,6 +593,7 @@ if __name__ == "__main__":
   parser.add_argument("--hidden_dim", type=int, default=32, help="Hidden dimension.")
   parser.add_argument("--input_dropout", type=float, default=0.5, help="Input dropout rate.")
   parser.add_argument("--dropout", type=float, default=0.0, help="Dropout rate.")
+  parser.add_argument("--batch_norm", dest='batch_norm', action='store_true', help='search over reg params')
   parser.add_argument("--optimizer", type=str, default="adam", help="Optimizer.")
   parser.add_argument("--lr", type=float, default=0.01, help="Learning rate.")
   parser.add_argument("--decay", type=float, default=5e-4, help="Weight decay for optimization")
@@ -630,7 +632,6 @@ if __name__ == "__main__":
   parser.add_argument("--dt", type=float, default=1e-3, help="fixed step size")
   parser.add_argument('--adaptive', dest='adaptive', action='store_true', help='use adaptive step sizes')
   # Attention args
-  parser.add_argument("--attention_dropout", type=float, default=0.0, help="dropout of attention weights")
   parser.add_argument(
     "--leaky_relu_slope",
     type=float,
