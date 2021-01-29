@@ -13,7 +13,7 @@ from ray.tune.suggest.ax import AxSearch
 from torch import nn
 from GNN_ICML import ICML_GNN, get_sym_adj
 from GNN_ICML import train as train_icml
-
+from run_GNN import get_optimizer
 from data_image import load_pixel_data
 from torch_geometric.data import DataLoader
 from run_image_pixel import pixel_test as pixel_test, train as train
