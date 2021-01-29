@@ -50,8 +50,8 @@ def opt_perms(opt):
 def get_image_opt(opt):
   opt['testing_code'] = True #True  # True #to work with smaller dataset
 
-  opt['pixel_cat'] = 2 #10 #2 #[2 for binary_sigmoid, 10 for'10catM2','10catlogits' ]
-  opt['pixel_loss'] = 'binary_sigmoid'#'binary_sigmoid' #'10catlogits' #  ['binary_sigmoid','10catM2','10catlogits','MSE']
+  opt['pixel_cat'] = 10 #10 #2 #[2 for binary_sigmoid, 10 for'10catM2','10catlogits' ]
+  opt['pixel_loss'] = '10catlogits'#'binary_sigmoid' #'10catlogits' #  ['binary_sigmoid','10catM2','10catlogits','MSE']
 
   opt['simple'] = True #True
   # opt['alpha'] = 0   ###note alpha and beta manually turned off at the function level
