@@ -177,29 +177,51 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
 def set_MNIST_search_space(opt):
     opt['block'] = 'constant'
     opt['function'] = 'transformer'
+    opt["time"] = 16.0 #fixed for comparison tune.uniform(0.5, 20.0)
+    opt['self_loop_weight'] = 0  # 0.555
+    opt['self_loops'] = 0 #tune.choice([0, 1])
 
+    opt['pixel_cat'] = 2  # 10 #10 #2 #[2 for binary_sigmoid, 10 for'10catM2','10catlogits' ]
+    opt['pixel_loss'] = 'binary_sigmoid'  # 10catlogits'#'binary_sigmoid' #'10catlogits' #  ['binary_sigmoid','10catM2','10catlogits','MSE']
+    opt['simple'] = True
+    opt['adjoint'] = True
+    opt['method'] = 'rk4'
+    opt['adjoint_method'] = 'rk4'
+    opt['adjoint'] = True
+    opt['max_iters'] = 5000
+    opt['augment'] = False  # True   #False need to view image
+    opt['batched'] = True
+    opt['testing_code'] = True  #Flag for reduced dataset size
+    if opt['testing_code']:
+        opt['batch_size'] = 64  # 64  # doing batch size for mnist
+        opt['train_size'] = 512  # 1024 #512 #0 #128 #10240 #512 #10240
+        opt['test_size'] = 128  # 0  #512#64#128
+    assert (opt['train_size']) % opt['batch_size'] == 0, "train_size needs to be multiple of batch_size"
+    assert (opt['test_size']) % opt['batch_size'] == 0, "test_size needs to be multiple of batch_size"
+
+    opt['im_width'] = 28
+    opt['im_height'] = 28
+    opt['im_chan'] = 1
+    opt['hidden_dim'] = 1
+    opt['num_feature'] = 1
+    opt['num_class'] = 10
+    opt['num_nodes'] = opt['im_height'] * opt['im_width']  # * opt['im_chan']
+    opt['diags'] = True
+
+    # tune-able space
+    opt['step_size'] = 1.0
+    opt['adjoint_step_size'] = 1.0
+    opt['attention_dropout'] = 0
     opt["decay"] = tune.loguniform(2e-3, 1e-2)
     opt["lr"] = tune.loguniform(1e-3, 0.1)
     opt["input_dropout"] = tune.uniform(0.2, 0.8)
     opt["dropout"] = tune.uniform(0, 0.8)
-    opt["time"] = 16 #fixed for comparison tune.uniform(0.5, 20.0)
     opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
-    opt['self_loops'] = 0 #tune.choice([0, 1])
     if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
         opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
         opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 6))
         opt['attention_norm_idx'] = tune.choice([0, 1])
-        opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-            [0, 1])
-        opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
-    else:
-        opt["self_loop_weight"] = tune.uniform(0, 3)
 
-    opt["tol_scale"] = tune.loguniform(1, 1e4)
-
-    if opt["adjoint"]:
-        opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
-        opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
     return opt
 
 
