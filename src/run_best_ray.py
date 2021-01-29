@@ -79,6 +79,7 @@ if __name__ == '__main__':
   parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')
   parser.add_argument('--folder', type=str, default=None, help='experiment folder to read')
   parser.add_argument('--index', type=int, default=0, help='index to take from experiment folder')
+  parser.add_argument('--metric', type=str, default='accuracy', help='metric to sort the hyperparameter tuning runs on')
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilise ODE learning')
   parser.add_argument('--reps', type=int, default=1, help='the number of random weight initialisations to use')
