@@ -85,12 +85,16 @@ class ODEFunc(MessagePassing):
     self.edge_index = None
     self.edge_weight = None
     self.attention_weights = None
-    self.alpha_train = nn.Parameter(torch.tensor(0.0))
-    self.beta_train = nn.Parameter(torch.tensor(0.0))
+    # self.alpha_train = nn.Parameter(torch.tensor(0.0))
+    # self.beta_train =  nn.Parameter(torch.tensor(0.0))
+    self.register_buffer('alpha_train',torch.ones(1))
+    self.register_buffer('beta_train',torch.zeros(1))
     self.x0 = None
     self.nfe = 0
-    self.alpha_sc = nn.Parameter(torch.ones(1))
-    self.beta_sc = nn.Parameter(torch.ones(1))
+    # self.alpha_sc = nn.Parameter(torch.ones(1))
+    # self.beta_sc = nn.Parameter(torch.ones(1))
+    self.register_buffer('alpha_sc',torch.ones(1))
+    self.register_buffer('beta_sc',torch.zeros(1))
 
   def __repr__(self):
     return self.__class__.__name__

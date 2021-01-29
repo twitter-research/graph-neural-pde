@@ -181,32 +181,108 @@ class ImageInMemory(InMemoryDataset):
     # torch.save((self.data, self.slices), self.processed_paths[0])
     torch.save(self.collate(graph_list), self.processed_paths[0])
 
+class InMemPixelData(ImageInMemory):
+  def __init__(self, root, name, opt, type, transform=None, pre_transform=None, pre_filter=None):
+    self.name = name
+    self.opt = opt
+    self.type = type
+    super(ImageInMemory, self).__init__(root, transform, pre_transform, pre_filter)
+    self.data, self.slices = torch.load(self.processed_paths[0])
 
-def create_out_memory_dataset(opt, type, data_loader, edge_index, im_height, im_width, im_chan, root,
-                              processed_file_name=None):
-  pass
-  # https: // pytorch - geometric.readthedocs.io / en / latest / notes / create_dataset.html
-  # def len(self):
-  #     return len(self.processed_file_names)
-  #
-  # def get(self, idx):
-  #     data = torch.load(osp.join(self.processed_dir, 'data_{}.pt'.format(idx)))
-  #     return data
+  @property
+  def raw_dir(self):
+    return osp.join(self.root, self.name, 'raw')
+
+  @property
+  def processed_dir(self):
+    return osp.join(self.root, self.name, 'processed')
+
+  @property
+  def raw_file_names(self):
+    return []
+
+  @property
+  def processed_file_names(self):
+    return 'data.pt'
+
+  def download(self):
+    pass  # download_url(self.url, self.raw_dir)
+
+  def read_data(self):
+    if self.opt['im_dataset'] == 'MNIST':
+      transform = transforms.Compose([transforms.ToTensor()])  # ,
+      # transforms.Normalize((0.1307,), (0.3081,))])
+      if self.type == "Train":
+        data = torchvision.datasets.MNIST('../data/MNIST/', train=True, download=True,
+                                          transform=transform)
+      elif self.type == 'Test':
+        data = torchvision.datasets.MNIST('../data/MNIST/', train=False, download=True,
+                                          transform=transform)
+    elif self.opt['im_dataset'] == 'CIFAR':
+      # https: // discuss.pytorch.org / t / normalization - in -the - mnist - example / 457 / 7
+      transform = transforms.Compose([transforms.ToTensor(),
+                                      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+      if self.type == "Train":
+        data = torchvision.datasets.CIFAR10('../data/CIFAR/', train=True, download=True,
+                                            transform=transform)
+      elif self.type == 'Test':
+        data = torchvision.datasets.CIFAR10('../data/CIFAR/', train=False, download=True,
+                                            transform=transform)
+    return data
+
+  def process(self):
+    graph_list = []
+    data = self.read_data()
+    c, w, h = self.opt['im_chan'], self.opt['im_width'], self.opt['im_height']
+    edge_index = edge_index_calc(h, w, c, diags=self.opt['diags'])
+    data_loader = torch.utils.data.DataLoader(data, batch_size=1, shuffle=True)
+    for batch_idx, (data, target) in enumerate(data_loader):
+      if self.opt['testing_code'] == True and batch_idx > self.opt['train_size'] - 1:
+        break
+      x = data.view(c, w * h)
+      x = x.T
+      # bucket labels in each channel
+      pix_labels = []
+      for i in range(self.opt['im_chan']):
+        y = np.maximum(np.minimum(x * self.opt['pixel_cat'] ,self.opt['pixel_cat']*(0.9999)), 0)
+        y = y[:,i]
+        y = torch.floor(y).type(torch.LongTensor)
+        pix_labels.append(y)
+      y = torch.stack(pix_labels, dim=1)
+      # y.view(28, 28).detach().numpy()
+      full_idx = np.arange(self.opt['num_nodes'])
+      # set pixel masks
+      rnd_state = np.random.RandomState(seed=12345)
+      train_idx = []
+      for label in range(y.max().item() + 1):
+        # class_idx = np.nonzero(y == label)[:,0]
+        class_idx = (y == label).nonzero()[:,0]
+        num_in_class = len(class_idx)
+        train_idx.extend(rnd_state.choice(class_idx, num_in_class//2, replace=False))
+      test_idx = [i for i in full_idx if i not in train_idx]
+      train_mask = torch.zeros(self.opt['num_nodes'], dtype=torch.bool)
+      test_mask = torch.zeros(self.opt['num_nodes'], dtype=torch.bool)
+      train_mask[train_idx] = 1
+      test_mask[test_idx] = 1
+      graph = Data(x=x, y=y, edge_index=edge_index, train_mask=train_mask, test_mask=test_mask)
+      graph_list.append(graph)
+
+    torch.save(self.collate(graph_list), self.processed_paths[0])
+
+
+def load_pixel_data(opt):
+  print("loading PyG Pixel Data")
+  data_name = opt['im_dataset']
+  root = '../data'
+  name = f"Pixel{data_name}{str(opt['train_size'])}_{str(opt['pixel_cat'])}Cat"
+  root = f"{root}/{name}"
+  PixelData = InMemPixelData(root, name, opt, type="Train", transform=None, pre_transform=None, pre_filter=None)
+  return PixelData
 
 
 def load_data(opt):
   data_name = opt['im_dataset']
-
-  # train_loader = torch.utils.data.DataLoader(data_train, batch_size=1, shuffle=True)
-  # test_loader = torch.utils.data.DataLoader(data_test, batch_size=1, shuffle=True)
-  #
-  # edge_index = edge_index_calc(im_height, im_width, im_chan, diags=opt['diags'])
-
   print("loading PyG in_memory_datasets")
-  # rootstr_train = '../data/PyG' + data_name + str(opt['train_size']) + 'Train/'
-  # filestr_train = 'PyG' + data_name + str(opt['train_size']) + 'Train.pt'
-  # rootstr_test = '../data/PyG' + data_name + str(opt['test_size']) + 'Test/'
-  # filestr_test = 'PyG' + data_name + str(opt['test_size']) + 'Test.pt'
   root = '../data'
   name_train = f"PyG{data_name}{str(opt['train_size'])}Train"
   name_test = f"PyG{data_name}{str(opt['test_size'])}Test"
@@ -216,7 +292,6 @@ def load_data(opt):
   PyG_train = ImageInMemory(root_train, name_train, opt, 'Train', transform=None, pre_transform=None, pre_filter=None)
   PyG_test = ImageInMemory(root_test, name_test, opt, 'Test', transform=None, pre_transform=None,
                            pre_filter=None)
-
   return PyG_train, PyG_test
 
 

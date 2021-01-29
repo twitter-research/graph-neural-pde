@@ -2,7 +2,7 @@ import argparse
 import torch
 import numpy as np
 import os
-from GNN_image import GNN_image
+from GNN_image_pixel import GNN_image_pixel
 from torch_geometric.data import DataLoader
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -269,7 +269,7 @@ def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
     if edge_index_gpu is not None: edge_index_gpu.to(device)
     if edge_attr_gpu is not None: edge_index_gpu.to(device)
     opt['time'] = opt['time'] / partitions
-    model = GNN_image(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
+    model = GNN_image_pixel(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
                       batch.edge_attr, device).to(device)
 
     # # original saved file with DataParallel
@@ -283,6 +283,8 @@ def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
     # # load params
     # model.load_state_dict(new_state_dict)
 
+
+    # broken
     model.load_state_dict(torch.load(modelpath, map_location=device))
     model.to(device)
     model.eval()
@@ -308,7 +310,7 @@ def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
 
 def single_images(model_keys, samples, Tmultiple, partitions, batch_num):
   for model_key in model_keys:
-    directory = f"../models/"
+    directory = f"../pixels/"
     for filename in os.listdir(directory):
       if filename.startswith(model_key):
         path = os.path.join(directory, filename)
@@ -350,7 +352,7 @@ def single_images(model_keys, samples, Tmultiple, partitions, batch_num):
 
 
 def build_all(model_keys, samples, Tmultiple, partitions, batch_num):
-  directory = f"../models/"
+  directory = f"../pixels/"
   df = pd.read_csv(f'{directory}models.csv')
   for model_key in model_keys:
     for filename in os.listdir(directory):
@@ -376,9 +378,9 @@ def build_all(model_keys, samples, Tmultiple, partitions, batch_num):
 
 @torch.no_grad()
 def create_grid(grid_keys, times, sample_name, samples, Tmultiple, partitions, batch_num):
-    directory = f"../models/"
+    directory = f"../pixels/"
     df = pd.read_csv(f'{directory}models.csv')
-    savefolder = f"../models/images/{sample_name}"
+    savefolder = f"../pixels/images/{sample_name}"
     try:
       os.mkdir(savefolder)
     except OSError:
@@ -457,49 +459,49 @@ def main(model_keys):
 if __name__ == '__main__':
   Tmultiple = 2
   partitions = 10
-  batch_num = 2
+  batch_num = 1#2
   samples = 6
-  model_keys = ['20210127_015525',
-  '20210127_021404',
-  '20210127_043024',
-  '20210127_044929',
-  '20210127_051136',
-  '20210127_074633']
-
-  # model_keys =
-  # ['20210127_233213',
-  # '20210127_235901',
-  # '20210128_033312',
-  # '20210128_040117',
-  # '20210128_043323',
-  # '20210128_083642']
-
-
-
-  # directory = f"../models/"
+  # model_keys = [
+  # '20210127_015525',
+  # '20210127_021404',
+  # '20210127_043024',
+  # '20210127_074633',
+  # '20210127_044929',
+  # '20210127_051136']
+  model_keys = ['20210129_021911']
+# '20210129_013725',
+# '20210129_013907',
+# '20210129_014448',
+# '20210129_015003',
+# ]
+  #
+  # model_keys = ['20210125_002603']
+  # directory = f"../pixels/"
   # df = pd.read_csv(f'{directory}models.csv')
   # model_keys = df['model_key'].to_list()
-
-
+  # model_keys = ['20210125_002603',
+  #   '20210125_111920',
+  #   '20210125_115601']
+  #
   single_images(model_keys, samples, Tmultiple, partitions, batch_num)
   build_all(model_keys, samples, Tmultiple, partitions, batch_num)
 
   times = [0, 10, 20]
 
-  # grid_keys = ['20210125_002603',
-  #   '20210125_111920',
-  #   '20210125_115601']
-  # image_folder = 'Testbatch3'
+  grid_keys = [
+  '20210129_013725',
+  '20210129_013907',
+  '20210129_021911']
+  image_folder = 'TestMNIST_bin_transf'
+  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
+
+  # grid_keys = [
+  # '20210129_014448',
+  # '20210129_015003',
+  # '20210129_015003']
+  # image_folder = 'TestPixel4_binary'
   # create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
-
-  grid_keys =   ['20210127_015525','20210127_021404','20210127_043024']
-  # grid_keys = ['20210127_233213','20210127_235901','20210128_033312']
-  times = [0, 10, 20]
-  image_folder = 'MNIST0'
-  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
-
-  image_folder = 'CIFAR0'
-  grid_keys = ['20210127_044929','20210127_051136','20210127_074633']
-  # grid_keys = ['20210128_040117','20210128_043323','20210128_083642']
-
-  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  # image_folder = 'MNIST1'
+  # image_folder = 'CIFAR1'
+  # grid_keys = ['20210127_074633','20210127_044929','20210127_051136']
+  # create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)

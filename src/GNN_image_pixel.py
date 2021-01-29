@@ -50,9 +50,9 @@ class CIFARConvNet(nn.Module):
     return x
 
 # Define the GNN model.
-class GNN_image(BaseGNN):
+class GNN_image_pixel(BaseGNN):
   def __init__(self, opt, num_features, num_nodes, num_classes, edge_index, edge_attr=None, device=torch.device('cpu')):
-    super(GNN_image, self).__init__(opt, num_features, device)
+    super(GNN_image_pixel, self).__init__(opt, num_features, device)
     self.f = set_function(opt)
     self.block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
@@ -62,9 +62,13 @@ class GNN_image(BaseGNN):
 
     self.bn = nn.BatchNorm1d(num_features=opt['im_chan'])
 
-    # self.m2 = nn.Linear(opt['im_width'] * opt['im_height'] * opt['im_chan'], num_classes)
-    self.m2 = None #replace base block m2
-    self.ConvNet = MNISTConvNet(opt) if opt['im_dataset'] == 'MNIST' else CIFARConvNet(opt)
+    if self.opt['pixel_loss'] == '10catM2':
+      self.m2 = nn.Linear(1, num_classes)
+    else:
+      self.m2 = None
+      # self.m2 = nn.Linear(opt['im_width'] * opt['im_height'] * opt['im_chan'], num_classes)
+
+    # self.ConvNet = MNISTConvNet(opt) if opt['im_dataset'] == 'MNIST' else CIFARConvNet(opt)
 
   def forward(self, x):
     # Encode each node based on its feature.
@@ -96,10 +100,28 @@ class GNN_image(BaseGNN):
     # Dropout.
     z = F.dropout(z, self.opt['dropout'], training=self.training)
 
+    if self.opt['pixel_loss'] == 'binary_sigmoid':
+      z = torch.cat((torch.sigmoid(z), 1 - torch.sigmoid(z)),dim=1)
+    elif self.opt['pixel_loss'] == '10catM2':
+      z = z.view(-1, 1)
+      z = self.m2(z) #decoder to number of classes
+    elif self.opt['pixel_loss'] == '10catlogits':
+      z = z.view(-1,1)
+      cats = torch.arange(self.opt['pixel_cat'])
+      z = 1 / ((z - cats) ** 2 + 1e-5)
+      torch.cat((torch.sigmoid(z), 1 - torch.sigmoid(z)), dim=1)
+    elif self.opt['pixel_loss'] == 'MSE':
+      z = z
+
+    # for node (or pixel) classification
+    # z = z.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])
+    # z = self.m2(z) #decoder to number of classes
+
+    #for graph classification
     # z = z.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])
     # z = self.m2(z)
-
-    z = z.view(-1, self.opt['im_width'], self.opt['im_height'], self.opt['im_chan'])
+    # for graph classification with conv
+    # z = z.view(-1, self.opt['im_width'], self.opt['im_height'], self.opt['im_chan'])
     #to check image resizes
     # with torch.no_grad():
     #   import matplotlib.pyplot as plt
@@ -107,9 +129,8 @@ class GNN_image(BaseGNN):
     #   plt.imshow(z[0,:,:,:])
     #   plt.show()
     # z = torch.movedim(z,3,1)
-    z = z.permute(0,3,1,2)
-
-    z = self.ConvNet(z)
+    # z = z.permute(0,3,1,2)
+    # z = self.ConvNet(z)
 
     return z
 
