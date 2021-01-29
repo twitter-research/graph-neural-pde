@@ -10,9 +10,9 @@ class GNN(BaseGNN):
   def __init__(self, opt, dataset, device=torch.device('cpu')):
     super(GNN, self).__init__(opt, dataset, device)
     self.f = set_function(opt)
-    self.block = set_block(opt)
+    block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
-    self.odeblock = self.block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
+    self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
 
   def forward(self, x):
     # Encode each node based on its feature.
