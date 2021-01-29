@@ -33,7 +33,11 @@ class GNNEarly(BaseGNN):
     self.set_solver_data(dataset.data)
 
   def set_solver_m2(self):
-    self.odeblock.test_integrator.m2 = self.m2
+    if self.odeblock.test_integrator.m2 is None:
+      self.odeblock.test_integrator.m2 = self.m2
+    else:
+      self.odeblock.test_integrator.m2.weight.data = self.m2.weight.data
+      self.odeblock.test_integrator.m2.bias.data = self.m2.bias.data
 
   def set_solver_data(self, data):
     self.odeblock.test_integrator.data = data

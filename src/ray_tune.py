@@ -33,7 +33,7 @@ def average_test(models, datas):
   return train_accs, val_accs, tmp_test_accs
 
 
-def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
+def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
@@ -82,15 +82,12 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
       best = np.argmax(val_accs)
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((models[best].state_dict(), optimizers[best].state_dict()), path)
-    if opt_val:
-      tune.report(loss=loss, accuracy=np.mean(val_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum,
-                  backward_nfe=model.bm.sum)
-    else:
-      tune.report(loss=loss, accuracy=np.mean(tmp_test_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum,
-                  backward_nfe=model.bm.sum)
+    tune.report(loss=loss, accuracy=np.mean(val_accs), test_acc=np.mean(tmp_test_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum,
+                backward_nfe=model.bm.sum)
 
 
-def train_ray(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
+
+def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
@@ -137,15 +134,11 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
       best = np.argmax(val_accs)
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((models[best].state_dict(), optimizers[best].state_dict()), path)
-    if opt_val:
-      tune.report(loss=loss, accuracy=np.mean(val_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum,
-                  backward_nfe=model.bm.sum)
-    else:
-      tune.report(loss=loss, accuracy=np.mean(tmp_test_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum,
-                  backward_nfe=model.bm.sum)
+    tune.report(loss=loss, accuracy=np.mean(val_accs), test_acc=np.mean(tmp_test_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum,
+                backward_nfe=model.bm.sum)
 
 
-def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
+def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
@@ -187,12 +180,8 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((model.state_dict(), optimizer.state_dict()), path)
-    if opt_val:
-      tune.report(loss=loss, accuracy=val_acc_int, train_acc=train_acc, best_time=best_time, best_epoch=best_epoch,
-                  forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
-    else:
-      tune.report(loss=loss, accuracy=tmp_test_acc_int, train_acc=train_acc, best_time=best_time, best_epoch=best_epoch,
-                  forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
+    tune.report(loss=loss, accuracy=val_acc_int, test_acc=tmp_test_acc_int, train_acc=train_acc, best_time=best_time, best_epoch=best_epoch,
+                forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
 
 
 def set_cora_search_space(opt):
@@ -439,7 +428,7 @@ def set_photo_search_space(opt):
 
 
 def set_arxiv_search_space(opt):
-  opt["decay"] = tune.loguniform(1e-8, 1e-5)
+  opt["decay"] = tune.loguniform(1e-10, 1e-6)
   # opt["decay"] = 0
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
@@ -448,7 +437,7 @@ def set_arxiv_search_space(opt):
   # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 9))
   # opt["hidden_dim"] = 200  # best choice with attention
   # opt["hidden_dim"] = 256  # best choice without attention
-  opt["lr"] = tune.loguniform(5e-3, 0.1)
+  opt["lr"] = tune.uniform(0.02, 0.04)
   # opt['lr'] = 0.02
   # opt["input_dropout"] = tune.uniform(0., 0.1)
   opt["input_dropout"] = 0
@@ -539,7 +528,7 @@ def main(opt):
     reduction_factor=opt["reduction_factor"],
   )
   reporter = CLIReporter(
-    metric_columns=["accuracy", "train_acc", "loss", "training_iteration", "forward_nfe", "backward_nfe"]
+    metric_columns=["accuracy", "test_acc", "train_acc", "loss", "training_iteration", "forward_nfe", "backward_nfe"]
   )
   # choose a search algorithm from https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
   search_alg = AxSearch(metric="accuracy")
