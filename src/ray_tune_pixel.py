@@ -402,6 +402,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_splits", type=int, default=0, help="Number of random splits >= 0. 0 for planetoid split")
     parser.add_argument("--num_init", type=int, default=4, help="Number of random initializations >= 0")
     parser.add_argument("--baseline", action="store_true", help="Wheather to run the ICML baseline or not.")
+    parser.add_argument("--no_early", action="store_true", help="Whether Ray tries early stop")
 
     args = parser.parse_args()
 
