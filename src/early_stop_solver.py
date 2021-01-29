@@ -9,6 +9,23 @@ from torchdiffeq._impl.interp import _interp_evaluate
 from torchdiffeq._impl.rk_common import RKAdaptiveStepsizeODESolver, rk4_alt_step_func
 from ogb.nodeproppred import Evaluator
 
+
+def run_evaluator(evaluator, data, y_pred):
+  train_acc = evaluator.eval({
+    'y_true': data.y[data.train_mask],
+    'y_pred': y_pred[data.train_mask],
+  })['acc']
+  valid_acc = evaluator.eval({
+    'y_true': data.y[data.val_mask],
+    'y_pred': y_pred[data.val_mask],
+  })['acc']
+  test_acc = evaluator.eval({
+    'y_true': data.y[data.test_mask],
+    'y_pred': y_pred[data.test_mask],
+  })['acc']
+  return train_acc, valid_acc, test_acc
+
+
 class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
   order = 5
   tableau = _DORMAND_PRINCE_SHAMPINE_TABLEAU
@@ -76,20 +93,7 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
     evaluator = self.evaluator
     data = self.data
     y_pred = logits.argmax(dim=-1, keepdim=True)
-
-    train_acc = evaluator.eval({
-      'y_true': data.y[data.train_mask],
-      'y_pred': y_pred[data.train_mask],
-    })['acc']
-    valid_acc = evaluator.eval({
-      'y_true': data.y[data.val_mask],
-      'y_pred': y_pred[data.val_mask],
-    })['acc']
-    test_acc = evaluator.eval({
-      'y_true': data.y[data.test_mask],
-      'y_pred': y_pred[data.test_mask],
-    })['acc']
-
+    train_acc, valid_acc, test_acc = run_evaluator(evaluator, data, y_pred)
     return [train_acc, valid_acc, test_acc]
 
   @torch.no_grad()
@@ -117,6 +121,7 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
   def set_data(self, data):
     if self.data is None:
       self.data = data
+
 
 class EarlyStopRK4(FixedGridODESolver):
   order = 4
@@ -181,20 +186,7 @@ class EarlyStopRK4(FixedGridODESolver):
     evaluator = self.evaluator
     data = self.data
     y_pred = logits.argmax(dim=-1, keepdim=True)
-
-    train_acc = evaluator.eval({
-      'y_true': data.y[data.train_mask],
-      'y_pred': y_pred[data.train_mask],
-    })['acc']
-    valid_acc = evaluator.eval({
-      'y_true': data.y[data.val_mask],
-      'y_pred': y_pred[data.val_mask],
-    })['acc']
-    test_acc = evaluator.eval({
-      'y_true': data.y[data.test_mask],
-      'y_pred': y_pred[data.test_mask],
-    })['acc']
-
+    train_acc, valid_acc, test_acc = run_evaluator(evaluator, data, y_pred)
     return [train_acc, valid_acc, test_acc]
 
   @torch.no_grad()
@@ -238,7 +230,7 @@ class EarlyStopInt(torch.nn.Module):
     self.opt = opt
     self.t = torch.tensor([0, opt['earlystopxT'] * t], dtype=torch.float).to(self.device)
 
-  def __call__(self, func, y0, t, method=None, rtol=1e-7, atol=1e-9, 
+  def __call__(self, func, y0, t, method=None, rtol=1e-7, atol=1e-9,
                adjoint_method="dopri5", adjoint_atol=1e-9, adjoint_rtol=1e-7, options=None):
     """Integrate a system of ordinary differential equations.
 
