@@ -8,10 +8,8 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from torch_geometric.utils import to_dense_adj
 import pandas as pd
-from data_image import load_data
-from image_opt import get_image_opt
+from data_image import load_pixel_data
 import shutil
-from collections import OrderedDict
 
 
 def UnNormalizeCIFAR(data):
@@ -259,7 +257,7 @@ def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
 
     #load data and model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    data_train, data_test = load_data(opt)
+    data_train = load_pixel_data(opt)
     loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=False)  # True)
     for batch_idx, batch in enumerate(loader):
       break
@@ -292,20 +290,27 @@ def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
     for batch_idx, batch in enumerate(loader):
       if batch_idx == batch_num:
         paths = model.forward_plot_path(batch.x.to(model.device), Tmultiple * partitions)
-        labels = batch.y
+        pix_labels = batch.y
+        train_mask = batch.train_mask
+        labels = batch.target
         break
     torch.save(paths,f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_paths.pt")
-    torch.save(labels, f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_y.pt")
+    torch.save(pix_labels, f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_pixel_labels.pt")
+    torch.save(labels, f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_labels.pt")
+    torch.save(batch.train_mask,f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_train_mask.pt")
+
   else:
     paths = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_paths.pt")
-    labels = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_y.pt")
-  # paths.cpu().requires_grad = False
-  # labels.cpu().requires_grad = False
+    pix_labels = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_pixel_labels.pt")
+    labels = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_labels.pt")
+    train_mask = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_train_mask.pt")
+
   paths_nograd = paths.cpu().detach()
+  pix_labels_nograd = labels.cpu().detach()
   labels_nograd = labels.cpu().detach()
-  # paths.cpu().no_grad()
-  # labels.cpu().no_grad()
-  return paths_nograd, labels_nograd
+  train_mask_nograd = train_mask.cpu().detach()
+
+  return paths_nograd, pix_labels_nograd, labels_nograd, train_mask_nograd
 
 
 def single_images(model_keys, samples, Tmultiple, partitions, batch_num):
@@ -326,7 +331,7 @@ def single_images(model_keys, samples, Tmultiple, partitions, batch_num):
     optdf[intcols].astype(int)
     opt = optdf.to_dict('records')[0]
 
-    paths, labels = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
+    paths, pix_labels, labels, _ = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
 
     # # 1)
     T_idx = Tmultiple * partitions // 2
@@ -368,7 +373,7 @@ def build_all(model_keys, samples, Tmultiple, partitions, batch_num):
     optdf[intcols].astype(int)
     opt = optdf.to_dict('records')[0]
 
-    paths, labels = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
+    paths, pix_labels, labels, _ = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
 
     plot_image(paths, labels, time=0, opt=opt, pic_folder=modelfolder, samples=samples)
     plot_image(paths, labels, time=5, opt=opt, pic_folder=modelfolder, samples=samples)
@@ -414,7 +419,7 @@ def create_grid(grid_keys, times, sample_name, samples, Tmultiple, partitions, b
         optdf[intcols].astype(int)
         opt = optdf.to_dict('records')[0]
 
-        paths, _ = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
+        paths, _, _, _ = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
 
         A = paths[sample, times[0], :].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
         B = paths[sample, times[1], :].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
@@ -453,6 +458,45 @@ def create_grid(grid_keys, times, sample_name, samples, Tmultiple, partitions, b
                       size='large', ha='right', va='center')
       plt.savefig(f"{savefolder}/sample_{sample}.pdf",format="pdf")
 
+
+def vis_mask(model_keys, samples, Tmultiple, partitions, batch_num=0):
+  directory = f"../pixels/"
+  df = pd.read_csv(f'{directory}models.csv')
+  for model_key in model_keys:
+    for filename in os.listdir(directory):
+      if filename.startswith(model_key):
+        path = os.path.join(directory, filename)
+        print(path)
+        break
+    [_, _, data_name, blck, fct] = path.split("_")
+    modelfolder = f"{directory}{model_key}_{data_name}_{blck}_{fct}"
+    modelpath = f"{modelfolder}/model_{model_key}"
+    optdf = df[df.model_key == model_key]
+    intcols = ['num_class','im_chan','im_height','im_width','num_nodes']
+    optdf[intcols].astype(int)
+    opt = optdf.to_dict('records')[0]
+    paths, pix_labels, labels, train_mask = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
+
+    for i in range(samples):
+      fig = plt.figure()
+      plt.tight_layout()
+      plt.axis('off')
+      train_maski = train_mask[i*(opt['im_height']*opt['im_width']):(i+1)*(opt['im_height']*opt['im_width'])].long()
+      A = paths[i,0,:].reshape(-1,1)*train_maski.reshape(-1,1)
+      A = A.view(opt['im_height'],opt['im_width'], opt['im_chan'])
+      # A = paths[i,0,:].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
+      if opt['im_dataset'] == 'MNIST':
+        plt.imshow(A, cmap='gray', interpolation = 'none')
+      elif opt['im_dataset'] == 'CIFAR':
+        A = UnNormalizeCIFAR(A)
+        plt.imshow(A, interpolation = 'none')
+      plt.title(f"t=0 Train Mask Ground Truth: {labels[i].item()}")
+      plt.savefig(f"{modelfolder}/image_train_mask{i}.png", format="png")
+      plt.savefig(f"{modelfolder}/image_train_mask{i}.pdf", format="pdf")
+    return fig
+
+
+
 def main(model_keys):
   pass
 
@@ -461,23 +505,16 @@ if __name__ == '__main__':
   partitions = 10
   batch_num = 1#2
   samples = 6
-  # model_keys = [
-  # '20210129_021845',
-  # '20210129_021918',
-  # '20210129_022405',
-  # '20210129_022502',
-  # '20210129_022549',
-  # '20210129_023211']
-
   model_keys = [
-    '20210129_023851',
-    '20210129_024307',
-    '20210129_032102',
-    '20210129_032702',
-    '20210129_033318',
-    '20210129_042403']
+  '20210129_001939',
+  '20210129_002122',
+  '20210129_011943',
+  '20210129_012456',
+  '20210129_013725',
+  '20210129_013907',
+  '20210129_014448',
+  '20210129_015003']
 
-  #
   # model_keys = ['20210125_002603']
   # directory = f"../pixels/"
   # df = pd.read_csv(f'{directory}models.csv')
@@ -485,37 +522,21 @@ if __name__ == '__main__':
   # model_keys = ['20210125_002603',
   #   '20210125_111920',
   #   '20210125_115601']
-  #
+  # #
   single_images(model_keys, samples, Tmultiple, partitions, batch_num)
   build_all(model_keys, samples, Tmultiple, partitions, batch_num)
+  vis_mask(model_keys, samples, Tmultiple, partitions,  batch_num=0)
 
   times = [0, 10, 20]
-  grid_keys = [
-  '20210129_021845',
-  '20210129_021918',
-  '20210129_022405']
-  image_folder = 'TestMNIST_binary'
-  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
-
-  grid_keys = [  '20210129_022502',
-    '20210129_022549',
-    '20210129_023211']
-  image_folder = 'TestCIFAR_binary'
-  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
-
-  grid_keys = ['20210129_023851',
-  '20210129_024307',
-  '20210129_032102']
-  image_folder = 'MNIST_binary'
-  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
-
-  grid_keys = ['20210129_032702',
-  '20210129_033318',
-  '20210129_042403']
-  image_folder = 'CIFAR_binary'
-  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
-
-# image_folder = 'MNIST1'
-  # image_folder = 'CIFAR1'
-  # grid_keys = ['20210127_074633','20210127_044929','20210127_051136']
+  # grid_keys = [
+  # '20210129_021845',
+  # '20210129_021918',
+  # '20210129_022405']
+  # image_folder = 'TestMNIST_binary'
+  # create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  #
+  # grid_keys = [  '20210129_022502',
+  #   '20210129_022549',
+  #   '20210129_023211']
+  # image_folder = 'TestCIFAR_binary'
   # create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
