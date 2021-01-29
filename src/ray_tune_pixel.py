@@ -10,18 +10,17 @@ from ray import tune
 from ray.tune import CLIReporter
 from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining
 from ray.tune.suggest.ax import AxSearch
-from run_GNN import get_optimizer, print_model_params, test, train
 from torch import nn
 from GNN_ICML import ICML_GNN, get_sym_adj
 from GNN_ICML import train as train_icml
 
 from data_image import load_pixel_data
 from torch_geometric.data import DataLoader
-from run_image_pixel import pixel_test as test, train as train
+from run_image_pixel import pixel_test as pixel_test, train as train
 
 
 def average_test(models, datas):
-    results = [test(model, data, batchorTest="test") for model, data in zip(models, datas)]
+    results = [pixel_test(model, data.data, batchorTest="test") for model, data in zip(models, datas)]
     train_accs, val_accs, tmp_test_accs = [], [], []
 
     for train_acc, val_acc, test_acc in results:
@@ -122,7 +121,7 @@ def train_ray_image(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
 
     for epoch in range(1, opt["epoch"]):
         loss = train(model, optimizer, pixel_data)
-        tmp_test_accs = test(model, pixel_data, batchorTest="test")
+        tmp_test_accs = pixel_test(model, pixel_data.data, batchorTest="test")
 
         with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
             path = os.path.join(checkpoint_dir, "checkpoint")
@@ -160,7 +159,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
         # need next line as it sets the attributes in the solver
 
         if opt["no_early"]:
-            _, val_acc_int, tmp_test_acc_int = test(model, data,batchorTest="test")
+            _, val_acc_int, tmp_test_acc_int = pixel_test(model, data.data ,batchorTest="test")
         else:
             _, _, _ = test(model, data)
             val_acc_int = model.odeblock.test_integrator.solver.best_val
