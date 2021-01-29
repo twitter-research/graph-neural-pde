@@ -461,13 +461,21 @@ if __name__ == '__main__':
   partitions = 10
   batch_num = 1#2
   samples = 6
+  # model_keys = [
+  # '20210129_021845',
+  # '20210129_021918',
+  # '20210129_022405',
+  # '20210129_022502',
+  # '20210129_022549',
+  # '20210129_023211']
+
   model_keys = [
-  '20210129_021845',
-  '20210129_021918',
-  '20210129_022405',
-  '20210129_022502',
-  '20210129_022549',
-  '20210129_023211']
+    '20210129_023851',
+    '20210129_024307',
+    '20210129_032102',
+    '20210129_032702',
+    '20210129_033318',
+    '20210129_042403']
 
   #
   # model_keys = ['20210125_002603']
@@ -495,7 +503,19 @@ if __name__ == '__main__':
   image_folder = 'TestCIFAR_binary'
   create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
 
-  # image_folder = 'MNIST1'
+  grid_keys = ['20210129_023851',
+  '20210129_024307',
+  '20210129_032102']
+  image_folder = 'MNIST_binary'
+  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
+
+  grid_keys = ['20210129_032702',
+  '20210129_033318',
+  '20210129_042403']
+  image_folder = 'CIFAR_binary'
+  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
+
+# image_folder = 'MNIST1'
   # image_folder = 'CIFAR1'
   # grid_keys = ['20210127_074633','20210127_044929','20210127_051136']
   # create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
