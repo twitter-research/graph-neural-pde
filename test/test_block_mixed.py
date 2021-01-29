@@ -37,7 +37,7 @@ class MixedODEBlockTests(unittest.TestCase):
                 'hidden_dim': 6, 'block': 'mixed', 'function': 'laplacian', 'augment': False, 'adjoint': False,
                 'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler',
                 'rewiring': None, 'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None,
-                'total_deriv': None, 'directional_penalty': None, 'jacobian_norm2': None}
+                'total_deriv': None, 'directional_penalty': None, 'jacobian_norm2': None, 'step_size':1, 'max_iter': 10}
 
     self.dataset = get_dataset(self.opt, '../data', False)
 

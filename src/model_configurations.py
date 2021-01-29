@@ -6,6 +6,7 @@ from sde import SDEFunc, SDEblock
 from block_transformer_attention import AttODEblock
 from block_constant import ConstantODEblock
 from block_mixed import MixedODEblock
+from block_transformer_hard_attention import HardAttODEblock
 
 class BlockNotDefined(Exception):
   pass
@@ -20,6 +21,8 @@ def set_block(opt):
     block = MixedODEblock
   elif ode_str == 'attention':
     block = AttODEblock
+  elif ode_str == 'hard_attention':
+    block = HardAttODEblock
   elif ode_str == 'constant':
     block = ConstantODEblock
   elif ode_str == 'SDE':

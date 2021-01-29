@@ -10,11 +10,9 @@ that encompasses various forms of graph rewiring and GNNs with both explicit and
 ### Requirements
 
 Dependencies (with python >= 3.7):
-
-```{bash}
-pandas==1.1.0
-torch==1.6.0
-scikit_learn==0.23.1
+Edit the first line of environment.yml to your desired conda environment name
+```
+conda env create -f environment.yml
 ```
 
 ### Dataset and Preprocessing

@@ -10,15 +10,18 @@ from GNN_early import GNNEarly
 from GNN import GNN
 from ray import tune
 from ray.tune import CLIReporter
-from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining
+from ray.tune.schedulers import ASHAScheduler
 from ray.tune.suggest.ax import AxSearch
-from run_GNN import get_optimizer, print_model_params, test, train
+from run_GNN import get_optimizer, test, test_OGB, train
 from torch import nn
 from GNN_ICML20 import ICML_GNN, get_sym_adj
 from GNN_ICML20 import train as train_icml
 
 def average_test(models, datas):
-  results = [test(model, data) for model, data in zip(models, datas)]
+  if opt['dataset'] == 'ogbn-arxiv':
+    results = [test_OGB(model, data, opt) for model, data in zip(models, datas)]
+  else:
+    results = [test(model, data) for model, data in zip(models, datas)]
   train_accs, val_accs, tmp_test_accs = [], [], []
 
   for train_acc, val_acc, test_acc in results:
@@ -31,8 +34,8 @@ def average_test(models, datas):
 
 def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  dataset = get_dataset(opt, data_dir, True)
-  
+  dataset = get_dataset(opt, data_dir, opt['not_lcc'])
+
   models = []
   datas = []
   optimizers = []
@@ -79,14 +82,14 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((models[best].state_dict(), optimizers[best].state_dict()), path)
     if opt_val:
-      tune.report(loss=loss, accuracy=np.mean(val_accs))
+      tune.report(loss=loss, accuracy=np.mean(val_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
     else:
-      tune.report(loss=loss, accuracy=np.mean(tmp_test_accs))
+      tune.report(loss=loss, accuracy=np.mean(tmp_test_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
 
 
 def train_ray(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  dataset = get_dataset(opt, data_dir, True)
+  dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
   models = []
   optimizers = []
@@ -132,43 +135,14 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((models[best].state_dict(), optimizers[best].state_dict()), path)
     if opt_val:
-      tune.report(loss=loss, accuracy=np.mean(val_accs))
+      tune.report(loss=loss, accuracy=np.mean(val_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
     else:
-      tune.report(loss=loss, accuracy=np.mean(tmp_test_accs))
-
-
-def train_ray_old(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
-  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  dataset = get_dataset(opt, data_dir, True)
-  model = GNN(opt, dataset, device)
-  if torch.cuda.device_count() > 1:
-    model = nn.DataParallel(model)
-  model, data = model.to(device), dataset.data.to(device)
-  parameters = [p for p in model.parameters() if p.requires_grad]
-  optimizer = get_optimizer(opt["optimizer"], parameters, lr=opt["lr"], weight_decay=opt["decay"])
-  # The `checkpoint_dir` parameter gets passed by Ray Tune when a checkpoint
-  # should be restored.
-  if checkpoint_dir:
-    checkpoint = os.path.join(checkpoint_dir, "checkpoint")
-    model_state, optimizer_state = torch.load(checkpoint)
-    model.load_state_dict(model_state)
-    optimizer.load_state_dict(optimizer_state)
-
-  for epoch in range(1, opt["epoch"]):
-    loss = train(model, optimizer, data)
-    train_acc, val_acc, tmp_test_acc = test(model, data)
-    with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
-      path = os.path.join(checkpoint_dir, "checkpoint")
-      torch.save((model.state_dict(), optimizer.state_dict()), path)
-    if opt_val:
-      tune.report(loss=loss, accuracy=val_acc)
-    else:
-      tune.report(loss=loss, accuracy=tmp_test_acc)
+      tune.report(loss=loss, accuracy=np.mean(tmp_test_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
 
 
 def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  dataset = get_dataset(opt, data_dir, True)
+  dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
   if opt["num_splits"] > 0:
     dataset.data = set_train_val_test_split(
@@ -189,29 +163,33 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
     model.load_state_dict(model_state)
     optimizer.load_state_dict(optimizer_state)
 
+  this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
   for epoch in range(1, opt["epoch"]):
     loss = train(model, optimizer, data)
     # need next line as it sets the attributes in the solver
-    
+
     if opt["no_early"]:
-      _, val_acc_int, tmp_test_acc_int = test(model, data)
+      train_acc, val_acc_int, tmp_test_acc_int = this_test(model, data, opt)
+      best_time = opt['time']
     else:
-      _, _, _ = test(model, data)
+      train_acc, _, _ = this_test(model, data, opt)
       val_acc_int = model.odeblock.test_integrator.solver.best_val
       tmp_test_acc_int = model.odeblock.test_integrator.solver.best_test
+      best_time = model.odeblock.test_integrator.solver.best_time
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((model.state_dict(), optimizer.state_dict()), path)
     if opt_val:
-      tune.report(loss=loss, accuracy=val_acc_int)
+      tune.report(loss=loss, accuracy=val_acc_int, train_acc=train_acc, best_time=best_time, forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
     else:
-      tune.report(loss=loss, accuracy=tmp_test_acc_int)
+      tune.report(loss=loss, accuracy=tmp_test_acc_int, train_acc=train_acc, best_time=best_time, forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
 
 
 def set_cora_search_space(opt):
   opt["decay"] = tune.uniform(0.01, 0.1)  # weight decay l2 reg
-  opt["kinetic_energy"]  = tune.loguniform(0.001, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+  if opt['regularise']:
+    opt["kinetic_energy"]  = tune.loguniform(0.001, 10.0)
+    opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
   opt["lr"] = tune.loguniform(0.05, 0.2)
@@ -244,8 +222,9 @@ def set_cora_search_space(opt):
 
 def set_pubmed_search_space(opt):
   opt["decay"] = tune.uniform(0.001, 0.1)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 1.0)
-  opt["directional_penalty"]  = tune.loguniform(0.01, 1.0)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
+    opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
 
   opt["hidden_dim"] = 128 #tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
   opt["lr"] = tune.loguniform(0.02, 0.1)
@@ -276,9 +255,10 @@ def set_pubmed_search_space(opt):
 
 
 def set_citeseer_search_space(opt):
-  opt["decay"] = 0.1 #tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.001, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+  opt["decay"] = 0.1  # tune.loguniform(2e-3, 1e-2)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = 128 #tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))
   opt["lr"] = tune.loguniform(2e-3, 0.01)
@@ -303,13 +283,23 @@ def set_citeseer_search_space(opt):
   if opt["adjoint"]:
     opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
     opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
+  if opt['rewiring'] == 'gdc':
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'topk'
+    opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    # opt['gdc_method'] = 'heat'
+    opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+    # opt['gdc_threshold'] = tune.loguniform(0.0001, 0.01)
+    opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
+    opt['heat_time'] = tune.uniform(1, 5)
   return opt
 
 
 def set_computers_search_space(opt):
   opt["decay"] = tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
   opt["lr"] = tune.loguniform(5e-5, 5e-3)
@@ -334,13 +324,26 @@ def set_computers_search_space(opt):
   if opt["adjoint"]:
     opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
     opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+
+  if opt['rewiring'] == 'gdc':
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'threshold'
+    opt['exact'] = False
+    # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    opt['gdc_method'] = 'ppr'
+    # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
+    opt['gdc_threshold'] = tune.loguniform(0.00001, 0.01)
+    # opt['gdc_threshold'] = None
+    opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
+    # opt['heat_time'] = tune.uniform(1, 5)
   return opt
 
 
 def set_coauthors_search_space(opt):
-  opt["decay"] = tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.01, 10.0)
+  opt["decay"] = tune.loguniform(1e-3, 2e-2)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.01, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 6))
   opt["lr"] = tune.loguniform(1e-5, 0.1)
@@ -365,13 +368,27 @@ def set_coauthors_search_space(opt):
   if opt["adjoint"]:
     opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
     opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+
+  if opt['rewiring'] == 'gdc':
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'threshold'
+    opt['exact'] = False
+    # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    opt['gdc_method'] = 'ppr'
+    # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
+    opt['gdc_threshold'] = tune.loguniform(0.0001, 0.0005)
+    # opt['gdc_threshold'] = None
+    opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
+    # opt['heat_time'] = tune.uniform(1, 5)
+
   return opt
 
 
 def set_photo_search_space(opt):
-  opt["decay"] = tune.loguniform(2e-3, 1e-2)
-  opt["kinetic_energy"]  = tune.loguniform(0.01, 10.0)
-  opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+  opt["decay"] = tune.loguniform(0.001, 1e-2)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 5.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
   opt["lr"] = tune.loguniform(1e-2, 0.1)
@@ -394,7 +411,87 @@ def set_photo_search_space(opt):
 
   if opt["adjoint"]:
     opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])
+
+  if opt['rewiring'] == 'gdc':
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'threshold'
+    opt['exact'] = False
+    # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    opt['gdc_method'] = 'ppr'
+    # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
+    opt['gdc_threshold'] = tune.loguniform(0.0001, 0.0005)
+    # opt['gdc_threshold'] = None
+    opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
+    # opt['heat_time'] = tune.uniform(1, 5)
+
+  return opt
+
+def set_arxiv_search_space(opt):
+  # opt["decay"] = tune.loguniform(1e-8, 1e-5)
+  opt["decay"] = 0
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+
+  # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 9))
+  # opt["hidden_dim"] = 200  # best choice with attention
+  # opt["hidden_dim"] = 256  # best choice without attention
+  # opt["lr"] = tune.loguniform(5e-3, 0.05)
+  opt['lr'] = 0.02
+  # opt["input_dropout"] = tune.uniform(0., 0.1)
+  opt["input_dropout"] = 0
+  # opt["dropout"] = tune.uniform(0, 0.2)
+  opt["dropout"] = 0
+  # opt['step_size'] = tune.choice([0.25, 0.5, 1, 2])
+  opt['step_size'] = 1
+  # opt['adjoint_step_size'] = tune.choice([0.25, 0.5, 1, 2])
+  opt['adjoint_step_size'] = 1
+  # opt["time"] = tune.choice([1,2,3,4,5,6,7,8,9,10])
+  # opt['time'] = tune.uniform(3,10)
+  opt['time'] = 5
+  # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
+  opt['optimizer'] = 'adam'
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
+    # opt['attention_norm_idx'] = tune.choice([0, 1])
+    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+      [0, 1])
+    opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+  else:
+    # opt["self_loop_weight"] = tune.uniform(0, 3)
+    opt["self_loop_weight"] = 1
+  # opt['data_norm'] = tune.choice(['rw', 'gcn'])
+  # opt['add_source'] = tune.choice([True, False])
+  opt['add_source'] = True
+  opt['att_samp_pct'] = tune.uniform(0,1)
+
+  # opt["tol_scale"] = tune.loguniform(10, 1e4)
+
+  if opt["adjoint"]:
+    # opt["tol_scale_adjoint"] = tune.loguniform(10, 1e5)
+    # opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+    # opt["adjoint_method"] = tune.choice(["adaptive_heun", "rk4"])
+    opt["adjoint_method"] = "rk4"
+
+  # opt["method"] = tune.choice(["dopri5", "rk4"])
+  # opt["method"] = tune.choice(["midpoint", "rk4"])
+  opt["method"] = "rk4"
+
+
+  if opt['rewiring'] == 'gdc':
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'threshold'
+    opt['exact'] = False
+    # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    opt['gdc_method'] = 'ppr'
+    # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
+    opt['gdc_threshold'] = tune.loguniform(0.0001, 0.0005)
+    # opt['gdc_threshold'] = None
+    opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
+    # opt['heat_time'] = tune.uniform(1, 5)
+
   return opt
 
 
@@ -411,6 +508,8 @@ def set_search_space(opt):
     return set_photo_search_space(opt)
   elif opt["dataset"] == "CoauthorCS":
     return set_coauthors_search_space(opt)
+  elif opt["dataset"] == "ogbn-arxiv":
+    return set_arxiv_search_space(opt)
 
 
 def main(opt):
@@ -425,7 +524,7 @@ def main(opt):
     reduction_factor=opt["reduction_factor"],
   )
   reporter = CLIReporter(
-    metric_columns=["accuracy", "loss", "training_iteration"]
+    metric_columns=["accuracy", "train_acc", "loss", "training_iteration", "forward_nfe", "backward_nfe"]
   )
   # choose a search algorithm from https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
   search_alg = AxSearch(metric="accuracy")
@@ -438,6 +537,8 @@ def main(opt):
     name=opt["name"],
     resources_per_trial={"cpu": opt["cpus"], "gpu": opt["gpus"]},
     search_alg=search_alg,
+    keep_checkpoints_num=3,
+    checkpoint_score_attr='accuracy',
     config=opt,
     num_samples=opt["num_samples"],
     scheduler=scheduler,
@@ -448,29 +549,29 @@ def main(opt):
   )
 
   # df = result.dataframe(metric='accuracy', mode='max')
-  best_trial = result.get_best_trial("accuracy", "max", "all")
-  print("Best trial config: {}".format(best_trial.config))
-  print("Best trial final validation loss: {}".format(best_trial.best_result["loss"]))
-  print("Best trial final validation accuracy: {}".format(best_trial.best_result["accuracy"]))
-
-  dataset = get_dataset(opt, data_dir, True)
-  best_trained_model = GNN(best_trial.config, dataset, device)
-  if opt["gpus"] > 1:
-    best_trained_model = nn.DataParallel(best_trained_model)
-  best_trained_model.to(device)
-
-  checkpoint_path = os.path.join(best_trial.checkpoint.value, "checkpoint")
-
-  model_state, optimizer_state = torch.load(checkpoint_path)
-  best_trained_model.load_state_dict(model_state)
-
-  test_acc = test(best_trained_model, best_trained_model.data.to(device))
-  print("Best trial test set accuracy: {}".format(test_acc))
-  df = result.dataframe(metric="accuracy", mode="max").sort_values(
-    "accuracy", ascending=False
-  )  # get max accuracy for each trial
-  timestr = time.strftime("%Y%m%d-%H%M%S")
-  df.to_csv("../hyperopt_results/result_{}.csv".format(timestr))
+  # best_trial = result.get_best_trial("accuracy", "max", "all")
+  # print("Best trial config: {}".format(best_trial.config))
+  # print("Best trial final validation loss: {}".format(best_trial.best_result["loss"]))
+  # print("Best trial final validation accuracy: {}".format(best_trial.best_result["accuracy"]))
+  #
+  # dataset = get_dataset(opt, data_dir, opt['not_lcc'])
+  # best_trained_model = GNN(best_trial.config, dataset, device)
+  # if opt["gpus"] > 1:
+  #   best_trained_model = nn.DataParallel(best_trained_model)
+  # best_trained_model.to(device)
+  #
+  # checkpoint_path = os.path.join(best_trial.checkpoint.value, "checkpoint")
+  #
+  # model_state, optimizer_state = torch.load(checkpoint_path)
+  # best_trained_model.load_state_dict(model_state)
+  #
+  # test_acc = test(best_trained_model, best_trained_model.data.to(device))
+  # print("Best trial test set accuracy: {}".format(test_acc))
+  # df = result.dataframe(metric="accuracy", mode="max").sort_values(
+  #   "accuracy", ascending=False
+  # )  # get max accuracy for each trial
+  # timestr = time.strftime("%Y%m%d-%H%M%S")
+  # df.to_csv("../hyperopt_results/result_{}.csv".format(timestr))
 
 
 if __name__ == "__main__":
@@ -486,6 +587,7 @@ if __name__ == "__main__":
   parser.add_argument("--hidden_dim", type=int, default=32, help="Hidden dimension.")
   parser.add_argument("--input_dropout", type=float, default=0.5, help="Input dropout rate.")
   parser.add_argument("--dropout", type=float, default=0.0, help="Dropout rate.")
+  parser.add_argument("--batch_norm", dest='batch_norm', action='store_true', help='search over reg params')
   parser.add_argument("--optimizer", type=str, default="adam", help="Optimizer.")
   parser.add_argument("--lr", type=float, default=0.01, help="Learning rate.")
   parser.add_argument("--decay", type=float, default=5e-4, help="Weight decay for optimization")
@@ -496,21 +598,27 @@ if __name__ == "__main__":
   parser.add_argument("--augment", action="store_true",
                       help="double the length of the feature vector by appending zeros to stabilise ODE learning", )
   parser.add_argument("--alpha_dim", type=str, default="sc", help="choose either scalar (sc) or vector (vc) alpha")
-  parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_false', help='apply sigmoid before multiplying by alpha')
+  parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true', help='apply sigmoid before multiplying by alpha')
   parser.add_argument("--beta_dim", type=str, default="sc", help="choose either scalar (sc) or vector (vc) beta")
   # ODE args
   parser.add_argument(
     "--method", type=str, default="dopri5", help="set the numerical solver: dopri5, euler, rk4, midpoint"
   )
+  parser.add_argument('--step_size', type=float, default=1, help='fixed step size when using fixed step solvers e.g. rk4')
+  parser.add_argument('--max_iters', type=float, default=100, help='maximum number of integration steps')
   parser.add_argument(
     "--adjoint_method", type=str, default="adaptive_heun",
     help="set the numerical solver for the backward pass: dopri5, euler, rk4, midpoint"
   )
-  parser.add_argument("--adjoint", default=False, help="use the adjoint ODE method to reduce memory footprint")
+  parser.add_argument('--adjoint_step_size', type=float, default=1, help='fixed step size when using fixed step adjoint solvers e.g. rk4')
+  parser.add_argument("--adjoint", dest='adjoint', action='store_true',
+                      help="use the adjoint ODE method to reduce memory footprint")
   parser.add_argument("--tol_scale", type=float, default=1.0, help="multiplier for atol and rtol")
   parser.add_argument("--tol_scale_adjoint", type=float, default=1.0,
                       help="multiplier for adjoint_atol and adjoint_rtol")
   parser.add_argument("--ode_blocks", type=int, default=1, help="number of ode blocks to run")
+  parser.add_argument('--data_norm', type=str, default='rw',
+                      help='rw for random walk, gcn for symmetric gcn norm')
   parser.add_argument('--add_source', dest='add_source', action='store_true',
                       help='If try get rid of alpha param and the beta*x0 source term')
   # SDE args
@@ -518,7 +626,6 @@ if __name__ == "__main__":
   parser.add_argument("--dt", type=float, default=1e-3, help="fixed step size")
   parser.add_argument('--adaptive', dest='adaptive', action='store_true', help='use adaptive step sizes')
   # Attention args
-  parser.add_argument("--attention_dropout", type=float, default=0.0, help="dropout of attention weights")
   parser.add_argument(
     "--leaky_relu_slope",
     type=float,
@@ -549,7 +656,7 @@ if __name__ == "__main__":
   parser.add_argument("--num_init", type=int, default=4, help="Number of random initializations >= 0")
 
   parser.add_argument("--max_nfe", type=int, default=300, help="Maximum number of function evaluations allowed.")
-
+  # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
   parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")
 
@@ -557,17 +664,22 @@ if __name__ == "__main__":
   parser.add_argument('--directional_penalty', type=float, default=None, help="int_t ||(df/dx)^T f||^2")
 
   parser.add_argument("--baseline", action="store_true", help="Wheather to run the ICML baseline or not.")
+  parser.add_argument("--regularise", dest='regularise', action='store_true', help='search over reg params')
 
   # rewiring args
   parser.add_argument('--rewiring', type=str, default=None, help="two_hop, gdc")
   parser.add_argument('--gdc_method', type=str, default='ppr', help="ppr, heat, coeff")
   parser.add_argument('--gdc_sparsification', type=str, default='topk', help="threshold, topk")
   parser.add_argument('--gdc_k', type=int, default=64, help="number of neighbours to sparsify to when using topk")
-  parser.add_argument('--gdc_threshold', type=float, default=0.0001, help="obove this edge weight, keep edges when using threshold")
+  parser.add_argument('--gdc_threshold', type=float, default=0.0001, help="above this edge weight, keep edges when using threshold")
   parser.add_argument('--gdc_avg_degree', type=int, default=64,
                       help="if gdc_threshold is not given can be calculated by specifying avg degree")
   parser.add_argument('--ppr_alpha', type=float, default=0.05, help="teleport probability")
   parser.add_argument('--heat_time', type=float, default=3., help="time to run gdc heat kernal diffusion for")
+  parser.add_argument("--not_lcc", action="store_false", help="don't use the largest connected component")
+  parser.add_argument("--exact", action="store_true",
+                      help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
+  parser.add_argument('--att_samp_pct', type=float, default=1, help="float in [0,1). The percentage of edges to retain based on attention scores")
 
   args = parser.parse_args()
 

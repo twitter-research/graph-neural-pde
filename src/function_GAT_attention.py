@@ -35,7 +35,7 @@ class ODEFuncAtt(ODEFunc):
         [torch_sparse.spmm(self.edge_index, attention[:, idx], wx.shape[0], wx.shape[0], wx) for idx in
          range(self.opt['heads'])], dim=0),
         dim=0)
-      ax = torch.mm(wx, self.Wout)
+      ax = torch.mm(wx, self.multihead_att_layer.Wout)
     else:
       ax = torch.mean(torch.stack(
         [torch_sparse.spmm(self.edge_index, attention[:, idx], x.shape[0], x.shape[0], x) for idx in

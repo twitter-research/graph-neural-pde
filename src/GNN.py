@@ -12,11 +12,11 @@ class GNN(BaseGNN):
     self.f = set_function(opt)
     self.block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
-    self.odeblocks = nn.ModuleList(
-      [self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor) for dummy_i in range(self.n_ode_blocks)]).to(self.device)
-    self.odeblock = self.block(self.f, self.regularization_fns, opt, self.data, device, t=time_tensor).to(self.device)
-
-    self.m2 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
+    self.odeblock = self.block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
+    # todo remove next line as in base class
+    # self.m2 = nn.Linear(opt['hidden_dim'], num_classes)
+    self.bn_in = torch.nn.BatchNorm1d(opt['hidden_dim'])
+    self.bn_out = torch.nn.BatchNorm1d(opt['hidden_dim'])
 
   def forward(self, x):
     # Encode each node based on its feature.
@@ -26,6 +26,9 @@ class GNN(BaseGNN):
     # if True:
     #   x = F.relu(x)
 
+    if self.opt['batch_norm']:
+      x = self.bn_in(x)
+
     # Solve the initial value problem of the ODE.
     if self.opt['augment']:
       c_aux = torch.zeros(x.shape).to(self.device)
@@ -33,13 +36,16 @@ class GNN(BaseGNN):
 
     self.odeblock.set_x0(x)
 
-    if self.training:
+    if self.training and self.odeblock.nreg > 0:
       z, self.reg_states = self.odeblock(x)
     else:
       z = self.odeblock(x)
 
     if self.opt['augment']:
       z = torch.split(z, x.shape[1] // 2, dim=1)[0]
+
+    if self.opt['batch_norm']:
+      z = self.bn_in(z)
 
     # Activation.
     z = F.relu(z)
