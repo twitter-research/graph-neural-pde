@@ -459,7 +459,7 @@ def main(model_keys):
 if __name__ == '__main__':
   Tmultiple = 2
   partitions = 10
-  batch_num = 2
+  batch_num = 1#2
   samples = 6
   # model_keys = [
   # '20210127_015525',
@@ -468,12 +468,12 @@ if __name__ == '__main__':
   # '20210127_074633',
   # '20210127_044929',
   # '20210127_051136']
-  model_keys = [
-'20210129_013725',
-'20210129_013907',
-'20210129_014448',
-'20210129_015003',
-]
+  model_keys = ['20210129_021911']
+# '20210129_013725',
+# '20210129_013907',
+# '20210129_014448',
+# '20210129_015003',
+# ]
   #
   # model_keys = ['20210125_002603']
   # directory = f"../pixels/"
@@ -491,16 +491,16 @@ if __name__ == '__main__':
   grid_keys = [
   '20210129_013725',
   '20210129_013907',
-  '20210129_013907']
-  image_folder = 'TestPixel3_binary'
+  '20210129_021911']
+  image_folder = 'TestMNIST_bin_transf'
   create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
 
-  grid_keys = [
-  '20210129_014448',
-  '20210129_015003',
-  '20210129_015003']
-  image_folder = 'TestPixel4_binary'
-  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  # grid_keys = [
+  # '20210129_014448',
+  # '20210129_015003',
+  # '20210129_015003']
+  # image_folder = 'TestPixel4_binary'
+  # create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
   # image_folder = 'MNIST1'
   # image_folder = 'CIFAR1'
   # grid_keys = ['20210127_074633','20210127_044929','20210127_051136']
