@@ -181,6 +181,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
         best_epoch = epoch
         val_acc = model.odeblock.test_integrator.solver.best_val
         test_acc = model.odeblock.test_integrator.solver.best_test
+        train_acc = model.odeblock.test_integrator.solver.best_train
         best_time = model.odeblock.test_integrator.solver.best_time
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       path = os.path.join(checkpoint_dir, "checkpoint")
