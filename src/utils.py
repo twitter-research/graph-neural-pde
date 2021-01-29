@@ -17,6 +17,17 @@ from torch_geometric.nn.conv.gcn_conv import gcn_norm
 class MaxNFEException(Exception): pass
 
 
+def print_model_params(model):
+  total_num_params = 0
+  print(model)
+  for name, param in model.named_parameters():
+    if param.requires_grad:
+      print(name)
+      print(param.data.shape)
+      total_num_params += param.numel()
+  print("Model has a total of {} params".format(total_num_params))
+
+
 def adjust_learning_rate(optimizer, lr, epoch, burnin=50):
   if epoch <= burnin:
     for param_group in optimizer.param_groups:

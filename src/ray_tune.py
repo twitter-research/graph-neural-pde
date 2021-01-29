@@ -438,8 +438,8 @@ def set_photo_search_space(opt):
 
 
 def set_arxiv_search_space(opt):
-  # opt["decay"] = tune.loguniform(1e-8, 1e-5)
-  opt["decay"] = 0
+  opt["decay"] = tune.loguniform(1e-8, 1e-5)
+  # opt["decay"] = 0
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
@@ -447,18 +447,18 @@ def set_arxiv_search_space(opt):
   # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 9))
   # opt["hidden_dim"] = 200  # best choice with attention
   # opt["hidden_dim"] = 256  # best choice without attention
-  opt["lr"] = tune.loguniform(5e-3, 0.05)
+  opt["lr"] = tune.loguniform(5e-3, 0.1)
   # opt['lr'] = 0.02
   # opt["input_dropout"] = tune.uniform(0., 0.1)
   opt["input_dropout"] = 0
   # opt["dropout"] = tune.uniform(0, 0.2)
   opt["dropout"] = 0
-  # opt['step_size'] = tune.choice([0.25, 0.5, 1, 2])
+  opt['step_size'] = tune.choice([0.5, 1])
   opt['step_size'] = 1
-  # opt['adjoint_step_size'] = tune.choice([0.25, 0.5, 1, 2])
+  opt['adjoint_step_size'] = tune.choice([0.5, 1])
   opt['adjoint_step_size'] = 1
   # opt["time"] = tune.choice([1,2,3,4,5,6,7,8,9,10])
-  opt['time'] = tune.uniform(3, 10)
+  opt['time'] = tune.uniform(2, 8)
   # opt['time'] = 5
   # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
   opt['optimizer'] = 'adam'
@@ -466,17 +466,21 @@ def set_arxiv_search_space(opt):
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
     # opt['attention_norm_idx'] = tune.choice([0, 1])
-    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-      [0, 1])
-    opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+    # opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+    #   [0, 1])
+    opt["self_loop_weight"] = 1
+    # opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+    opt["leaky_relu_slope"] = 0.2
   else:
     # opt["self_loop_weight"] = tune.uniform(0, 3)
     opt["self_loop_weight"] = 1
   # opt['data_norm'] = tune.choice(['rw', 'gcn'])
   # opt['add_source'] = tune.choice([True, False])
-  opt['add_source'] = tune.choice([True, False])
+  # opt['add_source'] = tune.choice([True, False])
+  opt['add_source'] = True
   opt['att_samp_pct'] = tune.uniform(0.6, 1)
-  opt['batch_norm'] = tune.choice([True, False])
+  # opt['batch_norm'] = tune.choice([True, False])
+  opt['batch_norm'] = True
 
   # opt["tol_scale"] = tune.loguniform(10, 1e4)
 
