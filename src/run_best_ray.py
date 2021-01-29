@@ -66,7 +66,7 @@ def run_best_params(opt):
   except:
     pass
 
-  print(df[['accuracy', 'best_time']])
+  print(df[['accuracy', 'best_time', 'best_epoch']])
 
   test_accs = df['accuracy'].values
   print("test accuracy {}".format(test_accs))

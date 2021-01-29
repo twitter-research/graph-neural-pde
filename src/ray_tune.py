@@ -169,6 +169,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
     optimizer.load_state_dict(optimizer_state)
 
   this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+  best_time = best_epoch = train_acc = val_acc_int = tmp_test_acc_int = 0
   for epoch in range(1, opt["epoch"]):
     loss = train(model, optimizer, data)
     # need next line as it sets the attributes in the solver
