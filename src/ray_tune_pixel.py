@@ -90,7 +90,7 @@ def average_test(models, datas):
 def train_ray_image(opt, checkpoint_dir=None, data_dir="../data", opt_val=True):
     # load data
     pixel_data = load_pixel_data(opt) #training pixels are in data_train
-    print('train size: {}, test size {}'.format(pixel_data.data.y.shape))#, data_test.data.y.shape))
+    print('data size: {}'.format(pixel_data.data.y.shape))#, data_test.data.y.shape))
     # load model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     loader = DataLoader(pixel_data, batch_size=opt['batch_size'], shuffle=True)
