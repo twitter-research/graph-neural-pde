@@ -191,11 +191,10 @@ def set_MNIST_search_space(opt):
     opt['max_iters'] = 5000
     opt['augment'] = False  # True   #False need to view image
     opt['batched'] = True
-    opt['testing_code'] = True  #Flag for reduced dataset size
-    if opt['testing_code']:
-        opt['batch_size'] = 64  # 64  # doing batch size for mnist
-        opt['train_size'] = 512  # 1024 #512 #0 #128 #10240 #512 #10240
-        opt['test_size'] = 128  # 0  #512#64#128
+
+    opt['batch_size'] = 64  # 64  # doing batch size for mnist
+    opt['train_size'] = 512  # 1024 #512 #0 #128 #10240 #512 #10240
+    opt['test_size'] = 128  # 0  #512#64#128
     assert (opt['train_size']) % opt['batch_size'] == 0, "train_size needs to be multiple of batch_size"
     assert (opt['test_size']) % opt['batch_size'] == 0, "test_size needs to be multiple of batch_size"
 
