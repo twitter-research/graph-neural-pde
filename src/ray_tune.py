@@ -162,25 +162,30 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
     optimizer.load_state_dict(optimizer_state)
 
   this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
-  best_time = best_epoch = train_acc = val_acc_int = tmp_test_acc_int = 0
+  best_time = best_epoch = train_acc = val_acc = test_acc = 0
   for epoch in range(1, opt["epoch"]):
     loss = train(model, optimizer, data)
     # need next line as it sets the attributes in the solver
 
     if opt["no_early"]:
-      train_acc, val_acc_int, tmp_test_acc_int = this_test(model, data, opt)
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
       best_time = opt['time']
     else:
-      train_acc, val_acc_int, tmp_test_acc_int = this_test(model, data, opt)
-      if model.odeblock.test_integrator.solver.best_val > val_acc_int:
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
+      if tmp_val_acc > val_acc:
         best_epoch = epoch
-        val_acc_int = model.odeblock.test_integrator.solver.best_val
-        tmp_test_acc_int = model.odeblock.test_integrator.solver.best_test
+        train_acc = tmp_train_acc
+        val_acc = tmp_val_acc
+        test_acc = tmp_test_acc
+      if model.odeblock.test_integrator.solver.best_val > val_acc:
+        best_epoch = epoch
+        val_acc = model.odeblock.test_integrator.solver.best_val
+        test_acc = model.odeblock.test_integrator.solver.best_test
         best_time = model.odeblock.test_integrator.solver.best_time
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((model.state_dict(), optimizer.state_dict()), path)
-    tune.report(loss=loss, accuracy=val_acc_int, test_acc=tmp_test_acc_int, train_acc=train_acc, best_time=best_time, best_epoch=best_epoch,
+    tune.report(loss=loss, accuracy=val_acc, test_acc=test_acc, train_acc=train_acc, best_time=best_time, best_epoch=best_epoch,
                 forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
 
 

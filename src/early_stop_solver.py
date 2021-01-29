@@ -46,7 +46,8 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
       self.lf = torch.nn.functional.nll_loss
       self.evaluator = Evaluator(name=opt['dataset'])
 
-  def set_accs(self, val, test, time):
+  def set_accs(self, train, val, test, time):
+    self.best_train = train
     self.best_val = val
     self.best_test = test
     self.best_time = time.item()
@@ -73,9 +74,9 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
       assert n_steps < self.max_num_steps, 'max_num_steps exceeded ({}>={})'.format(n_steps, self.max_num_steps)
       self.rk_state = self._adaptive_step(self.rk_state)
       n_steps += 1
-      val_acc, test_acc = self.evaluate(self.rk_state)
+      train_acc, val_acc, test_acc = self.evaluate(self.rk_state)
       if val_acc > self.best_val:
-        self.set_accs(val_acc, test_acc, next_t)
+        self.set_accs(train_acc, val_acc, test_acc, next_t)
     new_t = next_t
     return (new_t, _interp_evaluate(self.rk_state.interp_coeff, self.rk_state.t0, self.rk_state.t1, next_t))
 
@@ -110,10 +111,10 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
       loss = self.lf(z[self.data.train_mask], self.data.y.squeeze()[self.data.train_mask])
     else:
       loss = self.lf(z[self.data.train_mask], self.data.y[self.data.train_mask])
-    train_acc, val_acc, tmp_test_acc = self.ode_test(z)
+    train_acc, val_acc, test_acc = self.ode_test(z)
     log = 'ODE eval t0 {:.3f}, t1 {:.3f} Loss: {:.4f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
     # print(log.format(t0, t1, loss, train_acc, val_acc, tmp_test_acc))
-    return val_acc, tmp_test_acc
+    return train_acc, val_acc, test_acc
 
   def set_m2(self, m2):
     self.m2 = copy.deepcopy(m2)
@@ -144,7 +145,8 @@ class EarlyStopRK4(FixedGridODESolver):
   def _step_func(self, func, t, dt, y):
     return rk4_alt_step_func(func, t + self.eps, dt - 2 * self.eps, y)
 
-  def set_accs(self, val, test, time):
+  def set_accs(self, train, val, test, time):
+    self.best_train = train
     self.best_val = val
     self.best_test = test
     self.best_time = time.item()
@@ -161,9 +163,9 @@ class EarlyStopRK4(FixedGridODESolver):
     for t0, t1 in zip(time_grid[:-1], time_grid[1:]):
       dy = self._step_func(self.func, t0, t1 - t0, y0)
       y1 = y0 + dy
-      val_acc, test_acc = self.evaluate(y1, t0, t1)
+      train_acc, val_acc, test_acc = self.evaluate(y1, t0, t1)
       if val_acc > self.best_val:
-        self.set_accs(val_acc, test_acc, t0)
+        self.set_accs(train_acc, val_acc, test_acc, t0)
 
       while j < len(t) and t1 >= t[j]:
         solution[j] = self._linear_interp(t0, t1, y0, y1, t[j])
@@ -201,10 +203,10 @@ class EarlyStopRK4(FixedGridODESolver):
       loss = self.lf(z[self.data.train_mask], self.data.y.squeeze()[self.data.train_mask])
     else:
       loss = self.lf(z[self.data.train_mask], self.data.y[self.data.train_mask])
-    train_acc, val_acc, tmp_test_acc = self.ode_test(z)
+    train_acc, val_acc, test_acc = self.ode_test(z)
     log = 'ODE eval t0 {:.3f}, t1 {:.3f} Loss: {:.4f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
     # print(log.format(t0, t1, loss, train_acc, val_acc, tmp_test_acc))
-    return val_acc, tmp_test_acc
+    return train_acc, val_acc, test_acc
 
   def set_m2(self, m2):
     self.m2 = copy.deepcopy(m2)
