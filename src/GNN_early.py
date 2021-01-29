@@ -17,32 +17,44 @@ from model_configurations import set_block, set_function
 class GNNEarly(BaseGNN):
   def __init__(self, opt, dataset, device=torch.device('cpu')):
     super(GNNEarly, self).__init__(opt, dataset, device)
+    self.f = set_function(opt)
     block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
-    self.f = set_function(opt)
-    self.regularization_fns = ()
+    # self.regularization_fns = ()
     self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
     # overwrite the test integrator with this custom one
     self.odeblock.test_integrator = EarlyStopInt(self.T, opt, device)
-    # self.odeblock.test_integrator.data = dataset.data
-    if opt['adjoint']:
-      from torchdiffeq import odeint_adjoint as odeint
-    else:
-      from torchdiffeq import odeint
-    self.odeblock.train_integrator = odeint
+    # if opt['adjoint']:
+    #   from torchdiffeq import odeint_adjoint as odeint
+    # else:
+    #   from torchdiffeq import odeint
+    # self.odeblock.train_integrator = odeint
 
     self.set_solver_data(dataset.data)
 
   def set_solver_m2(self):
-    self.odeblock.test_integrator.m2 = self.m2
+    if self.odeblock.test_integrator.m2 is None:
+      self.odeblock.test_integrator.m2 = self.m2
+    else:
+      self.odeblock.test_integrator.m2.weight.data = self.m2.weight.data
+      self.odeblock.test_integrator.m2.bias.data = self.m2.bias.data
 
   def set_solver_data(self, data):
     self.odeblock.test_integrator.data = data
 
   def forward(self, x):
     # Encode each node based on its feature.
+    if self.opt['use_labels']:
+      y = x[:, self.num_features:]
+      x = x[:, :self.num_features]
     x = F.dropout(x, self.opt['input_dropout'], training=self.training)
     x = self.m1(x)
+
+    if self.opt['use_labels']:
+      x = torch.cat([x, y], dim=-1)
+
+    if self.opt['batch_norm']:
+      x = self.bn_in(x)
 
     # Solve the initial value problem of the ODE.
     if self.opt['augment']:

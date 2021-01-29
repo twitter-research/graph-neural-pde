@@ -10,21 +10,22 @@ class GNN(BaseGNN):
   def __init__(self, opt, dataset, device=torch.device('cpu')):
     super(GNN, self).__init__(opt, dataset, device)
     self.f = set_function(opt)
-    self.block = set_block(opt)
+    block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
-    self.odeblock = self.block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
-    # todo remove next line as in base class
-    # self.m2 = nn.Linear(opt['hidden_dim'], num_classes)
-    self.bn_in = torch.nn.BatchNorm1d(opt['hidden_dim'])
-    self.bn_out = torch.nn.BatchNorm1d(opt['hidden_dim'])
+    self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
 
   def forward(self, x):
     # Encode each node based on its feature.
+    if self.opt['use_labels']:
+      y = x[:, self.num_features:]
+      x = x[:, :self.num_features]
     x = F.dropout(x, self.opt['input_dropout'], training=self.training)
     x = self.m1(x)
     # todo investigate if some input non-linearity solves the problem with smooth deformations identified in the ANODE paper
     # if True:
     #   x = F.relu(x)
+    if self.opt['use_labels']:
+      x = torch.cat([x, y], dim=-1)
 
     if self.opt['batch_norm']:
       x = self.bn_in(x)
@@ -44,8 +45,8 @@ class GNN(BaseGNN):
     if self.opt['augment']:
       z = torch.split(z, x.shape[1] // 2, dim=1)[0]
 
-    if self.opt['batch_norm']:
-      z = self.bn_in(z)
+    # if self.opt['batch_norm']:
+    #   z = self.bn_in(z)
 
     # Activation.
     z = F.relu(z)

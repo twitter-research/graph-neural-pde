@@ -38,7 +38,7 @@ def run_best_params(opt):
 
   data_dir = os.path.abspath("../data")
   reporter = CLIReporter(
-    metric_columns=["accuracy", "loss", "train_acc", "training_iteration", "forward_nfe", "backward_nfe"])
+    metric_columns=["accuracy", "loss", "test_acc", "train_acc", "best_time", "best_epoch", "training_iteration", "forward_nfe", "backward_nfe"])
 
   if opt['name'] is None:
     name = opt['folder'] + '_test'
@@ -55,7 +55,7 @@ def run_best_params(opt):
     config=best_params_ret,
     num_samples=opt['reps'] if opt["num_splits"] == 0 else opt["num_splits"] * opt["reps"],
     scheduler=None,
-    max_failures=2,
+    max_failures=1,  # early stop solver can't recover from failure as it doesn't own m2.
     local_dir='../ray_tune',
     progress_reporter=reporter,
     raise_on_failed_trial=False)
@@ -66,7 +66,7 @@ def run_best_params(opt):
   except:
     pass
 
-  print(df[['accuracy', 'best_time']])
+  print(df[['accuracy', 'test_acc', 'best_time', 'best_epoch']])
 
   test_accs = df['accuracy'].values
   print("test accuracy {}".format(test_accs))
@@ -79,6 +79,7 @@ if __name__ == '__main__':
   parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')
   parser.add_argument('--folder', type=str, default=None, help='experiment folder to read')
   parser.add_argument('--index', type=int, default=0, help='index to take from experiment folder')
+  parser.add_argument('--metric', type=str, default='accuracy', help='metric to sort the hyperparameter tuning runs on')
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilise ODE learning')
   parser.add_argument('--reps', type=int, default=1, help='the number of random weight initialisations to use')
