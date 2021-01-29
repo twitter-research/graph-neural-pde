@@ -18,7 +18,7 @@ def UnNormalizeCIFAR(data):
   return data * 0.5 + 0.5
 
 @torch.no_grad()
-def plot_image_T(paths, labels, T_idx, opt, height=2, width=3):
+def summary_image_T(paths, labels, T_idx, opt, height=2, width=3):
   fig = plt.figure()
   for i in range(height*width):
     # t == 0
@@ -49,7 +49,7 @@ def plot_image_T(paths, labels, T_idx, opt, height=2, width=3):
 
 
 @torch.no_grad()
-def create_animation_old(paths, labels, opt, height, width, frames):
+def summary_animation(paths, labels, opt, height, width, frames):
   # draw graph initial graph
   fig = plt.figure()
   for i in range(height * width):
@@ -83,7 +83,7 @@ def create_animation_old(paths, labels, opt, height, width, frames):
 
 
 @torch.no_grad()
-def create_pixel_intensity_old(paths, labels, opt, height, width):
+def summary_pixel_intensity(paths, labels, opt, height, width):
   # max / min intensity plot
   # draw graph initial graph
   fig = plt.figure() #figsize=(width*10, height*10))
@@ -136,10 +136,7 @@ def plot_att_heat(model, model_key, modelpath):
   # useful code to overcome normalisation colour bar
   # https: // matplotlib.org / 3.3.3 / gallery / images_contours_and_fields / multi_image.html  # sphx-glr-gallery-images-contours-and-fields-multi-image-py
 
-
-@torch.no_grad()
-def plot_image(paths, labels, time, opt, pic_folder, samples):
-  savefolder = f"{pic_folder}/image_{time}"
+def check_folder(savefolder):
   try:
     os.mkdir(savefolder)
   except OSError:
@@ -149,9 +146,38 @@ def plot_image(paths, labels, time, opt, pic_folder, samples):
       print("%s exists, clearing existing images" % savefolder)
     else:
       print("Creation of the directory %s failed" % savefolder)
-
   else:
     print("Successfully created the directory %s " % savefolder)
+
+def batch_vis_mask(train_mask, paths, pix_labels, labels, opt, pic_folder, samples):
+  savefolder = f"{pic_folder}/masks"
+  check_folder(savefolder)
+
+  for i in range(samples):
+    fig = plt.figure()
+    plt.tight_layout()
+    plt.axis('off')
+    train_maski = train_mask[
+                  i * (opt['im_height'] * opt['im_width']):(i + 1) * (opt['im_height'] * opt['im_width'])].long()
+    A = paths[i, 0, :].reshape(-1, 1) * train_maski.reshape(-1, 1)
+    A = A.view(opt['im_height'], opt['im_width'], opt['im_chan'])
+    # A = paths[i,0,:].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
+    if opt['im_dataset'] == 'MNIST':
+      plt.imshow(A, cmap='gray', interpolation='none')
+    elif opt['im_dataset'] == 'CIFAR':
+      A = UnNormalizeCIFAR(A)
+      plt.imshow(A, interpolation='none')
+    plt.title(f"t=0 Train Mask Ground Truth: {labels[i].item()}")
+    plt.savefig(f"{savefolder}/image_train_mask{i}.png", format="png")
+    plt.savefig(f"{savefolder}/image_train_mask{i}.pdf", format="pdf")
+  return fig
+
+
+@torch.no_grad()
+def batch_image(paths, labels, time, opt, pic_folder, samples):
+  savefolder = f"{pic_folder}/image_{time}"
+  check_folder(savefolder)
+
   for i in range(samples):
     fig = plt.figure()
     plt.tight_layout()
@@ -169,17 +195,10 @@ def plot_image(paths, labels, time, opt, pic_folder, samples):
 
 
 @torch.no_grad()
-def create_animation(paths, labels, frames, fps, opt, pic_folder, samples):
+def batch_animation(paths, labels, frames, fps, opt, pic_folder, samples):
   savefolder = f"{pic_folder}/animations"
-  try:
-    os.mkdir(savefolder)
-  except OSError:
-    if os.path.exists(savefolder):
-      shutil.rmtree(savefolder)
-      os.mkdir(savefolder)
-      print("%s exists, clearing existing images" % savefolder)
-    else:
-      print("Creation of the directory %s failed" % savefolder)
+  check_folder(savefolder)
+
   # draw graph initial graph
   for i in range(samples):
     fig = plt.figure()
@@ -210,17 +229,10 @@ def create_animation(paths, labels, frames, fps, opt, pic_folder, samples):
 
 
 @torch.no_grad()
-def create_pixel_intensity(paths, labels, opt, pic_folder, samples):
+def batch_pixel_intensity(paths, labels, opt, pic_folder, samples):
   savefolder = f"{pic_folder}/maxmin"
-  try:
-    os.mkdir(savefolder)
-  except OSError:
-    if os.path.exists(savefolder):
-      shutil.rmtree(savefolder)
-      os.mkdir(savefolder)
-      print("%s exists, clearing existing images" % savefolder)
-    else:
-      print("Creation of the directory %s failed" % savefolder)
+  check_folder(savefolder)
+
   for i in range(samples):
     fig = plt.figure()
     plt.tight_layout()
@@ -247,6 +259,7 @@ def create_pixel_intensity(paths, labels, opt, pic_folder, samples):
   return fig
 
 
+
 def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
   path_folder = f"../paths/{model_key}"
   if not os.path.exists(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_paths.pt"):
@@ -270,19 +283,6 @@ def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
     model = GNN_image_pixel(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
                       batch.edge_attr, device).to(device)
 
-    # # original saved file with DataParallel
-    # state_dict = torch.load(modelpath, map_location=device)
-    # # create new OrderedDict that does not contain module.
-    # new_state_dict = OrderedDict()
-    # for k, v in state_dict.items():
-    #   name = k.replace(".module", "")  # removing ‘.moldule’ from key
-    #   # name = k[7:]  # remove module.
-    #   new_state_dict[name] = v
-    # # load params
-    # model.load_state_dict(new_state_dict)
-
-
-    # broken
     model.load_state_dict(torch.load(modelpath, map_location=device))
     model.to(device)
     model.eval()
@@ -313,7 +313,7 @@ def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
   return paths_nograd, pix_labels_nograd, labels_nograd, train_mask_nograd
 
 
-def single_images(model_keys, samples, Tmultiple, partitions, batch_num):
+def build_summaries(model_keys, samples, Tmultiple, partitions, batch_num):
   for model_key in model_keys:
     directory = f"../pixels/"
     for filename in os.listdir(directory):
@@ -335,11 +335,11 @@ def single_images(model_keys, samples, Tmultiple, partitions, batch_num):
 
     # # 1)
     T_idx = Tmultiple * partitions // 2
-    fig = plot_image_T(paths, labels, T_idx, opt, height=2, width=3)
+    fig = summary_image_T(paths, labels, T_idx, opt, height=2, width=3)
     plt.savefig(f"{modelpath}_imageT.png", format="png")
     plt.savefig(f"{modelpath}_imageT.pdf", format="pdf")
     # 2)
-    animation = create_animation_old(paths, labels, opt, height=2, width=3, frames=partitions)
+    animation = summary_animation(paths, labels, opt, height=2, width=3, frames=partitions)
     # animation.save(f'{modelpath}_animation.gif', writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=2)
     animation.save(f'{modelpath}_animation.gif', fps=2)
 
@@ -351,12 +351,12 @@ def single_images(model_keys, samples, Tmultiple, partitions, batch_num):
     # fig = plot_att_heat(model, model_key, modelpath)
     # plt.savefig(f"{modelpath}_AttHeat.pdf", format="pdf")
     # # 4)
-    fig = create_pixel_intensity_old(paths, labels, opt, height=2, width=3)
+    fig = summary_pixel_intensity(paths, labels, opt, height=2, width=3)
     plt.savefig(f"{modelpath}_pixel_intensity.png", format="png")
     plt.savefig(f"{modelpath}_pixel_intensity.pdf", format="pdf")
 
 
-def build_all(model_keys, samples, Tmultiple, partitions, batch_num):
+def build_batches(model_keys, samples, Tmultiple, partitions, batch_num):
   directory = f"../pixels/"
   df = pd.read_csv(f'{directory}models.csv')
   for model_key in model_keys:
@@ -373,30 +373,22 @@ def build_all(model_keys, samples, Tmultiple, partitions, batch_num):
     optdf[intcols].astype(int)
     opt = optdf.to_dict('records')[0]
 
-    paths, pix_labels, labels, _ = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
+    paths, pix_labels, labels, train_mask = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
 
-    plot_image(paths, labels, time=0, opt=opt, pic_folder=modelfolder, samples=samples)
-    plot_image(paths, labels, time=5, opt=opt, pic_folder=modelfolder, samples=samples)
-    plot_image(paths, labels, time=10, opt=opt, pic_folder=modelfolder, samples=samples)
-    create_animation(paths, labels, Tmultiple*partitions, fps=2, opt=opt, pic_folder=modelfolder, samples=samples)
-    create_pixel_intensity(paths, labels, opt, pic_folder=modelfolder, samples=samples)
+    batch_vis_mask(train_mask, paths, pix_labels, labels, opt, pic_folder=modelfolder, samples=samples)
+    batch_image(paths, labels, time=0, opt=opt, pic_folder=modelfolder, samples=samples)
+    batch_image(paths, labels, time=5, opt=opt, pic_folder=modelfolder, samples=samples)
+    batch_image(paths, labels, time=10, opt=opt, pic_folder=modelfolder, samples=samples)
+    batch_animation(paths, labels, Tmultiple * partitions, fps=2, opt=opt, pic_folder=modelfolder, samples=samples)
+    batch_pixel_intensity(paths, labels, opt, pic_folder=modelfolder, samples=samples)
+
 
 @torch.no_grad()
-def create_grid(grid_keys, times, sample_name, samples, Tmultiple, partitions, batch_num):
+def model_comparison(grid_keys, times, sample_name, samples, Tmultiple, partitions, batch_num):
     directory = f"../pixels/"
     df = pd.read_csv(f'{directory}models.csv')
     savefolder = f"../pixels/images/{sample_name}"
-    try:
-      os.mkdir(savefolder)
-    except OSError:
-      if os.path.exists(savefolder):
-        shutil.rmtree(savefolder)
-        os.mkdir(savefolder)
-        print("%s exists, clearing existing images" % savefolder)
-      else:
-        print("Creation of the directory %s failed" % savefolder)
-    else:
-      print("Successfully created the directory %s " % savefolder)
+    check_folder(savefolder)
 
     plot_times = [f"t={time/partitions}" for time in times]
     for sample in range(samples):
@@ -459,44 +451,6 @@ def create_grid(grid_keys, times, sample_name, samples, Tmultiple, partitions, b
       plt.savefig(f"{savefolder}/sample_{sample}.pdf",format="pdf")
 
 
-def vis_mask(model_keys, samples, Tmultiple, partitions, batch_num=0):
-  directory = f"../pixels/"
-  df = pd.read_csv(f'{directory}models.csv')
-  for model_key in model_keys:
-    for filename in os.listdir(directory):
-      if filename.startswith(model_key):
-        path = os.path.join(directory, filename)
-        print(path)
-        break
-    [_, _, data_name, blck, fct] = path.split("_")
-    modelfolder = f"{directory}{model_key}_{data_name}_{blck}_{fct}"
-    modelpath = f"{modelfolder}/model_{model_key}"
-    optdf = df[df.model_key == model_key]
-    intcols = ['num_class','im_chan','im_height','im_width','num_nodes']
-    optdf[intcols].astype(int)
-    opt = optdf.to_dict('records')[0]
-    paths, pix_labels, labels, train_mask = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
-
-    for i in range(samples):
-      fig = plt.figure()
-      plt.tight_layout()
-      plt.axis('off')
-      train_maski = train_mask[i*(opt['im_height']*opt['im_width']):(i+1)*(opt['im_height']*opt['im_width'])].long()
-      A = paths[i,0,:].reshape(-1,1)*train_maski.reshape(-1,1)
-      A = A.view(opt['im_height'],opt['im_width'], opt['im_chan'])
-      # A = paths[i,0,:].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
-      if opt['im_dataset'] == 'MNIST':
-        plt.imshow(A, cmap='gray', interpolation = 'none')
-      elif opt['im_dataset'] == 'CIFAR':
-        A = UnNormalizeCIFAR(A)
-        plt.imshow(A, interpolation = 'none')
-      plt.title(f"t=0 Train Mask Ground Truth: {labels[i].item()}")
-      plt.savefig(f"{modelfolder}/image_train_mask{i}.png", format="png")
-      plt.savefig(f"{modelfolder}/image_train_mask{i}.pdf", format="pdf")
-    return fig
-
-
-
 def main(model_keys):
   pass
 
@@ -505,13 +459,13 @@ if __name__ == '__main__':
   partitions = 10
   batch_num = 1#2
   samples = 6
-  model_keys = [
-  '20210129_115200',
-  '20210129_115617',
-  '20210129_123408',
-  '20210129_124200',
-  '20210129_124956',
-  '20210129_134243']
+  # model_keys = [
+  # '20210129_115200',
+  # '20210129_115617',
+  # '20210129_123408',
+  # '20210129_124200',
+  # '20210129_124956',
+  # '20210129_134243']
 
   # model_keys = ['20210125_002603']
   # directory = f"../pixels/"
@@ -521,21 +475,21 @@ if __name__ == '__main__':
   #   '20210125_111920',
   #   '20210125_115601']
   # #
-  single_images(model_keys, samples, Tmultiple, partitions, batch_num)
-  build_all(model_keys, samples, Tmultiple, partitions, batch_num)
-  vis_mask(model_keys, samples, Tmultiple, partitions,  batch_num=0)
+  model_keys = ['20210129_001939']
+  build_batches(model_keys, samples, Tmultiple, partitions, batch_num)
+  build_summaries(model_keys, samples, Tmultiple, partitions, batch_num)
 
-  times = [0, 10, 20]
-  grid_keys = [
-  '20210129_115200',
-  '20210129_115617',
-  '20210129_123408']
-  image_folder = 'MNIST_10cat'
-  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
-  #
-  grid_keys = [
-  '20210129_124200',
-  '20210129_124956',
-  '20210129_134243']
-  image_folder = 'CIFAR_10cat'
-  create_grid(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  # times = [0, 10, 20]
+  # grid_keys = [
+  # '20210129_115200',
+  # '20210129_115617',
+  # '20210129_123408']
+  # image_folder = 'MNIST_10cat'
+  # model_comparison(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  # #
+  # grid_keys = [
+  # '20210129_124200',
+  # '20210129_124956',
+  # '20210129_134243']
+  # image_folder = 'CIFAR_10cat'
+  # model_comparison(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)

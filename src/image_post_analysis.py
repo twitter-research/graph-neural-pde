@@ -151,9 +151,9 @@ def plot_image(paths, labels, time, opt, pic_folder, samples):
       print("%s exists, clearing existing images" % savefolder)
     else:
       print("Creation of the directory %s failed" % savefolder)
-
   else:
     print("Successfully created the directory %s " % savefolder)
+
   for i in range(samples):
     fig = plt.figure()
     plt.tight_layout()
