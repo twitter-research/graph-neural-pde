@@ -44,18 +44,18 @@ def train(model, optimizer, dataset, data_test=None):
 
     # loss = lf(out, batch.y.view(-1).to(model.device))
     if model.opt['im_chan'] == 1:
-      loss = lf(out[batch.train_mask], batch.y.squeeze()[batch.train_mask])
+      loss = lf(out[batch.train_mask], batch.y.squeeze()[batch.train_mask].to(model.device))
     if model.opt['im_chan'] == 3:
       loss = 0
       if model.opt['pixel_cat'] == 2 and model.opt['pixel_loss'] == 'binary_sigmoid':
-        loss += lf(torch.stack((out[:,0],out[:,3]),dim=1)[batch.train_mask], batch.y[:,0].squeeze()[batch.train_mask])
-        loss += lf(torch.stack((out[:,1],out[:,4]),dim=1)[batch.train_mask], batch.y[:,1].squeeze()[batch.train_mask])
-        loss += lf(torch.stack((out[:,2],out[:,5]),dim=1)[batch.train_mask], batch.y[:,2].squeeze()[batch.train_mask])
+        loss += lf(torch.stack((out[:,0],out[:,3]),dim=1)[batch.train_mask], batch.y[:,0].squeeze()[batch.train_mask].to(model.device))
+        loss += lf(torch.stack((out[:,1],out[:,4]),dim=1)[batch.train_mask], batch.y[:,1].squeeze()[batch.train_mask].to(model.device))
+        loss += lf(torch.stack((out[:,2],out[:,5]),dim=1)[batch.train_mask], batch.y[:,2].squeeze()[batch.train_mask].to(model.device))
       elif model.opt['pixel_cat'] == 10 and model.opt['pixel_loss'] == '10catlogits':
         for i in range(10):
           # loss += lf(torch.stack((out[:, i], out[:, i+9]), dim=1)[batch.train_mask].repeat(3),batch.y.view(-1,1)[batch.train_mask].repeat(3))
           A = out[batch.train_mask.repeat(3)]
-          B = batch.y.view(-1, 1).squeeze()[batch.train_mask.repeat(3)]
+          B = batch.y.view(-1, 1).squeeze()[batch.train_mask.repeat(3)].to(model.device)
           loss += lf(A,B)
           # loss += lf(torch.stack((out[:, i], out[:, i + 9]), dim=1)[batch.train_mask.repeat(3)],
           #      batch.y.view(-1, 1).squeeze()[batch.train_mask.repeat(3)])
