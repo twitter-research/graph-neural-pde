@@ -32,7 +32,7 @@ def train(model, optimizer, dataset, data_test=None):
   for batch_idx, batch in enumerate(loader):
     optimizer.zero_grad()
     start_time = time.time()
-    if batch_idx > model.opt['train_size'] // model.opt['batch_size']:  # only do for train_size data points
+    if batch_idx > model.opt['train_sixze'] // model.opt['batch_size']:  # only do for train_size data points
       break
 
     out = model(batch.x.to(model.device))

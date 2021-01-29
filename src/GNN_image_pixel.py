@@ -107,7 +107,7 @@ class GNN_image_pixel(BaseGNN):
       z = self.m2(z) #decoder to number of classes
     elif self.opt['pixel_loss'] == '10catlogits':
       z = z.view(-1,1)
-      cats = torch.arange(self.opt['pixel_cat'])
+      cats = torch.arange(self.opt['pixel_cat']).to(self.device)
       z = 1 / ((z - cats) ** 2 + 1e-5)
       torch.cat((torch.sigmoid(z), 1 - torch.sigmoid(z)), dim=1)
     elif self.opt['pixel_loss'] == 'MSE':

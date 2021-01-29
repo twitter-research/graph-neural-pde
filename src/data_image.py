@@ -264,7 +264,7 @@ class InMemPixelData(ImageInMemory):
       test_mask = torch.zeros(self.opt['num_nodes'], dtype=torch.bool)
       train_mask[train_idx] = 1
       test_mask[test_idx] = 1
-      graph = Data(x=x, y=y, edge_index=edge_index, train_mask=train_mask, test_mask=test_mask)
+      graph = Data(x=x, y=y, target=target, edge_index=edge_index, train_mask=train_mask, test_mask=test_mask)
       graph_list.append(graph)
 
     torch.save(self.collate(graph_list), self.processed_paths[0])
