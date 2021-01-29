@@ -68,9 +68,13 @@ def quadratic_cost(x, t, dx, unused_context):
   return 0.5 * dx.pow(2).mean(dim=-1)
 
 
-def jacobian_frobenius_regularization_fn(x, t, dx, context):
-  sh = x.shape
-  del t, dx, x
-  sqjac = context.sqjacnorm
+def divergence_bf(dx, x):
+  sum_diag = 0.
+  for i in range(x.shape[1]):
+      sum_diag += torch.autograd.grad(dx[:, i].sum(), x, create_graph=True)[0].contiguous()[:, i].contiguous()
+  return sum_diag.contiguous()
 
-  return context.sqjacnorm
+
+def jacobian_frobenius_regularization_fn(x, t, dx, context):
+  del t
+  return divergence_bf(dx, x)
