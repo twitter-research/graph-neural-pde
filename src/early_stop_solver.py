@@ -9,7 +9,6 @@ from torchdiffeq._impl.interp import _interp_evaluate
 from torchdiffeq._impl.rk_common import RKAdaptiveStepsizeODESolver, rk4_alt_step_func
 from ogb.nodeproppred import Evaluator
 
-
 class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
   order = 5
   tableau = _DORMAND_PRINCE_SHAMPINE_TABLEAU
