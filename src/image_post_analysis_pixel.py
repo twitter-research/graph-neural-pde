@@ -391,6 +391,7 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
     check_folder(savefolder)
 
     for sample in range(samples):
+      masks = []
       images_A = []
       images_B = []
       images_C = []
@@ -410,8 +411,12 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
         optdf[intcols].astype(int)
         opt = optdf.to_dict('records')[0]
 
-        paths, _, _, _ = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
+        paths, pix_labels, labels, train_mask = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
 
+        train_maski = train_mask[sample * (opt['im_height'] * opt['im_width']):(sample + 1) * (opt['im_height'] * opt['im_width'])].long()
+        mask = paths[sample, 0, :].reshape(-1, 1) * train_maski.reshape(-1, 1)
+        mask = mask.view(opt['im_height'], opt['im_width'], opt['im_chan'])
+        masks.append(mask)
         A = paths[sample, times[0], :].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
         B = paths[sample, times[1], :].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
         C = paths[sample, times[2], :].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
@@ -429,27 +434,32 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
 
       plot_times = [f"t={int(opt['time'] * time / partitions)}" for time in times]
 
-      fig, axs = plt.subplots(3,3, figsize=(9, 6), sharex=True, sharey=True)
+      # fig, axs = plt.subplots(3,3, figsize=(9, 6), sharex=True, sharey=True)
+      fig, axs = plt.subplots(3,4, figsize=(9, 6), sharex=True, sharey=True)
       fig.suptitle(f"{opt['im_dataset']} Pixel Diffusion")
+
       for i in range(3):
-          for j in range(3):
-              # axs[i,j].imshow(plt.imread(images[j][i]))
-              if datasets[i] == 'MNIST':
-                axs[i, j].imshow(images[j][i], cmap='gray', interpolation='none')
-              elif datasets[i] == 'CIFAR':
-                A = UnNormalizeCIFAR(A)
-                axs[i, j].imshow(images[j][i], interpolation='none')
-              axs[i,j].set_yticks([])
-              axs[i,j].set_xticks([])
-      plt.subplots_adjust(wspace=0, hspace=0)
-      for ax, t in zip(axs[0], plot_times):
-          ax.set_title(t, size=18)
-      pad = 2
-      for ax, row in zip(axs[:,0], labels):
-          ax.annotate(row, xy=(0, 0.5), xytext=(-ax.yaxis.labelpad - pad, 0),
-                      xycoords=ax.yaxis.label, textcoords='offset points',
-                      size='large', ha='right', va='center')
-      plt.savefig(f"{savefolder}/sample_{sample}.pdf",format="pdf")
+        axs[i, 0].imshow(masks[i], interpolation='none')
+        axs[i, 0].set_yticks([])
+        axs[i, 0].set_xticks([])
+        for j in range(1,4):
+                # axs[i,j].imshow(plt.imread(images[j][i]))
+                if datasets[i] == 'MNIST':
+                  axs[i, j].imshow(images[j][i], cmap='gray', interpolation='none')
+                elif datasets[i] == 'CIFAR':
+                  A = UnNormalizeCIFAR(A)
+                  axs[i, j].imshow(images[j][i], interpolation='none')
+                axs[i,j].set_yticks([])
+                axs[i,j].set_xticks([])
+        plt.subplots_adjust(wspace=-0.2, hspace=0)
+        for ax, t in zip(axs[0], plot_times):
+            ax.set_title(t, size=18)
+        pad = 2
+        for ax, row in zip(axs[:,0], labels):
+            ax.annotate(row, xy=(0, 0.5), xytext=(-ax.yaxis.labelpad - pad, 0),
+                        xycoords=ax.yaxis.label, textcoords='offset points',
+                        size='large', ha='right', va='center')
+        plt.savefig(f"{savefolder}/sample_{sample}.pdf",format="pdf")
 
 
 @torch.no_grad()
@@ -512,8 +522,8 @@ if __name__ == '__main__':
   model_keys = ['20210130_135930','20210130_140130','20210130_140341']
   model_epochs = [7, 7, 7]
 
-  build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
-  build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
+  # build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
+  # build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
 
   times = [0, 5, 10]
   # grid_keys = [
