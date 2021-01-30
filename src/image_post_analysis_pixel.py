@@ -391,7 +391,7 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
     check_folder(savefolder)
 
     for sample in range(samples):
-      images_A = [],
+      images_A = []
       images_B = []
       images_C = []
       labels = []
