@@ -395,7 +395,7 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
       images_A = []
       images_B = []
       images_C = []
-      labels = []
+      label_list = []
       datasets = []
       for i, model_key in enumerate(model_keys):
         for filename in os.listdir(directory):
@@ -411,7 +411,7 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
         optdf[intcols].astype(int)
         opt = optdf.to_dict('records')[0]
 
-        paths, pix_labels, labels, train_mask = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
+        paths, pix_labels, _, train_mask = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
 
         train_maski = train_mask[sample * (opt['im_height'] * opt['im_width']):(sample + 1) * (opt['im_height'] * opt['im_width'])].long()
         mask = paths[sample, 0, :].reshape(-1, 1) * train_maski.reshape(-1, 1)
@@ -428,7 +428,7 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
           images_A.append(UnNormalizeCIFAR(A))
           images_B.append(UnNormalizeCIFAR(B))
           images_C.append(UnNormalizeCIFAR(C))
-        labels.append(f"{opt['block']}\n{opt['function']}")
+        label_list.append(f"{opt['block']}\n{opt['function']}")
         datasets.append(opt['im_dataset'])
       images = [images_A, images_B, images_C]
 
@@ -455,7 +455,7 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
         for ax, t in zip(axs[0], plot_times):
             ax.set_title(t, size=18)
         pad = 2
-        for ax, row in zip(axs[:,0], labels):
+        for ax, row in zip(axs[:,0], label_list):
             ax.annotate(row, xy=(0, 0.5), xytext=(-ax.yaxis.labelpad - pad, 0),
                         xycoords=ax.yaxis.label, textcoords='offset points',
                         size='large', ha='right', va='center')
