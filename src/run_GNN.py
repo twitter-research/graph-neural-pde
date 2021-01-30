@@ -232,6 +232,7 @@ if __name__ == '__main__':
   parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
   # GNN args
   parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
+  parser.add_argument('--fc_out', dest='fc_out', action='store_true', help='Add a fully connected layer to the decoder.')
   parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')
   parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
   parser.add_argument("--batch_norm", dest='batch_norm', action='store_true', help='search over reg params')
