@@ -110,32 +110,6 @@ def summary_pixel_intensity(paths, labels, opt, height, width):
   return fig
 
 
-@torch.no_grad()
-def plot_att_heat(model, model_key, modelpath):
-  pass
-  # #visualisation of ATT for the 1st image in the batch
-  # im_height = model.opt['im_height']
-  # im_width = model.opt['im_width']
-  # im_chan = model.opt['im_chan']
-  # hwc = im_height * im_width
-  # edge_index = model.odeblock.odefunc.edge_index
-  # num_nodes = model.opt['num_nodes']
-  # batch_size = model.opt['batch_size']
-  # edge_weight = model.odeblock.odefunc.edge_weight
-  # dense_att = to_dense_adj(edge_index=edge_index, edge_attr=edge_weight,
-  #                          max_num_nodes=num_nodes*batch_size)[0,:num_nodes,:num_nodes]
-  # square_att = dense_att.view(num_nodes, num_nodes)
-  # x_np = square_att.numpy()
-  # x_df = pd.DataFrame(x_np)
-  # x_df.to_csv(f"{modelpath}_att.csv")
-  # fig = plt.figure()
-  # plt.tight_layout()
-  # plt.imshow(square_att, cmap='hot', interpolation='nearest')
-  # plt.title("Attention Heat Map {}".format(model_key))
-  # return fig
-  # useful code to overcome normalisation colour bar
-  # https: // matplotlib.org / 3.3.3 / gallery / images_contours_and_fields / multi_image.html  # sphx-glr-gallery-images-contours-and-fields-multi-image-py
-
 def check_folder(savefolder):
   try:
     os.mkdir(savefolder)
@@ -157,8 +131,7 @@ def batch_vis_mask(train_mask, paths, pix_labels, labels, opt, pic_folder, sampl
     fig = plt.figure()
     plt.tight_layout()
     plt.axis('off')
-    train_maski = train_mask[
-                  i * (opt['im_height'] * opt['im_width']):(i + 1) * (opt['im_height'] * opt['im_width'])].long()
+    train_maski = train_mask[i * (opt['im_height'] * opt['im_width']):(i + 1) * (opt['im_height'] * opt['im_width'])].long()
     A = paths[i, 0, :].reshape(-1, 1) * train_maski.reshape(-1, 1)
     A = A.view(opt['im_height'], opt['im_width'], opt['im_chan'])
     # A = paths[i,0,:].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
@@ -170,6 +143,32 @@ def batch_vis_mask(train_mask, paths, pix_labels, labels, opt, pic_folder, sampl
     plt.title(f"t=0 Train Mask Ground Truth: {labels[i].item()}")
     plt.savefig(f"{savefolder}/image_train_mask{i}.png", format="png")
     plt.savefig(f"{savefolder}/image_train_mask{i}.pdf", format="pdf")
+  return fig
+
+
+def batch_vis_binary(train_mask, pix_labels, labels, opt, pic_folder, samples):
+  savefolder = f"{pic_folder}/binary"
+  check_folder(savefolder)
+
+  for i in range(samples):
+    fig = plt.figure()
+    plt.tight_layout()
+    plt.axis('off')
+    # train_maski = train_mask[i * (opt['im_height'] * opt['im_width']):(i + 1) * (opt['im_height'] * opt['im_width'])].long()
+    # A = paths[i, 0, :].reshape(-1, 1) * train_maski.reshape(-1, 1)
+    A = pix_labels.view(-1, opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
+    # pix_labels[i, 0, :]
+    # A = A.view(opt['im_height'], opt['im_width'], opt['im_chan'])
+    # A = paths[i,0,:].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
+    A = A[i,:]
+    if opt['im_dataset'] == 'MNIST':
+      plt.imshow(A, cmap='gray', interpolation='none')
+    elif opt['im_dataset'] == 'CIFAR':
+      A = UnNormalizeCIFAR(A)
+      plt.imshow(A, interpolation='none')
+    plt.title(f"t=0 Binarised Image Ground Truth: {labels[i].item()}")
+    plt.savefig(f"{savefolder}/image_binarised{i}.png", format="png")
+    plt.savefig(f"{savefolder}/image_binarised{i}.pdf", format="pdf")
   return fig
 
 
@@ -306,7 +305,7 @@ def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
     train_mask = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_train_mask.pt")
 
   paths_nograd = paths.cpu().detach()
-  pix_labels_nograd = labels.cpu().detach()
+  pix_labels_nograd = pix_labels.cpu().detach()
   labels_nograd = labels.cpu().detach()
   train_mask_nograd = train_mask.cpu().detach()
 
@@ -376,6 +375,7 @@ def build_batches(model_keys, samples, Tmultiple, partitions, batch_num):
     paths, pix_labels, labels, train_mask = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
 
     batch_vis_mask(train_mask, paths, pix_labels, labels, opt, pic_folder=modelfolder, samples=samples)
+    batch_vis_binary(train_mask, pix_labels, labels, opt, pic_folder=modelfolder, samples=samples)
     batch_image(paths, labels, time=0, opt=opt, pic_folder=modelfolder, samples=samples)
     batch_image(paths, labels, time=5, opt=opt, pic_folder=modelfolder, samples=samples)
     batch_image(paths, labels, time=10, opt=opt, pic_folder=modelfolder, samples=samples)
@@ -451,6 +451,42 @@ def model_comparison(grid_keys, times, sample_name, samples, Tmultiple, partitio
       plt.savefig(f"{savefolder}/sample_{sample}.pdf",format="pdf")
 
 
+@torch.no_grad()
+def plot_att_heat(model, model_key, modelpath):
+  pass
+  # #visualisation of ATT for the 1st image in the batch
+  # im_height = model.opt['im_height']
+  # im_width = model.opt['im_width']
+  # im_chan = model.opt['im_chan']
+  # hwc = im_height * im_width
+  # edge_index = model.odeblock.odefunc.edge_index
+  # num_nodes = model.opt['num_nodes']
+  # batch_size = model.opt['batch_size']
+  # edge_weight = model.odeblock.odefunc.edge_weight
+  # dense_att = to_dense_adj(edge_index=edge_index, edge_attr=edge_weight,
+  #                          max_num_nodes=num_nodes*batch_size)[0,:num_nodes,:num_nodes]
+  # square_att = dense_att.view(num_nodes, num_nodes)
+  # x_np = square_att.numpy()
+  # x_df = pd.DataFrame(x_np)
+  # x_df.to_csv(f"{modelpath}_att.csv")
+  # fig = plt.figure()
+  # plt.tight_layout()
+  # plt.imshow(square_att, cmap='hot', interpolation='nearest')
+  # plt.title("Attention Heat Map {}".format(model_key))
+  # return fig
+  # useful code to overcome normalisation colour bar
+  # https: // matplotlib.org / 3.3.3 / gallery / images_contours_and_fields / multi_image.html  # sphx-glr-gallery-images-contours-and-fields-multi-image-py
+
+def reconstruct_image():
+  pass
+  # start off only with pixels in the training mask mapped to 1/2 - 1
+  # diffuse using learned attention
+  # run diffusion and plot predictons
+
+
+
+
+
 def main(model_keys):
   pass
 
@@ -474,18 +510,18 @@ if __name__ == '__main__':
   # model_keys = ['20210125_002603',
   #   '20210125_111920',
   #   '20210125_115601']
-  # #
-  model_keys = ['20210129_001939']
+  #
+  model_keys = ['20210129_115200','20210129_115617','20210130_133238']
   build_batches(model_keys, samples, Tmultiple, partitions, batch_num)
   build_summaries(model_keys, samples, Tmultiple, partitions, batch_num)
 
-  # times = [0, 10, 20]
+  times = [0, 8, 16]
   # grid_keys = [
   # '20210129_115200',
   # '20210129_115617',
   # '20210129_123408']
-  # image_folder = 'MNIST_10cat'
-  # model_comparison(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  image_folder = 'MNIST_1'
+  model_comparison(model_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
   # #
   # grid_keys = [
   # '20210129_124200',
