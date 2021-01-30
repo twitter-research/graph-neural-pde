@@ -75,6 +75,10 @@ class GNNEarly(BaseGNN):
     # Activation.
     z = F.relu(z)
 
+    if self.opt['fc_out']:
+      z = self.fc(z)
+      z = F.relu(z)
+
     # Dropout.
     z = F.dropout(z, self.opt['dropout'], training=self.training)
 

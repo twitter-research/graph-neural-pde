@@ -53,7 +53,7 @@ class GNN(BaseGNN):
 
     if self.opt['fc_out']:
       z = self.fc(z)
-      z = F.rulu(z)
+      z = F.relu(z)
 
     # Dropout.
     z = F.dropout(z, self.opt['dropout'], training=self.training)
