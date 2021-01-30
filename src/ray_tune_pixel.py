@@ -216,7 +216,7 @@ def set_MNIST_search_space(opt):
     opt["dropout"] = tune.uniform(0, 0.8)
     opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
     if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-        opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
+        opt["heads"] = tune.sample_from(lambda _: 2 **  np.random.randint(0, 3))
         opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 6))
         opt['attention_norm_idx'] = tune.choice([0, 1])
 

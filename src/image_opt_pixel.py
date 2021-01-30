@@ -6,26 +6,26 @@ def opt_perms(opt):
   functions = ['laplacian', 'transformer']
   """
   opt_perms = {}
-  opt1 = opt.copy()
-  opt1['im_dataset'] = 'MNIST'
-  opt1['block'] = 'constant'
-  opt1['function'] = 'laplacian'
-  opt_perms[f"{opt1['im_dataset']}_{opt1['block']}_{opt1['function']}"] = opt1
+  # opt1 = opt.copy()
+  # opt1['im_dataset'] = 'MNIST'
+  # opt1['block'] = 'constant'
+  # opt1['function'] = 'laplacian'
+  # opt_perms[f"{opt1['im_dataset']}_{opt1['block']}_{opt1['function']}"] = opt1
   # opt2 = opt.copy()
   # opt2['im_dataset'] = 'MNIST'
   # opt2['block'] = 'attention'
   # opt2['function'] = 'laplacian'
   # opt_perms[f"{opt2['im_dataset']}_{opt2['block']}_{opt2['function']}"] = opt2
-  # opt3 = opt.copy()
-  # opt3['im_dataset'] = 'MNIST'
-  # opt3['block'] = 'constant'
-  # opt3['function'] = 'transformer'
-  # opt_perms[f"{opt3['im_dataset']}_{opt3['block']}_{opt3['function']}"] = opt3
-  opt4 = opt.copy()
-  opt4['im_dataset'] = 'CIFAR'
-  opt4['block'] = 'constant'
-  opt4['function'] = 'laplacian'
-  opt_perms[f"{opt4['im_dataset']}_{opt4['block']}_{opt4['function']}"] = opt4
+  opt3 = opt.copy()
+  opt3['im_dataset'] = 'MNIST'
+  opt3['block'] = 'constant'
+  opt3['function'] = 'transformer'
+  opt_perms[f"{opt3['im_dataset']}_{opt3['block']}_{opt3['function']}"] = opt3
+  # opt4 = opt.copy()
+  # opt4['im_dataset'] = 'CIFAR'
+  # opt4['block'] = 'constant'
+  # opt4['function'] = 'laplacian'
+  # opt_perms[f"{opt4['im_dataset']}_{opt4['block']}_{opt4['function']}"] = opt4
   # opt5 = opt.copy()
   # opt5['im_dataset'] = 'CIFAR'
   # opt5['block'] = 'attention'
@@ -66,17 +66,17 @@ def get_image_opt(opt):
   # opt['tol_scale'] = 2.0 #., help = 'multiplier for atol and rtol')
   # opt['tol_scale_adjoint'] = 2.0
 
-  opt['input_dropout'] = 0.5
+  opt['input_dropout'] = 0.35
   opt['dropout'] = 0
   opt['optimizer'] = 'rmsprop'
-  opt['lr'] = 0.0047
-  opt['decay'] = 5e-4
+  opt['lr'] = 0.08
+  opt['decay'] = 0.003 #5e-4
   opt['self_loop_weight'] = 0.0 #0.555
   opt['time'] = 16 #5 #2
   opt['augment'] = False #True   #False need to view image
   opt['attention_dropout'] = 0
 
-  opt['epoch'] = 2 #32 #2 #2 #3 #1
+  opt['epoch'] = 32 #2 #2 #3 #1
   opt['batched'] = True
   if opt['testing_code']:
     opt['batch_size'] = 64 #64  # doing batch size for mnist
