@@ -66,17 +66,17 @@ def get_image_opt(opt):
   # opt['tol_scale'] = 2.0 #., help = 'multiplier for atol and rtol')
   # opt['tol_scale_adjoint'] = 2.0
 
-  opt['input_dropout'] = 0.5
+  opt['input_dropout'] = 0.35
   opt['dropout'] = 0
   opt['optimizer'] = 'rmsprop'
-  opt['lr'] = 0.0047
-  opt['decay'] = 5e-4
+  opt['lr'] = 0.08
+  opt['decay'] = 0.003 #5e-4
   opt['self_loop_weight'] = 0.0 #0.555
   opt['time'] = 16 #5 #2
   opt['augment'] = False #True   #False need to view image
   opt['attention_dropout'] = 0
 
-  opt['epoch'] = 2 #32 #2 #2 #3 #1
+  opt['epoch'] = 32 #2 #2 #3 #1
   opt['batched'] = True
   if opt['testing_code']:
     opt['batch_size'] = 64 #64  # doing batch size for mnist
