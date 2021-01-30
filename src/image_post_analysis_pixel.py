@@ -509,7 +509,7 @@ if __name__ == '__main__':
   # model_keys = ['20210130_135930','20210130_140130','20210130_140341']
   # model_epochs = [7, 7, 7]
 
-  model_keys = ['20210130_194235']
+  model_keys = ['']
   model_epochs = [0]
 
   build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
