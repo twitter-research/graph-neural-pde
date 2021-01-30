@@ -312,8 +312,8 @@ def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
   return paths_nograd, pix_labels_nograd, labels_nograd, train_mask_nograd
 
 
-def build_summaries(model_keys, samples, Tmultiple, partitions, batch_num):
-  for model_key in model_keys:
+def build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num):
+  for i, model_key in enumerate(model_keys):
     directory = f"../pixels/"
     for filename in os.listdir(directory):
       if filename.startswith(model_key):
@@ -323,7 +323,7 @@ def build_summaries(model_keys, samples, Tmultiple, partitions, batch_num):
     [_, _, data_name, blck, fct] = path.split("_")
 
     modelfolder = f"{directory}{model_key}_{data_name}_{blck}_{fct}"
-    modelpath = f"{modelfolder}/model_{model_key}"
+    modelpath = f"{modelfolder}/model_{model_key}_epoch{model_epochs[i]}"
     df = pd.read_csv(f'{directory}models.csv')
     optdf = df[df.model_key == model_key]
     intcols = ['num_class','im_chan','im_height','im_width','num_nodes']
@@ -355,10 +355,10 @@ def build_summaries(model_keys, samples, Tmultiple, partitions, batch_num):
     plt.savefig(f"{modelpath}_pixel_intensity.pdf", format="pdf")
 
 
-def build_batches(model_keys, samples, Tmultiple, partitions, batch_num):
+def build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num):
   directory = f"../pixels/"
   df = pd.read_csv(f'{directory}models.csv')
-  for model_key in model_keys:
+  for i, model_key in enumerate(model_keys):
     for filename in os.listdir(directory):
       if filename.startswith(model_key):
         path = os.path.join(directory, filename)
@@ -366,7 +366,7 @@ def build_batches(model_keys, samples, Tmultiple, partitions, batch_num):
         break
     [_, _, data_name, blck, fct] = path.split("_")
     modelfolder = f"{directory}{model_key}_{data_name}_{blck}_{fct}"
-    modelpath = f"{modelfolder}/model_{model_key}"
+    modelpath = f"{modelfolder}/model_{model_key}_epoch{model_epochs[i]}"
     optdf = df[df.model_key == model_key]
     intcols = ['num_class','im_chan','im_height','im_width','num_nodes']
     optdf[intcols].astype(int)
@@ -384,19 +384,19 @@ def build_batches(model_keys, samples, Tmultiple, partitions, batch_num):
 
 
 @torch.no_grad()
-def model_comparison(grid_keys, times, sample_name, samples, Tmultiple, partitions, batch_num):
+def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmultiple, partitions, batch_num):
     directory = f"../pixels/"
     df = pd.read_csv(f'{directory}models.csv')
     savefolder = f"../pixels/images/{sample_name}"
     check_folder(savefolder)
 
     for sample in range(samples):
-      images_A = []
+      images_A = [],
       images_B = []
       images_C = []
       labels = []
       datasets = []
-      for model_key in grid_keys:
+      for i, model_key in enumerate(model_keys):
         for filename in os.listdir(directory):
           if filename.startswith(model_key):
             path = os.path.join(directory, filename)
@@ -404,7 +404,7 @@ def model_comparison(grid_keys, times, sample_name, samples, Tmultiple, partitio
             break
         [_, _, data_name, blck, fct] = path.split("_")
         modelfolder = f"{directory}{model_key}_{data_name}_{blck}_{fct}"
-        modelpath = f"{modelfolder}/model_{model_key}"
+        modelpath = f"{modelfolder}/model_{model_key}_epoch{model_epochs[i]}"
         optdf = df[df.model_key == model_key]
         intcols = ['num_class', 'im_chan', 'im_height', 'im_width', 'num_nodes']
         optdf[intcols].astype(int)
@@ -485,9 +485,6 @@ def reconstruct_image():
   # run diffusion and plot predictons
 
 
-
-
-
 def main(model_keys):
   pass
 
@@ -513,8 +510,10 @@ if __name__ == '__main__':
   #   '20210125_115601']
   #
   model_keys = ['20210130_135930','20210130_140130','20210130_140341']
-  build_batches(model_keys, samples, Tmultiple, partitions, batch_num)
-  build_summaries(model_keys, samples, Tmultiple, partitions, batch_num)
+  model_epochs = [7, 7, 7]
+
+  build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
+  build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
 
   times = [0, 5, 10]
   # grid_keys = [
@@ -522,7 +521,7 @@ if __name__ == '__main__':
   # '20210129_115617',
   # '20210129_123408']
   image_folder = 'MNIST_1'
-  model_comparison(model_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmultiple, partitions, batch_num)
   # #
   # grid_keys = [
   # '20210129_124200',
