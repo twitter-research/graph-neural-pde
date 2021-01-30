@@ -432,7 +432,7 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
         datasets.append(opt['im_dataset'])
       images = [images_A, images_B, images_C]
 
-      plot_times = [f"t={int(opt['time'] * time / partitions)}" for time in times]
+      plot_times = ["mask"]+[f"t={int(opt['time'] * time / partitions)}" for time in times]
 
       # fig, axs = plt.subplots(3,3, figsize=(9, 6), sharex=True, sharey=True)
       fig, axs = plt.subplots(3,4, figsize=(9, 6), sharex=True, sharey=True)
@@ -442,15 +442,15 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
         axs[i, 0].imshow(masks[i], interpolation='none')
         axs[i, 0].set_yticks([])
         axs[i, 0].set_xticks([])
-        for j in range(1,4):
+        for j in range(3):
                 # axs[i,j].imshow(plt.imread(images[j][i]))
                 if datasets[i] == 'MNIST':
-                  axs[i, j].imshow(images[j][i], cmap='gray', interpolation='none')
+                  axs[i, j+1].imshow(images[j][i], cmap='gray', interpolation='none')
                 elif datasets[i] == 'CIFAR':
                   A = UnNormalizeCIFAR(A)
-                  axs[i, j].imshow(images[j][i], interpolation='none')
-                axs[i,j].set_yticks([])
-                axs[i,j].set_xticks([])
+                  axs[i, j+1].imshow(images[j][i], interpolation='none')
+                axs[i,j+1].set_yticks([])
+                axs[i,j+1].set_xticks([])
         plt.subplots_adjust(wspace=-0.2, hspace=0)
         for ax, t in zip(axs[0], plot_times):
             ax.set_title(t, size=18)
