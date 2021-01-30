@@ -37,12 +37,11 @@ def train(model, optimizer, dataset, data_test=None):
 
     out = model(batch.x.to(model.device))
 
-    if model.opt['pixel_loss'] in ['binary_sigmoid', '10catlogits']:#'10catM2', ]:
+    if model.opt['pixel_loss'] in ['binary_sigmoid', '10catlogits', '10catM2']:
       lf = torch.nn.CrossEntropyLoss()
     elif model.opt['pixel_loss'] == 'MSE':
       lf = torch.nn.MSELoss()
 
-    # loss = lf(out, batch.y.view(-1).to(model.device))
     if model.opt['im_chan'] == 1:
       loss = lf(out[batch.train_mask], batch.y.squeeze()[batch.train_mask].to(model.device))
     if model.opt['im_chan'] == 3:
@@ -53,13 +52,17 @@ def train(model, optimizer, dataset, data_test=None):
         loss += lf(torch.stack((out[:,2],out[:,5]),dim=1)[batch.train_mask], batch.y[:,2].squeeze()[batch.train_mask].to(model.device))
       elif model.opt['pixel_cat'] == 10 and model.opt['pixel_loss'] == '10catlogits':
         for i in range(10):
+          pass #old method taking pixel slices was wrong anyway
           # loss += lf(torch.stack((out[:, i], out[:, i+9]), dim=1)[batch.train_mask].repeat(3),batch.y.view(-1,1)[batch.train_mask].repeat(3))
-          A = out[batch.train_mask.repeat(3)]
-          B = batch.y.view(-1, 1).squeeze()[batch.train_mask.repeat(3)].to(model.device)
-          loss += lf(A,B)
+          # A = out[batch.train_mask.repeat(3)]
+          # B = batch.y.view(-1, 1).squeeze()[batch.train_mask.repeat(3)].to(model.device)
+          # loss += lf(A,B)
           # loss += lf(torch.stack((out[:, i], out[:, i + 9]), dim=1)[batch.train_mask.repeat(3)],
           #      batch.y.view(-1, 1).squeeze()[batch.train_mask.repeat(3)])
-    "IndexError: The shape of the mask [65536] at index 0 does not match the shape of the indexed tensor [196608, 2] at index 0"
+      elif model.opt['pixel_cat'] > 1 and model.opt['pixel_loss'] == '10catM2':
+        A = out[batch.train_mask]
+        B = batch.y.view(-1, 1).squeeze()[batch.train_mask].to(model.device)
+        loss += lf(A, B)
 
     model.fm.update(model.getNFE())
     model.resetNFE()
@@ -68,23 +71,25 @@ def train(model, optimizer, dataset, data_test=None):
     model.bm.update(model.getNFE())
     model.resetNFE()
 
-    if model.opt['testing_code']:
-      if batch_idx % 5 == 0:
-        test_acc = pixel_test(model, batch, "batch")
-        log = 'Batch Index: {}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
-        print(log.format(batch_idx, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
-      elif batch_idx % 1 == 0:
-        print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
-                                                                              time.time() - start_time))
-    else:
-      # if batch_idx % (model.opt['train_size'] / model.opt['batch_size'] / 10) == 0:
-      # # if batch_idx % 5 == 0:
-      #   test_acc = test(model, data_test)
-      #   log = 'Batch Index: {}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
-      #   print(log.format(batch_idx, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
-      if batch_idx % 1 == 0:
-        print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
-                                                                              time.time() - start_time))
+    # if model.opt['testing_code']:
+    #   if batch_idx % 5 == 0:
+    #     test_acc = pixel_test(model, batch, "batch")
+    #     log = 'Batch Index: {}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
+    #     print(log.format(batch_idx, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
+    #   elif batch_idx % 1 == 0:
+    #     print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
+    #                                                                           time.time() - start_time))
+    # else:
+    #   # if batch_idx % (model.opt['train_size'] / model.opt['batch_size'] / 10) == 0:
+    #   # # if batch_idx % 5 == 0:
+    #   #   test_acc = test(model, data_test)
+    #   #   log = 'Batch Index: {}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
+    #   #   print(log.format(batch_idx, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
+    #   if batch_idx % 1 == 0:
+    #     print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
+    #                                                                           time.time() - start_time))
+    print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
+                                                                          time.time() - start_time))
 
   return loss.item()
 
@@ -117,34 +122,40 @@ def pixel_test(model, data, batchorTest):
     pred = logits.max(1)[1]
     total_correct += pred.eq(data.y.T.to(model.device)).sum().item()
   elif model.opt['im_chan'] == 3:
-    test_size = data.y.shape[0] * data.y.shape[1]
+    test_size = data.y.shape[0]
     model.eval()
-    out = model(data.x.to(model.device))
-    if model.opt['pixel_cat'] == 2 and model.opt['pixel_loss'] == 'binary_sigmoid':
-      logitsR = torch.stack((out[:, 0], out[:, 3]), dim=1)
-      logitsG = torch.stack((out[:, 1], out[:, 4]), dim=1)
-      logitsB = torch.stack((out[:, 2], out[:, 5]), dim=1)
-      predR = logitsR.max(1)[1]
-      predG = logitsG.max(1)[1]
-      predB = logitsB.max(1)[1]
-      total_correct += predR.eq(data.y[:,0].T.to(model.device)).sum().item()
-      total_correct += predG.eq(data.y[:,1].T.to(model.device)).sum().item()
-      total_correct += predB.eq(data.y[:,2].T.to(model.device)).sum().item()
-    elif model.opt['pixel_cat'] == 10 and model.opt['pixel_loss'] == '10catlogits':
-      if batchorTest == "batch":
-        span = model.opt['im_height'] * model.opt['im_width'] * model.opt['batch_size']
-      elif batchorTest == "test":
-        span = model.opt['im_height'] * model.opt['im_width'] * model.opt['train_size']
-
-      logitsR = out[0:span, :]
-      logitsG = out[span:2*span, :]
-      logitsB = out[2*span:3*span, :]
-      predR = logitsR.max(1)[1]
-      predG = logitsG.max(1)[1]
-      predB = logitsB.max(1)[1]
-      total_correct += predR.eq(data.y[:, 0].T.to(model.device)).sum().item()
-      total_correct += predG.eq(data.y[:, 1].T.to(model.device)).sum().item()
-      total_correct += predB.eq(data.y[:, 2].T.to(model.device)).sum().item()
+    logits = model(data.x.to(model.device))
+    pred = logits.max(1)[1]
+    total_correct += pred.eq(data.y.T.to(model.device)).sum().item()
+    #old method taking slices
+    # test_size = data.y.shape[0] * data.y.shape[1]
+    # model.eval()
+    # out = model(data.x.to(model.device))
+    # if model.opt['pixel_cat'] == 2 and model.opt['pixel_loss'] == 'binary_sigmoid':
+    #   logitsR = torch.stack((out[:, 0], out[:, 3]), dim=1)
+    #   logitsG = torch.stack((out[:, 1], out[:, 4]), dim=1)
+    #   logitsB = torch.stack((out[:, 2], out[:, 5]), dim=1)
+    #   predR = logitsR.max(1)[1]
+    #   predG = logitsG.max(1)[1]
+    #   predB = logitsB.max(1)[1]
+    #   total_correct += predR.eq(data.y[:,0].T.to(model.device)).sum().item()
+    #   total_correct += predG.eq(data.y[:,1].T.to(model.device)).sum().item()
+    #   total_correct += predB.eq(data.y[:,2].T.to(model.device)).sum().item()
+    # elif model.opt['pixel_cat'] == 10 and model.opt['pixel_loss'] == '10catlogits':
+    #   if batchorTest == "batch":
+    #     span = model.opt['im_height'] * model.opt['im_width'] * model.opt['batch_size']
+    #   elif batchorTest == "test":
+    #     span = model.opt['im_height'] * model.opt['im_width'] * model.opt['train_size']
+    #
+    #   logitsR = out[0:span, :]
+    #   logitsG = out[span:2*span, :]
+    #   logitsB = out[2*span:3*span, :]
+    #   predR = logitsR.max(1)[1]
+    #   predG = logitsG.max(1)[1]
+    #   predB = logitsB.max(1)[1]
+    #   total_correct += predR.eq(data.y[:, 0].T.to(model.device)).sum().item()
+    #   total_correct += predG.eq(data.y[:, 1].T.to(model.device)).sum().item()
+    #   total_correct += predB.eq(data.y[:, 2].T.to(model.device)).sum().item()
 
   accs = total_correct / test_size
   return accs

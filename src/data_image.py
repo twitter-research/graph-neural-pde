@@ -12,6 +12,9 @@ import torchvision.transforms as transforms
 import scipy.sparse as sp
 import h5py
 from image_opt import get_image_opt
+# from torch_geometric.nn.pool import knn
+from sklearn.cluster import KMeans
+import cv2
 
 
 def edge_index_calc(im_height, im_width, im_chan, diags=False):
@@ -241,14 +244,33 @@ class InMemPixelData(ImageInMemory):
         break
       x = data.view(c, w * h)
       x = x.T
-      # bucket labels in each channel
-      pix_labels = []
-      for i in range(self.opt['im_chan']):
-        y = np.maximum(np.minimum(x * self.opt['pixel_cat'] ,self.opt['pixel_cat']*(0.9999)), 0)
-        y = y[:,i]
-        y = torch.floor(y).type(torch.LongTensor)
-        pix_labels.append(y)
-      y = torch.stack(pix_labels, dim=1)
+
+      pixel_pos = torch.FloatTensor([(self.opt['im_height'] - i, j) for i in range(self.opt['im_height']) for j in
+                   range(self.opt['im_width'])])
+
+      if self.opt['im_dataset'] == 'MNIST':
+        pix_labels = []
+        # bucket labels in each channel (superseeded by kmeans for CIFAR)
+        for i in range(self.opt['im_chan']):
+          y = np.maximum(np.minimum(x * self.opt['pixel_cat'] ,self.opt['pixel_cat']*(0.9999)), 0)
+          y = y[:,i]
+          y = torch.floor(y).type(torch.LongTensor)
+          pix_labels.append(y)
+        y = torch.stack(pix_labels, dim=1)
+      elif self.opt['im_dataset'] == 'CIFAR':
+        # xNpos = torch.cat((x,pixel_pos),dim=1)
+        # kmeans = KMeans(self.opt['pixel_cat'], random_state=0).fit(xNpos)
+        # y = torch.LongTensor(kmeans.labels_).unsqueeze(1)
+
+        # criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+        # K = 10
+        # attempts = 10
+        # ret, label, center = cv2.kmeans(np.float32(x), K, None, criteria, attempts, cv2.KMEANS_PP_CENTERS)
+        # y = torch.LongTensor(label)
+
+        kmeans = KMeans(self.opt['pixel_cat'], random_state=0).fit(x)
+        y = torch.LongTensor(kmeans.labels_).unsqueeze(1)
+
       # y.view(28, 28).detach().numpy()
       full_idx = np.arange(self.opt['num_nodes'])
       # set pixel masks
@@ -264,7 +286,7 @@ class InMemPixelData(ImageInMemory):
       test_mask = torch.zeros(self.opt['num_nodes'], dtype=torch.bool)
       train_mask[train_idx] = 1
       test_mask[test_idx] = 1
-      graph = Data(x=x, y=y, target=target, edge_index=edge_index, train_mask=train_mask, test_mask=test_mask)
+      graph = Data(x=x, y=y, pos=pixel_pos, target=target, edge_index=edge_index, train_mask=train_mask, test_mask=test_mask)
       graph_list.append(graph)
 
     torch.save(self.collate(graph_list), self.processed_paths[0])

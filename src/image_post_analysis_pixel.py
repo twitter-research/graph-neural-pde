@@ -132,13 +132,17 @@ def batch_vis_mask(train_mask, paths, pix_labels, labels, opt, pic_folder, sampl
     plt.tight_layout()
     plt.axis('off')
     train_maski = train_mask[i * (opt['im_height'] * opt['im_width']):(i + 1) * (opt['im_height'] * opt['im_width'])].long()
-    A = paths[i, 0, :].reshape(-1, 1) * train_maski.reshape(-1, 1)
+
+    A = paths[i, 0, :].reshape(-1, opt['im_height'] * opt['im_width'], opt['im_chan'])
+    if opt['im_dataset'] == 'CIFAR':
+      A = UnNormalizeCIFAR(A)
+    A = A * train_maski.reshape(-1, 1)
+
     A = A.view(opt['im_height'], opt['im_width'], opt['im_chan'])
     # A = paths[i,0,:].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
     if opt['im_dataset'] == 'MNIST':
       plt.imshow(A, cmap='gray', interpolation='none')
     elif opt['im_dataset'] == 'CIFAR':
-      A = UnNormalizeCIFAR(A)
       plt.imshow(A, interpolation='none')
     plt.title(f"t=0 Train Mask Ground Truth: {labels[i].item()}")
     plt.savefig(f"{savefolder}/image_train_mask{i}.png", format="png")
@@ -146,7 +150,7 @@ def batch_vis_mask(train_mask, paths, pix_labels, labels, opt, pic_folder, sampl
   return fig
 
 
-def batch_vis_binary(train_mask, pix_labels, labels, opt, pic_folder, samples):
+def batch_vis_labels(train_mask, pix_labels, labels, opt, pic_folder, samples):
   savefolder = f"{pic_folder}/binary"
   check_folder(savefolder)
 
@@ -156,7 +160,7 @@ def batch_vis_binary(train_mask, pix_labels, labels, opt, pic_folder, samples):
     plt.axis('off')
     # train_maski = train_mask[i * (opt['im_height'] * opt['im_width']):(i + 1) * (opt['im_height'] * opt['im_width'])].long()
     # A = paths[i, 0, :].reshape(-1, 1) * train_maski.reshape(-1, 1)
-    A = pix_labels.view(-1, opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
+    A = pix_labels.view(-1, opt['im_height'], opt['im_width']).cpu()
     # pix_labels[i, 0, :]
     # A = A.view(opt['im_height'], opt['im_width'], opt['im_chan'])
     # A = paths[i,0,:].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
@@ -375,7 +379,7 @@ def build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batc
     paths, pix_labels, labels, train_mask = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
 
     batch_vis_mask(train_mask, paths, pix_labels, labels, opt, pic_folder=modelfolder, samples=samples)
-    batch_vis_binary(train_mask, pix_labels, labels, opt, pic_folder=modelfolder, samples=samples)
+    batch_vis_labels(train_mask, pix_labels, labels, opt, pic_folder=modelfolder, samples=samples)
     batch_image(paths, labels, time=0, opt=opt, pic_folder=modelfolder, samples=samples)
     batch_image(paths, labels, time=5, opt=opt, pic_folder=modelfolder, samples=samples)
     batch_image(paths, labels, time=10, opt=opt, pic_folder=modelfolder, samples=samples)
@@ -439,7 +443,7 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
       fig.suptitle(f"{opt['im_dataset']} Pixel Diffusion")
 
       for i in range(3):
-        axs[i, 0].imshow(masks[i], cmap='gray', interpolation='none')
+        axs[i, 0].imshow(images[0][0]*masks[i], cmap='gray', interpolation='none')
         axs[i, 0].set_yticks([])
         axs[i, 0].set_xticks([])
         for j in range(3):
@@ -488,12 +492,6 @@ def plot_att_heat(model, model_key, modelpath):
   # useful code to overcome normalisation colour bar
   # https: // matplotlib.org / 3.3.3 / gallery / images_contours_and_fields / multi_image.html  # sphx-glr-gallery-images-contours-and-fields-multi-image-py
 
-def reconstruct_image():
-  pass
-  # start off only with pixels in the training mask mapped to 1/2 - 1
-  # diffuse using learned attention
-  # run diffusion and plot predictons
-
 
 def main(model_keys):
   pass
@@ -503,27 +501,19 @@ if __name__ == '__main__':
   partitions = 10
   batch_num = 1#2
   samples = 6
-  # model_keys = [
-  # '20210129_115200',
-  # '20210129_115617',
-  # '20210129_123408',
-  # '20210129_124200',
-  # '20210129_124956',
-  # '20210129_134243']
 
-  # model_keys = ['20210125_002603']
   # directory = f"../pixels/"
   # df = pd.read_csv(f'{directory}models.csv')
   # model_keys = df['model_key'].to_list()
-  # model_keys = ['20210125_002603',
-  #   '20210125_111920',
-  #   '20210125_115601']
-  #
-  model_keys = ['20210130_135930','20210130_140130','20210130_140341']
-  model_epochs = [7, 7, 7]
 
-  # build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
-  # build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
+  # model_keys = ['20210130_135930','20210130_140130','20210130_140341']
+  # model_epochs = [7, 7, 7]
+
+  model_keys = ['20210130_194235']
+  model_epochs = [0]
+
+  build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
+  build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
 
   times = [0, 5, 10]
   # grid_keys = [
@@ -531,7 +521,8 @@ if __name__ == '__main__':
   # '20210129_115617',
   # '20210129_123408']
   image_folder = 'MNIST_1'
-  model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  # model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmultiple, partitions, batch_num)
+
   # #
   # grid_keys = [
   # '20210129_124200',

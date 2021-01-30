@@ -63,7 +63,7 @@ class GNN_image_pixel(BaseGNN):
     self.bn = nn.BatchNorm1d(num_features=opt['im_chan'])
 
     if self.opt['pixel_loss'] == '10catM2':
-      self.m2 = nn.Linear(1, num_classes)
+      self.m2 = nn.Linear(opt['im_chan'], opt['pixel_cat'])
     else:
       self.m2 = None
       # self.m2 = nn.Linear(opt['im_width'] * opt['im_height'] * opt['im_chan'], num_classes)
@@ -103,15 +103,16 @@ class GNN_image_pixel(BaseGNN):
     if self.opt['pixel_loss'] == 'binary_sigmoid':
       z = torch.cat((torch.sigmoid(z), 1 - torch.sigmoid(z)),dim=1)
     elif self.opt['pixel_loss'] == '10catM2':
-      z = z.view(-1, 1)
-      z = self.m2(z) #decoder to number of classes
+      z = z.view(-1, self.opt['im_chan'])
+      z = self.m2(z) #decoder to number of classes this is like 10, 3->1 linear layers
+      z = torch.sigmoid(z)
     elif self.opt['pixel_loss'] == '10catlogits':
       z = z.view(-1,1)
       cats = torch.arange(self.opt['pixel_cat']).to(self.device)
       z = 1 / ((z - cats) ** 2 + 1e-5)
       torch.cat((torch.sigmoid(z), 1 - torch.sigmoid(z)), dim=1)
-    elif self.opt['pixel_loss'] == 'MSE':
-      z = z
+    # elif self.opt['pixel_loss'] == 'MSE':
+    #   z = z
 
     # for node (or pixel) classification
     # z = z.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])
