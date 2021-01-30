@@ -390,7 +390,6 @@ def model_comparison(grid_keys, times, sample_name, samples, Tmultiple, partitio
     savefolder = f"../pixels/images/{sample_name}"
     check_folder(savefolder)
 
-    plot_times = [f"t={time/partitions}" for time in times]
     for sample in range(samples):
       images_A = []
       images_B = []
@@ -427,6 +426,8 @@ def model_comparison(grid_keys, times, sample_name, samples, Tmultiple, partitio
         labels.append(f"{opt['block']}\n{opt['function']}")
         datasets.append(opt['im_dataset'])
       images = [images_A, images_B, images_C]
+
+      plot_times = [f"t={int(opt['time'] * time / partitions)}" for time in times]
 
       fig, axs = plt.subplots(3,3, figsize=(9, 6), sharex=True, sharey=True)
       fig.suptitle(f"{opt['im_dataset']} Pixel Diffusion")
@@ -491,7 +492,7 @@ def main(model_keys):
   pass
 
 if __name__ == '__main__':
-  Tmultiple = 2
+  Tmultiple = 1
   partitions = 10
   batch_num = 1#2
   samples = 6
@@ -511,11 +512,11 @@ if __name__ == '__main__':
   #   '20210125_111920',
   #   '20210125_115601']
   #
-  model_keys = ['20210129_115200','20210129_115617','20210130_133238']
+  model_keys = ['20210130_135930','20210130_140130','20210130_140341']
   build_batches(model_keys, samples, Tmultiple, partitions, batch_num)
   build_summaries(model_keys, samples, Tmultiple, partitions, batch_num)
 
-  times = [0, 8, 16]
+  times = [0, 5, 10]
   # grid_keys = [
   # '20210129_115200',
   # '20210129_115617',
