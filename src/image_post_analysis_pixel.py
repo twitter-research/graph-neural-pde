@@ -511,17 +511,17 @@ if __name__ == '__main__':
   #   '20210125_111920',
   #   '20210125_115601']
   #
-  model_keys = ['20210129_013725']
+  model_keys = ['20210129_115200','20210129_115617','20210130_133238']
   build_batches(model_keys, samples, Tmultiple, partitions, batch_num)
   build_summaries(model_keys, samples, Tmultiple, partitions, batch_num)
 
-  # times = [0, 10, 20]
+  times = [0, 8, 16]
   # grid_keys = [
   # '20210129_115200',
   # '20210129_115617',
   # '20210129_123408']
-  # image_folder = 'MNIST_10cat'
-  # model_comparison(grid_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  image_folder = 'MNIST_1'
+  model_comparison(model_keys, times, image_folder, samples, Tmultiple, partitions, batch_num)
   # #
   # grid_keys = [
   # '20210129_124200',

@@ -196,17 +196,6 @@ def main(opt):
     print_model_params(model)
     optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
 
-    for epoch in range(opt['epoch']):
-      print("Epoch {}".format(epoch))
-      start_time = time.time()
-      loss = train(model, optimizer, pixel_data)
-      # loss = train(model, optimizer, data_train, data_test)
-      # test_acc = test(model, data_test)
-      test_acc = pixel_test(model, pixel_data.data, "test")
-
-      log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
-      print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
-
     timestr = time.strftime("%Y%m%d_%H%M%S")
     # save model - params only - no point repeatedly saving data
     data_name = opt['im_dataset']
@@ -221,7 +210,20 @@ def main(opt):
       print("Creation of the directory %s failed" % savefolder)
     else:
       print("Successfully created the directory %s " % savefolder)
-    torch.save(model.state_dict(), savepath)
+
+    for epoch in range(opt['epoch']):
+      print("Epoch {}".format(epoch))
+      start_time = time.time()
+      loss = train(model, optimizer, pixel_data)
+      # loss = train(model, optimizer, data_train, data_test)
+      # test_acc = test(model, data_test)
+      test_acc = pixel_test(model, pixel_data.data, "test")
+
+      log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
+      print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
+
+      if epoch // 8 == 0:
+        torch.save(model.state_dict(), f"{savepath}_epoch{epoch}")
 
     # save run details to csv
     opt['model_key'] = model_key
