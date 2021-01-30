@@ -439,7 +439,7 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
       fig.suptitle(f"{opt['im_dataset']} Pixel Diffusion")
 
       for i in range(3):
-        axs[i, 0].imshow(masks[i], interpolation='none')
+        axs[i, 0].imshow(masks[i], cmap='gray', interpolation='none')
         axs[i, 0].set_yticks([])
         axs[i, 0].set_xticks([])
         for j in range(3):
