@@ -14,7 +14,7 @@ import h5py
 from image_opt import get_image_opt
 # from torch_geometric.nn.pool import knn
 from sklearn.cluster import KMeans
-import cv2
+# import cv2
 
 
 def edge_index_calc(im_height, im_width, im_chan, diags=False):
