@@ -529,7 +529,7 @@ def main(opt):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   opt = set_search_space(opt)
   scheduler = ASHAScheduler(
-    metric="accuracy",
+    metric=opt['metric'],
     mode="max",
     max_t=opt["epoch"],
     grace_period=opt["grace_period"],
@@ -539,7 +539,7 @@ def main(opt):
     metric_columns=["accuracy", "test_acc", "train_acc", "loss", "training_iteration", "forward_nfe", "backward_nfe"]
   )
   # choose a search algorithm from https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
-  search_alg = AxSearch(metric="accuracy")
+  search_alg = AxSearch(metric=opt['metric'])
   search_alg = None
 
   train_fn = train_ray if opt["num_splits"] == 0 else train_ray_rand
@@ -550,7 +550,7 @@ def main(opt):
     resources_per_trial={"cpu": opt["cpus"], "gpu": opt["gpus"]},
     search_alg=search_alg,
     keep_checkpoints_num=3,
-    checkpoint_score_attr='accuracy',
+    checkpoint_score_attr=opt['metric'],
     config=opt,
     num_samples=opt["num_samples"],
     scheduler=scheduler,
@@ -675,6 +675,7 @@ if __name__ == "__main__":
   parser.add_argument("--num_init", type=int, default=4, help="Number of random initializations >= 0")
 
   parser.add_argument("--max_nfe", type=int, default=300, help="Maximum number of function evaluations allowed.")
+  parser.add_argument('--metric', type=str, default='accuracy', help='metric to sort the hyperparameter tuning runs on')
   # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
   parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")

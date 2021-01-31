@@ -12,7 +12,7 @@ from ray.tune import CLIReporter
 
 def get_best_params_dir(opt):
   analysis = Analysis("../ray_tune/{}".format(opt['folder']))
-  df = analysis.dataframe(metric='accuracy', mode='max')
+  df = analysis.dataframe(metric=opt['metric'], mode='max')
   best_params_dir = df.sort_values('accuracy', ascending=False)['logdir'].iloc[opt['index']]
   return best_params_dir
 
@@ -60,13 +60,13 @@ def run_best_params(opt):
     progress_reporter=reporter,
     raise_on_failed_trial=False)
 
-  df = result.dataframe(metric="accuracy", mode="max").sort_values('accuracy', ascending=False)
+  df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
   try:
     df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
   except:
     pass
 
-  print(df[['accuracy', 'test_acc', 'best_time', 'best_epoch']])
+  print(df[['accuracy', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
 
   test_accs = df['accuracy'].values
   print("test accuracy {}".format(test_accs))
