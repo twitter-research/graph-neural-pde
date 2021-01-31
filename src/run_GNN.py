@@ -95,7 +95,7 @@ def train(model, optimizer, data):
   optimizer.zero_grad()
   feat = data.x
   if model.opt['use_labels']:
-    train_label_idx, train_pred_idx = get_label_masks(data)
+    train_label_idx, train_pred_idx = get_label_masks(data, model.opt['label_rate'])
 
     feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
   else:
@@ -230,6 +230,7 @@ if __name__ == '__main__':
                       help='rw for random walk, gcn for symmetric gcn norm')
   parser.add_argument('--self_loop_weight', type=float, default=1.0, help='Weight of self-loops.')
   parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
+  parser.add_argument('--label_rate', type=float, default=0.5, help='% of training labels to use when --use_labels is set.')
   # GNN args
   parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
   parser.add_argument('--fc_out', dest='fc_out', action='store_true', help='Add a fully connected layer to the decoder.')

@@ -445,9 +445,9 @@ def set_arxiv_search_space(opt):
   opt["lr"] = tune.uniform(0.01, 0.05)
   # opt['lr'] = 0.02
   opt["input_dropout"] = tune.uniform(0., 0.1)
-  opt["input_dropout"] = 0
+  # opt["input_dropout"] = 0
   opt["dropout"] = tune.uniform(0, 0.2)
-  opt["dropout"] = 0
+  # opt["dropout"] = 0
   opt['step_size'] = tune.choice([0.5, 1])
   # opt['step_size'] = 1
   opt['adjoint_step_size'] = tune.choice([0.5, 1])
@@ -458,8 +458,10 @@ def set_arxiv_search_space(opt):
   # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
   opt['optimizer'] = 'adam'
   if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
+    # opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
+    opt["heads"] = 2
+    # opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
+    opt["attention_dim"] = 64
     # opt['attention_norm_idx'] = tune.choice([0, 1])
     # opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
     #   [0, 1])
@@ -470,11 +472,12 @@ def set_arxiv_search_space(opt):
     # opt["self_loop_weight"] = tune.uniform(0, 3)
     opt["self_loop_weight"] = tune.choice([0,1])
   # opt['data_norm'] = tune.choice(['rw', 'gcn'])
-  opt['add_source'] = tune.choice([True, False])
-  # opt['add_source'] = True
+  # opt['add_source'] = tune.choice([True, False])
+  opt['add_source'] = True
   opt['att_samp_pct'] = tune.uniform(0.6, 1)
   # opt['batch_norm'] = tune.choice([True, False])
-  opt['batch_norm'] = tune.choice([True, False])
+  opt['batch_norm'] = True
+  opt['label_rate'] = tune.uniform(0.2,0.8)
 
   # opt["tol_scale"] = tune.loguniform(10, 1e4)
 
@@ -603,6 +606,7 @@ if __name__ == "__main__":
   parser.add_argument("--decay", type=float, default=5e-4, help="Weight decay for optimization")
   parser.add_argument("--self_loop_weight", type=float, default=1.0, help="Weight of self-loops.")
   parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
+  parser.add_argument('--label_rate', type=float, default=0.5, help='% of training labels to use when --use_labels is set.')
   parser.add_argument("--epoch", type=int, default=10, help="Number of training epochs per iteration.")
   parser.add_argument("--alpha", type=float, default=1.0, help="Factor in front matrix A.")
   parser.add_argument("--time", type=float, default=1.0, help="End time of ODE function.")
