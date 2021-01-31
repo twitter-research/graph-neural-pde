@@ -442,9 +442,9 @@ def set_arxiv_search_space(opt):
   # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 9))
   # opt["hidden_dim"] = 200  # best choice with attention
   # opt["hidden_dim"] = 256  # best choice without attention
-  opt["lr"] = tune.uniform(0.01, 0.05)
+  opt["lr"] = tune.uniform(0.005, 0.05)
   # opt['lr'] = 0.02
-  opt["input_dropout"] = tune.uniform(0., 0.1)
+  opt["input_dropout"] = tune.uniform(0., 0.2)
   # opt["input_dropout"] = 0
   opt["dropout"] = tune.uniform(0, 0.2)
   # opt["dropout"] = 0
@@ -453,7 +453,7 @@ def set_arxiv_search_space(opt):
   opt['adjoint_step_size'] = tune.choice([0.5, 1])
   # opt['adjoint_step_size'] = 1
   # opt["time"] = tune.choice([1,2,3,4,5,6,7,8,9,10])
-  opt['time'] = tune.uniform(2, 15)
+  opt['time'] = tune.uniform(1.5, 10)
   # opt['time'] = 5
   # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
   opt['optimizer'] = 'adam'
@@ -461,7 +461,7 @@ def set_arxiv_search_space(opt):
     # opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
     opt["heads"] = 2
     # opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
-    opt["attention_dim"] = 64
+    opt["attention_dim"] = 32
     # opt['attention_norm_idx'] = tune.choice([0, 1])
     # opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
     #   [0, 1])
@@ -474,10 +474,10 @@ def set_arxiv_search_space(opt):
   # opt['data_norm'] = tune.choice(['rw', 'gcn'])
   # opt['add_source'] = tune.choice([True, False])
   opt['add_source'] = True
-  opt['att_samp_pct'] = tune.uniform(0.6, 1)
+  opt['att_samp_pct'] = tune.uniform(0.3, 1)
   # opt['batch_norm'] = tune.choice([True, False])
   opt['batch_norm'] = True
-  opt['label_rate'] = tune.uniform(0.1,0.5)
+  opt['label_rate'] = tune.uniform(0.05,0.5)
 
   # opt["tol_scale"] = tune.loguniform(10, 1e4)
 
@@ -499,9 +499,10 @@ def set_arxiv_search_space(opt):
     # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
     opt['gdc_method'] = 'ppr'
     # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
-    opt['gdc_threshold'] = tune.loguniform(0.001, 0.05)
+    opt['gdc_threshold'] = tune.uniform(0.0005, 0.005)
     # opt['gdc_threshold'] = None
-    opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
+    # opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
+    opt['ppr_alpha'] = 0.15
     # opt['heat_time'] = tune.uniform(1, 5)
 
   return opt
