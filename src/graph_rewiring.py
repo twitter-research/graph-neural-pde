@@ -31,6 +31,8 @@ def apply_gdc(data, opt):
             normalization_out='col',
             diffusion_kwargs=diff_args,
             sparsification_kwargs=sparse_args, exact=opt['exact'])
+  if isinstance(data.num_nodes, list):
+    data.num_nodes = data.num_nodes[0]
   data = gdc(data)
   print('following rewiring data contains {} edges and {} nodes'.format(data.num_edges, data.num_nodes))
   return data
