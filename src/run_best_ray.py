@@ -68,7 +68,7 @@ def run_best_params(opt):
 
   print(df[['accuracy', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
 
-  test_accs = df['accuracy'].values
+  test_accs = df['test_acc'].values
   print("test accuracy {}".format(test_accs))
   log = "mean test {:04f}, test std {:04f}, test sem {:04f}, test 95% conf {:04f}"
   print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs), mean_confidence_interval(test_accs)))
