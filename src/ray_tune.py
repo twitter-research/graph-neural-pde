@@ -499,7 +499,7 @@ def set_arxiv_search_space(opt):
     # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
     opt['gdc_method'] = 'ppr'
     # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
-    opt['gdc_threshold'] = tune.loguniform(0.00001, 0.0005)
+    opt['gdc_threshold'] = tune.loguniform(0.001, 0.05)
     # opt['gdc_threshold'] = None
     opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
     # opt['heat_time'] = tune.uniform(1, 5)
