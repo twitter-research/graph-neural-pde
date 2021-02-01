@@ -8,6 +8,7 @@ class HardAttODEblock(ODEblock):
   def __init__(self, odefunc, regularization_fns, opt, data, device, t=torch.tensor([0, 1]), gamma=0.5):
     super(HardAttODEblock, self).__init__(odefunc, regularization_fns, opt, data, device, t)
     assert opt['att_samp_pct'] > 0 and opt['att_samp_pct'] <= 1, "attention sampling threshold must be in (0,1]"
+    self.opt = opt
     self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, data, device)
     # self.odefunc.edge_index, self.odefunc.edge_weight = data.edge_index, edge_weight=data.edge_attr
     self.num_nodes = data.num_nodes
@@ -28,11 +29,15 @@ class HardAttODEblock(ODEblock):
     self.test_integrator = odeint
     self.set_tol()
     # parameter trading off between attention and the Laplacian
-    self.multihead_att_layer = SpGraphTransAttentionLayer(opt['hidden_dim'], opt['hidden_dim'], opt,
+    if opt['function'] not in {'GAT', 'transformer'}:
+      self.multihead_att_layer = SpGraphTransAttentionLayer(opt['hidden_dim'], opt['hidden_dim'], opt,
                                                           device, edge_weights=self.odefunc.edge_weight).to(device)
 
   def get_attention_weights(self, x):
-    attention, values = self.multihead_att_layer(x, self.data_edge_index)
+    if self.opt['function'] not in {'GAT', 'transformer'}:
+      attention, values = self.multihead_att_layer(x, self.data_edge_index)
+    else:
+      attention, values = self.odefunc.multihead_att_layer(x, self.data_edge_index)
     return attention
 
   def renormalise_attention(self, attention):
