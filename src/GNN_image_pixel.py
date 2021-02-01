@@ -70,6 +70,7 @@ class GNN_image_pixel(BaseGNN):
 
     # self.ConvNet = MNISTConvNet(opt) if opt['im_dataset'] == 'MNIST' else CIFARConvNet(opt)
 
+
   def forward(self, x):
     # Encode each node based on its feature.
     x = F.dropout(x, self.opt['input_dropout'], training=self.training)
@@ -103,14 +104,19 @@ class GNN_image_pixel(BaseGNN):
     if self.opt['pixel_loss'] == 'binary_sigmoid':
       z = torch.cat((torch.sigmoid(z), 1 - torch.sigmoid(z)),dim=1)
     elif self.opt['pixel_loss'] == '10catM2':
-      z = z.view(-1, self.opt['im_chan'])
+      # z = z.view(-1, self.opt['im_chan'])
       z = self.m2(z) #decoder to number of classes this is like 10, 3->1 linear layers
       z = torch.sigmoid(z)
-    elif self.opt['pixel_loss'] == '10catlogits':
+    elif self.opt['pixel_loss'] == '10catlogits'and self.opt['im_chan'] == 1:
       z = z.view(-1,1)
       cats = torch.arange(self.opt['pixel_cat']).to(self.device)
       z = 1 / ((z - cats) ** 2 + 1e-5)
       torch.cat((torch.sigmoid(z), 1 - torch.sigmoid(z)), dim=1)
+
+    elif self.opt['pixel_loss'] == '10catkmeans':
+      pass
+
+
     # elif self.opt['pixel_loss'] == 'MSE':
     #   z = z
 

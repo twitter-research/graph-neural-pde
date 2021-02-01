@@ -132,12 +132,10 @@ def batch_vis_mask(train_mask, paths, pix_labels, labels, opt, pic_folder, sampl
     plt.tight_layout()
     plt.axis('off')
     train_maski = train_mask[i * (opt['im_height'] * opt['im_width']):(i + 1) * (opt['im_height'] * opt['im_width'])].long()
-
     A = paths[i, 0, :].reshape(-1, opt['im_height'] * opt['im_width'], opt['im_chan'])
     if opt['im_dataset'] == 'CIFAR':
       A = UnNormalizeCIFAR(A)
     A = A * train_maski.reshape(-1, 1)
-
     A = A.view(opt['im_height'], opt['im_width'], opt['im_chan'])
     # A = paths[i,0,:].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
     if opt['im_dataset'] == 'MNIST':
@@ -173,6 +171,33 @@ def batch_vis_labels(train_mask, pix_labels, labels, opt, pic_folder, samples):
     plt.title(f"t=0 Binarised Image Ground Truth: {labels[i].item()}")
     plt.savefig(f"{savefolder}/image_binarised{i}.png", format="png")
     plt.savefig(f"{savefolder}/image_binarised{i}.pdf", format="pdf")
+  return fig
+
+def batch_vis_masklabels(train_mask, pix_labels, labels, opt, pic_folder, samples):
+  savefolder = f"{pic_folder}/masklabels"
+  check_folder(savefolder)
+
+  for i in range(samples):
+    fig = plt.figure()
+    plt.tight_layout()
+    plt.axis('off')
+    train_maski = train_mask[i * (opt['im_height'] * opt['im_width']):(i + 1) * (opt['im_height'] * opt['im_width'])].long()
+    # A = paths[i, 0, :].reshape(-1, opt['im_height'] * opt['im_width'], opt['im_chan'])
+    # if opt['im_dataset'] == 'CIFAR':
+    #   A = UnNormalizeCIFAR(A)
+    A = pix_labels.view(-1, opt['im_height'], opt['im_width']).cpu()
+    A = A[i, :]
+    A = A.view(-1, opt['im_height'] * opt['im_width']) + 1 #so zero is training mask
+    A = A * train_maski #.reshape(-1, 1)
+    A = A.view(opt['im_height'], opt['im_width']) #, opt['im_chan'])
+    # A = paths[i,0,:].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
+    if opt['im_dataset'] == 'MNIST':
+      plt.imshow(A, cmap='gray', interpolation='none')
+    elif opt['im_dataset'] == 'CIFAR':
+      plt.imshow(A, interpolation='none')
+    plt.title(f"t=0 Train Mask Ground Truth: {labels[i].item()}")
+    plt.savefig(f"{savefolder}/image_train_mask{i}.png", format="png")
+    plt.savefig(f"{savefolder}/image_train_mask{i}.pdf", format="pdf")
   return fig
 
 
@@ -380,6 +405,7 @@ def build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batc
 
     batch_vis_mask(train_mask, paths, pix_labels, labels, opt, pic_folder=modelfolder, samples=samples)
     batch_vis_labels(train_mask, pix_labels, labels, opt, pic_folder=modelfolder, samples=samples)
+    batch_vis_masklabels(train_mask, pix_labels, labels, opt, pic_folder=modelfolder, samples=samples)
     batch_image(paths, labels, time=0, opt=opt, pic_folder=modelfolder, samples=samples)
     batch_image(paths, labels, time=5, opt=opt, pic_folder=modelfolder, samples=samples)
     batch_image(paths, labels, time=10, opt=opt, pic_folder=modelfolder, samples=samples)
@@ -418,9 +444,10 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
         paths, pix_labels, _, train_mask = get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num)
 
         train_maski = train_mask[sample * (opt['im_height'] * opt['im_width']):(sample + 1) * (opt['im_height'] * opt['im_width'])].long()
-        mask = paths[sample, 0, :].reshape(-1, 1) * train_maski.reshape(-1, 1)
+        mask = paths[sample, 0, :].reshape(-1, opt['im_height'] * opt['im_width'], opt['im_chan']) * train_maski.reshape(-1, 1)
         mask = mask.view(opt['im_height'], opt['im_width'], opt['im_chan'])
         masks.append(mask)
+
         A = paths[sample, times[0], :].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
         B = paths[sample, times[1], :].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
         C = paths[sample, times[2], :].view(opt['im_height'], opt['im_width'], opt['im_chan']).cpu()
@@ -499,18 +526,19 @@ def main(model_keys):
 if __name__ == '__main__':
   Tmultiple = 1
   partitions = 10
-  batch_num = 1#2
-  samples = 6
+  batch_num = 0 #1#2
+  samples = 1
 
   # directory = f"../pixels/"
   # df = pd.read_csv(f'{directory}models.csv')
   # model_keys = df['model_key'].to_list()
 
-  # model_keys = ['20210130_135930','20210130_140130','20210130_140341']
-  # model_epochs = [7, 7, 7]
+  model_keys =   ['20210201_135109','20210201_135134','20210201_135209']
+  model_epochs = [7, 7, 7]
 
-  model_keys = ['test']
-  model_epochs = [0]
+
+  model_keys = ['20210201_135109','20210201_135134','20210201_135209']
+  model_epochs = [2,2,2]
 
   build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
   build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
@@ -520,8 +548,8 @@ if __name__ == '__main__':
   # '20210129_115200',
   # '20210129_115617',
   # '20210129_123408']
-  image_folder = 'MNIST_1'
-  # model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  image_folder = 'CIFAR_10cat_1image'
+  model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmultiple, partitions, batch_num)
 
   # #
   # grid_keys = [
