@@ -27,7 +27,9 @@ def get_optimizer(name, parameters, lr, weight_decay=0):
 
 def train(model, optimizer, dataset, data_test=None):
   model.train()
-  loader = DataLoader(dataset, batch_size=model.opt['batch_size'], shuffle=True)
+  # loader = DataLoader(dataset, batch_size=model.opt['batch_size'], shuffle=True)
+  # train 1 image
+  loader = DataLoader(dataset, batch_size=1, shuffle=True)
 
   for batch_idx, batch in enumerate(loader):
     optimizer.zero_grad()
@@ -37,7 +39,7 @@ def train(model, optimizer, dataset, data_test=None):
 
     out = model(batch.x.to(model.device))
 
-    if model.opt['pixel_loss'] in ['binary_sigmoid', '10catlogits', '10catM2']:
+    if model.opt['pixel_loss'] in ['binary_sigmoid', '10catlogits', '10catM2','10catkmeans']:
       lf = torch.nn.CrossEntropyLoss()
     elif model.opt['pixel_loss'] == 'MSE':
       lf = torch.nn.MSELoss()
@@ -50,6 +52,7 @@ def train(model, optimizer, dataset, data_test=None):
         loss += lf(torch.stack((out[:,0],out[:,3]),dim=1)[batch.train_mask], batch.y[:,0].squeeze()[batch.train_mask].to(model.device))
         loss += lf(torch.stack((out[:,1],out[:,4]),dim=1)[batch.train_mask], batch.y[:,1].squeeze()[batch.train_mask].to(model.device))
         loss += lf(torch.stack((out[:,2],out[:,5]),dim=1)[batch.train_mask], batch.y[:,2].squeeze()[batch.train_mask].to(model.device))
+
       elif model.opt['pixel_cat'] == 10 and model.opt['pixel_loss'] == '10catlogits':
         for i in range(10):
           pass #old method taking pixel slices was wrong anyway
@@ -59,10 +62,25 @@ def train(model, optimizer, dataset, data_test=None):
           # loss += lf(A,B)
           # loss += lf(torch.stack((out[:, i], out[:, i + 9]), dim=1)[batch.train_mask.repeat(3)],
           #      batch.y.view(-1, 1).squeeze()[batch.train_mask.repeat(3)])
+
       elif model.opt['pixel_cat'] > 1 and model.opt['pixel_loss'] == '10catM2':
         A = out[batch.train_mask]
         B = batch.y.view(-1, 1).squeeze()[batch.train_mask].to(model.device)
         loss += lf(A, B)
+
+      elif model.opt['pixel_loss'] == '10catkmeans':
+        z = out[batch.train_mask].unsqueeze(1)
+        batch_centers = batch.label_centers
+        centers_idx = batch.batch[batch.train_mask]
+        each_batch_centers = []
+        pixel_cat = model.opt['pixel_cat']
+        for i in range(pixel_cat):
+          batch_center = batch_centers[centers_idx * pixel_cat + i].unsqueeze(1)
+          each_batch_centers.append(batch_center)
+        all_batch_centers = torch.cat(each_batch_centers,dim=1)
+        logits = torch.sum((z-all_batch_centers)**2,dim=2)
+        logits = 1 / (logits ** 2 + 1e-5)
+        loss += lf(logits, batch.y[batch.train_mask].squeeze())
 
     model.fm.update(model.getNFE())
     model.resetNFE()
@@ -72,10 +90,11 @@ def train(model, optimizer, dataset, data_test=None):
     model.resetNFE()
 
     # if model.opt['testing_code']:
-    #   if batch_idx % 5 == 0:
-    #     test_acc = pixel_test(model, batch, "batch")
-    #     log = 'Batch Index: {}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
-    #     print(log.format(batch_idx, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
+    if batch_idx % 1 == 0:
+      train_acc = pixel_test(model, batch, "batch","train")
+      test_acc = pixel_test(model, batch, "batch","test")
+      log = 'Batch Index: {}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Test: {:.4f}'
+      print(log.format(batch_idx, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, test_acc))
     #   elif batch_idx % 1 == 0:
     #     print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
     #                                                                           time.time() - start_time))
@@ -88,8 +107,8 @@ def train(model, optimizer, dataset, data_test=None):
     #   if batch_idx % 1 == 0:
     #     print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
     #                                                                           time.time() - start_time))
-    print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
-                                                                          time.time() - start_time))
+    # print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
+    #                                                                       time.time() - start_time))
 
   return loss.item()
 
@@ -113,20 +132,52 @@ def test(model, dataset):
 
 
 @torch.no_grad()
-def pixel_test(model, data, batchorTest):
+def pixel_test(model, data, batchorTest, trainorTest="test"):
   total_correct = 0
+
   if model.opt['im_chan'] == 1:
     test_size = data.y.shape[0]
     model.eval()
     logits = model(data.x.to(model.device))
     pred = logits.max(1)[1]
     total_correct += pred.eq(data.y.T.to(model.device)).sum().item()
-  elif model.opt['im_chan'] == 3:
-    test_size = data.y.shape[0]
+
+  elif model.opt['im_chan'] == 3 and model.opt['pixel_loss'] in ['10catM2','10catlogits']:
+
+    mask = data.test_mask if trainorTest == "test" else data.train_mask
+
+    test_size = data.y[mask].shape[0]
     model.eval()
-    logits = model(data.x.to(model.device))
+    logits = model(data.x.to(model.device))[mask]
     pred = logits.max(1)[1]
-    total_correct += pred.eq(data.y.T.to(model.device)).sum().item()
+    total_correct += pred.eq(data.y[mask].T.to(model.device)).sum().item()
+
+  elif model.opt['im_chan'] == 3 and model.opt['pixel_loss'] == '10catkmeans':
+    model.eval()
+    mask = data.test_mask if trainorTest == "test" else data.train_mask
+    out = model(data.x.to(model.device))
+    z = out[mask].unsqueeze(1)
+    batch_centers = data.label_centers
+    test_size = data.y[mask].shape[0]
+    if batchorTest == "batch":
+        centers_index = data.batch[mask]
+    elif batchorTest == "test":
+        len_data = len(data.target)
+        pixels = model.opt['im_height'] * model.opt['im_width']
+        centers_index = torch.LongTensor(torch.arange(len_data*pixels)//pixels)[mask]
+
+    each_batch_centers = []
+    pixel_cat = model.opt['pixel_cat']
+    for i in range(pixel_cat):
+      batch_center = batch_centers[centers_index * pixel_cat + i].unsqueeze(1)
+      each_batch_centers.append(batch_center)
+    all_batch_centers = torch.cat(each_batch_centers, dim=1)
+    logits = torch.sum((z - all_batch_centers) ** 2, dim=2)
+    logits = 1 / (logits ** 2 + 1e-5)
+
+    pred = logits.max(1)[1]
+    total_correct += pred.eq(data.y[mask].T.to(model.device)).sum().item()
+
     #old method taking slices
     # test_size = data.y.shape[0] * data.y.shape[1]
     # model.eval()
@@ -226,14 +277,12 @@ def main(opt):
       print("Epoch {}".format(epoch))
       start_time = time.time()
       loss = train(model, optimizer, pixel_data)
-      # loss = train(model, optimizer, data_train, data_test)
-      # test_acc = test(model, data_test)
-      test_acc = pixel_test(model, pixel_data.data, "test")
+      test_acc = pixel_test(model, pixel_data.data, batchorTest="test", trainorTest="test")
 
       log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
       print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
 
-      if epoch // 8 == 0:
+      if epoch % 8 == 0:
         torch.save(model.state_dict(), f"{savepath}_epoch{epoch}")
 
     # save run details to csv

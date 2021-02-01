@@ -16,7 +16,6 @@ from image_opt import get_image_opt
 from sklearn.cluster import KMeans
 # import cv2
 
-
 def edge_index_calc(im_height, im_width, im_chan, diags=False):
   edge_list = []
 
@@ -254,7 +253,7 @@ class InMemPixelData(ImageInMemory):
         for i in range(self.opt['im_chan']):
           y = np.maximum(np.minimum(x * self.opt['pixel_cat'] ,self.opt['pixel_cat']*(0.9999)), 0)
           y = y[:,i]
-          y = torch.floor(y).type(torch.LongTensor)
+          y = torch.floor(y).type(torch.LongTensor) #turn greyscale into integar labels
           pix_labels.append(y)
         y = torch.stack(pix_labels, dim=1)
       elif self.opt['im_dataset'] == 'CIFAR':
@@ -267,11 +266,10 @@ class InMemPixelData(ImageInMemory):
         # attempts = 10
         # ret, label, center = cv2.kmeans(np.float32(x), K, None, criteria, attempts, cv2.KMEANS_PP_CENTERS)
         # y = torch.LongTensor(label)
-
         kmeans = KMeans(self.opt['pixel_cat'], random_state=0).fit(x)
+        label_centers = torch.FloatTensor(kmeans.cluster_centers_)
         y = torch.LongTensor(kmeans.labels_).unsqueeze(1)
 
-      # y.view(28, 28).detach().numpy()
       full_idx = np.arange(self.opt['num_nodes'])
       # set pixel masks
       rnd_state = np.random.RandomState(seed=12345)
@@ -286,7 +284,10 @@ class InMemPixelData(ImageInMemory):
       test_mask = torch.zeros(self.opt['num_nodes'], dtype=torch.bool)
       train_mask[train_idx] = 1
       test_mask[test_idx] = 1
+
       graph = Data(x=x, y=y, pos=pixel_pos, target=target, edge_index=edge_index, train_mask=train_mask, test_mask=test_mask)
+      if self.opt['im_dataset'] == 'CIFAR':
+        graph.label_centers = label_centers
       graph_list.append(graph)
 
     torch.save(self.collate(graph_list), self.processed_paths[0])
