@@ -51,6 +51,71 @@ def get_computers_opt(opt):
   opt['ode'] = 'ode'
   return opt
 
+def get_citeseer_opt(opt):
+  opt['dataset'] = 'Citeseer'
+  #opt['data'] = 'Planetoid'
+  opt['hidden_dim'] = 16
+  opt['input_dropout'] = 0.5
+  opt['dropout'] = 0
+  opt['optimizer'] = 'rmsprop'
+  opt['lr'] = 0.00548
+  opt['decay'] = 5e-4
+  opt['self_loop_weight'] = 0.758
+  opt['alpha'] = 0.869
+
+  if opt["num_splits"] == 0:
+    opt['lr'] = 0.00548
+    opt['self_loop_weight'] = 0.758
+    opt['alpha'] = 0.869
+    opt['time'] = 19.1
+  else:
+    opt['lr'] = 0.00298
+    opt['self_loop_weight'] = 0.459
+    opt['alpha'] = 0.936
+    opt['time'] = 17.1
+
+  opt['epoch'] = 100
+  opt['num_feature'] = 3703
+  opt['num_class'] = 6
+  opt['num_nodes'] = 3327
+  opt['augment'] = True
+  opt['attention_dropout'] = 0
+  opt['adjoint'] = False
+  opt['ode'] = 'ode'
+  return opt
+
+
+def get_pubmed_opt(opt):
+  opt['dataset'] = 'Pubmed'
+  #opt['data'] = 'Planetoid'
+  
+  opt['hidden_dim'] = 16
+  opt['input_dropout'] = 0.5
+  opt['dropout'] = 0
+  opt['optimizer'] = 'adam'
+  opt['decay'] = 5e-4
+
+  if opt["num_splits"] == 0:
+    opt['lr'] = 0.0054
+    opt['self_loop_weight'] = 0.644
+    opt['alpha'] = 0.96
+    opt['time'] = 16.2
+  else:
+    opt['lr'] = 0.00551
+    opt['self_loop_weight'] = 0.752
+    opt['alpha'] = 0.947
+    opt['time'] = 22.0
+
+  opt['epoch'] = 100
+  opt['num_feature'] = 500
+  opt['num_class'] = 3
+  opt['num_nodes'] = 19717
+  opt['augment'] = True
+  opt['attention_dropout'] = 0
+  opt['adjoint'] = False
+  opt['ode'] = 'ode'
+  return opt
+
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
   if name == 'sgd':
@@ -177,10 +242,15 @@ def main(opt, run_count):
 
   print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, best_test_acc, best_epoch))
 
-  # TODO: Save results
-  # cora_epoch_101_adjoint_false_... . pickle
-  pickle.dump( results, open( f"../results/{opt['dataset']}_{opt['method']}_stepsize_{opt['dt']}_run_{run_count}.pickle", "wb" ) )
+  # Save results
+  filename = f"../results/{opt['dataset']}_{opt['method']}"
+  if opt['method'] == 'implicit_adams' or opt['method'] == 'explicit_adams':
+    filename = filename + f"_stepsize_{opt['dt']}"
+  if opt['rewiring'] is not None:
+    filename = filename + f"_rewiring_topK_{opt['gdc_k']}"
+  filename = filename + f"_run_{run_count}.pickle"
 
+  pickle.dump( results, open( filename, "wb" ) )
   return train_acc, best_val_acc, test_acc
 
 
@@ -261,29 +331,56 @@ if __name__ == '__main__':
 
   args = parser.parse_args()
   opt = vars(args)
-  opt = get_cora_opt(opt)
+  opt['num_splits'] = 0
 
-  opt['epoch'] = 31
+  opt = get_cora_opt(opt)
+  #opt = get_citeseer_opt(opt)
+  #opt = get_pubmed_opt(opt)
+
+  # Experimenting with rewiring
+  opt['rewiring'] = 'gdc'
+  opt['gdc_sparsification'] = 'topk'
+  opt['gdc_k'] = 8
+
+  opt['count_runs'] = 10
+  opt['epoch'] = 51
   opt['adjoint'] = True
   #opt['method'] = 'explicit_adams'
-  opt['method'] = 'implicit_adams'
+  #opt['method'] = 'implicit_adams'
   #opt['method'] = 'dopri5'
   opt['adjoint_method'] = opt['method']
   opt['max_iters'] = 10000
-  opt['dt'] = opt['dt_min'] = 0.01
-  opt['tol_scale'] = 100.0
-  opt['tol_scale_adjoint'] = 100.0
+  #opt['dt'] = opt['dt_min'] = 0.01
+  opt['tol_scale'] = 1000.0
+  opt['tol_scale_adjoint'] = 1000.0
 
   # DEBUG
   #for k in ['dataset', 'epoch', 'adjoint', 'rewiring', 'adaptive', 'dt', 'dt_min', 'method', 'adjoint_method']:
   #  print(k, opt[k])
   #main(opt, 0)
 
-  # Run combination of experiments
-  for stepsize in [0.01]: # 2.0, 1.0, 0.5, 0.25, 0.1, 
-    print(f'*** Doing stepsize {stepsize} ***')
-    for idx in range(3, opt['count_runs']):
-      print(f'*** Doing run {idx} ***')
-      # NOTE: I think setting dt_min may not be necessary, doing it just to be safe!
-      opt['dt'] = opt['dt_min'] = stepsize
-      main(opt, idx)
+  # Loop over top K
+  for top_K in [64, 32, 16, 8, 4]:
+    opt['gdc_k'] = top_K
+
+    # Do dopri5 runs
+    if top_K != 64:
+      for idx in range(0, opt['count_runs']):
+        print(f'*** Doing dopri5 run {idx} ***')
+        opt['method'] = 'dopri5'
+        opt['adjoint_method'] = opt['method']
+        opt['tol_scale'] = 1.0
+        opt['tol_scale_adjoint'] = 1.0
+        main(opt, idx)
+
+    # Loop over stepsizes
+    opt['method'] = 'implicit_adams'
+    opt['adjoint_method'] = opt['method']
+    for stepsize in [5.0, 2.0, 1.0, 0.5, 0.25, 0.1]: # 2.0, 1.0, 0.5, 0.25, 0.1, 
+      print(f'*** Doing stepsize {stepsize} ***')
+      for idx in range(0, opt['count_runs']):
+        print(f'*** Doing implicit_adams run {idx} ***')
+        opt['dt'] = opt['dt_min'] = stepsize
+        opt['tol_scale'] = 1000.0
+        opt['tol_scale_adjoint'] = 1000.0
+        main(opt, idx)

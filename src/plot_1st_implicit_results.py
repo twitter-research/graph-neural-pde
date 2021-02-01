@@ -38,19 +38,20 @@ for idx, stepsize in enumerate(stepsizes):
     count_runs = combined_results[stepsize]['loss'].shape[0]
     count_epochs = combined_results[stepsize]['loss'].shape[1]
 
-    x = np.arange(0, count_epochs)
+    x = np.cumsum(np.mean(combined_results[stepsize]['time'], axis=0))
     y = np.mean(combined_results[stepsize]['loss'], axis=0)
     std = np.std(combined_results[stepsize]['loss'], axis=0)
 
     # Plot +- 1 standard error
     plt.fill_between(x, y - std/math.sqrt(count_runs), y + std/math.sqrt(count_runs), color=cm.jet(idx/count_stepsizes), alpha=0.25)
-    plt.plot(y, label=f'$dx={stepsize}$', color=cm.jet(idx/count_stepsizes))
+    plt.plot(x, y, label=f'$dx={stepsize}$', color=cm.jet(idx/count_stepsizes))
 
-plt.xlabel('epochs')
+plt.xlabel('clock time (secs)')
 plt.ylabel('loss')
 plt.legend()
-plt.savefig('cora-implicit-adams-loss.png')
+plt.savefig('cora-implicit-adams-loss-vs-clock-time.png')
 
+"""
 # Plot Times
 plt.figure(figsize=(9,6), dpi= 100)
 plt.title('Cora - Time per Epoch')
@@ -95,6 +96,7 @@ plt.ylabel('time (sec)')
 plt.ylim((0, 2.0))
 plt.legend()
 plt.savefig('cora-implicit-adams-time-zoomed.png')
+"""
 
 # Plot Test Accuracy
 plt.figure(figsize=(9,6), dpi= 100)
@@ -105,18 +107,18 @@ for idx, stepsize in enumerate(stepsizes):
     count_runs = combined_results[stepsize]['test_acc'].shape[0]
     count_epochs = combined_results[stepsize]['test_acc'].shape[1]
 
-    x = np.arange(0, count_epochs)
+    x = np.cumsum(np.mean(combined_results[stepsize]['time'], axis=0))
     y = np.mean(combined_results[stepsize]['test_acc'], axis=0)
     std = np.std(combined_results[stepsize]['test_acc'], axis=0)
 
     # Plot +- 1 standard error
     plt.fill_between(x, y - std/math.sqrt(count_runs), y + std/math.sqrt(count_runs), color=cm.jet(idx/count_stepsizes), alpha=0.25)
-    plt.plot(y, label=f'$dx={stepsize}$', color=cm.jet(idx/count_stepsizes))
+    plt.plot(x, y, label=f'$dx={stepsize}$', color=cm.jet(idx/count_stepsizes))
 
-plt.xlabel('epochs')
+plt.xlabel('clock time (sec)')
 plt.ylabel('acc (ratio)')
 plt.legend()
-plt.savefig('cora-implicit-adams-test-acc.png')
+plt.savefig('cora-implicit-adams-test-acc-vs-clock-time.png')
 
 # Plot Test Accuracy (zoomed)
 plt.figure(figsize=(9,6), dpi= 100)
@@ -127,20 +129,21 @@ for idx, stepsize in enumerate(stepsizes):
     count_runs = combined_results[stepsize]['test_acc'].shape[0]
     count_epochs = combined_results[stepsize]['test_acc'].shape[1]
 
-    x = np.arange(0, count_epochs)
+    x = np.cumsum(np.mean(combined_results[stepsize]['time'], axis=0))
     y = np.mean(combined_results[stepsize]['test_acc'], axis=0)
     std = np.std(combined_results[stepsize]['test_acc'], axis=0)
 
     # Plot +- 1 standard error
     plt.fill_between(x, y - std/math.sqrt(count_runs), y + std/math.sqrt(count_runs), color=cm.jet(idx/count_stepsizes), alpha=0.25)
-    plt.plot(y, label=f'$dx={stepsize}$', color=cm.jet(idx/count_stepsizes))
+    plt.plot(x, y, label=f'$dx={stepsize}$', color=cm.jet(idx/count_stepsizes))
 
-plt.xlabel('epochs')
+plt.xlabel('clock time (sec)')
 plt.ylabel('acc (ratio)')
-plt.ylim(0.75,0.85)
+plt.xlim(0.,20.)
 plt.legend()
-plt.savefig('cora-implicit-adams-test-acc-zoomed.png')
+plt.savefig('cora-implicit-adams-test-acc-vs-clock-time-zoomed.png')
 
+"""
 # Plot Best Test Accuracy vs Stepsize
 plt.figure(figsize=(9,6), dpi= 100)
 plt.title('Cora - Test Accuracy vs Stepsize')
@@ -170,3 +173,4 @@ plt.ylabel('acc (ratio)')
 #plt.ylim(0.75,0.85)
 plt.legend()
 plt.savefig('cora-implicit-adams-test-acc-vs-stepsize.png')
+"""
