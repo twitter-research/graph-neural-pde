@@ -17,6 +17,7 @@ from torch import nn
 from GNN_ICML20 import ICML_GNN, get_sym_adj
 from GNN_ICML20 import train as train_icml
 
+
 def average_test(models, datas):
   if opt['dataset'] == 'ogbn-arxiv':
     results = [test_OGB(model, data, opt) for model, data in zip(models, datas)]
@@ -42,7 +43,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
 
   for split in range(opt["num_splits"]):
     dataset.data = set_train_val_test_split(
-      np.random.randint(0, 1000), dataset.data, num_development = 5000 if opt["dataset"] == "CoauthorCS" else 1500)
+      np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
     datas.append(dataset.data)
 
     if opt['baseline']:
@@ -81,9 +82,9 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       best = np.argmax(val_accs)
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((models[best].state_dict(), optimizers[best].state_dict()), path)
-    tune.report(loss=loss, accuracy=np.mean(val_accs), test_acc=np.mean(tmp_test_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum,
+    tune.report(loss=loss, accuracy=np.mean(val_accs), test_acc=np.mean(tmp_test_accs), train_acc=np.mean(train_accs),
+                forward_nfe=model.fm.sum,
                 backward_nfe=model.bm.sum)
-
 
 
 def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
@@ -133,7 +134,8 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       best = np.argmax(val_accs)
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((models[best].state_dict(), optimizers[best].state_dict()), path)
-    tune.report(loss=loss, accuracy=np.mean(val_accs), test_acc=np.mean(tmp_test_accs), train_acc=np.mean(train_accs), forward_nfe=model.fm.sum,
+    tune.report(loss=loss, accuracy=np.mean(val_accs), test_acc=np.mean(tmp_test_accs), train_acc=np.mean(train_accs),
+                forward_nfe=model.fm.sum,
                 backward_nfe=model.bm.sum)
 
 
@@ -144,8 +146,8 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
   if opt["num_splits"] > 0:
     dataset.data = set_train_val_test_split(
       23 * np.random.randint(0, opt["num_splits"]),  # random prime 23 to make the splits 'more' random. Could remove
-      dataset.data, 
-      num_development = 5000 if opt["dataset"] == "CoauthorCS" else 1500)
+      dataset.data,
+      num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
   model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
   if torch.cuda.device_count() > 1:
@@ -185,40 +187,50 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((model.state_dict(), optimizer.state_dict()), path)
-    tune.report(loss=loss, accuracy=val_acc, test_acc=test_acc, train_acc=train_acc, best_time=best_time, best_epoch=best_epoch,
+    tune.report(loss=loss, accuracy=val_acc, test_acc=test_acc, train_acc=train_acc, best_time=best_time,
+                best_epoch=best_epoch,
                 forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
 
 
 def set_cora_search_space(opt):
-  opt["decay"] = tune.uniform(0.01, 0.1)  # weight decay l2 reg
+  opt["decay"] = tune.loguniform(0.001, 0.1)  # weight decay l2 reg
   if opt['regularise']:
-    opt["kinetic_energy"]  = tune.loguniform(0.001, 10.0)
-    opt["directional_penalty"]  = tune.loguniform(0.001, 10.0)
+    opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
-  opt["lr"] = tune.loguniform(0.05, 0.2)
-  opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
+  opt["lr"] = tune.uniform(0.01, 0.2)
+  # opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
+  opt["input_dropout"] = 0.5
   opt["optimizer"] = tune.choice(["adam", "adamax"])
   opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-  opt["time"] = tune.uniform(5.0, 20.0)  # terminal time of the ODE integrator;
+  opt["time"] = tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
   # when it's big, the training hangs (probably due a big NFEs of the ODE)
 
   if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  # hidden dim for attention
-    opt['attention_norm_idx'] = tune.choice([0, 1])
-    opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
+    # opt['attention_norm_idx'] = tune.choice([0, 1])
+    opt['attention_norm_idx'] = 0
+    # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
+    opt["leaky_relu_slope"] = 0.2
+
     opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
   else:
     opt["self_loop_weight"] = tune.uniform(0, 3)
 
   opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
   if opt["adjoint"]:
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"]) #, "rk4"])
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
     opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
 
+  opt['add_source'] = tune.choice([True, False])
+  opt['att_samp_pct'] = tune.uniform(0.3, 1)
+  opt['batch_norm'] = tune.choice([True, False])
+  # opt['batch_norm'] = True
+
   if opt['rewiring'] == 'gdc':
-    opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+    opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
     opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
 
   return opt
@@ -230,9 +242,9 @@ def set_pubmed_search_space(opt):
     opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
     opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
 
-  opt["hidden_dim"] = 128 #tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+  opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
   opt["lr"] = tune.loguniform(0.02, 0.1)
-  opt["input_dropout"] = 0.4 #tune.uniform(0.2, 0.5)
+  opt["input_dropout"] = 0.4  # tune.uniform(0.2, 0.5)
   opt["dropout"] = tune.uniform(0, 0.5)
   opt["time"] = tune.uniform(5.0, 20.0)
   opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
@@ -264,7 +276,7 @@ def set_citeseer_search_space(opt):
     opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
-  opt["hidden_dim"] = 128 #tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))
+  opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))
   opt["lr"] = tune.loguniform(2e-3, 0.01)
   opt["input_dropout"] = tune.uniform(0.4, 0.8)
   opt["dropout"] = tune.uniform(0, 0.8)
@@ -406,9 +418,9 @@ def set_photo_search_space(opt):
     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 6))
     opt['attention_norm_idx'] = tune.choice([0, 1])
     opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-      [0, 1]) 
+      [0, 1])
     opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
-  else: 
+  else:
     opt["self_loop_weight"] = tune.uniform(0, 3)
 
   opt["tol_scale"] = tune.loguniform(1, 1e4)
@@ -470,14 +482,14 @@ def set_arxiv_search_space(opt):
     opt["leaky_relu_slope"] = 0.2
   else:
     # opt["self_loop_weight"] = tune.uniform(0, 3)
-    opt["self_loop_weight"] = tune.choice([0,1])
+    opt["self_loop_weight"] = tune.choice([0, 1])
   # opt['data_norm'] = tune.choice(['rw', 'gcn'])
   # opt['add_source'] = tune.choice([True, False])
   opt['add_source'] = True
   opt['att_samp_pct'] = tune.uniform(0.3, 1)
   # opt['batch_norm'] = tune.choice([True, False])
   opt['batch_norm'] = True
-  opt['label_rate'] = tune.uniform(0.05,0.5)
+  opt['label_rate'] = tune.uniform(0.05, 0.5)
 
   # opt["tol_scale"] = tune.loguniform(10, 1e4)
 
@@ -490,7 +502,6 @@ def set_arxiv_search_space(opt):
   # opt["method"] = tune.choice(["dopri5", "rk4"])
   # opt["method"] = tune.choice(["midpoint", "rk4"])
   opt["method"] = "rk4"
-
 
   if opt['rewiring'] == 'gdc':
     # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
@@ -598,7 +609,8 @@ if __name__ == "__main__":
     "--dataset", type=str, default="Cora", help="Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS"
   )
   parser.add_argument("--hidden_dim", type=int, default=32, help="Hidden dimension.")
-  parser.add_argument('--fc_out', dest='fc_out', action='store_true', help='Add a fully connected layer to the decoder.')
+  parser.add_argument('--fc_out', dest='fc_out', action='store_true',
+                      help='Add a fully connected layer to the decoder.')
   parser.add_argument("--input_dropout", type=float, default=0.5, help="Input dropout rate.")
   parser.add_argument("--dropout", type=float, default=0.0, help="Dropout rate.")
   parser.add_argument("--batch_norm", dest='batch_norm', action='store_true', help='search over reg params')
@@ -607,7 +619,8 @@ if __name__ == "__main__":
   parser.add_argument("--decay", type=float, default=5e-4, help="Weight decay for optimization")
   parser.add_argument("--self_loop_weight", type=float, default=1.0, help="Weight of self-loops.")
   parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
-  parser.add_argument('--label_rate', type=float, default=0.5, help='% of training labels to use when --use_labels is set.')
+  parser.add_argument('--label_rate', type=float, default=0.5,
+                      help='% of training labels to use when --use_labels is set.')
   parser.add_argument("--epoch", type=int, default=10, help="Number of training epochs per iteration.")
   parser.add_argument("--alpha", type=float, default=1.0, help="Factor in front matrix A.")
   parser.add_argument("--time", type=float, default=1.0, help="End time of ODE function.")
