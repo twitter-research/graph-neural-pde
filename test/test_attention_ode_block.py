@@ -26,7 +26,8 @@ class AttentionODEBlockTests(unittest.TestCase):
                 'attention_norm_idx': 0, 'add_source': False, 'alpha': 1, 'alpha_dim': 'vc', 'beta_dim': 'vc',
                 'hidden_dim': 6, 'block': 'attention', 'function': 'laplacian', 'augment': False, 'adjoint': False,
                 'tol_scale': 1, 'time': 1, 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler', 'rewiring': None,
-                'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None, 'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None}
+                'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None, 'jacobian_norm2': None,
+                'total_deriv': None, 'directional_penalty': None, 'step_size': 1}
     self.dataset = get_dataset(self.opt, '../data', False)
 
   def tearDown(self) -> None:
@@ -41,7 +42,7 @@ class AttentionODEBlockTests(unittest.TestCase):
     self.assertTrue(isinstance(odeblock, AttODEblock))
     self.assertTrue(isinstance(odeblock.odefunc, LaplacianODEFunc))
     gnn.train()
-    out = odeblock(data.x)[0]
+    out = odeblock(data.x)
     self.assertTrue(data.x.shape == out.shape)
     gnn.eval()
     out = odeblock(data.x)

@@ -30,7 +30,8 @@ class EarlyStopTests(unittest.TestCase):
                 'hidden_dim': 6, 'block': 'constant', 'function': 'laplacian', 'augment': False, 'adjoint': False,
                 'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler',
                 'rewiring': None, 'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None,
-                'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None}
+                'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None, 'step_size': 1, 'data_norm': 'rw',
+                'earlystopxT': 3, 'max_iters': 10}
     self.dataset = get_dataset(self.opt, '../data', False)
 
   def tearDown(self) -> None:
@@ -54,11 +55,39 @@ class EarlyStopTests(unittest.TestCase):
     self.assertTrue(isinstance(odeblock.odefunc, LaplacianODEFunc))
     self.assertTrue(odeblock.test_integrator.data.x.shape == data.x.shape)
     gnn.train()
-    out = odeblock(data.x)[0]
+    out = odeblock(data.x)
     self.assertTrue(data.x.shape == out.shape)
     gnn.eval()
     gnn.set_solver_m2()
-    gnn.set_solver_data()
+    gnn.set_solver_data(data)
+    out = odeblock(data.x)
+    print('ode block out', out)
+    self.assertTrue(data.x.shape == out.shape)
+
+  def test_rk4(self):
+    data = self.dataset.data
+    t = 1
+    out_dim = 6
+    self.opt['method'] = 'rk4'
+    func = LaplacianODEFunc(self.dataset.data.num_features, out_dim, self.opt, data, self.device)
+    func.edge_index, func.edge_weight = get_rw_adj(data.edge_index, edge_weight=None, norm_dim=1,
+                                                   fill_value=self.opt['self_loop_weight'],
+                                                   num_nodes=data.num_nodes,
+                                                   dtype=data.x.dtype)
+    out = func(t, data.x)
+    print(out.shape)
+    self.assertTrue(out.shape == (self.dataset.data.num_nodes, self.dataset.num_features))
+    gnn = GNNEarly(self.opt, self.dataset, device=self.device)
+    odeblock = gnn.odeblock
+    self.assertTrue(isinstance(odeblock, ConstantODEblock))
+    self.assertTrue(isinstance(odeblock.odefunc, LaplacianODEFunc))
+    self.assertTrue(odeblock.test_integrator.data.x.shape == data.x.shape)
+    gnn.train()
+    out = odeblock(data.x)
+    self.assertTrue(data.x.shape == out.shape)
+    gnn.eval()
+    gnn.set_solver_m2()
+    gnn.set_solver_data(data)
     out = odeblock(data.x)
     print('ode block out', out)
     self.assertTrue(data.x.shape == out.shape)

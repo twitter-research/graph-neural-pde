@@ -25,11 +25,14 @@ def apply_gdc(data, opt):
     sparse_args = dict(method='topk', k=opt['gdc_k'], dim=0)
   else:
     sparse_args = dict(method='threshold', eps=opt['gdc_threshold'])
+    diff_args['eps'] = opt['gdc_threshold']
   print('gdc sparse args: {}'.format(sparse_args))
   gdc = GDC(float(opt['self_loop_weight']), normalization_in='sym',
             normalization_out='col',
             diffusion_kwargs=diff_args,
-            sparsification_kwargs=sparse_args, exact=True)
+            sparsification_kwargs=sparse_args, exact=opt['exact'])
+  if isinstance(data.num_nodes, list):
+    data.num_nodes = data.num_nodes[0]
   data = gdc(data)
   print('following rewiring data contains {} edges and {} nodes'.format(data.num_edges, data.num_nodes))
   return data

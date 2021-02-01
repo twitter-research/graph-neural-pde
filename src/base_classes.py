@@ -34,10 +34,9 @@ class ODEblock(nn.Module):
     super(ODEblock, self).__init__()
     self.opt = opt
     self.t = t
-    self.data = data
     
     self.aug_dim = 2 if opt['augment'] else 1
-    self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, self.data, device)
+    self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, data, device)
     
     self.nreg = len(regularization_fns)
     self.reg_odefunc = RegularizedODEfunc(self.odefunc, regularization_fns)
@@ -100,18 +99,23 @@ class BaseGNN(MessagePassing):
   def __init__(self, opt, dataset, device=torch.device('cpu')):
     super(BaseGNN, self).__init__()
     self.opt = opt
-    self.data = dataset.data.to(device)
     self.T = opt['time']
+    self.num_classes = dataset.num_classes
+    self.num_features = dataset.data.num_features
     self.device = device
     self.fm = Meter()
     self.bm = Meter()
-    self.m1 = nn.Linear(self.data.num_features, opt['hidden_dim'])
-    try:
-      self.n_ode_blocks = opt['ode_blocks']
-    except KeyError:
-      self.n_ode_blocks = 1
-
+    self.m1 = nn.Linear(dataset.data.num_features, opt['hidden_dim'])
+    if opt['use_labels']:
+      # todo - fastest way to propagate this everywhere, but error prone - refactor later
+      opt['hidden_dim'] = opt['hidden_dim'] + dataset.num_classes
+    else:
+      self.hidden_dim = opt['hidden_dim']
+    if opt['fc_out']:
+      self.fc = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
     self.m2 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
+    self.bn_in = torch.nn.BatchNorm1d(opt['hidden_dim'])
+    self.bn_out = torch.nn.BatchNorm1d(opt['hidden_dim'])
 
     self.regularization_fns, self.regularization_coeffs = create_regularization_fns(self.opt)
 
