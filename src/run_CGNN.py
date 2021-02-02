@@ -40,9 +40,11 @@ for dataset in ['Photo', 'Pubmed', 'Computers', 'CoauthorCS']:
   opt['hidden_dim'] = 128
   opt['alpha'] = 0
   opt['use_labels'] = False
-  # train_ray_rand(opt)
+  opt['kinetic_energy'] = None
+  opt['jacobian_norm2'] = None
+  opt['total_deriv'] = None
+  opt['directional_penalty'] = None
   main(opt)
-  # opt = set_search_space(opt)
 
 
 

@@ -31,6 +31,23 @@ def run_best_params(opt):
     best_params_ret['fc_out']
   except KeyError:
     best_params_ret['fc_out'] = False
+  try:
+    best_params_ret['kinetic_energy']
+  except KeyError:
+    best_params_ret['kinetic_energy'] = None
+  try:
+    best_params_ret['jacobian_norm2']
+  except KeyError:
+    best_params_ret['jacobian_norm2'] = None
+  try:
+    best_params_ret['total_deriv']
+  except KeyError:
+    best_params_ret['total_deriv'] = None
+  try:
+    best_params_ret['directional_penalty']
+  except KeyError:
+    best_params_ret['directional_penalty'] = None
+
   # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
   best_params_ret['epoch'] = opt['epoch']
   best_params_ret['max_nfe'] = opt['max_nfe']
