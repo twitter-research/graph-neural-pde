@@ -24,8 +24,8 @@ for dataset in ['ogbn-arxiv', 'Photo', 'Pubmed', 'Computers', 'CoauthorCS']:
   opt['num_samples'] = 1
   opt['epoch'] = 1
   opt['num_init'] = 1
-  opt['cpus'] = 1
-  opt['gpus'] = 0
+  opt['cpus'] = 2
+  opt['gpus'] = 1
   opt['grace_period'] = 1
   opt['reduction_factor'] = 10
   opt['baseline'] = True
