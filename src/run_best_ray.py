@@ -75,6 +75,10 @@ def run_best_params(opt):
     best_params_ret['no_alpha_sigmoid']
   except KeyError:
     best_params_ret['no_alpha_sigmoid'] = False
+  try:
+    best_params_ret['add_source']
+  except KeyError:
+    best_params_ret['add_source'] = False
 
   # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
   best_params_ret['epoch'] = opt['epoch']

@@ -51,6 +51,7 @@ for dataset in ['Photo', 'Pubmed', 'Computers', 'CoauthorCS']:
   opt['adjoint_step_size'] = 1
   opt['max_iters'] = 100
   opt['no_alpha_sigmoid'] = False
+  opt['add_source'] = True
   main(opt)
 
 
