@@ -11,6 +11,7 @@ from torch_geometric.nn.conv.spline_conv import SplineConv
 import torchdiffeq
 from utils import get_rw_adj, gcn_norm_fill_val
 from utils import Meter
+from utils import MaxNFEException
 
 # from torchdyn._internals import compat_check
 
@@ -138,7 +139,7 @@ class GCNLayer(torch.nn.Module):
     if input_size != output_size:
       raise AttributeError('input size must equal output size')
     self.edge_index = data.edge_index.to(device)
-
+    self.opt = opt
     self.edge_index = data.edge_index.to(device)
     self.edge_weight = data.edge_attr.to(device)
     # if data.edge_attr is not None:
@@ -149,6 +150,9 @@ class GCNLayer(torch.nn.Module):
     self.conv2 = SplineConv(input_size, output_size, dim=1, kernel_size=2).to(device)
 
   def forward(self, t, x):  # the t param is needed by the ODE solver.
+    if self.nfe > self.opt["max_nfe"]:
+      raise MaxNFEException
+    self.nfe += 1
     x = self.conv1(x, self.edge_index, self.edge_weight)
     x = self.conv2(x, self.edge_index, self.edge_weight)
     return x
@@ -186,8 +190,12 @@ def train(model, optimizer, data):
   model.train()
   optimizer.zero_grad()
   loss = F.nll_loss(model(data.x)[data.train_mask], data.y[data.train_mask])
+  model.fm.update(model.getNFE())
+  model.resetNFE()
   loss.backward()
   optimizer.step()
+  model.bm.update(model.getNFE())
+  model.resetNFE()
   return loss.item()
 
 
