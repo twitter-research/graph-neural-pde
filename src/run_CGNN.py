@@ -4,7 +4,7 @@ Running CGNN model from ICML 20
 from ray_tune import main, train_ray_rand
 from run_best_ray import run_best_params
 
-for dataset in ['Photo', 'Pubmed', 'Computers', 'CoauthorCS', 'ogbn-arxiv']:
+for dataset in ['ogbn-arxiv', 'Photo', 'Pubmed', 'Computers', 'CoauthorCS']:
   print('running dataset {}'.format(dataset))
   opt = dict(dataset=dataset)
   opt['name'] = 'CGNN_{}'.format(dataset)

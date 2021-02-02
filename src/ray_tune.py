@@ -100,7 +100,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
 
   for split in range(opt["num_init"]):
     if opt['baseline']:
-      opt['num_feature'] = dataset.num_node_features
+      opt['num_feature'] = dataset.data.num_node_features
       opt['num_class'] = dataset.num_classes
       adj = get_sym_adj(dataset.data, opt, device)
       model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
