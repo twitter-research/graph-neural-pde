@@ -81,7 +81,8 @@ class NeuralDE(pl.LightningModule):
       odeint = self._adjoint
     else:
       odeint = self._autograd
-    sol = odeint(x) if self.opt['return_traj'] else odeint(x)[-1]
+    # sol = odeint(x) if self.opt['return_traj'] else odeint(x)[-1]
+    sol = odeint(x)[-1]
     return sol
 
   def trajectory(self, x: torch.Tensor, s_span: torch.Tensor):
