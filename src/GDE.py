@@ -142,8 +142,8 @@ class GCNLayer(torch.nn.Module):
                                                 fill_value=opt['self_loop_weight'],
                                                 num_nodes=data.num_nodes,
                                                 dtype=data.x.dtype)
-    self.odefunc.edge_index = edge_index.to(device)
-    self.odefunc.edge_weight = edge_weight.to(device)
+    self.edge_index = edge_index.to(device)
+    self.edge_weight = edge_weight.to(device)
     # if data.edge_attr is not None:
     #   self.edge_attr = data.edge_attr.to(device)
     # else:
@@ -172,8 +172,8 @@ class GDE(torch.nn.Module):
                                                 fill_value=opt['self_loop_weight'],
                                                 num_nodes=data.num_nodes,
                                                 dtype=data.x.dtype)
-    self.odefunc.edge_index = edge_index.to(device)
-    self.odefunc.edge_weight = edge_weight.to(device)
+    self.edge_index = edge_index.to(device)
+    self.edge_weight = edge_weight.to(device)
     self.func = GCNLayer(input_size=opt['hidden_dim'], output_size=opt['hidden_dim'], data=data, device=device)
 
     self.conv1 = SplineConv(data.num_node_features, opt['hidden_dim'], dim=1, kernel_size=2).to(device)
