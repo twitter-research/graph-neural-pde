@@ -62,7 +62,7 @@ class NeuralDE(pl.LightningModule):
       'integral_adjoint': self._integral_adjoint
     }
     # odeint = switcher.get(self.opt['backprop_style'])
-    if opt['adjoint']:
+    if self.opt['adjoint']:
       odeint = self._adjoint
     else:
       odeint = self._autograd
