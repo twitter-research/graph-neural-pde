@@ -12,23 +12,6 @@ import torchdiffeq
 
 # from torchdyn._internals import compat_check
 
-dataset = 'Cora'
-path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', dataset)
-dataset = Planetoid(path, dataset, transform=T.TargetIndegree())
-data = dataset[0]
-
-data.train_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
-data.train_mask[:data.num_nodes - 1000] = 1
-data.val_mask = None
-data.test_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
-data.test_mask[data.num_nodes - 500:] = 1
-
-defaults = {'type': 'classic', 'controlled': False, 'augment': False,  # model
-            'backprop_style': 'autograd', 'cost': None,  # training
-            's_span': torch.linspace(0, 1, 2), 'method': 'rk4', 'atol': 1e-3, 'rtol': 1e-4,  # method params
-            'return_traj': False}
-
-
 class NeuralDE(pl.LightningModule):
   """General Neural DE template
 
@@ -157,7 +140,7 @@ class GCNLayer(torch.nn.Module):
     self.conv1 = SplineConv(input_size, output_size, dim=1, kernel_size=2).to(device)
     self.conv2 = SplineConv(input_size, output_size, dim=1, kernel_size=2).to(device)
 
-  def forward(self, t, x):   # the t param is needed by the ODE solver.
+  def forward(self, t, x):  # the t param is needed by the ODE solver.
     x = self.conv1(x, self.edge_index, self.edge_attr)
     x = self.conv2(x, self.edge_index, self.edge_attr)
     return x
@@ -186,12 +169,6 @@ class GDE(torch.nn.Module):
     return F.log_softmax(x, dim=1)
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-opt = dict(method='rk4', time=3, tol_scale=10, tol_scale_adjoint=10, hidden_dim=64, adjoint=False, dropout=0.5)
-model, data = GDE(opt, data, device).to(device), data.to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-3)
-
-
 def train():
   model.train()
   optimizer.zero_grad()
@@ -209,7 +186,27 @@ def test():
   return accs
 
 
-for epoch in range(1, 20):
-  train()
-  log = 'Epoch: {:03d}, Train: {:.4f}, Test: {:.4f}'
-  print(log.format(epoch, *test()))
+if __name__ == '__main__':
+  dataset = 'Cora'
+  path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', dataset)
+  dataset = Planetoid(path, dataset, transform=T.TargetIndegree())
+  data = dataset[0]
+
+  data.train_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
+  data.train_mask[:data.num_nodes - 1000] = 1
+  data.val_mask = None
+  data.test_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
+  data.test_mask[data.num_nodes - 500:] = 1
+
+  defaults = {'type': 'classic', 'controlled': False, 'augment': False,  # model
+              'backprop_style': 'autograd', 'cost': None,  # training
+              's_span': torch.linspace(0, 1, 2), 'method': 'rk4', 'atol': 1e-3, 'rtol': 1e-4,  # method params
+              'return_traj': False}
+  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+  opt = dict(method='rk4', time=3, tol_scale=10, tol_scale_adjoint=10, hidden_dim=64, adjoint=False, dropout=0.5)
+  model, data = GDE(opt, dataset, device).to(device), data.to(device)
+  optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-3)
+  for epoch in range(1, 20):
+    train()
+    log = 'Epoch: {:03d}, Train: {:.4f}, Test: {:.4f}'
+    print(log.format(epoch, *test()))
