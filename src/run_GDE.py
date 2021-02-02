@@ -48,7 +48,7 @@ for dataset in ['Cora']:
   opt['directional_penalty'] = None
   opt['data_norm'] = 'gcn'
   opt['batch_norm'] = False
-  opt['method'] = 'dopri5'
+  opt['method'] = 'rk4'
   opt['step_size'] = 1
   opt['adjoint_step_size'] = 1
   opt['max_iters'] = 100

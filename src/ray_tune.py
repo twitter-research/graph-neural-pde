@@ -205,6 +205,7 @@ def set_cora_search_space(opt):
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+  opt['method'] = tune.choice(["rk4", "dopri5"])
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
   opt["lr"] = tune.uniform(0.01, 0.2)
@@ -229,7 +230,7 @@ def set_cora_search_space(opt):
 
   opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
   if opt["adjoint"]:
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
+    opt["adjoint_method"] = tune.choice(["dopri5", "rk4", "adaptive_heun"])  # , "rk4"])
     opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
 
   opt['add_source'] = tune.choice([True, False])
@@ -249,6 +250,7 @@ def set_pubmed_search_space(opt):
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
     opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
+  opt['method'] = tune.choice(["rk4", "dopri5"])
 
   opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
   opt["lr"] = tune.loguniform(0.02, 0.1)
@@ -271,7 +273,7 @@ def set_pubmed_search_space(opt):
 
   if opt["adjoint"]:
     opt["tol_scale_adjoint"] = tune.loguniform(1, 1e4)
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])
+    opt["adjoint_method"] = tune.choice(["dopri5", "rk4", "adaptive_heun"])
   else:
     raise Exception("Can't train on PubMed without the adjoint method.")
 
@@ -283,6 +285,7 @@ def set_citeseer_search_space(opt):
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+  opt['method'] = tune.choice(["rk4", "dopri5"])
 
   opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))
   opt["lr"] = tune.loguniform(2e-3, 0.01)
@@ -306,7 +309,7 @@ def set_citeseer_search_space(opt):
 
   if opt["adjoint"]:
     opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
+    opt["adjoint_method"] = tune.choice(["dopri5", "rk4", "adaptive_heun"])  # , "rk4"])
   if opt['rewiring'] == 'gdc':
     # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
     opt['gdc_sparsification'] = 'topk'
@@ -324,6 +327,7 @@ def set_computers_search_space(opt):
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+  opt['method'] = tune.choice(["rk4", "dopri5"])
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
   opt["lr"] = tune.loguniform(5e-5, 5e-3)
@@ -368,6 +372,7 @@ def set_coauthors_search_space(opt):
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.01, 10.0)
+  opt['method'] = tune.choice(["rk4", "dopri5"])
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 6))
   opt["lr"] = tune.loguniform(1e-5, 0.1)
@@ -413,6 +418,7 @@ def set_photo_search_space(opt):
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 5.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+  opt['method'] = tune.choice(["rk4", "dopri5"])
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
   opt["lr"] = tune.loguniform(1e-2, 0.1)
@@ -435,7 +441,7 @@ def set_photo_search_space(opt):
 
   if opt["adjoint"]:
     opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])
+    opt["adjoint_method"] = tune.choice(["dopri5", "rk4", "adaptive_heun"])
 
   if opt['rewiring'] == 'gdc':
     # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
@@ -459,6 +465,7 @@ def set_arxiv_search_space(opt):
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
+  opt['method'] = tune.choice(["rk4", "dopri5"])
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
   # opt["hidden_dim"] = 200  # best choice with attention
   # opt["hidden_dim"] = 256  # best choice without attention
