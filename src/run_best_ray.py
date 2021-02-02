@@ -113,11 +113,8 @@ def run_best_params(opt):
     progress_reporter=reporter,
     raise_on_failed_trial=False)
 
+
   df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
-  try:
-    df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
-  except:
-    pass
 
   print(df[['accuracy', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
 
@@ -126,6 +123,7 @@ def run_best_params(opt):
   log = "mean test {:04f}, test std {:04f}, test sem {:04f}, test 95% conf {:04f}"
   print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs), mean_confidence_interval(test_accs)))
 
+  df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
