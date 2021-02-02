@@ -132,7 +132,7 @@ class NeuralDE(pl.LightningModule):
 
 
 class GCNLayer(torch.nn.Module):
-  def __init__(self, input_size, output_size, data, device):
+  def __init__(self, input_size, output_size, data, device, opt):
     super(GCNLayer, self).__init__()
 
     if input_size != output_size:
@@ -174,7 +174,7 @@ class GDE(torch.nn.Module):
                                                 dtype=data.x.dtype)
     self.edge_index = edge_index.to(device)
     self.edge_weight = edge_weight.to(device)
-    self.func = GCNLayer(input_size=opt['hidden_dim'], output_size=opt['hidden_dim'], data=data, device=device)
+    self.func = GCNLayer(input_size=opt['hidden_dim'], output_size=opt['hidden_dim'], data=data, device=device, opt=opt)
 
     self.conv1 = SplineConv(data.num_node_features, opt['hidden_dim'], dim=1, kernel_size=2).to(device)
     self.neuralDE = NeuralDE(self.func, opt, device).to(device)
