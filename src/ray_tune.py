@@ -18,7 +18,7 @@ from GNN_ICML20 import ICML_GNN, get_sym_adj
 from GNN_ICML20 import train as train_icml
 
 
-def average_test(models, datas):
+def average_test(models, datas, opt):
   if opt['dataset'] == 'ogbn-arxiv':
     results = [test_OGB(model, data, opt) for model, data in zip(models, datas)]
   else:
@@ -78,7 +78,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
 
   for epoch in range(1, opt["epoch"]):
     loss = np.mean([train_this(model, optimizer, data) for model, optimizer, data in zip(models, optimizers, datas)])
-    train_accs, val_accs, tmp_test_accs = average_test(models, datas)
+    train_accs, val_accs, tmp_test_accs = average_test(models, datas, opt)
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       best = np.argmax(val_accs)
       path = os.path.join(checkpoint_dir, "checkpoint")
@@ -130,7 +130,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
 
   for epoch in range(1, opt["epoch"]):
     loss = np.mean([train_this(model, optimizer, data) for model, optimizer in zip(models, optimizers)])
-    train_accs, val_accs, tmp_test_accs = average_test(models, datas)
+    train_accs, val_accs, tmp_test_accs = average_test(models, datas, opt)
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       best = np.argmax(val_accs)
       path = os.path.join(checkpoint_dir, "checkpoint")
