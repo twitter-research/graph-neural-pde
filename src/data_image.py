@@ -317,9 +317,6 @@ def load_data(opt):
   return PyG_train, PyG_test
 
 
-# from SuperPixData import load_matlab_file, stack_matrices
-
-
 def create_Superpix75(opt, type, root, processed_file_name=None):
   class IMAGE_IN_MEM(InMemoryDataset):
     def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):

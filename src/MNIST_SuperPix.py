@@ -1,11 +1,12 @@
 import argparse
+import os.path as osp
 import torch
 import torchvision
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import numpy as np
 import networkx as nx
-from torch_geometric.data import Data
+from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.utils.convert import to_networkx
 import skimage
 from skimage.segmentation import slic
@@ -120,6 +121,129 @@ def read_data(im_dataset, type):
                                             transform=transform)
     return data
 
+
+
+
+class InMemSuperPixelData(InMemoryDataset):
+  def __init__(self, root, name, opt, type, transform=None, pre_transform=None, pre_filter=None):
+    self.name = name
+    self.opt = opt
+    self.type = type
+    super(InMemoryDataset, self).__init__(root, transform, pre_transform, pre_filter)
+    self.data, self.slices = torch.load(self.processed_paths[0])
+
+  @property
+  def raw_dir(self):
+    return osp.join(self.root, self.name, 'raw')
+
+  @property
+  def processed_dir(self):
+    return osp.join(self.root, self.name, 'processed')
+
+  @property
+  def raw_file_names(self):
+    return []
+
+  @property
+  def processed_file_names(self):
+    return 'data.pt'
+
+  def download(self):
+    pass  # download_url(self.url, self.raw_dir)
+
+  def read_data(self):
+    if self.opt['im_dataset'] == 'MNIST':
+      transform = transforms.Compose([transforms.ToTensor()])  # ,
+      # transforms.Normalize((0.1307,), (0.3081,))])
+      if self.type == "Train":
+        data = torchvision.datasets.MNIST('../data/MNIST/', train=True, download=True,
+                                          transform=transform)
+      elif self.type == 'Test':
+        data = torchvision.datasets.MNIST('../data/MNIST/', train=False, download=True,
+                                          transform=transform)
+    elif self.opt['im_dataset'] == 'CIFAR':
+      # https: // discuss.pytorch.org / t / normalization - in -the - mnist - example / 457 / 7
+      transform = transforms.Compose([transforms.ToTensor(),
+                                      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+      if self.type == "Train":
+        data = torchvision.datasets.CIFAR10('../data/CIFAR/', train=True, download=True,
+                                            transform=transform)
+      elif self.type == 'Test':
+        data = torchvision.datasets.CIFAR10('../data/CIFAR/', train=False, download=True,
+                                            transform=transform)
+    return data
+
+  def process(self):
+    graph_list = []
+    data = self.read_data()
+    c, w, h = self.opt['im_chan'], self.opt['im_width'], self.opt['im_height']
+
+    data_loader = torch.utils.data.DataLoader(data, batch_size=1, shuffle=True)
+    for batch_idx, (data, target) in enumerate(data_loader):
+      if self.opt['testing_code'] == True and batch_idx > self.opt['train_size'] - 1:
+        break
+
+      x = data.view(c, w * h)
+      x = x.T
+
+      pixel_pos = torch.FloatTensor([(self.opt['im_height'] - i, j) for i in range(self.opt['im_height']) for j in
+                   range(self.opt['im_width'])])
+
+      if self.opt['im_dataset'] == 'MNIST':
+        pix_labels = []
+        # bucket labels in each channel (superseeded by kmeans for CIFAR)
+        for i in range(self.opt['im_chan']):
+          y = np.maximum(np.minimum(x * self.opt['pixel_cat'] ,self.opt['pixel_cat']*(0.9999)), 0)
+          y = y[:,i]
+          y = torch.floor(y).type(torch.LongTensor) #turn greyscale into integar labels
+          pix_labels.append(y)
+        y = torch.stack(pix_labels, dim=1)
+      elif self.opt['im_dataset'] == 'CIFAR':
+        label_centers = torch.FloatTensor(kmeans.cluster_centers_)
+        y = torch.LongTensor(kmeans.labels_).unsqueeze(1)
+
+      full_idx = np.arange(self.opt['num_nodes'])
+      # set pixel masks
+      rnd_state = np.random.RandomState(seed=12345)
+      train_idx = []
+      for label in range(y.max().item() + 1):
+        # class_idx = np.nonzero(y == label)[:,0]
+        class_idx = (y == label).nonzero()[:,0]
+        num_in_class = len(class_idx)
+        train_idx.extend(rnd_state.choice(class_idx, num_in_class//2, replace=False))
+      test_idx = [i for i in full_idx if i not in train_idx]
+      train_mask = torch.zeros(self.opt['num_nodes'], dtype=torch.bool)
+      test_mask = torch.zeros(self.opt['num_nodes'], dtype=torch.bool)
+      train_mask[train_idx] = 1
+      test_mask[test_idx] = 1
+
+      graph = Data(x=x, y=y, pos=pixel_pos, target=target, edge_index=edge_index, train_mask=train_mask, test_mask=test_mask)
+      if self.opt['im_dataset'] == 'CIFAR':
+        graph.label_centers = label_centers
+      graph_list.append(graph)
+
+    torch.save(self.collate(graph_list), self.processed_paths[0])
+
+
+def load_SuperPixel_data(opt):
+  print("loading PyG Super Pixel Data")
+  data_name = opt['im_dataset']
+  root = '../data'
+  name = f"SuperPixel{data_name}{str(opt['train_size'])}_{str(opt['pixel_cat'])}Cat"
+  root = f"{root}/{name}"
+  SuperPixelData = InMemSuperPixelData(root, name, opt, type="Train", transform=None, pre_transform=None, pre_filter=None)
+  return SuperPixelData
+
+
+
+
+
+
+
+
+
+
+
 def main(opt):
     ###coordinate convention
     # X is IM_WIDTH is left to right is in the 1st axis of the matrix
@@ -179,7 +303,7 @@ def main(opt):
     plt.show()  # PLOT B/W PATCHES WITHOUT CENTROIDS OR SEGMENTATION
 
     # RESIZING - (TEST IF NEEDED)
-    SF = 480  # 480    #for some reason this is fixed
+    SF = 448 #56 #480  # 480    #as mark_boundaries marks 1 pixel wide either side of boundary
     heightSF = SF / im_height
     widthSF = SF / im_width
     pixel_values = color2
