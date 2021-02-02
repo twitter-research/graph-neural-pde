@@ -533,22 +533,14 @@ if __name__ == '__main__':
   # df = pd.read_csv(f'{directory}models.csv')
   # model_keys = df['model_key'].to_list()
 
-  model_keys =   ['20210201_135109','20210201_135134','20210201_135209']
-  model_epochs = [7, 7, 7]
-
-
-  model_keys = ['20210201_135109','20210201_135134','20210201_135209']
-  model_epochs = [2,2,2]
+  model_keys =   ['20210202_122219','20210202_124040','20210202_130127']
+  model_epochs = [248, 248, 96]
 
   build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
   build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
 
   times = [0, 5, 10]
-  # grid_keys = [
-  # '20210129_115200',
-  # '20210129_115617',
-  # '20210129_123408']
-  image_folder = 'CIFAR_10cat_1image'
+  image_folder = 'MNIST_binaryWOdropout'
   model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmultiple, partitions, batch_num)
 
   # #
