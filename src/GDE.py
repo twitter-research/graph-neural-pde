@@ -170,10 +170,10 @@ class GDE(torch.nn.Module):
     self.conv2 = SplineConv(opt['hidden_dim'], dataset.num_classes, dim=1, kernel_size=2).to(device)
 
   def forward(self, x):
-    x = F.tanh(self.conv1(x, self.edge_index, self.edge_weight))
+    x = torch.tanh(self.conv1(x, self.edge_index, self.edge_weight))
     x = F.dropout(x, p=self.opt['dropout'], training=self.training)
     x = self.neuralDE(x)
-    x = F.tanh(self.conv2(x, self.edge_index, self.edge_weight))
+    x = torch.tanh(self.conv2(x, self.edge_index, self.edge_weight))
 
     return F.log_softmax(x, dim=1)
 
@@ -181,8 +181,9 @@ class GDE(torch.nn.Module):
 def train(model, optimizer, data):
   model.train()
   optimizer.zero_grad()
-  F.nll_loss(model(data.x)[data.train_mask], data.y[data.train_mask]).backward()
+  loss = F.nll_loss(model(data.x)[data.train_mask], data.y[data.train_mask]).backward()
   optimizer.step()
+  return loss.item()
 
 
 def test():
@@ -212,7 +213,8 @@ if __name__ == '__main__':
               's_span': torch.linspace(0, 1, 2), 'method': 'rk4', 'atol': 1e-3, 'rtol': 1e-4,  # method params
               'return_traj': False}
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  opt = dict(method='rk4', time=3, tol_scale=10, tol_scale_adjoint=10, hidden_dim=64, adjoint=False, dropout=0.5, self_loop_weight=1)
+  opt = dict(method='rk4', time=3, tol_scale=10, tol_scale_adjoint=10, hidden_dim=64, adjoint=False, dropout=0.5,
+             self_loop_weight=1)
   model, data = GDE(opt, dataset, device).to(device), data.to(device)
   optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-3)
   for epoch in range(1, 20):
