@@ -216,13 +216,13 @@ if __name__ == '__main__':
              self_loop_weight=1, dataset='Computers', GDE=True, use_lcc=False, rewiring=False)
   dataset = get_dataset(opt, data_dir="../data", use_lcc=opt['use_lcc'])
   # dataset = Planetoid(path, dataset, transform=T.TargetIndegree())
-  data = dataset[0]
-
-  data.train_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
-  data.train_mask[:data.num_nodes - 1000] = 1
-  data.val_mask = None
-  data.test_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
-  data.test_mask[data.num_nodes - 500:] = 1
+  # data = dataset[0]
+  #
+  # data.train_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
+  # data.train_mask[:data.num_nodes - 1000] = 1
+  # data.val_mask = None
+  # data.test_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
+  # data.test_mask[data.num_nodes - 500:] = 1
 
   defaults = {'type': 'classic', 'controlled': False, 'augment': False,  # model
               'backprop_style': 'autograd', 'cost': None,  # training
@@ -230,7 +230,7 @@ if __name__ == '__main__':
               'return_traj': False}
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-  model, data = GDE(opt, dataset, device).to(device), data.to(device)
+  model, data = GDE(opt, dataset, device).to(device), dataset.data.to(device)
   optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-3)
   for epoch in range(1, 20):
     train(model, optimizer, data)
