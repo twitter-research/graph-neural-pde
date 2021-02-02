@@ -472,7 +472,7 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
       new_label_list = [new_label_dict[label] for label in label_list]
 
       # plot_times = ["mask"]+[f"t={int(opt['time'] * time / partitions)}" for time in times]
-      plot_times = [f"t={int(opt['time'] * time / partitions)}" for time in times]
+      plot_times = [f"t={int(opt['time'] * time)}" for time in times]
 
       fig, axs = plt.subplots(3,3, figsize=(9, 6), sharex=True, sharey=True)
       # fig, axs = plt.subplots(3,4, figsize=(9, 6), sharex=True, sharey=True)
@@ -535,7 +535,7 @@ def main(model_keys):
 if __name__ == '__main__':
   Tmultiple = 1
   partitions = 10
-  batch_num = 4#0 #1#2
+  batch_num = 0 #1#2
   samples = 6
 
   # directory = f"../pixels/"
@@ -547,8 +547,8 @@ if __name__ == '__main__':
 
   # model_keys = ['20210202_130127']
   # model_epochs = [96]
-  build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
-  build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
+  # build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
+  # build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
 
   times = [0, 5, 10]
   image_folder = 'MNIST_binaryWOdropout'
