@@ -38,7 +38,7 @@ class NeuralDE(pl.LightningModule):
   :type settings: dict
   """
 
-  def __init__(self, func: nn.Module, opt: dict):
+  def __init__(self, func: nn.Module, opt: dict, device):
     super().__init__()
     # defaults.update(settings)
     # compat_check(defaults)
@@ -147,13 +147,13 @@ class NeuralDE(pl.LightningModule):
 
 
 class GCNLayer(torch.nn.Module):
-  def __init__(self, input_size, output_size, data):
+  def __init__(self, input_size, output_size, data, device):
     super(GCNLayer, self).__init__()
 
     if input_size != output_size:
       raise AttributeError('input size must equal output size')
-    self.edge_index = data.edge_index.to(self.device)
-    self.edge_attr = data.edge_attr.to(self.device)
+    self.edge_index = data.edge_index.to(device)
+    self.edge_attr = data.edge_attr.to(device)
     self.conv1 = SplineConv(input_size, output_size, dim=1, kernel_size=2).to(device)
     self.conv2 = SplineConv(input_size, output_size, dim=1, kernel_size=2).to(device)
 
@@ -164,15 +164,16 @@ class GCNLayer(torch.nn.Module):
 
 
 class GDE(torch.nn.Module):
-  def __init__(self, opt, data):
+  def __init__(self, opt, data, device):
     super(GDE, self).__init__()
     self.opt = opt
-    self.edge_index = data.edge_index.to(self.device)
-    self.edge_attr = data.edge_attr.to(self.device)
-    self.func = GCNLayer(input_size=opt['hidden_dim'], output_size=opt['hidden_dim'], data=data)
+    self.device = device
+    self.edge_index = data.edge_index.to(device)
+    self.edge_attr = data.edge_attr.to(device)
+    self.func = GCNLayer(input_size=opt['hidden_dim'], output_size=opt['hidden_dim'], data=data, device)
 
     self.conv1 = SplineConv(dataset.num_features, opt['hidden_dim'], dim=1, kernel_size=2).to(device)
-    self.neuralDE = NeuralDE(self.func, opt).to(device)
+    self.neuralDE = NeuralDE(self.func, opt, device).to(device)
     self.conv2 = SplineConv(opt['hidden_dim'], dataset.num_classes, dim=1, kernel_size=2).to(device)
 
   def forward(self, x):
@@ -186,7 +187,7 @@ class GDE(torch.nn.Module):
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 opt = dict(method='rk4', time=3, tol_scale=10, hidden_dim=64, adjoint=False)
-model, data = GDE(opt, data).to(device), data.to(device)
+model, data = GDE(opt, data, device).to(device), data.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-3)
 
 
