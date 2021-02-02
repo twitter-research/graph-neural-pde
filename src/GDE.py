@@ -170,7 +170,7 @@ class GDE(torch.nn.Module):
     self.device = device
     self.edge_index = data.edge_index.to(device)
     self.edge_attr = data.edge_attr.to(device)
-    self.func = GCNLayer(input_size=opt['hidden_dim'], output_size=opt['hidden_dim'], data=data, device)
+    self.func = GCNLayer(input_size=opt['hidden_dim'], output_size=opt['hidden_dim'], data=data, device=device)
 
     self.conv1 = SplineConv(dataset.num_features, opt['hidden_dim'], dim=1, kernel_size=2).to(device)
     self.neuralDE = NeuralDE(self.func, opt, device).to(device)
