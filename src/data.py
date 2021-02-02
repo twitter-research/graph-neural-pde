@@ -43,7 +43,7 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     raise Exception('Unknown dataset.')
 
   if opt['GDE']:
-    dataset.data = T.TargetIndegree(dataset.data)
+    dataset.data = T.TargetIndegree()(dataset.data)
 
   if use_lcc:
     lcc = get_largest_connected_component(dataset)
