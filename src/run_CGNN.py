@@ -24,6 +24,7 @@ for dataset in ['Photo', 'Pubmed', 'Computers', 'CoauthorCS']:
   opt['num_samples'] = 1000
   opt['epoch'] = 100
   opt['cpus'] = 2
+  opt['fc_out'] = False
   opt['gpus'] = 1
   opt['grace_period'] = 10
   opt['reduction_factor'] = 10
