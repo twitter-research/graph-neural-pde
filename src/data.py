@@ -27,7 +27,7 @@ def rewire(data, opt):
 
 
 def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
-  transform = T.TargetIndegree() if opt['GDC'] else None
+  transform = T.TargetIndegree() if opt['GDE'] else None
   ds = opt['dataset']
   path = os.path.join(data_dir, ds)
   if ds in ['Cora', 'Citeseer', 'Pubmed']:
