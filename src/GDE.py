@@ -142,6 +142,7 @@ class GCNLayer(torch.nn.Module):
     self.opt = opt
     self.edge_index = data.edge_index.to(device)
     self.edge_weight = data.edge_attr.to(device)
+    self.nfe = 0
     # if data.edge_attr is not None:
     #   self.edge_attr = data.edge_attr.to(device)
     # else:
