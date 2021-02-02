@@ -535,11 +535,11 @@ if __name__ == '__main__':
   # df = pd.read_csv(f'{directory}models.csv')
   # model_keys = df['model_key'].to_list()
 
-  model_keys = ['20210202_122219','20210202_124040','20210202_130127']
-  model_epochs = [248, 248, 96]
+  # model_keys = ['20210202_122219','20210202_124040','20210202_130127old']
+  # model_epochs = [248, 248, 96]
 
-  # model_keys = ['20210202_130127']
-  # model_epochs = [96]
+  model_keys = ['20210202_130127']
+  model_epochs = [96]
   build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
   build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
 
