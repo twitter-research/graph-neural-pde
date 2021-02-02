@@ -53,6 +53,8 @@ for dataset in ['ogbn-arxiv', 'CoauthorCS']:
   opt['max_iters'] = 100
   opt['no_alpha_sigmoid'] = False
   opt['add_source'] = True
+  opt['tol_scale'] = 1
+  opt['tol_scale_adjoint'] = 1
   main(opt)
 
 
