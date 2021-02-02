@@ -138,12 +138,9 @@ class GCNLayer(torch.nn.Module):
     if input_size != output_size:
       raise AttributeError('input size must equal output size')
     self.edge_index = data.edge_index.to(device)
-    edge_index, edge_weight = gcn_norm_fill_val(data.edge_index, edge_weight=data.edge_attr,
-                                                fill_value=opt['self_loop_weight'],
-                                                num_nodes=data.num_nodes,
-                                                dtype=data.x.dtype)
-    self.edge_index = edge_index.to(device)
-    self.edge_weight = edge_weight.to(device)
+
+    self.edge_index = data.edge_index.to(device)
+    self.edge_weight = data.edge_attr.to(device)
     # if data.edge_attr is not None:
     #   self.edge_attr = data.edge_attr.to(device)
     # else:
@@ -160,20 +157,12 @@ class GCNLayer(torch.nn.Module):
 class GDE(torch.nn.Module):
   def __init__(self, opt, dataset, device):
     super(GDE, self).__init__()
-    data = dataset.data
+    data = dataset[0]
     self.opt = opt
     self.device = device
-    # self.edge_index = data.edge_index.to(device)
-    # if data.edge_attr is not None:
-    #   self.edge_attr = data.edge_attr.to(device)
-    # else:
-    #   self.edge_attr = None
-    edge_index, edge_weight = gcn_norm_fill_val(data.edge_index, edge_weight=data.edge_attr,
-                                                fill_value=opt['self_loop_weight'],
-                                                num_nodes=data.num_nodes,
-                                                dtype=data.x.dtype)
-    self.edge_index = edge_index.to(device)
-    self.edge_weight = edge_weight.to(device)
+
+    self.edge_index = data.edge_index.to(device)
+    self.edge_weight = data.edge_attr.to(device)
     self.func = GCNLayer(input_size=opt['hidden_dim'], output_size=opt['hidden_dim'], data=data, device=device, opt=opt)
 
     self.conv1 = SplineConv(data.num_node_features, opt['hidden_dim'], dim=1, kernel_size=2).to(device)
@@ -181,7 +170,7 @@ class GDE(torch.nn.Module):
     self.conv2 = SplineConv(opt['hidden_dim'], dataset.num_classes, dim=1, kernel_size=2).to(device)
 
   def forward(self, x):
-    x = F.tanh(self.conv1(x, self.edge_index, self.edge_weight))
+    x = F.tanh(self.conv1(x, data.edge_index, self.edge_weight))
     x = F.dropout(x, p=self.opt['dropout'], training=self.training)
     x = self.neuralDE(x)
     x = F.tanh(self.conv2(x, self.edge_index, self.edge_weight))
@@ -223,10 +212,10 @@ if __name__ == '__main__':
               's_span': torch.linspace(0, 1, 2), 'method': 'rk4', 'atol': 1e-3, 'rtol': 1e-4,  # method params
               'return_traj': False}
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  opt = dict(method='rk4', time=3, tol_scale=10, tol_scale_adjoint=10, hidden_dim=64, adjoint=False, dropout=0.5)
+  opt = dict(method='rk4', time=3, tol_scale=10, tol_scale_adjoint=10, hidden_dim=64, adjoint=False, dropout=0.5, self_loop_weight=1)
   model, data = GDE(opt, dataset, device).to(device), data.to(device)
   optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-3)
   for epoch in range(1, 20):
-    train()
+    train(model, optimizer, data)
     log = 'Epoch: {:03d}, Train: {:.4f}, Test: {:.4f}'
     print(log.format(epoch, *test()))
