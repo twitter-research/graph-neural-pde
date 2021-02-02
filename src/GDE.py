@@ -13,6 +13,8 @@ from utils import get_rw_adj, gcn_norm_fill_val
 from utils import Meter
 from utils import MaxNFEException
 from data import get_dataset
+
+
 # from torchdyn._internals import compat_check
 
 class NeuralDE(pl.LightningModule):
@@ -177,6 +179,12 @@ class GDE(torch.nn.Module):
     self.conv1 = SplineConv(data.num_node_features, opt['hidden_dim'], dim=1, kernel_size=2).to(device)
     self.neuralDE = NeuralDE(self.func, opt, device).to(device)
     self.conv2 = SplineConv(opt['hidden_dim'], dataset.num_classes, dim=1, kernel_size=2).to(device)
+
+  def getNFE(self):
+    return self.func.nfe
+
+  def resetNFE(self):
+    self.func.nfe = 0
 
   def forward(self, x):
     x = torch.tanh(self.conv1(x, self.edge_index, self.edge_weight))
