@@ -27,9 +27,7 @@ def get_optimizer(name, parameters, lr, weight_decay=0):
 
 def train(model, optimizer, dataset, data_test=None):
   model.train()
-  # loader = DataLoader(dataset, batch_size=model.opt['batch_size'], shuffle=True)
-  # train 1 image
-  loader = DataLoader(dataset, batch_size=1, shuffle=True)
+  loader = DataLoader(dataset, batch_size=model.opt['batch_size'], shuffle=True)
 
   for batch_idx, batch in enumerate(loader):
     optimizer.zero_grad()

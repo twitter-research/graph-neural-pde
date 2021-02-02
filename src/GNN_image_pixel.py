@@ -73,7 +73,7 @@ class GNN_image_pixel(BaseGNN):
 
   def forward(self, x):
     # Encode each node based on its feature.
-    x = F.dropout(x, self.opt['input_dropout'], training=self.training)
+    # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
     #note during training mode dropout scales image data by 1/(1-p)!
     # x = self.m1(x) #no encoding for image viz
     # todo investigate if some input non-linearity solves the problem with smooth deformations identified in the ANODE paper
@@ -96,13 +96,23 @@ class GNN_image_pixel(BaseGNN):
     #   z = torch.split(z, x.shape[1] // 2, dim=1)[0]
 
     # Activation.
-    z = F.relu(z)
+    # z = F.relu(z)
 
     # Dropout.
-    z = F.dropout(z, self.opt['dropout'], training=self.training)
+    # z = F.dropout(z, self.opt['dropout'], training=self.training)
+    # if self.eval:  # keep batch norm as keps in -1,1 which is correct for sigmoid
+    #   # z = z  * (self.bn.running_var + self.bn.eps)**0.5 + self.bn.running_mean
+    #   z = (z - self.bn.bias) * (self.bn.running_var + self.bn.eps) ** 0.5 / self.bn.weight + self.bn.running_mean
+
 
     if self.opt['pixel_loss'] == 'binary_sigmoid':
-      z = (z - 0.5) / 0.5 #MNIST in [0,1] and sigmoid(0)= 0.5 so need to rescale tp [-1,1]
+      # if self.training: removed the drop outs as messing with sacling and sigmoid activation
+      #   inputDropOutFactor = 1/(1-self.opt['input_dropout'])
+      #   dropOutFactor = 1/(1-self.opt['dropout'])
+      #   z = (z - self.bn.bias) * (self.bn.running_var + self.bn.eps) ** 0.5 / self.bn.weight + self.bn.running_mean
+      #   z = (z - 0.5 * dropOutFactor) / (0.5 * dropOutFactor)
+      # else:
+      #   z = (z - 0.5) / 0.5 #MNIST in [0,1] and sigmoid(0)= 0.5 so need to rescale tp [-1,1]
       z = torch.cat((torch.sigmoid(z), 1 - torch.sigmoid(z)),dim=1)
     elif self.opt['pixel_loss'] == '10catM2':
       # z = z.view(-1, self.opt['im_chan'])
@@ -144,7 +154,7 @@ class GNN_image_pixel(BaseGNN):
 
   def forward_plot_T(self, x): #the same as forward but without the decoder
     # Encode each node based on its feature.
-    x = F.dropout(x, self.opt['input_dropout'], training=self.training)
+    # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
     # x = self.m1(x) #no encoding for image viz
     # todo investigate if some input non-linearity solves the problem with smooth deformations identified in the ANODE paper
     # if True:
@@ -180,7 +190,7 @@ class GNN_image_pixel(BaseGNN):
 
   def forward_plot_path(self, x, frames): #stitch together ODE integrations
     # Encode each node based on its feature.
-    x = F.dropout(x, self.opt['input_dropout'], training=self.training)
+    # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
     # x = self.m1(x) #no encoding for image viz
     # todo investigate if some input non-linearity solves the problem with smooth deformations identified in the ANODE paper
     # if True:
