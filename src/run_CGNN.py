@@ -45,6 +45,7 @@ for dataset in ['Photo', 'Pubmed', 'Computers', 'CoauthorCS']:
   opt['total_deriv'] = None
   opt['directional_penalty'] = None
   opt['data_norm'] = 'gcn'
+  opt['batch_norm'] = False
   main(opt)
 
 
