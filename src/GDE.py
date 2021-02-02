@@ -152,8 +152,8 @@ class GCNLayer(torch.nn.Module):
     self.conv2 = SplineConv(input_size, output_size, dim=1, kernel_size=2).to(device)
 
   def forward(self, t, x):  # the t param is needed by the ODE solver.
-    x = self.conv1(x, self.edge_index, self.edge_attr)
-    x = self.conv2(x, self.edge_index, self.edge_attr)
+    x = self.conv1(x, self.edge_index, self.edge_weight)
+    x = self.conv2(x, self.edge_index, self.edge_weight)
     return x
 
 
@@ -181,10 +181,10 @@ class GDE(torch.nn.Module):
     self.conv2 = SplineConv(opt['hidden_dim'], dataset.num_classes, dim=1, kernel_size=2).to(device)
 
   def forward(self, x):
-    x = F.tanh(self.conv1(x, self.edge_index, self.edge_attr))
+    x = F.tanh(self.conv1(x, self.edge_index, self.edge_weight))
     x = F.dropout(x, p=self.opt['dropout'], training=self.training)
     x = self.neuralDE(x)
-    x = F.tanh(self.conv2(x, self.edge_index, self.edge_attr))
+    x = F.tanh(self.conv2(x, self.edge_index, self.edge_weight))
 
     return F.log_softmax(x, dim=1)
 
