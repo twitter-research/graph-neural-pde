@@ -288,9 +288,9 @@ def batch_pixel_intensity(paths, labels, opt, pic_folder, samples):
 
 
 
-def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
+def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num):
   path_folder = f"../paths/{model_key}"
-  if not os.path.exists(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_paths.pt"):
+  if not os.path.exists(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_{batch_num}_paths.pt"):
     try:
       os.mkdir(path_folder)
     except OSError:
@@ -301,7 +301,9 @@ def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num=0):
     data_train = load_pixel_data(opt)
     loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=False)  # True)
     for batch_idx, batch in enumerate(loader):
-      break
+      if batch_idx == batch_num:
+        break
+
     batch.to(device)
     edge_index_gpu = batch.edge_index
     edge_attr_gpu = batch.edge_attr
@@ -526,18 +528,18 @@ def main(model_keys):
 if __name__ == '__main__':
   Tmultiple = 1
   partitions = 10
-  batch_num = 0 #1#2
+  batch_num = 4#0 #1#2
   samples = 6
 
   # directory = f"../pixels/"
   # df = pd.read_csv(f'{directory}models.csv')
   # model_keys = df['model_key'].to_list()
 
-  #model_keys =   ['20210202_122219','20210202_124040','20210202_130127']
-  #model_epochs = [248, 248, 96]
+  model_keys = ['20210202_122219','20210202_124040','20210202_130127']
+  model_epochs = [248, 248, 96]
 
-  model_keys = ['20210202_130127']
-  model_epochs = [96]
+  # model_keys = ['20210202_130127']
+  # model_epochs = [96]
   build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
   build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
 
