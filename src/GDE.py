@@ -214,7 +214,7 @@ if __name__ == '__main__':
   dataset = 'Computer'
   path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', dataset)
   opt = dict(method='rk4', time=3, tol_scale=10, tol_scale_adjoint=10, hidden_dim=64, adjoint=False, dropout=0.5,
-             self_loop_weight=1, dataset='Computers', GDE=True, use_lcc=False, rewiring=False)
+             self_loop_weight=1, dataset='Computers', GDE=True, use_lcc=False, rewiring=False, max_nfe=100)
   dataset = get_dataset(opt, data_dir="../data", use_lcc=opt['use_lcc'])
   # dataset = Planetoid(path, dataset, transform=T.TargetIndegree())
   # data = dataset[0]
