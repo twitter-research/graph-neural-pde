@@ -10,6 +10,7 @@ from torch_geometric.nn.conv.spline_conv import SplineConv
 # from torchdyn.models import NeuralDE
 import torchdiffeq
 
+
 # from torchdyn._internals import compat_check
 
 class NeuralDE(pl.LightningModule):
@@ -175,7 +176,7 @@ class GDE(torch.nn.Module):
     return F.log_softmax(x, dim=1)
 
 
-def train():
+def train(model, optimizer, data):
   model.train()
   optimizer.zero_grad()
   F.nll_loss(model(data.x)[data.train_mask], data.y[data.train_mask]).backward()
