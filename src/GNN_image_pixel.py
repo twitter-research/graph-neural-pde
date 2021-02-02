@@ -79,7 +79,7 @@ class GNN_image_pixel(BaseGNN):
     # todo investigate if some input non-linearity solves the problem with smooth deformations identified in the ANODE paper
     # if True:
     #   x = F.relu(x)
-
+    x=x #put here to block
     # Solve the initial value problem of the ODE.
     # if self.opt['augment']: #no augmenting for image viz
     #   c_aux = torch.zeros(x.shape).to(self.device)

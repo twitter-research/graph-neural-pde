@@ -290,50 +290,50 @@ def batch_pixel_intensity(paths, labels, opt, pic_folder, samples):
 
 def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num):
   path_folder = f"../paths/{model_key}"
-  if not os.path.exists(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_{batch_num}_paths.pt"):
-    try:
-      os.mkdir(path_folder)
-    except OSError:
-      print("Creation of the directory %s failed" % path_folder)
+  # if not os.path.exists(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_{batch_num}_paths.pt"):
+  #   try:
+  #     os.mkdir(path_folder)
+  #   except OSError:
+  #     print("Creation of the directory %s failed" % path_folder)
 
-    #load data and model
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    data_train = load_pixel_data(opt)
-    loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=False)  # True)
-    for batch_idx, batch in enumerate(loader):
-      if batch_idx == batch_num:
-        break
+  #load data and model
+  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+  data_train = load_pixel_data(opt)
+  loader = DataLoader(data_train, batch_size=opt['batch_size'], shuffle=False)  # True)
+  for batch_idx, batch in enumerate(loader):
+    if batch_idx == batch_num:
+      break
 
-    batch.to(device)
-    edge_index_gpu = batch.edge_index
-    edge_attr_gpu = batch.edge_attr
-    if edge_index_gpu is not None: edge_index_gpu.to(device)
-    if edge_attr_gpu is not None: edge_index_gpu.to(device)
-    opt['time'] = opt['time'] / partitions
-    model = GNN_image_pixel(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
-                      batch.edge_attr, device).to(device)
+  batch.to(device)
+  edge_index_gpu = batch.edge_index
+  edge_attr_gpu = batch.edge_attr
+  if edge_index_gpu is not None: edge_index_gpu.to(device)
+  if edge_attr_gpu is not None: edge_index_gpu.to(device)
+  opt['time'] = opt['time'] / partitions
+  model = GNN_image_pixel(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
+                    batch.edge_attr, device).to(device)
 
-    model.load_state_dict(torch.load(modelpath, map_location=device))
-    model.to(device)
-    model.eval()
-    ###do forward pass
-    for batch_idx, batch in enumerate(loader):
-      if batch_idx == batch_num:
-        paths = model.forward_plot_path(batch.x.to(model.device), Tmultiple * partitions)
-        pix_labels = batch.y
-        train_mask = batch.train_mask
-        labels = batch.target
-        break
-    torch.save(paths,f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_paths.pt")
-    torch.save(pix_labels, f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_pixel_labels.pt")
-    torch.save(labels, f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_labels.pt")
-    torch.save(batch.train_mask,f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_train_mask.pt")
-
-  else:
-    paths = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_paths.pt")
-    pix_labels = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_pixel_labels.pt")
-    labels = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_labels.pt")
-    train_mask = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_train_mask.pt")
+  model.load_state_dict(torch.load(modelpath, map_location=device))
+  model.to(device)
+  model.eval()
+  ###do forward pass
+  for batch_idx, batch in enumerate(loader):
+    if batch_idx == batch_num:
+      paths = model.forward_plot_path(batch.x.to(model.device), Tmultiple * partitions)
+      pix_labels = batch.y
+      train_mask = batch.train_mask
+      labels = batch.target
+      break
+  #   torch.save(paths,f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_paths.pt")
+  #   torch.save(pix_labels, f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_pixel_labels.pt")
+  #   torch.save(labels, f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_labels.pt")
+  #   torch.save(batch.train_mask,f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_train_mask.pt")
+  #
+  # else:
+  #   paths = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_paths.pt")
+  #   pix_labels = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_pixel_labels.pt")
+  #   labels = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_labels.pt")
+  #   train_mask = torch.load(f"{path_folder}/{model_key}_Tx{Tmultiple}_{partitions}_train_mask.pt")
 
   paths_nograd = paths.cpu().detach()
   pix_labels_nograd = pix_labels.cpu().detach()
