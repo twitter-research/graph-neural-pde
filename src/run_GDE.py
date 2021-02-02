@@ -5,7 +5,7 @@ from ray_tune import main, train_ray_rand
 from run_best_ray import run_best_params
 
 # for dataset in ['Photo', 'Pubmed', 'Computers', 'CoauthorCS']:
-for dataset in ['CoauthorCS']:
+for dataset in ['Cora']:
   print('running dataset {}'.format(dataset))
   opt = dict(dataset=dataset)
   opt['GDE'] = True
@@ -23,12 +23,12 @@ for dataset in ['CoauthorCS']:
   opt['optimizer'] = 'adam'
   opt['lr'] = 0.04
   opt['decay'] = 0
-  opt['num_samples'] = 1000
-  opt['epoch'] = 100
-  opt['cpus'] = 2
+  opt['num_samples'] = 2
+  opt['epoch'] = 2
+  opt['cpus'] = 4
   opt['fc_out'] = False
   opt['gpus'] = 1
-  opt['grace_period'] = 10
+  opt['grace_period'] = 1
   opt['reduction_factor'] = 10
   opt['metric'] = 'accuracy'
   opt['regularise'] = False
