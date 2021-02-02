@@ -44,6 +44,7 @@ for dataset in ['Photo', 'Pubmed', 'Computers', 'CoauthorCS']:
   opt['jacobian_norm2'] = None
   opt['total_deriv'] = None
   opt['directional_penalty'] = None
+  opt['data_norm'] = 'gcn'
   main(opt)
 
 

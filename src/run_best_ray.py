@@ -47,6 +47,10 @@ def run_best_params(opt):
     best_params_ret['directional_penalty']
   except KeyError:
     best_params_ret['directional_penalty'] = None
+  try:
+    best_params_ret['data_norm']
+  except KeyError:
+    best_params_ret['data_norm'] = 'gcn'
 
   # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
   best_params_ret['epoch'] = opt['epoch']
