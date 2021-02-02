@@ -7,11 +7,18 @@ for dataset in ['Photo', 'Pubmed', 'Computers', 'CoauthorCS', 'ogbn-arxiv']:
   print('running dataset {}'.format(dataset))
   opt = dict(dataset=dataset)
   opt['name'] = 'CGNN_{}'.format(dataset)
-  opt['not_lcc'] = False
-  # if dataset == 'ogbn-arxiv':
-  #   opt['not_lcc'] = False
-  # else:
-  #   opt['not_lcc'] = True
+  # opt['not_lcc'] = False
+  if dataset == 'ogbn-arxiv':
+    opt['not_lcc'] = False
+    opt['num_init'] = 2
+    opt['num_splits'] = 0
+  else:
+    opt['not_lcc'] = True
+    opt['num_init'] = 1
+    opt['num_splits'] = 2
+  opt['optimizer'] = 'adam'
+  opt['lr'] = 0.04
+  opt['decay'] = 0
   opt['num_samples'] = 1
   opt['epoch'] = 1
   opt['num_init'] = 1
@@ -30,8 +37,9 @@ for dataset in ['Photo', 'Pubmed', 'Computers', 'CoauthorCS', 'ogbn-arxiv']:
   opt['self_loop_weight'] = 1
   opt['time'] = 1
   opt['hidden_dim'] = 128
-  train_ray_rand(opt)
-  # main(opt)
+  opt['alpha'] = 0
+  # train_ray_rand(opt)
+  main(opt)
   # opt = set_search_space(opt)
 
 
