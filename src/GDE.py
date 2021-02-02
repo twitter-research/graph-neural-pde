@@ -10,7 +10,7 @@ from torch_geometric.nn.conv.spline_conv import SplineConv
 # from torchdyn.models import NeuralDE
 import torchdiffeq
 from utils import get_rw_adj, gcn_norm_fill_val
-
+from utils import Meter
 
 # from torchdyn._internals import compat_check
 
@@ -160,7 +160,8 @@ class GDE(torch.nn.Module):
     data = dataset[0]
     self.opt = opt
     self.device = device
-
+    self.fm = Meter()
+    self.bm = Meter()
     self.edge_index = data.edge_index.to(device)
     self.edge_weight = data.edge_attr.to(device)
     self.func = GCNLayer(input_size=opt['hidden_dim'], output_size=opt['hidden_dim'], data=data, device=device, opt=opt)
