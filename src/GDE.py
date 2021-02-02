@@ -186,7 +186,7 @@ class GDE(torch.nn.Module):
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-opt = dict(method='rk4', time=3, tol_scale=10, hidden_dim=64, adjoint=False)
+opt = dict(method='rk4', time=3, tol_scale=10, tol_scale_adjoint=10, hidden_dim=64, adjoint=False, dropout=0.5)
 model, data = GDE(opt, data, device).to(device), data.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-3)
 
