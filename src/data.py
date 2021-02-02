@@ -27,21 +27,23 @@ def rewire(data, opt):
 
 
 def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
-  transform = T.TargetIndegree() if opt['GDE'] else None
   ds = opt['dataset']
   path = os.path.join(data_dir, ds)
   if ds in ['Cora', 'Citeseer', 'Pubmed']:
-    dataset = Planetoid(path, ds, transform=transform)
+    dataset = Planetoid(path, ds)
   elif ds in ['Computers', 'Photo']:
-    dataset = Amazon(path, ds, transform=transform)
+    dataset = Amazon(path, ds)
   elif ds == 'CoauthorCS':
-    dataset = Coauthor(path, 'CS', transform=transform)
+    dataset = Coauthor(path, 'CS')
   elif ds == 'ogbn-arxiv':
     dataset = PygNodePropPredDataset(name=ds,root=path,
                                      transform=T.ToSparseTensor())
     use_lcc = False  #  never need to calculate the lcc with ogb datasets
   else:
     raise Exception('Unknown dataset.')
+
+  if opt['GDE']:
+    dataset.data = T.TargetIndegree(dataset.data)
 
   if use_lcc:
     lcc = get_largest_connected_component(dataset)

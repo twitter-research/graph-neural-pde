@@ -12,7 +12,7 @@ import torchdiffeq
 from utils import get_rw_adj, gcn_norm_fill_val
 from utils import Meter
 from utils import MaxNFEException
-
+from data import get_dataset
 # from torchdyn._internals import compat_check
 
 class NeuralDE(pl.LightningModule):
@@ -210,9 +210,12 @@ def test():
 
 
 if __name__ == '__main__':
-  dataset = 'Cora'
+  dataset = 'Computer'
   path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', dataset)
-  dataset = Planetoid(path, dataset, transform=T.TargetIndegree())
+  opt = dict(method='rk4', time=3, tol_scale=10, tol_scale_adjoint=10, hidden_dim=64, adjoint=False, dropout=0.5,
+             self_loop_weight=1, dataset='Computers', GDE=True, use_lcc=False, rewiring=False)
+  dataset = get_dataset(opt, data_dir="../data", use_lcc=opt['use_lcc'])
+  # dataset = Planetoid(path, dataset, transform=T.TargetIndegree())
   data = dataset[0]
 
   data.train_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
@@ -226,8 +229,7 @@ if __name__ == '__main__':
               's_span': torch.linspace(0, 1, 2), 'method': 'rk4', 'atol': 1e-3, 'rtol': 1e-4,  # method params
               'return_traj': False}
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  opt = dict(method='rk4', time=3, tol_scale=10, tol_scale_adjoint=10, hidden_dim=64, adjoint=False, dropout=0.5,
-             self_loop_weight=1)
+
   model, data = GDE(opt, dataset, device).to(device), data.to(device)
   optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-3)
   for epoch in range(1, 20):
