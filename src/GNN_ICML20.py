@@ -6,7 +6,7 @@ from torch import nn
 from torch import Tensor
 import torch.nn.functional as F
 from data import get_dataset
-from run_GNN import get_optimizer, test
+from run_GNN import get_optimizer, test, test_OGB
 # Whether use adjoint method or not.
 from torch_geometric.utils.convert import to_scipy_sparse_matrix
 import numpy as np
@@ -256,8 +256,14 @@ def train(model, optimizer, data):
   model.train()
   optimizer.zero_grad()
   out = model(data.x)
-  lf = torch.nn.CrossEntropyLoss()
-  loss = lf(out[data.train_mask], data.y[data.train_mask]) 
+  if model.opt['dataset'] == 'ogbn-arxiv':
+    lf = torch.nn.functional.nll_loss
+    loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
+  else:
+    lf = torch.nn.CrossEntropyLoss()
+    loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
+  # lf = torch.nn.CrossEntropyLoss()
+  # loss = lf(out[data.train_mask], data.y[data.train_mask])
   model.fm.update(model.getNFE())
   model.resetNFE()
   loss.backward()
@@ -283,11 +289,12 @@ def main(opt):
   parameters = [p for p in model.parameters() if p.requires_grad]
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
   best_val_acc = test_acc = best_epoch = 0
+  test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
 
     loss = train(model, optimizer, data)
-    train_acc, val_acc, tmp_test_acc = test(model, data)
+    train_acc, val_acc, tmp_test_acc = test_fn(model, data)
 
     if val_acc > best_val_acc:
       best_val_acc = val_acc
