@@ -465,30 +465,37 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
         datasets.append(opt['im_dataset'])
       images = [images_A, images_B, images_C]
 
-      plot_times = ["mask"]+[f"t={int(opt['time'] * time / partitions)}" for time in times]
+      label_list.append(f"{opt['block']}\n{opt['function']}")
+      new_label_dict = {f"constant\nlaplacian" : f"constant\nlaplacian",
+                     f"attention\nlaplacian": f"linear\nattention",
+                     f"constant\ntransformer": f"non-linear\nattention"}
+      new_label_list = [new_label_dict[label] for label in label_list]
 
-      # fig, axs = plt.subplots(3,3, figsize=(9, 6), sharex=True, sharey=True)
-      fig, axs = plt.subplots(3,4, figsize=(9, 6), sharex=True, sharey=True)
+      # plot_times = ["mask"]+[f"t={int(opt['time'] * time / partitions)}" for time in times]
+      plot_times = [f"t={int(opt['time'] * time / partitions)}" for time in times]
+
+      fig, axs = plt.subplots(3,3, figsize=(9, 6), sharex=True, sharey=True)
+      # fig, axs = plt.subplots(3,4, figsize=(9, 6), sharex=True, sharey=True)
       fig.suptitle(f"{opt['im_dataset']} Pixel Diffusion")
 
       for i in range(3):
-        axs[i, 0].imshow(images[0][0]*masks[i], cmap='gray', interpolation='none')
-        axs[i, 0].set_yticks([])
-        axs[i, 0].set_xticks([])
+        # axs[i, 0].imshow(images[0][0]*masks[i], cmap='gray', interpolation='none')
+        # axs[i, 0].set_yticks([])
+        # axs[i, 0].set_xticks([])
         for j in range(3):
                 # axs[i,j].imshow(plt.imread(images[j][i]))
                 if datasets[i] == 'MNIST':
-                  axs[i, j+1].imshow(images[j][i], cmap='gray', interpolation='none')
+                  axs[i, j].imshow(images[j][i], cmap='gray', interpolation='none')
                 elif datasets[i] == 'CIFAR':
                   A = UnNormalizeCIFAR(A)
-                  axs[i, j+1].imshow(images[j][i], interpolation='none')
-                axs[i,j+1].set_yticks([])
-                axs[i,j+1].set_xticks([])
+                  axs[i, j].imshow(images[j][i], interpolation='none')
+                axs[i,j].set_yticks([])
+                axs[i,j].set_xticks([])
         plt.subplots_adjust(wspace=-0.2, hspace=0)
         for ax, t in zip(axs[0], plot_times):
             ax.set_title(t, size=18)
         pad = 2
-        for ax, row in zip(axs[:,0], label_list):
+        for ax, row in zip(axs[:,0], new_label_list):
             ax.annotate(row, xy=(0, 0.5), xytext=(-ax.yaxis.labelpad - pad, 0),
                         xycoords=ax.yaxis.label, textcoords='offset points',
                         size='large', ha='right', va='center')
@@ -535,17 +542,17 @@ if __name__ == '__main__':
   # df = pd.read_csv(f'{directory}models.csv')
   # model_keys = df['model_key'].to_list()
 
-  # model_keys = ['20210202_122219','20210202_124040','20210202_130127old']
-  # model_epochs = [248, 248, 96]
+  model_keys = ['20210202_122219','20210202_124040','20210202_130127']
+  model_epochs = [248, 248, 96]
 
-  model_keys = ['20210202_130127']
-  model_epochs = [96]
+  # model_keys = ['20210202_130127']
+  # model_epochs = [96]
   build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
   build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
 
   times = [0, 5, 10]
   image_folder = 'MNIST_binaryWOdropout'
-  #model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmultiple, partitions, batch_num)
 
   # #
   # grid_keys = [
