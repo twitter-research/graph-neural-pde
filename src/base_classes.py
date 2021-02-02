@@ -106,6 +106,8 @@ class BaseGNN(MessagePassing):
     self.fm = Meter()
     self.bm = Meter()
     self.m1 = nn.Linear(dataset.data.num_features, opt['hidden_dim'])
+    self.m11 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
+    self.m12 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
     if opt['use_labels']:
       # todo - fastest way to propagate this everywhere, but error prone - refactor later
       opt['hidden_dim'] = opt['hidden_dim'] + dataset.num_classes

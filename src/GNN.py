@@ -20,7 +20,9 @@ class GNN(BaseGNN):
       y = x[:, self.num_features:]
       x = x[:, :self.num_features]
     x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-    x = self.m1(x)
+    x = F.dropout(self.m1(x), self.opt['dropout'], training=self.training)
+    x = F.dropout(x + self.m11(F.relu(x)), self.opt['dropout'], training=self.training)
+    x = F.dropout(x + self.m12(F.relu(x)), self.opt['dropout'], training=self.training)
     # todo investigate if some input non-linearity solves the problem with smooth deformations identified in the ANODE paper
     # if True:
     #   x = F.relu(x)
