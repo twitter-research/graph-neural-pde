@@ -38,6 +38,7 @@ for dataset in ['Photo', 'Pubmed', 'Computers', 'CoauthorCS']:
   opt['time'] = 1
   opt['hidden_dim'] = 128
   opt['alpha'] = 0
+  opt['use_labels'] = False
   # train_ray_rand(opt)
   main(opt)
   # opt = set_search_space(opt)
