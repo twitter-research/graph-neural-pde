@@ -102,6 +102,7 @@ class GNN_image_pixel(BaseGNN):
     z = F.dropout(z, self.opt['dropout'], training=self.training)
 
     if self.opt['pixel_loss'] == 'binary_sigmoid':
+      z = (z - 0.5) / 0.5 #MNIST in [0,1] and sigmoid(0)= 0.5 so need to rescale tp [-1,1]
       z = torch.cat((torch.sigmoid(z), 1 - torch.sigmoid(z)),dim=1)
     elif self.opt['pixel_loss'] == '10catM2':
       # z = z.view(-1, self.opt['im_chan'])

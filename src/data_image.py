@@ -260,7 +260,6 @@ class InMemPixelData(ImageInMemory):
         # xNpos = torch.cat((x,pixel_pos),dim=1)
         # kmeans = KMeans(self.opt['pixel_cat'], random_state=0).fit(xNpos)
         # y = torch.LongTensor(kmeans.labels_).unsqueeze(1)
-
         # criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
         # K = 10
         # attempts = 10
