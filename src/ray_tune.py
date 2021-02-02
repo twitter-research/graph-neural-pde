@@ -55,7 +55,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
       train_this = train_icml
     elif opt['GDE']:
-      model, data = GDE(opt, dataset.data).to(device), dataset.data.to(device)
+      model, data = GDE(opt, dataset, device).to(device), dataset.data.to(device)
       train_this = train_GDE
     else:
       model = GNN(opt, dataset, device)
@@ -110,7 +110,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
       train_this = train_icml
     elif opt['GDE']:
-      model = GDE(opt, data).to(device)
+      model = GDE(opt, dataset, device).to(device)
       train_this = train_GDE
     else:
       model = GNN(opt, dataset, device)
