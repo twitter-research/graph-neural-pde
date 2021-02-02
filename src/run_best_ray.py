@@ -71,6 +71,10 @@ def run_best_params(opt):
     best_params_ret['max_iters']
   except KeyError:
     best_params_ret['max_iters'] = 100
+  try:
+    best_params_ret['no_alpha_sigmoid']
+  except KeyError:
+    best_params_ret['no_alpha_sigmoid'] = False
 
   # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
   best_params_ret['epoch'] = opt['epoch']
