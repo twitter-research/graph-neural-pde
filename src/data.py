@@ -27,14 +27,15 @@ def rewire(data, opt):
 
 
 def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
+  transform = T.TargetIndegree() if opt['GDC'] else None
   ds = opt['dataset']
   path = os.path.join(data_dir, ds)
   if ds in ['Cora', 'Citeseer', 'Pubmed']:
-    dataset = Planetoid(path, ds)
+    dataset = Planetoid(path, ds, transform=transform)
   elif ds in ['Computers', 'Photo']:
-    dataset = Amazon(path, ds)
+    dataset = Amazon(path, ds, transform=transform)
   elif ds == 'CoauthorCS':
-    dataset = Coauthor(path, 'CS')
+    dataset = Coauthor(path, 'CS', transform=transform)
   elif ds == 'ogbn-arxiv':
     dataset = PygNodePropPredDataset(name=ds,root=path,
                                      transform=T.ToSparseTensor())
