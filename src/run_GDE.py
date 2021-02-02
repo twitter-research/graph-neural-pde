@@ -5,7 +5,7 @@ from ray_tune import main, train_ray_rand
 from run_best_ray import run_best_params
 
 # for dataset in ['Photo', 'Pubmed', 'Computers', 'CoauthorCS']:
-for dataset in ['Cora', 'Citeseer']:
+for dataset in ['Cora', 'Citeseer', 'Pubmed', 'Computers', 'CoauthorCS', 'arxiv-ogbn']:
   print('running dataset {}'.format(dataset))
   opt = dict(dataset=dataset)
   opt['GDE'] = True
