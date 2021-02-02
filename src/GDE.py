@@ -181,7 +181,8 @@ class GDE(torch.nn.Module):
 def train(model, optimizer, data):
   model.train()
   optimizer.zero_grad()
-  loss = F.nll_loss(model(data.x)[data.train_mask], data.y[data.train_mask]).backward()
+  loss = F.nll_loss(model(data.x)[data.train_mask], data.y[data.train_mask])
+  loss.backward()
   optimizer.step()
   return loss.item()
 
