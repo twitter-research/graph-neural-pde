@@ -47,6 +47,9 @@ for dataset in ['Photo', 'Pubmed', 'Computers', 'CoauthorCS']:
   opt['data_norm'] = 'gcn'
   opt['batch_norm'] = False
   opt['method'] = 'dopri5'
+  opt['step_size'] = 1
+  opt['adjoint_step_size'] = 1
+  opt['max_iters'] = 100
   main(opt)
 
 

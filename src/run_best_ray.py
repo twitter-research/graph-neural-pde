@@ -59,6 +59,18 @@ def run_best_params(opt):
     best_params_ret['method']
   except KeyError:
     best_params_ret['method'] = 'dopri5'
+  try:
+    best_params_ret['step_size']
+  except KeyError:
+    best_params_ret['step_size'] = 1
+  try:
+    best_params_ret['adjoint_step_size']
+  except KeyError:
+    best_params_ret['adjoint_step_size'] = 1
+  try:
+    best_params_ret['max_iters']
+  except KeyError:
+    best_params_ret['max_iters'] = 100
 
   # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
   best_params_ret['epoch'] = opt['epoch']
