@@ -46,6 +46,7 @@ for dataset in ['Photo', 'Pubmed', 'Computers', 'CoauthorCS']:
   opt['directional_penalty'] = None
   opt['data_norm'] = 'gcn'
   opt['batch_norm'] = False
+  opt['method'] = 'dopri5'
   main(opt)
 
 

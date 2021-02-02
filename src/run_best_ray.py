@@ -55,6 +55,10 @@ def run_best_params(opt):
     best_params_ret['batch_norm']
   except KeyError:
     best_params_ret['batch_norm'] = False
+  try:
+    best_params_ret['method']
+  except KeyError:
+    best_params_ret['method'] = 'dopri5'
 
   # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
   best_params_ret['epoch'] = opt['epoch']
