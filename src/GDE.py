@@ -111,12 +111,11 @@ class NeuralDE(pl.LightningModule):
     return sol.grad
 
   def _autograd(self, x):
-    return torchdiffeq.odeint(self.defunc, x, self.s_span, rtol=self.rtol,
-                              atol=self.atol, method=self.opt['method'])
+    return torchdiffeq.odeint(self.defunc, x, self.s_span, rtol=self.rtol, atol=self.atol, method=self.opt['method'])
 
   def _adjoint(self, x):
-    return torchdiffeq.odeint_adjoint(self.defunc, x, self.s_span, rtol=self.rtol,
-                                      atol=self.atol, method=self.opt['method'])
+    return torchdiffeq.odeint_adjoint(self.defunc, x, self.s_span, rtol=self.rtol, atol=self.atol,
+                                      method=self.opt['method'])
 
   def _integral_adjoint(self, x):
     assert self.opt['cost'], 'Cost nn.Module needs to be specified for integral adjoint'
@@ -158,7 +157,7 @@ class GCNLayer(torch.nn.Module):
     self.conv1 = SplineConv(input_size, output_size, dim=1, kernel_size=2).to(device)
     self.conv2 = SplineConv(input_size, output_size, dim=1, kernel_size=2).to(device)
 
-  def forward(self, x):
+  def forward(self, t, x):   # the t param is needed by the ODE solver.
     x = self.conv1(x, self.edge_index, self.edge_attr)
     x = self.conv2(x, self.edge_index, self.edge_attr)
     return x
