@@ -157,7 +157,10 @@ class GCNLayer(torch.nn.Module):
 class GDE(torch.nn.Module):
   def __init__(self, opt, dataset, device):
     super(GDE, self).__init__()
-    data = dataset[0]
+    try:
+      data = dataset[0]
+    except KeyError:
+      data = dataset.data
     self.opt = opt
     self.device = device
     self.fm = Meter()

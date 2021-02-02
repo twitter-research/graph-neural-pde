@@ -52,6 +52,7 @@ for dataset in ['Cora', 'Citeseer', 'Pubmed', 'Computers', 'CoauthorCS', 'arxiv-
   opt['step_size'] = 1
   opt['adjoint_step_size'] = 1
   opt['max_iters'] = 100
+  opt['max_nfe'] = 300
   opt['no_alpha_sigmoid'] = False
   opt['add_source'] = True
   opt['tol_scale'] = 1
