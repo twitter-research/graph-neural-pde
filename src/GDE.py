@@ -170,7 +170,7 @@ class GDE(torch.nn.Module):
     self.conv2 = SplineConv(opt['hidden_dim'], dataset.num_classes, dim=1, kernel_size=2).to(device)
 
   def forward(self, x):
-    x = F.tanh(self.conv1(x, data.edge_index, self.edge_weight))
+    x = F.tanh(self.conv1(x, self.edge_index, self.edge_weight))
     x = F.dropout(x, p=self.opt['dropout'], training=self.training)
     x = self.neuralDE(x)
     x = F.tanh(self.conv2(x, self.edge_index, self.edge_weight))
