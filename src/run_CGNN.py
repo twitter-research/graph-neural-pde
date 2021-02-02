@@ -8,6 +8,8 @@ from run_best_ray import run_best_params
 for dataset in ['CoauthorCS']:
   print('running dataset {}'.format(dataset))
   opt = dict(dataset=dataset)
+  opt['baseline'] = True
+  opt['GDE'] = False
   opt['name'] = 'CGNN_{}'.format(dataset)
   opt['folder'] = opt['name']
   # opt['not_lcc'] = False
@@ -29,7 +31,6 @@ for dataset in ['CoauthorCS']:
   opt['gpus'] = 1
   opt['grace_period'] = 10
   opt['reduction_factor'] = 10
-  opt['baseline'] = True
   opt['metric'] = 'accuracy'
   opt['regularise'] = False
   opt['block'] = 'constant'

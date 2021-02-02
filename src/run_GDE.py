@@ -9,6 +9,7 @@ for dataset in ['Cora']:
   print('running dataset {}'.format(dataset))
   opt = dict(dataset=dataset)
   opt['GDE'] = True
+  opt['baseline'] = False
   opt['name'] = 'GDE_{}'.format(dataset)
   opt['folder'] = opt['name']
   # opt['not_lcc'] = False
