@@ -9,6 +9,7 @@ import pytorch_lightning as pl
 from torch_geometric.nn.conv.spline_conv import SplineConv
 # from torchdyn.models import NeuralDE
 import torchdiffeq
+from utils import get_rw_adj, gcn_norm_fill_val
 
 
 # from torchdyn._internals import compat_check
@@ -137,10 +138,16 @@ class GCNLayer(torch.nn.Module):
     if input_size != output_size:
       raise AttributeError('input size must equal output size')
     self.edge_index = data.edge_index.to(device)
-    if data.edge_attr is not None:
-      self.edge_attr = data.edge_attr.to(device)
-    else:
-      self.edge_attr = None
+    edge_index, edge_weight = gcn_norm_fill_val(data.edge_index, edge_weight=data.edge_attr,
+                                                fill_value=opt['self_loop_weight'],
+                                                num_nodes=data.num_nodes,
+                                                dtype=data.x.dtype)
+    self.odefunc.edge_index = edge_index.to(device)
+    self.odefunc.edge_weight = edge_weight.to(device)
+    # if data.edge_attr is not None:
+    #   self.edge_attr = data.edge_attr.to(device)
+    # else:
+    #   self.edge_attr = None
     self.conv1 = SplineConv(input_size, output_size, dim=1, kernel_size=2).to(device)
     self.conv2 = SplineConv(input_size, output_size, dim=1, kernel_size=2).to(device)
 
@@ -156,11 +163,17 @@ class GDE(torch.nn.Module):
     data = dataset.data
     self.opt = opt
     self.device = device
-    self.edge_index = data.edge_index.to(device)
-    if data.edge_attr is not None:
-      self.edge_attr = data.edge_attr.to(device)
-    else:
-      self.edge_attr = None
+    # self.edge_index = data.edge_index.to(device)
+    # if data.edge_attr is not None:
+    #   self.edge_attr = data.edge_attr.to(device)
+    # else:
+    #   self.edge_attr = None
+    edge_index, edge_weight = gcn_norm_fill_val(data.edge_index, edge_weight=data.edge_attr,
+                                                fill_value=opt['self_loop_weight'],
+                                                num_nodes=data.num_nodes,
+                                                dtype=data.x.dtype)
+    self.odefunc.edge_index = edge_index.to(device)
+    self.odefunc.edge_weight = edge_weight.to(device)
     self.func = GCNLayer(input_size=opt['hidden_dim'], output_size=opt['hidden_dim'], data=data, device=device)
 
     self.conv1 = SplineConv(data.num_node_features, opt['hidden_dim'], dim=1, kernel_size=2).to(device)
