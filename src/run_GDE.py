@@ -24,12 +24,12 @@ for dataset in ['Computers', 'Cora', 'Citeseer', 'Pubmed', 'CoauthorCS', 'ogbn-a
   opt['optimizer'] = 'adam'
   opt['lr'] = 0.04
   opt['decay'] = 0
-  opt['num_samples'] = 3
-  opt['epoch'] = 5
+  opt['num_samples'] = 400
+  opt['epoch'] = 100
   opt['cpus'] = 4
   opt['fc_out'] = False
   opt['gpus'] = 1
-  opt['grace_period'] = 1
+  opt['grace_period'] = 10
   opt['reduction_factor'] = 10
   opt['metric'] = 'accuracy'
   opt['regularise'] = False
