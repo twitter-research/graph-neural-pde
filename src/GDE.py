@@ -80,7 +80,7 @@ class NeuralDE(pl.LightningModule):
     if opt['adjoint']:
       odeint = self._adjoint
     else:
-      odeint = self._autograd()
+      odeint = self._autograd
     sol = odeint(x) if self.opt['return_traj'] else odeint(x)[-1]
     return sol
 
