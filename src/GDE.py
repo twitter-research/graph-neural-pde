@@ -136,7 +136,10 @@ class GCNLayer(torch.nn.Module):
     if input_size != output_size:
       raise AttributeError('input size must equal output size')
     self.edge_index = data.edge_index.to(device)
-    self.edge_attr = data.edge_attr.to(device)
+    if data.edge_attr is not None:
+      self.edge_attr = data.edge_attr.to(device)
+    else:
+      self.edge_attr = None
     self.conv1 = SplineConv(input_size, output_size, dim=1, kernel_size=2).to(device)
     self.conv2 = SplineConv(input_size, output_size, dim=1, kernel_size=2).to(device)
 
@@ -153,7 +156,10 @@ class GDE(torch.nn.Module):
     self.opt = opt
     self.device = device
     self.edge_index = data.edge_index.to(device)
-    self.edge_attr = data.edge_attr.to(device)
+    if data.edge_attr is not None:
+      self.edge_attr = data.edge_attr.to(device)
+    else:
+      self.edge_attr = None
     self.func = GCNLayer(input_size=opt['hidden_dim'], output_size=opt['hidden_dim'], data=data, device=device)
 
     self.conv1 = SplineConv(data.num_node_features, opt['hidden_dim'], dim=1, kernel_size=2).to(device)
