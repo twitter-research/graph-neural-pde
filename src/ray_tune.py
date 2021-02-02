@@ -16,7 +16,8 @@ from run_GNN import get_optimizer, test, test_OGB, train
 from torch import nn
 from GNN_ICML20 import ICML_GNN, get_sym_adj
 from GNN_ICML20 import train as train_icml
-
+from GDE import GDE
+from GDE import train as train_GDE
 
 def average_test(models, datas, opt):
   if opt['dataset'] == 'ogbn-arxiv':
@@ -53,6 +54,9 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       adj = get_sym_adj(dataset.data, opt, device)
       model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
       train_this = train_icml
+    elif opt['GDE']:
+      model, data = GDE(opt, dataset.data).to(device), dataset.data.to(device)
+      train_this = train_GDE
     else:
       model = GNN(opt, dataset, device)
       train_this = train
@@ -105,6 +109,9 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       adj = get_sym_adj(dataset.data, opt, device)
       model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
       train_this = train_icml
+    elif opt['GDE']:
+      model = GDE(opt, data).to(device)
+      train_this = train_GDE
     else:
       model = GNN(opt, dataset, device)
       train_this = train
@@ -699,6 +706,7 @@ if __name__ == "__main__":
   parser.add_argument('--directional_penalty', type=float, default=None, help="int_t ||(df/dx)^T f||^2")
 
   parser.add_argument("--baseline", action="store_true", help="Wheather to run the ICML baseline or not.")
+  parser.add_argument("--GDE", action="store_true", help="Wheather to run the GDE baseline or not.")
   parser.add_argument("--regularise", dest='regularise', action='store_true', help='search over reg params')
 
   # rewiring args
