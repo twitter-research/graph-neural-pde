@@ -527,21 +527,23 @@ if __name__ == '__main__':
   Tmultiple = 1
   partitions = 10
   batch_num = 0 #1#2
-  samples = 1
+  samples = 6
 
   # directory = f"../pixels/"
   # df = pd.read_csv(f'{directory}models.csv')
   # model_keys = df['model_key'].to_list()
 
-  model_keys =   ['20210202_122219','20210202_124040','20210202_130127']
-  model_epochs = [248, 248, 96]
+  #model_keys =   ['20210202_122219','20210202_124040','20210202_130127']
+  #model_epochs = [248, 248, 96]
 
+  model_keys = ['20210202_130127']
+  model_epochs = [96]
   build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
   build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
 
   times = [0, 5, 10]
   image_folder = 'MNIST_binaryWOdropout'
-  model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  #model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmultiple, partitions, batch_num)
 
   # #
   # grid_keys = [
