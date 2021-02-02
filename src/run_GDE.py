@@ -56,5 +56,6 @@ for dataset in ['Cora', 'CiteSeer']:
   opt['add_source'] = True
   opt['tol_scale'] = 1
   opt['tol_scale_adjoint'] = 1
+  print('running params before tuning of {} '.format(opt))
   main(opt)
 
