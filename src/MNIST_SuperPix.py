@@ -14,11 +14,11 @@ from skimage.color import label2rgb
 from skimage import segmentation
 import torchvision.transforms as transforms
 
-def calc_centroids(pixel_lables, num_centroids):
+def calc_centroids(pixel_labels, num_centroids):
     centroids = {}
     for i in range(num_centroids):
-        indices = np.where(pixel_lables==i)
-        pixel_lables[pixel_lables==i]
+        indices = np.where(pixel_labels==i)
+        pixel_labels[pixel_labels==i]
         x_av = np.mean(indices[1])  #x is im_width is 1st axis
         y_av = np.mean(indices[0])  #y is im_height is 0th axis
         centroids[i] = (x_av, y_av)
@@ -55,21 +55,13 @@ def find_neighbours(labels, boundaries, im_height, im_width):
     return neighbour_dict
 
 
-def calc_centroid_labels(num_centroids, pixel_lables, pixel_values):
-    """for each centroid extract its value from its original pixel lables"""
-    #TODO needs a rethink
+def calc_centroid_values(num_centroids, pixel_labels, pixel_values):
+    """for each centroid extract its value from its original pixel values"""
     x = []
     for c in range(num_centroids):
-        CL = pixel_values[np.ix_(np.where(pixel_lables == c)[0], np.where(pixel_lables == c)[1])]
-
-        if np.all(np.amax(CL, axis=(0,1)) == np.amin(CL, axis=(0,1))):
-            x.append(np.amax(CL, axis=(0,1)))
-        else:
-            #todo why aren't patch values the same?
-            print(c)
-            print(np.amax(CL, axis=(0, 1)))
-            print(np.amin(CL, axis=(0, 1)))
-            x.append(np.amax(CL, axis=(0, 1)))
+        centroid_value = pixel_values[np.ix_(np.where(pixel_labels == c)[0], np.where(pixel_labels == c)[1])]
+        # x.append(np.amax(centroid_value, axis=(0, 1)))
+        x.append(np.mean(centroid_value))
     return np.array(x)
 
 
@@ -173,6 +165,18 @@ class InMemSuperPixelData(InMemoryDataset):
                                             transform=transform)
     return data
 
+  def calc_centroid_values(self, num_centroids, pixel_labels, pixel_values):
+      """for each centroid extract its value from its original pixel values"""
+      x = []
+      for c in range(num_centroids):
+          centroid_value = pixel_values[np.ix_(np.where(pixel_labels == c)[0], np.where(pixel_labels == c)[1])]
+
+          #todo problem here with ix_ on torch tensor
+          x.append(torch.mean(centroid_value))
+          # x.append(np.amax(centroid_value, axis=(0, 1)))
+
+      return np.array(x)
+
   def process(self):
     graph_list = []
     data = self.read_data()
@@ -183,39 +187,46 @@ class InMemSuperPixelData(InMemoryDataset):
       if self.opt['testing_code'] == True and batch_idx > self.opt['train_size'] - 1:
         break
 
-      x = data.view(c, w * h)
-      x = x.T
+      orig_image = None
+      target = None
+      pixel_values = None
+      pixel_labels = None
+      centroid_coords = None
+      centroid_labels = None
+      centroid_values = None
+      edge_index = None
+      train_mask = None
+      test_mask = None
 
-      pixel_pos = torch.FloatTensor([(self.opt['im_height'] - i, j) for i in range(self.opt['im_height']) for j in
-                   range(self.opt['im_width'])])
+      pixel_values = data
+      target = target
+      multichannel = c > 1
+      pixel_labels = slic(pixel_values, n_segments=75, multichannel=multichannel)
+      num_centroids = np.max(pixel_labels) + 1  # required to add 1 for full coverage
+      centroids = calc_centroids(pixel_labels, num_centroids)
+      centroid_coords = torch.tensor([centroids[i] for i in range(num_centroids)])
+      centroid_values = self.calc_centroid_values(num_centroids, pixel_labels, pixel_values=pixel_values)
+      centroid_labels = np.maximum(np.minimum(centroid_values * self.opt['pixel_cat'] ,self.opt['pixel_cat']*(0.9999)), 0)
+      boundaries = skimage.segmentation.find_boundaries(pixel_labels, mode='inner').astype(np.uint8)
+      neighbour_dict = find_neighbours(pixel_labels, boundaries, im_height=h, im_width=w)
+      edge_index = create_edge_index_from_neighbours(neighbour_dict)
 
-      if self.opt['im_dataset'] == 'MNIST':
-        pix_labels = []
-        # bucket labels in each channel (superseeded by kmeans for CIFAR)
-        for i in range(self.opt['im_chan']):
-          y = np.maximum(np.minimum(x * self.opt['pixel_cat'] ,self.opt['pixel_cat']*(0.9999)), 0)
-          y = y[:,i]
-          y = torch.floor(y).type(torch.LongTensor) #turn greyscale into integar labels
-          pix_labels.append(y)
-        y = torch.stack(pix_labels, dim=1)
-      elif self.opt['im_dataset'] == 'CIFAR':
-        label_centers = torch.FloatTensor(kmeans.cluster_centers_)
-        y = torch.LongTensor(kmeans.labels_).unsqueeze(1)
-
-      full_idx = np.arange(self.opt['num_nodes'])
       # set pixel masks
+      full_idx = list(centroids.keys())
       rnd_state = np.random.RandomState(seed=12345)
       train_idx = []
-      for label in range(y.max().item() + 1):
-        # class_idx = np.nonzero(y == label)[:,0]
-        class_idx = (y == label).nonzero()[:,0]
+      for label in range(centroid_labels.max().item() + 1):
+        class_idx = (centroid_labels == label).nonzero()[:,0]
         num_in_class = len(class_idx)
         train_idx.extend(rnd_state.choice(class_idx, num_in_class//2, replace=False))
+
+
       test_idx = [i for i in full_idx if i not in train_idx]
-      train_mask = torch.zeros(self.opt['num_nodes'], dtype=torch.bool)
-      test_mask = torch.zeros(self.opt['num_nodes'], dtype=torch.bool)
+      train_mask = torch.zeros(num_centroids, dtype=torch.bool)
+      test_mask = torch.zeros(num_centroids, dtype=torch.bool)
       train_mask[train_idx] = 1
       test_mask[test_idx] = 1
+
 
       graph = Data(x=x, y=y, pos=pixel_pos, target=target, edge_index=edge_index, train_mask=train_mask, test_mask=test_mask)
       if self.opt['im_dataset'] == 'CIFAR':
@@ -223,6 +234,7 @@ class InMemSuperPixelData(InMemoryDataset):
       graph_list.append(graph)
 
     torch.save(self.collate(graph_list), self.processed_paths[0])
+
 
 
 def load_SuperPixel_data(opt):
@@ -233,15 +245,6 @@ def load_SuperPixel_data(opt):
   root = f"{root}/{name}"
   SuperPixelData = InMemSuperPixelData(root, name, opt, type="Train", transform=None, pre_transform=None, pre_filter=None)
   return SuperPixelData
-
-
-
-
-
-
-
-
-
 
 
 def main(opt):
@@ -281,8 +284,8 @@ def main(opt):
     fig, ax = plt.subplots()
     # plt.axis('off')
     plt.imshow(pixel_values)
-    pixel_lables = pixel_labels
-    num_centroids = np.max(pixel_lables) + 1  # required to add 1 for full coverage
+    pixel_labels = pixel_labels
+    num_centroids = np.max(pixel_labels) + 1  # required to add 1 for full coverage
     centroids = calc_centroids(pixel_labels, num_centroids)
     y_coords, x_coords = get_centroid_coords_array(num_centroids, centroids)
     ax.scatter(x=x_coords, y=y_coords)
@@ -327,7 +330,7 @@ def main(opt):
     boundaries = skimage.segmentation.find_boundaries(pixel_labels, mode='inner').astype(np.uint8)
     neighbour_dict = find_neighbours(pixel_labels, boundaries, im_height=28, im_width=28)
     edge_index = create_edge_index_from_neighbours(neighbour_dict)
-    x = calc_centroid_labels(num_centroids, pixel_lables, pixel_values=pixel_values)
+    x = calc_centroid_values(num_centroids, pixel_labels, pixel_values=pixel_values)
     x = torch.tensor(x)
     pos_centroids = torch.tensor([centroids[i] for i in range(num_centroids)])
     graph = Data(x=x, edge_index=edge_index, pos=pos_centroids, orig_image=example_data[0][0], y=example_targets[0])
@@ -335,8 +338,11 @@ def main(opt):
     # PLOT NXGRAPH  #TODO this is upside down
     NXgraph = to_networkx(graph)
     fig, (ax, cbar_ax) = plt.subplots(nrows=2, gridspec_kw={"height_ratios": [1, 0.05]})  # figsize=(4, 4),
+    # nx.draw(NXgraph, centroids, ax=ax, node_size=300 / 4, edge_color="lime",
+    #         node_color=x.sum(axis=1, keepdim=False), cmap=plt.get_cmap('Spectral'))
     nx.draw(NXgraph, centroids, ax=ax, node_size=300 / 4, edge_color="lime",
-            node_color=x.sum(axis=1, keepdim=False), cmap=plt.get_cmap('Spectral'))
+            node_color=x, cmap=plt.get_cmap('Spectral'))
+
     ax.set_xlabel("Centroid Graph")
     fig.colorbar(cm.ScalarMappable(cmap=plt.get_cmap('Spectral')),
                  cax=cbar_ax, orientation="horizontal")
@@ -352,8 +358,10 @@ def main(opt):
     for i in range(num_centroids):
         ax.annotate(i, (r_x_coords[i], r_y_coords[i]), c="red")
     ax.scatter(x=r_x_coords, y=r_y_coords)
+    # nx.draw(NXgraph, r_centroids, ax=ax, node_size=300 / 4, edge_color="lime",
+    #         node_color=x.sum(axis=1, keepdim=False), cmap=plt.get_cmap('Spectral'))
     nx.draw(NXgraph, r_centroids, ax=ax, node_size=300 / 4, edge_color="lime",
-            node_color=x.sum(axis=1, keepdim=False), cmap=plt.get_cmap('Spectral'))
+            node_color=x, cmap=plt.get_cmap('Spectral'))
     # fig.colorbar(cm.ScalarMappable(cmap=plt.get_cmap('Spectral')),
     #              cax=cbar_ax, orientation="vertical")
     plt.savefig("../models/superpix.pdf",format="pdf")
@@ -446,4 +454,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     opt = vars(args)
-    main(opt)
+    opt['pixel_cat'] = 2
+    # main(opt)
+    load_SuperPixel_data(opt)
