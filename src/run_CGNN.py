@@ -21,12 +21,11 @@ for dataset in ['ogbn-arxiv', 'Photo', 'Pubmed', 'Computers', 'CoauthorCS']:
   opt['optimizer'] = 'adam'
   opt['lr'] = 0.04
   opt['decay'] = 0
-  opt['num_samples'] = 1
-  opt['epoch'] = 1
-  opt['num_init'] = 1
+  opt['num_samples'] = 1000
+  opt['epoch'] = 100
   opt['cpus'] = 2
   opt['gpus'] = 1
-  opt['grace_period'] = 1
+  opt['grace_period'] = 10
   opt['reduction_factor'] = 10
   opt['baseline'] = True
   opt['metric'] = 'accuracy'
