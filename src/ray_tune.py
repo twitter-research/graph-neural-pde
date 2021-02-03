@@ -199,7 +199,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
       train_acc = tmp_train_acc
       val_acc = tmp_val_acc
       test_acc = tmp_test_acc
-    if model.odeblock.test_integrator.solver.best_val > val_acc:
+    if not opt["no_early"] and model.odeblock.test_integrator.solver.best_val > val_acc:
       best_epoch = epoch
       val_acc = model.odeblock.test_integrator.solver.best_val
       test_acc = model.odeblock.test_integrator.solver.best_test
