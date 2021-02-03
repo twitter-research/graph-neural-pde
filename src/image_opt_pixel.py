@@ -12,16 +12,16 @@ def opt_perms(opt):
   opt1['block'] = 'constant'
   opt1['function'] = 'laplacian'
   opt_perms[f"{opt1['im_dataset']}_{opt1['block']}_{opt1['function']}"] = opt1
-  # opt2 = opt.copy()
-  # opt2['im_dataset'] = 'MNIST'
-  # opt2['block'] = 'attention'
-  # opt2['function'] = 'laplacian'
-  # opt_perms[f"{opt2['im_dataset']}_{opt2['block']}_{opt2['function']}"] = opt2
-  # opt3 = opt.copy()
-  # opt3['im_dataset'] = 'MNIST'
-  # opt3['block'] = 'constant'
-  # opt3['function'] = 'transformer'
-  # opt_perms[f"{opt3['im_dataset']}_{opt3['block']}_{opt3['function']}"] = opt3
+  opt2 = opt.copy()
+  opt2['im_dataset'] = 'MNIST'
+  opt2['block'] = 'attention'
+  opt2['function'] = 'laplacian'
+  opt_perms[f"{opt2['im_dataset']}_{opt2['block']}_{opt2['function']}"] = opt2
+  opt3 = opt.copy()
+  opt3['im_dataset'] = 'MNIST'
+  opt3['block'] = 'constant'
+  opt3['function'] = 'transformer'
+  opt_perms[f"{opt3['im_dataset']}_{opt3['block']}_{opt3['function']}"] = opt3
   # opt4 = opt.copy()
   # opt4['im_dataset'] = 'CIFAR'
   # opt4['block'] = 'constant'
@@ -81,12 +81,12 @@ def get_image_opt(opt):
   opt['augment'] = False #True   #False need to view image
   opt['attention_dropout'] = 0
 
-  opt['epoch'] = 128 #32 #2 #2 #3 #1
+  opt['epoch'] = 64 #128 #32 #2 #2 #3 #1
   opt['batched'] = True
   if opt['testing_code']:
-    opt['batch_size'] = 64 #64  # doing batch size for mnist
-    opt['train_size'] = 512 #1024 #512 #0 #128 #10240 #512 #10240
-    opt['test_size'] =  128 #0  #512#64#128
+    opt['batch_size'] = 4 #64 #64  # doing batch size for mnist
+    opt['train_size'] = 16 #512 #1024 #512 #0 #128 #10240 #512 #10240
+    opt['test_size'] =  16 #28 #0  #512#64#128
 
   assert (opt['train_size']) % opt['batch_size'] == 0, "train_size needs to be multiple of batch_size"
   assert (opt['test_size']) % opt['batch_size'] == 0, "test_size needs to be multiple of batch_size"

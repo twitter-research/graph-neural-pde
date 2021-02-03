@@ -134,11 +134,12 @@ def pixel_test(model, data, batchorTest, trainorTest="test"):
   total_correct = 0
 
   if model.opt['im_chan'] == 1:
-    test_size = data.y.shape[0]
+    mask = data.test_mask if trainorTest == "test" else data.train_mask
+    test_size = data.y[mask].shape[0]
     model.eval()
-    logits = model(data.x.to(model.device))
+    logits = model(data.x.to(model.device))[mask]
     pred = logits.max(1)[1]
-    total_correct += pred.eq(data.y.T.to(model.device)).sum().item()
+    total_correct += pred.eq(data.y[mask].T.to(model.device)).sum().item()
 
   elif model.opt['im_chan'] == 3 and model.opt['pixel_loss'] in ['10catM2','10catlogits']:
 
