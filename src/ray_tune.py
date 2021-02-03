@@ -266,11 +266,11 @@ def set_pubmed_search_space(opt):
     opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
   opt['method'] = tune.choice(["rk4", "dopri5"])
 
-  opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
-  opt["lr"] = tune.loguniform(0.02, 0.1)
-  opt["input_dropout"] = 0.4  # tune.uniform(0.2, 0.5)
+  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+  opt["lr"] = tune.loguniform(0.001, 0.1)
+  opt["input_dropout"] = tune.uniform(0.2, 0.5)
   opt["dropout"] = tune.uniform(0, 0.5)
-  opt["time"] = tune.uniform(5.0, 20.0)
+  opt["time"] = tune.uniform(5.0, 10.0)
   opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
 
   if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
@@ -283,10 +283,10 @@ def set_pubmed_search_space(opt):
   else:
     opt["self_loop_weight"] = tune.uniform(0, 3)
 
-  opt["tol_scale"] = tune.loguniform(1, 1e4)
+  opt["tol_scale"] = tune.loguniform(10, 1e5)
 
   if opt["adjoint"]:
-    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e4)
+    opt["tol_scale_adjoint"] = tune.loguniform(10, 1e4)
     opt["adjoint_method"] = tune.choice(["dopri5", "rk4", "adaptive_heun"])
   else:
     raise Exception("Can't train on PubMed without the adjoint method.")
