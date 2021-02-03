@@ -115,7 +115,7 @@ def train(model, optimizer, data):
 
   out = model(feat)
   if model.opt['dataset'] == 'ogbn-arxiv':
-    loss = custom_loss_function(out[data.train_mask, data.y.squeeze(1)[data.train_mask]])
+    loss = custom_loss_function(out[data.train_mask], data.y.squeeze(1)[data.train_mask])
     # lf = torch.nn.functional.nll_loss
     # loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
   else:
