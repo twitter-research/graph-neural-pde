@@ -220,13 +220,13 @@ def set_cora_search_space(opt):
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
   opt['method'] = tune.choice(["rk4", "dopri5"])
 
-  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
-  opt["lr"] = tune.uniform(0.01, 0.2)
+  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 8))  # hidden dim of X in dX/dt
+  opt["lr"] = tune.loguniform(0.001, 0.2)
   # opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
   opt["input_dropout"] = 0.5
-  opt["optimizer"] = tune.choice(["adam", "adamax"])
+  opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
   opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-  opt["time"] = tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
+  opt["time"] = tune.uniform(1.0, 15.0)  # terminal time of the ODE integrator;
   # when it's big, the training hangs (probably due a big NFEs of the ODE)
 
   if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
@@ -241,15 +241,16 @@ def set_cora_search_space(opt):
   else:
     opt["self_loop_weight"] = tune.uniform(0, 3)
 
-  opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
+  opt["tol_scale"] = tune.loguniform(10, 10000)  # num you multiply the default rtol and atol by
   if opt["adjoint"]:
     opt["adjoint_method"] = tune.choice(["dopri5", "rk4", "adaptive_heun"])  # , "rk4"])
     opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
 
   opt['add_source'] = tune.choice([True, False])
-  opt['att_samp_pct'] = tune.uniform(0.3, 1)
-  opt['batch_norm'] = tune.choice([True, False])
-  # opt['batch_norm'] = True
+  opt['add_source'] = False
+  opt['att_samp_pct'] = 1
+  # opt['batch_norm'] = tune.choice([True, False])
+  opt['batch_norm'] = False
 
   if opt['rewiring'] == 'gdc':
     opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
