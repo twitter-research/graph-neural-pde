@@ -281,7 +281,7 @@ def main(opt):
       print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
 
       if epoch % 8 == 0:
-        torch.save(model.state_dict(), f"{savepath}_epoch{epoch}")
+        torch.save(model.state_dict(), f"{savepath}_epoch{epoch}.pt")
 
     # save run details to csv
     opt['model_key'] = model_key

@@ -312,7 +312,7 @@ def get_paths(modelpath, model_key, opt, Tmultiple, partitions, batch_num):
   model = GNN_image_pixel(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
                     batch.edge_attr, device).to(device)
 
-  model.load_state_dict(torch.load(modelpath, map_location=device))
+  model.load_state_dict(torch.load(f"{modelpath}.pt", map_location=device))
   model.to(device)
   model.eval()
   ###do forward pass
@@ -541,17 +541,17 @@ if __name__ == '__main__':
   # df = pd.read_csv(f'{directory}models.csv')
   # model_keys = df['model_key'].to_list()
 
-  model_keys = ['20210202_122219','20210202_124040','20210202_130127']
-  model_epochs = [248, 248, 96]
+  # model_keys = ['20210202_122219','20210202_124040','20210202_130127']
+  # model_epochs = [248, 248, 96]
 
-  # model_keys = ['20210202_130127']
-  # model_epochs = [96]
-  # build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
-  # build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
+  model_keys = ['20210202_130127']
+  model_epochs = [96]
+  build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
+  build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
 
-  times = [0, 5, 10]
-  image_folder = 'MNIST_binaryWOdropout'
-  model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  # times = [0, 5, 10]
+  # image_folder = 'MNIST_binaryWOdropout'
+  # model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmultiple, partitions, batch_num)
 
   # #
   # grid_keys = [
