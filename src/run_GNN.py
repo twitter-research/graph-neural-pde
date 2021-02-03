@@ -160,7 +160,7 @@ def test_OGB(model, data, opt):
     name = 'ogbn-arxiv'
 
   feat = data.x
-  if model.opt['use_labels']:
+  if opt['use_labels']:
     feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
 
   evaluator = Evaluator(name=name)

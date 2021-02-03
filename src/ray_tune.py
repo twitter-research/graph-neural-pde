@@ -483,7 +483,7 @@ def set_arxiv_search_space(opt):
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
   # opt["hidden_dim"] = 200  # best choice with attention
   # opt["hidden_dim"] = 256  # best choice without attention
-  opt["lr"] = tune.uniform(1e-5, 1e-1)
+  opt["lr"] = tune.loguniform(1e-5, 1e-1)
   # opt['lr'] = 0.02
   opt["input_dropout"] = tune.uniform(0., 0.2)
   # opt["input_dropout"] = 0
@@ -497,7 +497,7 @@ def set_arxiv_search_space(opt):
   opt['time'] = tune.uniform(0.5, 6)
   # opt['time'] = 5
   opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
-  opt['optimizer'] = 'adam'
+  # opt['optimizer'] = 'adam'
   if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     # opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
     opt["heads"] = 2
