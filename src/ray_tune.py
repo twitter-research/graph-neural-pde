@@ -19,6 +19,7 @@ from GNN_ICML20 import train as train_icml
 from GDE import GDE
 from GDE import train as train_GDE
 
+
 def average_test(models, datas, opt):
   if opt['dataset'] == 'ogbn-arxiv':
     results = [test_OGB(model, data, opt) for model, data in zip(models, datas)]
@@ -157,9 +158,21 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
       dataset.data,
       num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
-  model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
-  if torch.cuda.device_count() > 1:
-    model = nn.DataParallel(model)
+  if opt['baseline']:
+    opt['num_feature'] = dataset.data.num_node_features
+    opt['num_class'] = dataset.num_classes
+    adj = get_sym_adj(dataset.data, opt, device)
+    model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
+    train_this = train_icml
+  elif opt['GDE']:
+    model = GDE(opt, dataset, device).to(device)
+    train_this = train_GDE
+  else:
+    model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
+    train_this = train
+
+  # if torch.cuda.device_count() > 1:
+  #   model = nn.DataParallel(model)
   model, data = model.to(device), dataset.data.to(device)
   parameters = [p for p in model.parameters() if p.requires_grad]
   optimizer = get_optimizer(opt["optimizer"], parameters, lr=opt["lr"], weight_decay=opt["decay"])
@@ -173,7 +186,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
   this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
   best_time = best_epoch = train_acc = val_acc = test_acc = 0
   for epoch in range(1, opt["epoch"]):
-    loss = train(model, optimizer, data)
+    loss = train_this(model, optimizer, data)
     # need next line as it sets the attributes in the solver
 
     if opt["no_early"]:
