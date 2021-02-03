@@ -5,6 +5,7 @@ def opt_perms(opt):
   blocks = ['attention', 'constant']
   functions = ['laplacian', 'transformer']
   """
+
   opt_perms = {}
   # opt1 = opt.copy()
   # opt1['im_dataset'] = 'MNIST'
