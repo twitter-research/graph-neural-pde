@@ -412,7 +412,7 @@ def set_photo_search_space(opt):
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
-  opt["lr"] = tune.loguniform(1e-2, 0.1)
+  opt["lr"] = tune.loguniform(1e-3, 0.1)
   opt["input_dropout"] = tune.uniform(0.4, 0.8)
   opt["dropout"] = tune.uniform(0, 0.8)
   opt["time"] = tune.uniform(0.5, 7.0)
@@ -428,10 +428,10 @@ def set_photo_search_space(opt):
   else:
     opt["self_loop_weight"] = tune.uniform(0, 3)
 
-  opt["tol_scale"] = tune.loguniform(1, 1e4)
+  opt["tol_scale"] = tune.loguniform(100, 1e5)
 
   if opt["adjoint"]:
-    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
+    opt["tol_scale_adjoint"] = tune.loguniform(100, 1e5)
     opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])
 
   if opt['rewiring'] == 'gdc':
