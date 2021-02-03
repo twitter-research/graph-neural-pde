@@ -3,7 +3,6 @@ import os.path as osp
 import torch
 from torch import nn
 import torch.nn.functional as F
-import torch_geometric.transforms as T
 from torch_geometric.datasets import Planetoid
 import pytorch_lightning as pl
 from torch_geometric.nn.conv.spline_conv import SplineConv
@@ -198,7 +197,11 @@ class GDE(torch.nn.Module):
 def train(model, optimizer, data):
   model.train()
   optimizer.zero_grad()
-  loss = F.nll_loss(model(data.x)[data.train_mask], data.y[data.train_mask])
+  if model.opt['dataset'] == 'ogbn-arxiv':
+    y = data.y.squeeze(1)[data.train_mask]
+  else:
+    y = data.y[data.train_mask]
+  loss = F.nll_loss(model(data.x)[data.train_mask], y)
   model.fm.update(model.getNFE())
   model.resetNFE()
   loss.backward()
@@ -222,7 +225,7 @@ if __name__ == '__main__':
   dataset = 'Computer'
   path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', dataset)
   opt = dict(method='rk4', time=3, tol_scale=10, tol_scale_adjoint=10, hidden_dim=64, adjoint=False, dropout=0.5,
-             self_loop_weight=1, dataset='Computers', GDE=True, use_lcc=False, rewiring=False, max_nfe=100)
+             self_loop_weight=1, dataset='ogbn-arxiv', GDE=True, use_lcc=False, rewiring=False, max_nfe=100)
   dataset = get_dataset(opt, data_dir="../data", use_lcc=opt['use_lcc'])
   # dataset = Planetoid(path, dataset, transform=T.TargetIndegree())
   # data = dataset[0]
