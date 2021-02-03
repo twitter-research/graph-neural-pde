@@ -11,7 +11,6 @@ import pandas as pd
 from data_image import load_pixel_data
 import shutil
 
-
 def UnNormalizeCIFAR(data):
   #normalises each image channel to range [0,1] from [-1, 1]
   # return (data - torch.amin(data,dim=(0,1))) / (torch.amax(data,dim=(0,1)) - torch.amin(data,dim=(0,1)))
