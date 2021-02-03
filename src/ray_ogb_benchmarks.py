@@ -224,7 +224,7 @@ def main(opt):
 
   df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
 
-  print(df[['val_acc', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
+  print(df[['val_acc', 'test_acc', 'train_acc', 'best_epoch']])
 
   test_accs = df['test_acc'].values
   print("test accuracy {}".format(test_accs))
