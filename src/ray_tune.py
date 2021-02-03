@@ -474,14 +474,16 @@ def set_photo_search_space(opt):
 
 
 def set_arxiv_search_space(opt):
-  opt["decay"] = tune.loguniform(1e-10, 1e-6)
+  # opt["decay"] = tune.loguniform(1e-10, 1e-6)
+  opt["decay"] = 0
   # opt["decay"] = 0
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt['method'] = tune.choice(["rk4", "dopri5"])
-  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
+  # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
+  opt["hidden_dim"] = 128
   # opt["hidden_dim"] = 200  # best choice with attention
   # opt["hidden_dim"] = 256  # best choice without attention
   opt["lr"] = tune.loguniform(1e-5, 1e-1)
@@ -515,11 +517,11 @@ def set_arxiv_search_space(opt):
     opt["self_loop_weight"] = tune.choice([0, 1])
   # opt['data_norm'] = tune.choice(['rw', 'gcn'])
   # opt['add_source'] = tune.choice([True, False])
-  opt['add_source'] = True
+  opt['add_source'] = tune.choice([True, False])
   opt['att_samp_pct'] = tune.uniform(0.3, 1)
   # opt['batch_norm'] = tune.choice([True, False])
-  opt['batch_norm'] = True
-  opt['label_rate'] = tune.uniform(0.05, 0.5)
+  opt['batch_norm'] = tune.choice([True, False])
+  # opt['label_rate'] = tune.uniform(0.05, 0.5)
 
   opt["tol_scale"] = tune.loguniform(1000, 1e7)
 
