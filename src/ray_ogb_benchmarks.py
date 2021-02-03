@@ -213,7 +213,7 @@ def main(opt):
     resources_per_trial={"cpu": 4, "gpu": 1},
     search_alg=None,
     keep_checkpoints_num=2,
-    checkpoint_score_attr='accuracy',
+    checkpoint_score_attr='val_acc',
     config=opt,
     num_samples=8,
     scheduler=None,
@@ -224,7 +224,7 @@ def main(opt):
 
   df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
 
-  print(df[['accuracy', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
+  print(df[['val_acc', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
 
   test_accs = df['test_acc'].values
   print("test accuracy {}".format(test_accs))
