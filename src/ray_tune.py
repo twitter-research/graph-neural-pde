@@ -496,7 +496,6 @@ def set_arxiv_search_space(opt):
   # opt["time"] = tune.choice([1,2,3,4,5,6,7,8,9,10])
   opt['time'] = tune.uniform(1, 6)
   # opt['time'] = 5
-  opt['method'] = tune.choice(['dopri5', 'rk4'])
   opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
   opt['optimizer'] = 'adam'
   if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
@@ -526,12 +525,11 @@ def set_arxiv_search_space(opt):
   if opt["adjoint"]:
     opt["tol_scale_adjoint"] = tune.loguniform(100, 1e5)
     opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
-    # opt["adjoint_method"] = tune.choice(["adaptive_heun", "rk4"])
-    opt["adjoint_method"] = "rk4"
+    # opt["adjoint_method"] = "rk4"
 
-  # opt["method"] = tune.choice(["dopri5", "rk4"])
-  # opt["method"] = tune.choice(["midpoint", "rk4"])
-  opt["method"] = "rk4"
+  # opt["method"] = "rk4"
+  opt['method'] = tune.choice(['dopri5', 'rk4'])
+
 
   if opt['rewiring'] == 'gdc':
     # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
