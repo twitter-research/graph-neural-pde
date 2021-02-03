@@ -236,7 +236,7 @@ def main(opt):
 
 if __name__ == '__main__':
   opt = dict(log_steps=1, num_layers=3, optimizer='adam', hidden_channels=256, dropout=0.5, lr=0.01, epoch=10, decay=0,
-             dataset='ogbn-arxiv', GDE=False, rewiring=False, use_labels=True, label_rate=0.5)
+             dataset='ogbn-arxiv', GDE=False, rewiring=False, use_labels=True, label_rate=0.5, metric='val_acc')
   for model in ['gcn', 'sage']:
     opt['name'] = "{}_test".format(model)
     opt['gnn'] = model
