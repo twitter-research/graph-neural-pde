@@ -6,6 +6,9 @@ from GNN import GNN
 import time
 from data import get_dataset
 from ogb.nodeproppred import Evaluator
+import math
+import torch.nn.functional as F
+
 
 def get_cora_opt(opt):
   opt['dataset'] = 'Cora'
@@ -89,6 +92,10 @@ def get_label_masks(data, mask_rate=0.5):
   train_pred_idx = idx[~mask]
   return train_label_idx, train_pred_idx
 
+def custom_loss_function(x, labels):
+  y = F.cross_entropy(x, labels[:, 0], reduction="none")
+  y = torch.log(1 - math.log(2) + y) - math.log(1 - math.log(2))
+  return torch.mean(y)
 
 def train(model, optimizer, data):
   model.train()
@@ -108,8 +115,9 @@ def train(model, optimizer, data):
 
   out = model(feat)
   if model.opt['dataset'] == 'ogbn-arxiv':
-    lf = torch.nn.functional.nll_loss
-    loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
+    loss = custom_loss_function(out[data.train_mask, data.y.squeeze(1)[data.train_mask]])
+    # lf = torch.nn.functional.nll_loss
+    # loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
   else:
     lf = torch.nn.CrossEntropyLoss()
     loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])

@@ -18,7 +18,7 @@ from GNN_ICML20 import ICML_GNN, get_sym_adj
 from GNN_ICML20 import train as train_icml
 from GDE import GDE
 from GDE import train as train_GDE
-
+from utils import adjust_learning_rate
 
 def average_test(models, datas, opt):
   if opt['dataset'] == 'ogbn-arxiv':
@@ -137,6 +137,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       optimizer.load_state_dict(optimizer_state)
 
   for epoch in range(1, opt["epoch"]):
+    adjust_learning_rate(optimizer, opt['lr'], epoch)
     loss = np.mean([train_this(model, optimizer, data) for model, optimizer in zip(models, optimizers)])
     train_accs, val_accs, tmp_test_accs = average_test(models, datas, opt)
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
