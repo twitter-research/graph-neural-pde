@@ -485,7 +485,7 @@ def set_arxiv_search_space(opt):
   # opt["hidden_dim"] = 128
   # opt["hidden_dim"] = 200  # best choice with attention
   # opt["hidden_dim"] = 256  # best choice without attention
-  opt["lr"] = tune.loguniform(0.01, 0.04)
+  opt["lr"] = tune.loguniform(0.001, 0.02)
   # opt['lr'] = 0.02
   # opt["input_dropout"] = tune.uniform(0., 0.2)
   opt["input_dropout"] = 0
