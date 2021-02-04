@@ -499,7 +499,12 @@ def set_arxiv_search_space(opt):
   opt['time'] = tune.uniform(3, 7)
   # opt['time'] = 5
   # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
-  opt['optimizer'] = tune.choice(['adamax','adam', 'rmsprop'])
+  if opt['function'] == 'transformer':
+    opt['optimizer'] = 'adamax'
+  elif opt['block'] == 'attention' and opt['function'] not in {'transformer'}:
+    opt['optimizer'] = 'rmsprop'
+  else:
+    opt['optimizer'] = tune.choice(['adamax','adam', 'rmsprop'])
   if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     # opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
     opt["heads"] = 2
