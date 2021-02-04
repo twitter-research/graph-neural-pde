@@ -263,13 +263,15 @@ def train(model, optimizer, data):
     train_label_idx, train_pred_idx = get_label_masks(data, model.opt['label_rate'])
 
     feat = add_labels(feat, data.y, train_label_idx, model.opt['num_class'], model.device)
+  else:
+    train_pred_idx = data.train_mask
   out = model(feat)
   if model.opt['dataset'] == 'ogbn-arxiv':
     lf = torch.nn.functional.nll_loss
-    loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
+    loss = lf(out.log_softmax(dim=-1)[train_pred_idx], data.y.squeeze(1)[train_pred_idx])
   else:
     lf = torch.nn.CrossEntropyLoss()
-    loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
+    loss = lf(out[train_pred_idx], data.y.squeeze()[train_pred_idx])
   # lf = torch.nn.CrossEntropyLoss()
   # loss = lf(out[data.train_mask], data.y[data.train_mask])
   model.fm.update(model.getNFE())
