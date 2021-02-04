@@ -755,6 +755,7 @@ if __name__ == "__main__":
                       help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
   parser.add_argument('--att_samp_pct', type=float, default=1,
                       help="float in [0,1). The percentage of edges to retain based on attention scores")
+  parser.add_argument("--use_mlp", action="store_true", help="Whether to use an MLP encoder.")
 
   args = parser.parse_args()
 
