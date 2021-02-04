@@ -92,8 +92,10 @@ class ICML_GNN(nn.Module):
     self.fm = Meter()
     self.bm = Meter()
     self.device = device
-    self.m1 = nn.Linear(opt['num_feature'], opt['hidden_dim'])
-
+    if opt['use_labels']:
+      self.m1 = nn.Linear(opt['num_feature'] + opt['num_class'], opt['hidden_dim'])
+    else:
+      self.m1 = nn.Linear(opt['num_feature'], opt['hidden_dim'])
     self.odeblock = ODEblock(ODEFunc(2 * opt['hidden_dim'], 2 * opt['hidden_dim'], opt, adj),
                              t=torch.tensor([0, self.T]))
 
