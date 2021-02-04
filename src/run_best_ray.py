@@ -91,6 +91,10 @@ def run_best_params(opt):
     best_params_ret['GDE']
   except KeyError:
     best_params_ret['GDE'] = False
+  try:
+    best_params_ret['label_rate']
+  except KeyError:
+    best_params_ret['label_rate'] = 0.5
 
   # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
   best_params_ret['epoch'] = opt['epoch']
