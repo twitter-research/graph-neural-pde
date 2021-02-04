@@ -481,15 +481,14 @@ def set_arxiv_search_space(opt):
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
-  opt['method'] = tune.choice(["rk4", "dopri5"])
   # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
   opt["hidden_dim"] = 128
   # opt["hidden_dim"] = 200  # best choice with attention
   # opt["hidden_dim"] = 256  # best choice without attention
-  opt["lr"] = tune.loguniform(1e-5, 1e-1)
+  opt["lr"] = tune.loguniform(0.01, 0.05)
   # opt['lr'] = 0.02
-  opt["input_dropout"] = tune.uniform(0., 0.2)
-  # opt["input_dropout"] = 0
+  # opt["input_dropout"] = tune.uniform(0., 0.2)
+  opt["input_dropout"] = 0
   opt["dropout"] = tune.uniform(0, 0.2)
   # opt["dropout"] = 0
   # opt['step_size'] = tune.choice([0.5, 1])
@@ -497,10 +496,10 @@ def set_arxiv_search_space(opt):
   # opt['adjoint_step_size'] = tune.choice([0.5, 1])
   opt['adjoint_step_size'] = 1
   # opt["time"] = tune.choice([1,2,3,4,5,6,7,8,9,10])
-  opt['time'] = tune.uniform(0.5, 6)
+  opt['time'] = tune.uniform(3, 7)
   # opt['time'] = 5
-  opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
-  # opt['optimizer'] = 'adam'
+  # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
+  opt['optimizer'] = 'adamax'
   if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     # opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
     opt["heads"] = 2
@@ -523,15 +522,15 @@ def set_arxiv_search_space(opt):
   opt['batch_norm'] = tune.choice([True, False])
   # opt['label_rate'] = tune.uniform(0.05, 0.5)
 
-  opt["tol_scale"] = tune.loguniform(1000, 1e7)
+  # opt["tol_scale"] = tune.loguniform(1000, 1e7)
 
   if opt["adjoint"]:
-    opt["tol_scale_adjoint"] = tune.loguniform(100, 1e5)
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
-    # opt["adjoint_method"] = "rk4"
+    opt["tol_scale_adjoint"] = tune.loguniform(1000, 1e5)
+    # opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+    # opt["adjoint_method"] = "adaptive_heun"
 
-  # opt["method"] = "rk4"
-  opt['method'] = tune.choice(['dopri5', 'rk4'])
+  opt["method"] = "rk4"
+  # opt['method'] = tune.choice(['dopri5', 'rk4'])
 
 
   if opt['rewiring'] == 'gdc':
