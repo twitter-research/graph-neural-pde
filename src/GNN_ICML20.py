@@ -6,7 +6,7 @@ from torch import nn
 from torch import Tensor
 import torch.nn.functional as F
 from data import get_dataset
-from run_GNN import get_optimizer, test, test_OGB
+from run_GNN import get_optimizer, test, test_OGB, add_labels, get_label_masks
 # Whether use adjoint method or not.
 from torch_geometric.utils.convert import to_scipy_sparse_matrix
 import numpy as np
@@ -255,7 +255,12 @@ def get_sym_adj(data, opt, device):
 def train(model, optimizer, data):
   model.train()
   optimizer.zero_grad()
-  out = model(data.x)
+  feat = data.x
+  if model.opt['use_labels']:
+    train_label_idx, train_pred_idx = get_label_masks(data, model.opt['label_rate'])
+
+    feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
+  out = model(feat)
   if model.opt['dataset'] == 'ogbn-arxiv':
     lf = torch.nn.functional.nll_loss
     loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
