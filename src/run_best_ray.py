@@ -94,6 +94,9 @@ def run_best_params(opt):
   # handle adjoint
   if best_params['adjoint'] or opt['adjoint']:
     best_params_ret['adjoint'] = True
+  # handle labels
+  if best_params['use_labels'] or opt['use_labels']:
+    best_params_ret['adjoint'] = True
 
   print("Running with parameters {}".format(best_params_ret))
 
@@ -151,6 +154,7 @@ if __name__ == '__main__':
   parser.add_argument("--max_nfe", type=int, default=5000, help="Maximum number of function evaluations allowed.")
   parser.add_argument("--no_early", action="store_true",
                       help="Whether or not to use early stopping of the ODE integrator when testing.")
+  parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
 
   parser.add_argument('--earlystopxT', type=float, default=3, help='multiplier for T used to evaluate best model')
 
