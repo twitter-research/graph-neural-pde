@@ -259,7 +259,7 @@ def train(model, optimizer, data):
   if model.opt['use_labels']:
     train_label_idx, train_pred_idx = get_label_masks(data, model.opt['label_rate'])
 
-    feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
+    feat = add_labels(feat, data.y, train_label_idx, model.opt.num_class, model.device)
   out = model(feat)
   if model.opt['dataset'] == 'ogbn-arxiv':
     lf = torch.nn.functional.nll_loss
