@@ -91,6 +91,7 @@ class ICML_GNN(nn.Module):
     self.T = time
     self.fm = Meter()
     self.bm = Meter()
+    self.num_classes = opt['num_class']
     self.device = device
     if opt['use_labels']:
       self.m1 = nn.Linear(opt['num_feature'] + opt['num_class'], opt['hidden_dim'])
