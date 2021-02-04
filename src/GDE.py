@@ -12,6 +12,7 @@ from utils import get_rw_adj, gcn_norm_fill_val
 from utils import Meter
 from utils import MaxNFEException
 from data import get_dataset
+from run_GNN import get_label_masks, add_labels
 
 
 # from torchdyn._internals import compat_check
@@ -168,14 +169,19 @@ class GDE(torch.nn.Module):
     except KeyError:
       data = dataset.data
     self.opt = opt
+    self.num_classes = dataset.num_classes
     self.device = device
     self.fm = Meter()
     self.bm = Meter()
     self.edge_index = data.edge_index.to(device)
     self.edge_weight = data.edge_attr.to(device)
     self.func = GCNLayer(input_size=opt['hidden_dim'], output_size=opt['hidden_dim'], data=data, device=device, opt=opt)
+    if opt['use_labels']:
+      input_dim = data.num_node_features + dataset.num_classes
+    else:
+      input_dim = data.num_node_features
 
-    self.conv1 = SplineConv(data.num_node_features, opt['hidden_dim'], dim=1, kernel_size=2).to(device)
+    self.conv1 = SplineConv(input_dim, opt['hidden_dim'], dim=1, kernel_size=2).to(device)
     self.neuralDE = NeuralDE(self.func, opt, device).to(device)
     self.conv2 = SplineConv(opt['hidden_dim'], dataset.num_classes, dim=1, kernel_size=2).to(device)
 
@@ -197,11 +203,17 @@ class GDE(torch.nn.Module):
 def train(model, optimizer, data):
   model.train()
   optimizer.zero_grad()
-  if model.opt['dataset'] == 'ogbn-arxiv':
-    y = data.y.squeeze(1)[data.train_mask]
+  feat = data.x
+  if model.opt['use_labels']:
+    train_label_idx, train_pred_idx = get_label_masks(data, model.opt['label_rate'])
+    feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
   else:
-    y = data.y[data.train_mask]
-  loss = F.nll_loss(model(data.x)[data.train_mask], y)
+    train_pred_idx = data.train_mask
+  if model.opt['dataset'] == 'ogbn-arxiv':
+    y = data.y.squeeze(1)[train_pred_idx]
+  else:
+    y = data.y[train_pred_idx]
+  loss = F.nll_loss(model(feat)[train_pred_idx], y)
   model.fm.update(model.getNFE())
   model.resetNFE()
   loss.backward()
@@ -213,7 +225,10 @@ def train(model, optimizer, data):
 
 def test():
   model.eval()
-  logits, accs = model(data.x), []
+  feat = data.x
+  if opt['use_labels']:
+    feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
+  logits, accs = model(feat), []
   for _, mask in data('train_mask', 'test_mask'):
     pred = logits[mask].max(1)[1]
     acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
