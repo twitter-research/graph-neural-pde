@@ -491,10 +491,10 @@ def set_arxiv_search_space(opt):
   opt["input_dropout"] = 0
   opt["dropout"] = tune.uniform(0, 0.2)
   # opt["dropout"] = 0
-  opt['step_size'] = tune.choice([0.5, 1])
-  opt['step_size'] = 1
-  opt['adjoint_step_size'] = tune.choice([0.5, 1])
-  opt['adjoint_step_size'] = 1
+  # opt['step_size'] = tune.choice([0.5, 1])
+  opt['step_size'] = 0.5
+  # opt['adjoint_step_size'] = tune.choice([0.5, 1])
+  opt['adjoint_step_size'] = 0.5
   # opt["time"] = tune.choice([1,2,3,4,5,6,7,8,9,10])
   opt['time'] = tune.uniform(4, 8)
   # opt['time'] = 5
