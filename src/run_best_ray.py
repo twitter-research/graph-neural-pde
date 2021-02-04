@@ -87,6 +87,10 @@ def run_best_params(opt):
     best_params_ret['tol_scale_adjoint']
   except KeyError:
     best_params_ret['tol_scale_adjoint'] = 1
+  try:
+    best_params_ret['GDE']
+  except KeyError:
+    best_params_ret['GDE'] = False
 
   # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
   best_params_ret['epoch'] = opt['epoch']
