@@ -499,7 +499,7 @@ def set_arxiv_search_space(opt):
   opt['time'] = tune.uniform(3, 7)
   # opt['time'] = 5
   # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
-  opt['optimizer'] = 'adamax'
+  opt['optimizer'] = tune.choice(['adamax','adam', 'rmsprop'])
   if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     # opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
     opt["heads"] = 2
@@ -517,17 +517,17 @@ def set_arxiv_search_space(opt):
   # opt['data_norm'] = tune.choice(['rw', 'gcn'])
   # opt['add_source'] = tune.choice([True, False])
   opt['add_source'] = tune.choice([True, False])
-  opt['att_samp_pct'] = tune.uniform(0.3, 1)
+  # opt['att_samp_pct'] = tune.uniform(0.3, 1)
   # opt['batch_norm'] = tune.choice([True, False])
-  opt['batch_norm'] = tune.choice([True, False])
+  opt['batch_norm'] = True
   # opt['label_rate'] = tune.uniform(0.05, 0.5)
 
   # opt["tol_scale"] = tune.loguniform(1000, 1e7)
 
   if opt["adjoint"]:
-    opt["tol_scale_adjoint"] = tune.loguniform(1000, 1e5)
+    # opt["tol_scale_adjoint"] = tune.loguniform(1000, 1e5)
     # opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
-    # opt["adjoint_method"] = "adaptive_heun"
+    opt["adjoint_method"] = "rk4"
 
   opt["method"] = "rk4"
   # opt['method'] = tune.choice(['dopri5', 'rk4'])
