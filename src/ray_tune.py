@@ -521,6 +521,7 @@ def set_arxiv_search_space(opt):
   # opt['batch_norm'] = tune.choice([True, False])
   opt['batch_norm'] = True
   # opt['label_rate'] = tune.uniform(0.05, 0.5)
+  opt['label_rate'] = tune.uniform(0.05, 0.5)
 
   # opt["tol_scale"] = tune.loguniform(1000, 1e7)
 
