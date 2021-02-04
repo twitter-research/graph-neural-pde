@@ -119,8 +119,8 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
 
     models.append(model)
 
-    if torch.cuda.device_count() > 1:
-      model = nn.DataParallel(model)
+    # if torch.cuda.device_count() > 1:
+    #   model = nn.DataParallel(model)
 
     model = model.to(device)
     parameters = [p for p in model.parameters() if p.requires_grad]
@@ -137,7 +137,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       optimizer.load_state_dict(optimizer_state)
 
   for epoch in range(1, opt["epoch"]):
-    adjust_learning_rate(optimizer, opt['lr'], epoch)
+    [adjust_learning_rate(optimizer, opt['lr'], epoch) for optimizer in optimizers]
     loss = np.mean([train_this(model, optimizer, data) for model, optimizer in zip(models, optimizers)])
     train_accs, val_accs, tmp_test_accs = average_test(models, datas, opt)
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
