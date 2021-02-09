@@ -35,6 +35,9 @@ def train(model, optimizer, dataset, data_test=None):
     if batch_idx > model.opt['train_size'] // model.opt['batch_size']:  # only do for train_size data points
       break
 
+    eMAx = torch.max(batch.edge_index)
+    eMin = torch.min(batch.edge_index)
+
     out = model(batch.x.to(model.device))
 
     if model.opt['pixel_loss'] in ['binary_sigmoid', '10catlogits', '10catM2','10catkmeans']:

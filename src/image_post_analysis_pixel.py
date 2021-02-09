@@ -466,8 +466,8 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
 
       label_list.append(f"{opt['block']}\n{opt['function']}")
       new_label_dict = {f"constant\nlaplacian" : f"constant\nlaplacian",
-                     f"attention\nlaplacian": f"linear\nattention",
-                     f"constant\ntransformer": f"non-linear\nattention"}
+                     f"attention\nlaplacian": f"GRAND-l",
+                     f"constant\ntransformer": f"GRAND-nl"}
       new_label_list = [new_label_dict[label] for label in label_list]
 
       # plot_times = ["mask"]+[f"t={int(opt['time'] * time / partitions)}" for time in times]
@@ -544,14 +544,15 @@ if __name__ == '__main__':
   # model_keys = ['20210202_122219','20210202_124040','20210202_130127']
   # model_epochs = [248, 248, 96]
 
-  model_keys = ['20210202_130127']
-  model_epochs = [96]
-  build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
-  build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
+  model_keys = ['20210204_173322','20210204_173601','20210204_173950']
+  # model_keys = ['20210202_130127']
+  model_epochs = [56,56,32]
+  # build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
+  # build_summaries(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num)
 
-  # times = [0, 5, 10]
-  # image_folder = 'MNIST_binaryWOdropout'
-  # model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  times = [0, 5, 10]
+  image_folder = 'MNIST_binarylocaltrain'
+  model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmultiple, partitions, batch_num)
 
   # #
   # grid_keys = [
