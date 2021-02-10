@@ -35,9 +35,6 @@ def train(model, optimizer, dataset, data_test=None):
     if batch_idx > model.opt['train_size'] // model.opt['batch_size']:  # only do for train_size data points
       break
 
-    eMAx = torch.max(batch.edge_index)
-    eMin = torch.min(batch.edge_index)
-
     out = model(batch.x.to(model.device))
 
     if model.opt['pixel_loss'] in ['binary_sigmoid', '10catlogits', '10catM2','10catkmeans']:
@@ -284,7 +281,7 @@ def main(opt):
       log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
       print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
 
-      if epoch % 8 == 0:
+      if (epoch + 1) % 8 == 0:
         torch.save(model.state_dict(), f"{savepath}_epoch{epoch}.pt")
 
     # save run details to csv

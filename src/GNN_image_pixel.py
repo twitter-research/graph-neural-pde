@@ -226,3 +226,27 @@ class GNN_image_pixel(BaseGNN):
 
     paths = torch.stack(paths,dim=1)
     return paths #output as 1d
+
+
+  def forward_plot_SuperPix(self, x, frames): #stitch together ODE integrations
+    atts = [self.odeblock.odefunc.edge_weight]
+    paths = [x]#.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])]
+
+    x = self.bn(x)
+    z = x
+    for f in range(frames):
+      self.odeblock.set_x0(z) #(x)
+      if self.training:
+        z, self.reg_states = self.odeblock(z)
+      else:
+        z = self.odeblock(z)
+
+      if self.eval: #undo batch norm
+        path = (z-self.bn.bias) * (self.bn.running_var + self.bn.eps) ** 0.5 / self.bn.weight + self.bn.running_mean
+        # path = path.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])
+        paths.append(path)
+        atts.append(self.odeblock.odefunc.edge_weight)
+    paths = torch.stack(paths,dim=1)
+    # atts = torch.stack(atts,dim=1)
+
+    return paths, atts
