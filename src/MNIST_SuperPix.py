@@ -271,7 +271,7 @@ def load_SuperPixel_data(opt):
   print("loading PyG Super Pixel Data")
   data_name = opt['im_dataset']
   root = '../data'
-  name = f"SuperPixel{data_name}{str(opt['train_size'])}_{str(opt['pixel_cat'])}Cat"
+  name = f"SuperPixel{data_name}{opt['train_size']}_{opt['pixel_cat']}Cat"
   root = f"{root}/{name}"
   SuperPixelData = InMemSuperPixelData(root, name, opt, type="Train", transform=None, pre_transform=None, pre_filter=None)
   return SuperPixelData
