@@ -205,11 +205,17 @@ class InMemSuperPixelData(InMemoryDataset):
                               labels[n // im_width][n % im_width]}
       return neighbour_dict
 
-  def create_edge_index_from_neighbours(self, neighbour_dict):
+  def create_edge_index_from_neighbours(self, neighbour_dict, opt):
       edge_index = [[], []]
-      for i, j in neighbour_dict.items():
-          edge_index[0].extend([i] * len(j))
-          edge_index[1].extend(list(j))
+      for src, neighbours in neighbour_dict.items():
+          if opt['self_loop_weight'] == 0.0:
+              neighbours_temp = neighbours.copy()
+              neighbours_temp.remove(src)
+              edge_index[0].extend([src] * len(neighbours_temp))
+              edge_index[1].extend(list(neighbours_temp))
+          else:
+              edge_index[0].extend([src] * len(neighbours))
+              edge_index[1].extend(list(neighbours))
       return torch.tensor(edge_index, dtype=int)
 
   def process(self):
@@ -228,7 +234,9 @@ class InMemSuperPixelData(InMemoryDataset):
       img = img - img.min()
       img = img / img.max() * 255.0
       img = img.astype(np.double)
-      pixel_labels = slic(img, n_segments=75, multichannel=multichannel)
+      # pixel_labels = slic(img, n_segments=75, multichannel=multichannel)
+      compactness = 200.0 #default 10 bigger makes more square
+      pixel_labels = slic(img, n_segments=60, compactness=compactness, multichannel=multichannel)
       num_centroids = np.max(pixel_labels) + 1  # required to add 1 for full coverage
       centroids = self.calc_centroids(pixel_labels, num_centroids)
       centroid_coords = torch.tensor([centroids[i] for i in range(num_centroids)])
@@ -237,7 +245,7 @@ class InMemSuperPixelData(InMemoryDataset):
       centroid_labels = torch.floor(centroid_labels).type(torch.LongTensor)
       boundaries = skimage.segmentation.find_boundaries(pixel_labels, mode='inner', background=-1).astype(np.uint8)
       neighbour_dict = self.find_neighbours(pixel_labels, boundaries, im_height=h, im_width=w)
-      edge_index = self.create_edge_index_from_neighbours(neighbour_dict)
+      edge_index = self.create_edge_index_from_neighbours(neighbour_dict, self.opt)
 
 
       # set pixel masks
@@ -247,7 +255,8 @@ class InMemSuperPixelData(InMemoryDataset):
       for label in range(centroid_labels.max().item() + 1):
         class_idx = (centroid_labels == label).nonzero()[:,0]
         num_in_class = len(class_idx)
-        train_idx.extend(rnd_state.choice(class_idx, num_in_class//2, replace=False))
+        # train_idx.extend(rnd_state.choice(class_idx, num_in_class//2, replace=False))
+        train_idx.extend(rnd_state.choice(class_idx, min(num_in_class//2,8), replace=False))
 
       test_idx = [i for i in full_idx if i not in train_idx]
       train_mask = torch.zeros(num_centroids, dtype=torch.bool)
@@ -261,7 +270,6 @@ class InMemSuperPixelData(InMemoryDataset):
                    orig_image=pixel_values, pixel_labels=pixel_labels,
                    pos=centroid_coords, centroids=centroids,
                    train_mask= train_mask, test_mask=test_mask, target=target)
-
       graph_list.append(graph)
 
     torch.save(self.collate(graph_list), self.processed_paths[0])
@@ -271,7 +279,10 @@ def load_SuperPixel_data(opt):
   print("loading PyG Super Pixel Data")
   data_name = opt['im_dataset']
   root = '../data'
-  name = f"SuperPixel{data_name}{str(opt['train_size'])}_{str(opt['pixel_cat'])}Cat"
+  if opt['self_loop_weight'] == 0.0:
+      name = f"SuperPixel{data_name}{str(opt['train_size'])}_{str(opt['pixel_cat'])}Cat_NoSL"
+  else:
+      name = f"SuperPixel{data_name}{str(opt['train_size'])}_{str(opt['pixel_cat'])}Cat"
   root = f"{root}/{name}"
   SuperPixelData = InMemSuperPixelData(root, name, opt, type="Train", transform=None, pre_transform=None, pre_filter=None)
   return SuperPixelData
@@ -285,7 +296,7 @@ def train(model, optimizer, dataset, data_test=None):
     start_time = time.time()
     if batch_idx > model.opt['train_size'] // model.opt['batch_size']:  # only do for train_size data points
       break
-
+    #TODO can i do this mid training loop or does it break the backrpop??
     model.odeblock.odefunc.edge_index, model.odeblock.odefunc.edge_weight = get_rw_adj(batch.edge_index, edge_weight=None, norm_dim=1,
                                                                    fill_value=model.opt['self_loop_weight'],
                                                                    num_nodes=batch.num_nodes)
@@ -444,6 +455,26 @@ def main(opt):
         print(f"Test acc {test_acc}")
     return test_acc
 
+def test_data(opt):
+    opt_permutations = opt_perms(opt)
+    for opt_perm, opt in opt_permutations.items():
+        print(f"This is run permutation {opt['im_dataset']} {opt['block']} {opt['function']}")
+        opt = get_image_opt(opt)
+
+        data_lengths = {}
+        print("Loading Data")
+        pixel_data = load_SuperPixel_data(opt)
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        loader = DataLoader(pixel_data, batch_size=1, shuffle=False)
+        for batch_idx, batch in enumerate(loader):
+            if len(batch.y) in data_lengths:
+                data_lengths[len(batch.y)] = data_lengths[len(batch.y)] + 1
+            else:
+                data_lengths[len(batch.y)] = 1
+
+        lengths_df = pd.DataFrame.from_dict(data_lengths)
+        lengths_df.to_csv(f"../SuperPix/data_lengths")
+        break
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -535,3 +566,4 @@ if __name__ == "__main__":
 
     # view_dataset(opt)
     main(opt)
+    # test_data(opt)

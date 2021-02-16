@@ -120,7 +120,7 @@ def view_SuperPix_Att(modelfolder, modelpath, model_key, opt, Tmultiple, partiti
     if edge_attr_gpu is not None: edge_index_gpu.to(device)
     opt['time'] = opt['time'] / partitions
     model = GNN_image_pixel(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
-                            batch.edge_attr, device).to(device)
+                            edge_attr_gpu, device).to(device)
 
     model.load_state_dict(torch.load(f"{modelpath}.pt", map_location=device))
     model.to(device)
@@ -152,28 +152,31 @@ def view_SuperPix_Att(modelfolder, modelpath, model_key, opt, Tmultiple, partiti
     ax.axis('off')  # , cbar_ax.axis('off')
     ax.imshow(out)
     for i in range(num_centroids):
-      ax.annotate(i, (r_x_coords[i], r_y_coords[i]), c="red")
+      # ax.annotate(i, (r_x_coords[i], r_y_coords[i]), c="red")
+      label = SuperPixItem.y[i].item()
+      ax.annotate(label, (r_x_coords[i], r_y_coords[i]), c="red")
+
     ax.scatter(x=r_x_coords, y=r_y_coords)
     # edge_weights = atts[time]
     time = 0
     x = paths[:, time, :].detach().numpy()
-    edge_weights = atts[time] * (x[SuperPixItem.edge_index[0, :]].squeeze()
-                                 + x[SuperPixItem.edge_index[1, :]].squeeze())
+    edge_weights = atts[time].detach().numpy() #* (x[SuperPixItem.edge_index[0, :]].squeeze()
+                               #  + x[SuperPixItem.edge_index[1, :]].squeeze())
     weight_max = 5
     edge_weights = ((edge_weights - edge_weights.min()) / (edge_weights.max() - edge_weights.min())) * (
               weight_max - 1) + 1
-    nx.draw(NXgraph, r_centroids, ax=ax, node_size=300 / 4, edge_color="lime",
+    nx.draw(NXgraph, r_centroids, ax=ax, node_size=300 / 4, edge_color=list(edge_weights), #"lime",
             node_color=x, cmap=plt.get_cmap('Spectral'), width=list(edge_weights))
     # fig.colorbar(cm.ScalarMappable(cmap=plt.get_cmap('Spectral')),
     #              cax=cbar_ax, orientation="vertical")
     plt.title(f"t={time} Attention, Ground Truth: {SuperPixItem.target.item()}")
     # plt.savefig(f"{modelfolder}/image_{time}_{i}.png", format="png")
     check_folder(f"{modelfolder}/sample_{batch_idx}")
-    plt.savefig(f"{modelfolder}/sample_{batch_idx}/initial_{time}_{i}.pdf", format="pdf")
+    plt.savefig(f"{modelfolder}/sample_{batch_idx}/initial_{time}.pdf", format="pdf")
     plt.show()
 
 
-    ######PLOT BROAD CAST DIFFUSION
+    ######PLOT BROADCAST DIFFUSION
     for time in times:
       x = paths[:, time, :].detach().numpy()
       broadcast_pixels = x[pixel_labels].squeeze()
@@ -187,33 +190,118 @@ def view_SuperPix_Att(modelfolder, modelpath, model_key, opt, Tmultiple, partiti
       ax.axis('off')
       ax.imshow(out)
       for i in range(num_centroids):
-        ax.annotate(i, (r_x_coords[i], r_y_coords[i]), c="red")
+        # ax.annotate(i, (r_x_coords[i], r_y_coords[i]), c="red")
+        prediction = round(x[i].item(),3)
+        ax.annotate(prediction, (r_x_coords[i], r_y_coords[i]), c="red")
       ax.scatter(x=r_x_coords, y=r_y_coords)
-      edge_weights = atts[time] * (x[SuperPixItem.edge_index[0,:]].squeeze()
-                                   + x[SuperPixItem.edge_index[1,:]].squeeze())
+      edge_weights = atts[time].detach().numpy() #* (x[SuperPixItem.edge_index[0,:]].squeeze())
+                                   # + x[SuperPixItem.edge_index[1,:]].squeeze())
       edge_weights = ((edge_weights - edge_weights.min()) / (edge_weights.max() - edge_weights.min())) * (weight_max-1) + 1
 
-      nx.draw(NXgraph, r_centroids, ax=ax, node_size=300 / 4, edge_color="lime",
+      nx.draw(NXgraph, r_centroids, ax=ax, node_size=300 / 4, edge_color=list(edge_weights), #"lime",
               node_color=x, cmap=plt.get_cmap('Spectral'), width=list(edge_weights))
 
       plt.title(f"t={time} Attention, Ground Truth: {SuperPixItem.target.item()}")
-      plt.savefig(f"{modelfolder}/sample_{batch_idx}/diffused_{time}_{i}.pdf", format="pdf")
+      plt.savefig(f"{modelfolder}/sample_{batch_idx}/diffused_{time}.pdf", format="pdf")
       plt.show()
+
+      #save down attention matrices
+      dense_att = to_dense_adj(edge_index=SuperPixItem.edge_index, edge_attr=atts[time].detach(),
+                              max_num_nodes=num_centroids)[0,:,:]
+      square_att = dense_att.view(num_centroids, num_centroids)
+      x_np = square_att.detach().numpy()
+      x_df = pd.DataFrame(x_np)
+      x_df.to_csv(f"{modelfolder}/sample_{batch_idx}/att_{time}.csv")
+
+
+    ####Plot max/min pixel intensity
+    fig = plt.figure()
+    plt.tight_layout()
+    if opt['im_dataset'] == 'MNIST':
+      A = paths[:, :, 0].detach().cpu()
+      plt.plot(torch.max(A,dim=0)[0], color='red')
+      plt.plot(torch.min(A,dim=0)[0], color='green')
+      plt.plot(torch.mean(A,dim=0), color='blue')
+    plt.title("Max/Min, Ground Truth: {}".format(SuperPixItem.target.item()))
+    plt.savefig(f"{modelfolder}/sample_{batch_idx}/max_min.pdf", format="pdf")
+    plt.show()
+
+
+    ###### CREATE ANIMATION
+    #draw initial graph
+    # time = 0
+    # x = paths[:, time, :].detach().numpy()
+    # broadcast_pixels = x[pixel_labels].squeeze()
+    # r_pixel_values, r_pixel_labels, r_centroids = transform_objects(im_height, im_width, heightSF, widthSF,
+    #                                                                 broadcast_pixels, pixel_labels.numpy(), centroids)
+    # r_y_coords, r_x_coords = get_centroid_coords_array(num_centroids, r_centroids)
+    # r_pixel_labels = r_pixel_labels.astype(np.int)
+    # out = segmentation.mark_boundaries(r_pixel_values, r_pixel_labels, (1, 0, 0))
+    #
+    # fig, ax = plt.subplots()
+    # ax.axis('off')
+    # ax.imshow(out)
+    # for i in range(num_centroids):
+    #   ax.annotate(i, (r_x_coords[i], r_y_coords[i]), c="red")
+    # ax.scatter(x=r_x_coords, y=r_y_coords)
+    # edge_weights = atts[time].detach().numpy() #* (x[SuperPixItem.edge_index[0,:]].squeeze()
+    #                            #  + x[SuperPixItem.edge_index[1,:]].squeeze())
+    # edge_weights = ((edge_weights - edge_weights.min()) / (edge_weights.max() - edge_weights.min())) * (weight_max-1) + 1
+    #
+    # nx.draw(NXgraph, r_centroids, ax=ax, node_size=300 / 4, edge_color=list(edge_weights), #"lime",
+    #         node_color=x, cmap=plt.get_cmap('Spectral'), width=list(edge_weights))
+    # plt.title(f"t={time} Attention, Ground Truth: {SuperPixItem.target.item()}")
+    #
+    # # loop through data and update plot
+    # def update(ii):
+    #   plt.tight_layout()
+    #   x = paths[:, ii, :].detach().numpy()
+    #   broadcast_pixels = x[pixel_labels].squeeze()
+    #   r_pixel_values, r_pixel_labels, r_centroids = transform_objects(im_height, im_width, heightSF, widthSF,
+    #                                                                   broadcast_pixels, pixel_labels.numpy(), centroids)
+    #   r_y_coords, r_x_coords = get_centroid_coords_array(num_centroids, r_centroids)
+    #   r_pixel_labels = r_pixel_labels.astype(np.int)
+    #   out = segmentation.mark_boundaries(r_pixel_values, r_pixel_labels, (1, 0, 0))
+    #   ax.imshow(out)
+    #   for i in range(num_centroids):
+    #     ax.annotate(i, (r_x_coords[i], r_y_coords[i]), c="red")
+    #   ax.scatter(x=r_x_coords, y=r_y_coords)
+    #   edge_weights = atts[ii].detach().numpy() #* (x[SuperPixItem.edge_index[0,:]].squeeze()
+    #                            #    + x[SuperPixItem.edge_index[1,:]].squeeze())
+    #   edge_weights = ((edge_weights - edge_weights.min()) / (edge_weights.max() - edge_weights.min())) * (weight_max-1) + 1
+    #
+    #   nx.draw(NXgraph, r_centroids, ax=ax, node_size=300 / 4, edge_color=list(edge_weights), #"lime",
+    #           node_color=x, cmap=plt.get_cmap('Spectral'), width=list(edge_weights))
+    #   plt.title(f"t={ii} Attention, Ground Truth: {SuperPixItem.target.item()}")
+    #
+    # fig = plt.gcf()
+    # frames = 10
+    # fps = 1.5
+    # animation = FuncAnimation(fig, func=update, frames=frames)
+    # animation.save(f"{modelfolder}/sample_{batch_idx}/animation.gif", fps=fps)#, writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=fps)
+
 
 
 if __name__ == '__main__':
-  Tmultiple = 1
-  partitions = 10
+  Tmultiple = 2
+  partitions = 10  #partitions of each T = 1
   batch_num = 0 #1#2
-  samples = 6
-  times = [0,5,10]
+  samples = 3
+  times = [0,5*Tmultiple,10*Tmultiple]
   # directory = f"../pixels/"
   # df = pd.read_csv(f'{directory}models.csv')
   # model_keys = df['model_key'].to_list()
 
   # model_keys = ['20210210_175533','20210210_175540','20210210_175551']
   # model_epochs = [15,15,15]
-  model_keys = ['20210210_175551']
-  model_epochs = [15]
+  # model_keys = ['20210211_142609','20210211_142640','20210211_142659']
+  # model_keys = ['20210211_181833']#,'20210211_182007','20210211_182229']
+  # model_keys = ['20210211_181833']
+  # model_keys = ['20210212_101642']
+  # model_keys = ['20210212_102034']
+  model_keys = ['20210212_102642']
+
+  # model_keys = ['20210211_182229'] #['20210211_142659'] #['20210210_175533'] #['20210210_175551']
+  model_epochs = [63]#, 63, 63] #, 15, 15]
 
   build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num, times)

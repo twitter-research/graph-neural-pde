@@ -84,7 +84,7 @@ class GNN_image_pixel(BaseGNN):
     # if self.opt['augment']: #no augmenting for image viz
     #   c_aux = torch.zeros(x.shape).to(self.device)
     #   x = torch.cat([x, c_aux], dim=1)
-    x = self.bn(x)
+    x = self.bn(x)  #####REMOVED BATCH NORM FOR SUPERPIXEL EXPERIMENT
     self.odeblock.set_x0(x)
 
     if self.training and self.odeblock.nreg > 0:
@@ -229,7 +229,19 @@ class GNN_image_pixel(BaseGNN):
 
 
   def forward_plot_SuperPix(self, x, frames): #stitch together ODE integrations
-    atts = [self.odeblock.odefunc.edge_weight]
+
+    if self.opt['function'] == 'transfomer':
+      attention, _ = self.odeblock.odefunc.multihead_att_layer(x, self.odeblock.odefunc.edge_index)
+      mean_attention = attention.mean(dim=1)
+      atts = [mean_attention]
+    elif self.opt['block'] == 'attention':
+      pass
+      #todo need to understand self.attention_weights, 4 coordinates?
+      atts = [self.odeblock.odefunc.edge_weight]
+      # mean_attention = self.odeblock.attention_weights.mean(dim=1)
+      # atts = [mean_attention]
+    else:
+      atts = [self.odeblock.odefunc.edge_weight]
     paths = [x]#.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])]
 
     x = self.bn(x)
@@ -241,11 +253,24 @@ class GNN_image_pixel(BaseGNN):
       else:
         z = self.odeblock(z)
 
-      if self.eval: #undo batch norm
+      if self.eval:
+        path = z
         path = (z-self.bn.bias) * (self.bn.running_var + self.bn.eps) ** 0.5 / self.bn.weight + self.bn.running_mean
         # path = path.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])
-        paths.append(path)
-        atts.append(self.odeblock.odefunc.edge_weight)
+        # paths.append(path)
+
+        if self.opt['function'] == 'transfomer':
+          attention, _ = self.odeblock.odefunc.multihead_att_layer(x, self.odeblock.odefunc.edge_index)
+          mean_attention = attention.mean(dim=1)
+          atts.append(mean_attention)
+        elif self.opt['block'] == 'attention':
+          # mean_attention = self.odeblock.attention_weights.mean(dim=1)
+          # atts.append(mean_attention)
+          # todo need to understand self.attention_weights, 4 coordinates?
+          atts.append(self.odeblock.odefunc.edge_weight)
+        else:
+          atts.append(self.odeblock.odefunc.edge_weight)
+
     paths = torch.stack(paths,dim=1)
     # atts = torch.stack(atts,dim=1)
 

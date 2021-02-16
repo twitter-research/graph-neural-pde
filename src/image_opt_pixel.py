@@ -81,11 +81,11 @@ def get_image_opt(opt):
   opt['augment'] = False #True   #False need to view image
   opt['attention_dropout'] = 0
 
-  opt['epoch'] = 16 #64 #128 #32 #2 #2 #3 #1
+  opt['epoch'] = 32 #128 #32 #2 #2 #3 #1
   opt['batched'] = True
   if opt['testing_code']:
-    opt['batch_size'] = 8 #64  # doing batch size for mnist
-    opt['train_size'] = 64 #512 #1024 #512 #0 #128 #10240 #512 #10240
+    opt['batch_size'] = 32 #64  # doing batch size for mnist
+    opt['train_size'] = 512 #1024 #512 #0 #128 #10240 #512 #10240
     opt['test_size'] =  64 #28 #0  #512#64#128
 
   assert (opt['train_size']) % opt['batch_size'] == 0, "train_size needs to be multiple of batch_size"
