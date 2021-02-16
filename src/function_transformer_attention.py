@@ -43,6 +43,7 @@ class ODEFuncTransformerAtt(ODEFunc):
 
     self.nfe += 1
     attention, values = self.multihead_att_layer(x, self.edge_index)
+    self.attention_weights = attention.mean(dim=1)
     ax = self.multiply_attention(x, attention, values)
 
     alpha = torch.sigmoid(self.alpha_train)
