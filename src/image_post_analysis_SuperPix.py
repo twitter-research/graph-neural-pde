@@ -292,16 +292,8 @@ if __name__ == '__main__':
   # df = pd.read_csv(f'{directory}models.csv')
   # model_keys = df['model_key'].to_list()
 
-  # model_keys = ['20210210_175533','20210210_175540','20210210_175551']
-  # model_epochs = [15,15,15]
-  # model_keys = ['20210211_142609','20210211_142640','20210211_142659']
-  # model_keys = ['20210211_181833']#,'20210211_182007','20210211_182229']
-  # model_keys = ['20210211_181833']
-  # model_keys = ['20210212_101642']
-  # model_keys = ['20210212_102034']
+  # model_keys = ['20210212_101642','20210212_102034','20210212_102642']
   model_keys = ['20210212_102642']
-
-  # model_keys = ['20210211_182229'] #['20210211_142659'] #['20210210_175533'] #['20210210_175551']
   model_epochs = [63]#, 63, 63] #, 15, 15]
 
   build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num, times)

@@ -9,7 +9,13 @@ from data import get_dataset
 from function_laplacian_diffusion import LaplacianODEFunc
 from GNN import GNN
 from block_transformer_attention import AttODEblock
-from MNIST_SuperPix import
+from MNIST_SuperPix import GNN_image_pixel
+from MNIST_SuperPix import load_SuperPixel_data, train
+from torch_geometric.data import Data, InMemoryDataset, DataLoader
+from utils import get_rw_adj
+from run_image_pixel import pixel_test, print_model_params, get_optimizer
+from torch_geometric.utils import softmax, to_dense_adj
+
 
 class AttentionODEBlockTests(unittest.TestCase):
   def setUp(self):
@@ -30,8 +36,6 @@ class AttentionODEBlockTests(unittest.TestCase):
 
   def tearDown(self) -> None:
     pass
-
-  def
 
   def test_block(self):
     data = self.dataset.data

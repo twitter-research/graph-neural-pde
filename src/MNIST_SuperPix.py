@@ -290,13 +290,16 @@ def load_SuperPixel_data(opt):
 def train(model, optimizer, dataset, data_test=None):
   model.train()
   loader = DataLoader(dataset, batch_size=model.opt['batch_size'], shuffle=True)
+  loss_path = []
+  train_acc_path = []
+  test_acc_path = []
 
   for batch_idx, batch in enumerate(loader):
     optimizer.zero_grad()
     start_time = time.time()
     if batch_idx > model.opt['train_size'] // model.opt['batch_size']:  # only do for train_size data points
       break
-    #TODO can i do this mid training loop or does it break the backrpop??
+    #TODO can i do this mid training loop or does it break the backprop??
     model.odeblock.odefunc.edge_index, model.odeblock.odefunc.edge_weight = get_rw_adj(batch.edge_index, edge_weight=None, norm_dim=1,
                                                                    fill_value=model.opt['self_loop_weight'],
                                                                    num_nodes=batch.num_nodes)
@@ -359,6 +362,10 @@ def train(model, optimizer, dataset, data_test=None):
       test_acc = pixel_test(model, batch, "batch","test")
       log = 'Batch Index: {}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Test: {:.4f}'
       print(log.format(batch_idx, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, test_acc))
+      loss_path.append(loss)
+      train_acc_path.append(train_acc)
+      test_acc_path.append(test_acc)
+
     #   elif batch_idx % 1 == 0:
     #     print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
     #                                                                           time.time() - start_time))
@@ -374,7 +381,7 @@ def train(model, optimizer, dataset, data_test=None):
     # print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum,
     #                                                                       time.time() - start_time))
 
-  return loss.item()
+  return loss_path, train_acc_path, test_acc_path #loss.item()
 
 def main(opt):
     csv_path = '../SuperPix/models.csv'
@@ -426,15 +433,23 @@ def main(opt):
             print("Creation of the directory %s failed" % savefolder)
         else:
             print("Successfully created the directory %s " % savefolder)
+        loss_paths = []
+        train_acc_paths = []
+        test_acc_paths = []
 
         for epoch in range(opt['epoch']):
             print("Epoch {}".format(epoch))
             start_time = time.time()
-            loss = train(model, optimizer, pixel_data)
+            # loss = train(model, optimizer, pixel_data, savefolder)
+            loss_path, train_acc_path, test_acc_path = train(model, optimizer, pixel_data, savefolder)
+            loss_paths.extend(loss_path)
+            train_acc_paths.extend(train_acc_path)
+            test_acc_paths.extend(test_acc_path)
             test_acc = pixel_test(model, pixel_data.data, batchorTest="test", trainorTest="test")
 
             log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Test: {:.4f}'
-            print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
+            # print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
+            print(log.format(epoch, time.time() - start_time, loss_path[-1], model.fm.sum, model.bm.sum, test_acc))
 
             if (epoch + 1) % 8 == 0:
                 torch.save(model.state_dict(), f"{savepath}_epoch{epoch}.pt")
@@ -453,6 +468,21 @@ def main(opt):
         df.to_csv(csv_path, mode='a', header=header)
 
         print(f"Test acc {test_acc}")
+
+    ####Plot loss
+    fig = plt.figure()
+    plt.tight_layout()
+    plt.plot(loss_paths)
+    plt.title("Loss Evolution")
+    plt.savefig(f"{savefolder}/loss.pdf", format="pdf")
+    ####Plot loss
+    fig = plt.figure()
+    plt.tight_layout()
+    plt.plot(train_acc_paths)
+    plt.plot(test_acc_paths)
+    plt.title("Train/Test Acc Evolution")
+    plt.savefig(f"{savefolder}/Accuracy.pdf", format="pdf")
+
     return test_acc
 
 def test_data(opt):

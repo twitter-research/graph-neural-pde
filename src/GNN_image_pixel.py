@@ -215,18 +215,13 @@ class GNN_image_pixel(BaseGNN):
 
 
   def forward_plot_SuperPix(self, x, frames): #stitch together ODE integrations
-    atts = [self.odeblock.odefunc.attention_weights] #edge_weight]
 
-    if self.opt['function'] == 'transfomer':
-      attention, _ = self.odeblock.odefunc.multihead_att_layer(x, self.odeblock.odefunc.edge_index)
-      mean_attention = attention.mean(dim=1)
-      atts = [mean_attention]
+    # atts = [self.odeblock.odefunc.attention_weights]  # edge_weight]
+    if self.opt['function'] == 'transformer':
+      atts = [self.odeblock.odefunc.edge_weight] #not calculated until 1st forward pass attention_weights]  # edge_weight]
     elif self.opt['block'] == 'attention':
-      pass
-      #todo need to understand self.attention_weights, 4 coordinates?
-      atts = [self.odeblock.odefunc.edge_weight]
-      # mean_attention = self.odeblock.attention_weights.mean(dim=1)
-      # atts = [mean_attention]
+      #todo need to understand linear self.attention_weights?
+      atts = [self.odeblock.odefunc.edge_weight]#attention_weights]
     else:
       atts = [self.odeblock.odefunc.edge_weight]
     paths = [x]#.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])]
@@ -241,18 +236,11 @@ class GNN_image_pixel(BaseGNN):
         path = (z-self.bn.bias) * (self.bn.running_var + self.bn.eps) ** 0.5 / self.bn.weight + self.bn.running_mean
         # path = path.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])
         paths.append(path)
-        atts.append(self.odeblock.odefunc.attention_weights) #edge_weight)
-        # paths.append(path)
-
-        if self.opt['function'] == 'transfomer':
-          attention, _ = self.odeblock.odefunc.multihead_att_layer(x, self.odeblock.odefunc.edge_index)
-          mean_attention = attention.mean(dim=1)
-          atts.append(mean_attention)
+        # atts.append(self.odeblock.odefunc.attention_weights) #edge_weight)
+        if self.opt['function'] == 'transformer':
+          atts.append(self.odeblock.odefunc.attention_weights)
         elif self.opt['block'] == 'attention':
-          # mean_attention = self.odeblock.attention_weights.mean(dim=1)
-          # atts.append(mean_attention)
-          # todo need to understand self.attention_weights, 4 coordinates?
-          atts.append(self.odeblock.odefunc.edge_weight)
+          atts.append(self.odeblock.odefunc.edge_weight)#attention_weights)
         else:
           atts.append(self.odeblock.odefunc.edge_weight)
 

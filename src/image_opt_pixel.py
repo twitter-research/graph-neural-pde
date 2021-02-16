@@ -7,16 +7,16 @@ def opt_perms(opt):
   """
 
   opt_perms = {}
-  opt1 = opt.copy()
-  opt1['im_dataset'] = 'MNIST'
-  opt1['block'] = 'constant'
-  opt1['function'] = 'laplacian'
-  opt_perms[f"{opt1['im_dataset']}_{opt1['block']}_{opt1['function']}"] = opt1
-  opt2 = opt.copy()
-  opt2['im_dataset'] = 'MNIST'
-  opt2['block'] = 'attention'
-  opt2['function'] = 'laplacian'
-  opt_perms[f"{opt2['im_dataset']}_{opt2['block']}_{opt2['function']}"] = opt2
+  # opt1 = opt.copy()
+  # opt1['im_dataset'] = 'MNIST'
+  # opt1['block'] = 'constant'
+  # opt1['function'] = 'laplacian'
+  # opt_perms[f"{opt1['im_dataset']}_{opt1['block']}_{opt1['function']}"] = opt1
+  # opt2 = opt.copy()
+  # opt2['im_dataset'] = 'MNIST'
+  # opt2['block'] = 'attention'
+  # opt2['function'] = 'laplacian'
+  # opt_perms[f"{opt2['im_dataset']}_{opt2['block']}_{opt2['function']}"] = opt2
   opt3 = opt.copy()
   opt3['im_dataset'] = 'MNIST'
   opt3['block'] = 'constant'
@@ -81,7 +81,7 @@ def get_image_opt(opt):
   opt['augment'] = False #True   #False need to view image
   opt['attention_dropout'] = 0
 
-  opt['epoch'] = 32 #128 #32 #2 #2 #3 #1
+  opt['epoch'] = 2 #32 #128 #32 #2 #2 #3 #1
   opt['batched'] = True
   if opt['testing_code']:
     opt['batch_size'] = 32 #64  # doing batch size for mnist

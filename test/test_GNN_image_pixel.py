@@ -130,6 +130,9 @@ class GNNImagePixelTests(unittest.TestCase):
     dense_attention3 = to_dense_adj(model.odeblock.odefunc.edge_index, edge_attr=att3).squeeze()
     self.assertTrue(torch.all(torch.eq(get_round_sum(dense_attention3, self.opt, n_digits=3), 1.)))
 
+    #todo need to test if its learning non-lin attention properly
+
+
   def test_plot_superpix(self):
     dataset = load_SuperPixel_data(self.opt)
     loader = DataLoader(dataset, batch_size=self.opt['batch_size'], shuffle=True)
