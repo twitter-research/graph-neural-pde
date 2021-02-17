@@ -116,7 +116,7 @@ class SpGraphTransAttentionLayer(nn.Module):
     q = q.view(-1, self.h, self.d_k)
     v = v.view(-1, self.h, self.d_k)
 
-    # transpose to get dimensions [n_nodes, attention_dim, n_heads]
+    # transpose to get dimensions [n_nodes, [attention_dim/n_heads], n_heads]
 
     k = k.transpose(1, 2)
     q = q.transpose(1, 2)

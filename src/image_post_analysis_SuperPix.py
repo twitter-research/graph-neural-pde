@@ -213,6 +213,16 @@ def view_SuperPix_Att(modelfolder, modelpath, model_key, opt, Tmultiple, partiti
       x_df = pd.DataFrame(x_np)
       x_df.to_csv(f"{modelfolder}/sample_{batch_idx}/att_{time}.csv")
 
+    # #plot attention paths
+    # atts = torch.stack(atts,dim=1).T
+    # fig = plt.figure()
+    # plt.tight_layout()
+    # plt.plot(atts)
+    # plt.title("Attentions Evolution")
+    # plt.savefig(f"{modelfolder}/atts_evol.pdf", format="pdf")
+    # plt.show()
+
+
 
     ####Plot max/min pixel intensity
     fig = plt.figure()
@@ -280,7 +290,53 @@ def view_SuperPix_Att(modelfolder, modelpath, model_key, opt, Tmultiple, partiti
     # animation = FuncAnimation(fig, func=update, frames=frames)
     # animation.save(f"{modelfolder}/sample_{batch_idx}/animation.gif", fps=fps)#, writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=fps)
 
+def attention_evolution(model_keys, model_epochs, attention_epochs, samples, Tmultiple, partitions, batch_num, times):
+    directory = f"../SuperPix/"
+    df = pd.read_csv(f'{directory}models.csv')
+    for i, model_key in enumerate(model_keys):
+      for filename in os.listdir(directory):
+        if filename.startswith(model_key):
+          path = os.path.join(directory, filename)
+          print(path)
+          break
+      [_, _, data_name, blck, fct] = path.split("_")
+      modelfolder = f"{directory}{model_key}_{data_name}_{blck}_{fct}"
+      optdf = df[df.model_key == model_key]
+      intcols = ['num_class', 'im_chan', 'im_height', 'im_width', 'num_nodes']
+      optdf[intcols].astype(int)
+      opt = optdf.to_dict('records')[0]
 
+      # load data and model   ###do forward pass
+      device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+      SuperPixelData = load_SuperPixel_data(opt)
+      loader = DataLoader(SuperPixelData, batch_size=1, shuffle=False)  # True)
+      for batch_idx, batch in enumerate(loader):
+        if batch_idx == samples:
+          break
+        batch.to(device)
+        edge_index_gpu = batch.edge_index
+        edge_attr_gpu = batch.edge_attr
+        if edge_index_gpu is not None: edge_index_gpu.to(device)
+        if edge_attr_gpu is not None: edge_index_gpu.to(device)
+        opt['time'] = opt['time'] / partitions
+        model = GNN_image_pixel(opt, batch.num_features, batch.num_nodes, opt['num_class'], edge_index_gpu,
+                                edge_attr_gpu, device).to(device)
+
+        for att_epoch in attention_epochs:
+          modelpath = f"{modelfolder}/model_{model_key}_epoch{att_epoch}"
+          model.load_state_dict(torch.load(f"{modelpath}.pt", map_location=device))
+          model.to(device)
+          model.eval()
+          paths, atts = model.forward_plot_SuperPix(batch.x.to(model.device), Tmultiple * partitions)
+
+          # plot attention paths
+          atts = torch.stack(atts, dim=1).T
+          fig = plt.figure()
+          plt.tight_layout()
+          plt.plot(atts)
+          plt.title("Attentions Evolution")
+          plt.savefig(f"{modelfolder}/sample_{batch_idx}/atts_evol_epoch{att_epoch}.pdf", format="pdf")
+          # plt.show()
 
 if __name__ == '__main__':
   Tmultiple = 2
@@ -293,7 +349,9 @@ if __name__ == '__main__':
   # model_keys = df['model_key'].to_list()
 
   # model_keys = ['20210212_101642','20210212_102034','20210212_102642']
-  model_keys = ['20210212_102642']
-  model_epochs = [63]#, 63, 63] #, 15, 15]
+  model_keys = ['20210217_101830']
+  model_epochs = [4] #, 63, 63] #, 15, 15]
+  attention_epochs = [0,1,2,4]
 
   build_batches(model_keys, model_epochs, samples, Tmultiple, partitions, batch_num, times)
+  attention_evolution(model_keys, model_epochs, attention_epochs, samples, Tmultiple, partitions, batch_num, times)
