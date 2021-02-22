@@ -191,15 +191,19 @@ class GNN_image_pixel(BaseGNN):
     paths = [x.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])]
 
     x = self.bn(x)
+    if self.opt['block'] == 'attention':
+      self.odeblock.x0_superpix = x
 
     z = x
 
     for f in range(frames):
       self.odeblock.set_x0(z) #(x)
-      if self.training:
-        z, self.reg_states = self.odeblock(z)
+
+      if self.opt['block'] == 'attention':
+        z = self.odeblock.visualise(z)    #forward pass that does not recalc attentions on diffused X
       else:
         z = self.odeblock(z)
+
       # Activation.
       # z = F.relu(z)
       # Dropout.

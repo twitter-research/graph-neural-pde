@@ -490,15 +490,15 @@ def model_comparison(model_keys, model_epochs, times, sample_name, samples, Tmul
                   axs[i, j].imshow(images[j][i], interpolation='none')
                 axs[i,j].set_yticks([])
                 axs[i,j].set_xticks([])
-        plt.subplots_adjust(wspace=-0.2, hspace=0)
-        for ax, t in zip(axs[0], plot_times):
-            ax.set_title(t, size=18)
-        pad = 2
-        for ax, row in zip(axs[:,0], new_label_list):
-            ax.annotate(row, xy=(0, 0.5), xytext=(-ax.yaxis.labelpad - pad, 0),
-                        xycoords=ax.yaxis.label, textcoords='offset points',
-                        size='large', ha='right', va='center')
-        plt.savefig(f"{savefolder}/sample_{sample}.pdf",format="pdf")
+      plt.subplots_adjust(wspace=-0.2, hspace=0)
+      for ax, t in zip(axs[0], plot_times):
+          ax.set_title(t, size=18)
+      pad = 2
+      for ax, row in zip(axs[:,0], new_label_list):
+          ax.annotate(row, xy=(0, 0.5), xytext=(-ax.yaxis.labelpad - pad, 0),
+                      xycoords=ax.yaxis.label, textcoords='offset points',
+                      size='large', ha='right', va='center')
+      plt.savefig(f"{savefolder}/sample_{sample}.pdf",format="pdf")
 
 
 @torch.no_grad()
