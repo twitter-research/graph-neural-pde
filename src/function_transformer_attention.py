@@ -100,9 +100,9 @@ class SpGraphTransAttentionLayer(nn.Module):
 
   def init_weights(self, m):
     if type(m) == nn.Linear:
-      #nn.init.xavier_uniform_(m.weight, gain=1.414)
+      nn.init.xavier_uniform_(m.weight)#, gain=1.414)
       #m.bias.data.fill_(0.01)
-      nn.init.constant_(m.weight, 1e-5)
+      # nn.init.constant_(m.weight, 1e-3)#e-5)
 
 
   def forward(self, x, edge):
@@ -124,11 +124,18 @@ class SpGraphTransAttentionLayer(nn.Module):
 
     src = q[edge[0, :], :, :]
     dst_k = k[edge[1, :], :, :]
-    prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
+    # prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
+    # prods = torch.sum(src * dst_k, dim=1) / ((torch.linalg.norm(src,ord=2,dim=1)+1e-5)
+    #                                          *(torch.linalg.norm(dst_k,ord=2,dim=1)+1e-5))
+    cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
+    prods = cos(src, dst_k)
     if self.opt['reweight_attention'] and self.edge_weights is not None:
       prods = prods * self.edge_weights.unsqueeze(dim=1)
     attention = softmax(prods, edge[self.opt['attention_norm_idx']])
+    # attention = self.my_softmax(prods, edge[self.opt['attention_norm_idx']])
+
     return attention, v
+
 
   def __repr__(self):
     return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'

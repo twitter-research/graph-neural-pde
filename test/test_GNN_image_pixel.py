@@ -93,7 +93,7 @@ class GNNImagePixelTests(unittest.TestCase):
     # todo this test fails - check if the dataset is constructed with self loops already
     self.assertTrue(test_edge_index.shape[1] == batch.edge_index.shape[1] + batch.x.shape[0])
 
-  def test_gnn(self):
+  def test_gnn_nonlin(self):
     dataset = load_SuperPixel_data(self.opt)
     loader = DataLoader(dataset, batch_size=self.opt['batch_size'], shuffle=True)
     for batch in loader:
@@ -130,7 +130,47 @@ class GNNImagePixelTests(unittest.TestCase):
     dense_attention3 = to_dense_adj(model.odeblock.odefunc.edge_index, edge_attr=att3).squeeze()
     self.assertTrue(torch.all(torch.eq(get_round_sum(dense_attention3, self.opt, n_digits=3), 1.)))
 
-    #todo need to test if its learning non-lin attention properly
+    #todo test that the non-lin is changing each step
+
+  def test_gnn_lin(self):
+    dataset = load_SuperPixel_data(self.opt)
+    loader = DataLoader(dataset, batch_size=self.opt['batch_size'], shuffle=True)
+    for batch in loader:
+      break
+    self.opt['block'] = 'attention'
+    self.opt['function'] = 'laplacian'
+
+    model = GNN_image_pixel(self.opt, batch.num_features, batch.num_nodes, self.opt['num_class'], batch.edge_index,
+                            edge_attr=None, device=torch.device('cpu'))
+    model.odeblock.odefunc.edge_index, model.odeblock.odefunc.edge_weight = get_rw_adj(batch.edge_index,
+                                                                                       edge_weight=None, norm_dim=1,
+                                                                                       fill_value=model.opt[
+                                                                                         'self_loop_weight'],
+                                                                                       num_nodes=batch.num_nodes)
+    parameters = [p for p in model.parameters() if p.requires_grad]
+    optimizer = get_optimizer('adam', parameters, lr=0.1, weight_decay=0)
+    optimizer.zero_grad()
+    lf = torch.nn.CrossEntropyLoss()
+    att1 = model.odeblock.odefunc.attention_weights
+    self.assertTrue(att1 is None)
+    model.train()
+    out = model(dataset.data.x)
+    self.assertTrue(out.shape[0] == batch.x.shape[0])
+    self.assertTrue(torch.all(out > 0))
+    self.assertTrue(torch.all(out < 1))
+    self.assertTrue(torch.equal(out.sum(dim=1), torch.ones(batch.x.shape[0])))
+    loss = lf(out[batch.train_mask], batch.y.squeeze()[batch.train_mask].to(model.device))
+    self.assertTrue(loss.item() > 0)
+    att2 = model.odeblock.odefunc.attention_weights
+    self.assertTrue(att2.shape == model.odeblock.odefunc.edge_weight.shape)
+    loss.backward()
+    optimizer.step()
+    out = model(dataset.data.x)  # regenerate attention weights from new param values
+    att3 = model.odeblock.odefunc.attention_weights
+    dense_attention3 = to_dense_adj(model.odeblock.odefunc.edge_index, edge_attr=att3).squeeze()
+    self.assertTrue(torch.all(torch.eq(get_round_sum(dense_attention3, self.opt, n_digits=3), 1.)))
+
+    #todo test lin attention is different to laplacian
 
 
   def test_plot_superpix(self):

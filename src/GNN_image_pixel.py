@@ -62,19 +62,22 @@ class GNN_image_pixel(BaseGNN):
     time_tensor = torch.tensor([0, self.T]).to(device)
     self.odeblock = block(self.f, self.regularization_fns, opt, num_nodes, edge_index, edge_attr, device, t=time_tensor).to(self.device)
 
-    self.bn = nn.BatchNorm1d(num_features=opt['im_chan'])
+    self.bn = nn.BatchNorm1d(num_features=opt['im_chan']) #hidden_dim']) #opt['im_chan']
 
     if self.opt['pixel_loss'] == '10catM2':
       self.m2 = nn.Linear(opt['im_chan'], opt['pixel_cat'])
+    elif self.opt['pixel_loss'] == 'binary_sigmoid':
+      self.m2 = None
+      # self.m2 = nn.Linear(opt['hidden_dim'], opt['im_chan'])
     else:
       self.m2 = None
-      # self.m2 = nn.Linear(opt['im_width'] * opt['im_height'] * opt['im_chan'], num_classes)
-
+      # self.m2 = nn.Linear(opt['im_width'] * opt['im_height'] * opt['im_chan'], opt['pixel_cat'])
     # self.ConvNet = MNISTConvNet(opt) if opt['im_dataset'] == 'MNIST' else CIFARConvNet(opt)
 
 
   def forward(self, x):
 
+    # x = self.m1(x)
     x = self.bn(x)
     self.odeblock.set_x0(x)
 
@@ -92,13 +95,15 @@ class GNN_image_pixel(BaseGNN):
 
 
     if self.opt['pixel_loss'] == 'binary_sigmoid':
-      # if self.training: removed the drop outs as messing with sacling and sigmoid activation
+      # if self.training: removed the drop outs as messing with scaling and sigmoid activation
       #   inputDropOutFactor = 1/(1-self.opt['input_dropout'])
       #   dropOutFactor = 1/(1-self.opt['dropout'])
       #   z = (z - self.bn.bias) * (self.bn.running_var + self.bn.eps) ** 0.5 / self.bn.weight + self.bn.running_mean
       #   z = (z - 0.5 * dropOutFactor) / (0.5 * dropOutFactor)
       # else:
       #   z = (z - 0.5) / 0.5 #MNIST in [0,1] and sigmoid(0)= 0.5 so need to rescale tp [-1,1]
+
+      # z = self.m2(z)
       z = torch.cat((torch.sigmoid(z), 1 - torch.sigmoid(z)),dim=1)
     elif self.opt['pixel_loss'] == '10catM2':
       # z = z.view(-1, self.opt['im_chan'])
@@ -109,10 +114,8 @@ class GNN_image_pixel(BaseGNN):
       cats = torch.arange(self.opt['pixel_cat']).to(self.device)
       z = 1 / ((z - cats) ** 2 + 1e-5)
       torch.cat((torch.sigmoid(z), 1 - torch.sigmoid(z)), dim=1)
-
     elif self.opt['pixel_loss'] == '10catkmeans':
       pass
-
 
     # elif self.opt['pixel_loss'] == 'MSE':
     #   z = z
@@ -142,7 +145,6 @@ class GNN_image_pixel(BaseGNN):
     # Encode each node based on its feature.
     # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
     # x = self.m1(x) #no encoding for image viz
-    # todo investigate if some input non-linearity solves the problem with smooth deformations identified in the ANODE paper
     # if True:
     #   x = F.relu(x)
 
@@ -178,7 +180,6 @@ class GNN_image_pixel(BaseGNN):
     # Encode each node based on its feature.
     # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
     # x = self.m1(x) #no encoding for image viz
-    # todo investigate if some input non-linearity solves the problem with smooth deformations identified in the ANODE paper
     # if True:
     #   x = F.relu(x)
 
@@ -215,32 +216,41 @@ class GNN_image_pixel(BaseGNN):
 
 
   def forward_plot_SuperPix(self, x, frames): #stitch together ODE integrations
-
+    # x = self.m1(x)
     # atts = [self.odeblock.odefunc.attention_weights]  # edge_weight]
     if self.opt['function'] == 'transformer':
       atts = [self.odeblock.odefunc.edge_weight] #not calculated until 1st forward pass attention_weights]  # edge_weight]
     elif self.opt['block'] == 'attention':
-      #todo need to understand linear self.attention_weights?
       atts = [self.odeblock.odefunc.edge_weight]#attention_weights]
     else:
       atts = [self.odeblock.odefunc.edge_weight]
-    paths = [x]#.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])]
+    paths = [x] #[torch.sigmoid(self.m2(x))] #[x]#.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])]
 
     x = self.bn(x)
+    if self.opt['block'] == 'attention':
+      self.odeblock.x0_superpix = x
+
     z = x
     for f in range(frames):
+      # todo this is problematic for lin-att as each self.odeblock(z) forward pass
+      #  does it recalc the attentions and therefore non-stationary/be subject to entropy?
       self.odeblock.set_x0(z) #(x)
-      z = self.odeblock(z)
+
+      if self.opt['block'] == 'attention':
+        z = self.odeblock.visualise(z)    #forward pass that does not recalc attentions on diffused X
+      else:
+        z = self.odeblock(z)
 
       if self.eval: #undo batch norm
-        path = (z-self.bn.bias) * (self.bn.running_var + self.bn.eps) ** 0.5 / self.bn.weight + self.bn.running_mean
         # path = path.view(-1, self.opt['im_width'] * self.opt['im_height'] * self.opt['im_chan'])
+        path = (z-self.bn.bias) * (self.bn.running_var + self.bn.eps) ** 0.5 / self.bn.weight + self.bn.running_mean
+        # path = torch.sigmoid(self.m2(z))
         paths.append(path)
         # atts.append(self.odeblock.odefunc.attention_weights) #edge_weight)
         if self.opt['function'] == 'transformer':
           atts.append(self.odeblock.odefunc.attention_weights)
         elif self.opt['block'] == 'attention':
-          atts.append(self.odeblock.odefunc.edge_weight)#attention_weights)
+          atts.append(self.odeblock.odefunc.attention_weights)#attention_weights)
         else:
           atts.append(self.odeblock.odefunc.edge_weight)
 

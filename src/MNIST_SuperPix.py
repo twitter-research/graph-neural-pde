@@ -451,7 +451,7 @@ def main(opt):
             # print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, test_acc))
             print(log.format(epoch, time.time() - start_time, loss_path[-1], model.fm.sum, model.bm.sum, test_acc))
 
-            if (epoch + 1) % 8 == 0:
+            if (epoch + 1) % 1 == 0:
                 torch.save(model.state_dict(), f"{savepath}_epoch{epoch}.pt")
 
         # save run details to csv
@@ -469,19 +469,25 @@ def main(opt):
 
         print(f"Test acc {test_acc}")
 
-    ####Plot loss
-    fig = plt.figure()
-    plt.tight_layout()
-    plt.plot(loss_paths)
-    plt.title("Loss Evolution")
-    plt.savefig(f"{savefolder}/loss.pdf", format="pdf")
-    ####Plot loss
-    fig = plt.figure()
-    plt.tight_layout()
-    plt.plot(train_acc_paths)
-    plt.plot(test_acc_paths)
-    plt.title("Train/Test Acc Evolution")
-    plt.savefig(f"{savefolder}/Accuracy.pdf", format="pdf")
+        ####Plot loss
+        fig = plt.figure()
+        plt.tight_layout()
+        plt.plot(loss_paths)
+        plt.title("Loss Evolution")
+        plt.savefig(f"{savefolder}/loss.pdf", format="pdf")
+        ####Plot Acc
+        fig = plt.figure()
+        plt.tight_layout()
+        plt.plot(train_acc_paths, label="train_acc_paths")
+        plt.plot(test_acc_paths, label="test_acc_paths")
+        plt.legend()
+        plt.title("Train/Test Acc Evolution")
+        plt.savefig(f"{savefolder}/Accuracy.pdf", format="pdf")
+
+        train_df = pd.DataFrame(train_acc_paths, columns=['train_acc'])
+        test_df = pd.DataFrame(test_acc_paths, columns=['test_acc'])
+        train_df.to_csv(f"{savefolder}/train_acc.csv")
+        test_df.to_csv(f"{savefolder}/test_acc.csv")
 
     return test_acc
 

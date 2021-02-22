@@ -27,6 +27,7 @@ class AttODEblock(ODEblock):
     # parameter trading off between attention and the Laplacian
     self.multihead_att_layer = SpGraphTransAttentionLayer(opt['hidden_dim'], opt['hidden_dim'], opt,
                                                           device, edge_weights=self.odefunc.edge_weight).to(device)
+    self.x0_superpix = None
 
   def get_attention_weights(self, x):
     attention, values = self.multihead_att_layer(x, self.odefunc.edge_index)
@@ -34,12 +35,11 @@ class AttODEblock(ODEblock):
 
   def forward(self, x):
     t = self.t.type_as(x)
-    self.odefunc.attention_weights = self.get_attention_weights(x)
+    # self.odefunc.attention_weights = self.get_attention_weights(x)
+    self.odefunc.attention_weights = self.get_attention_weights(x).mean(dim=1)
     self.reg_odefunc.odefunc.attention_weights = self.odefunc.attention_weights
     integrator = self.train_integrator if self.training else self.test_integrator
-
     reg_states = tuple(torch.zeros(x.size(0)).to(x) for i in range(self.nreg))
-
     func = self.reg_odefunc if self.training and self.nreg > 0 else self.odefunc
     state = (x,) + reg_states if self.training and self.nreg > 0 else x
 
@@ -69,6 +69,46 @@ class AttODEblock(ODEblock):
     else:
       z = state_dt[1]
       return z
+
+
+  def visualise(self, x):
+    t = self.t.type_as(x)
+    self.odefunc.attention_weights = self.get_attention_weights(self.x0_superpix).mean(dim=1)
+    self.reg_odefunc.odefunc.attention_weights = self.odefunc.attention_weights
+    integrator = self.train_integrator if self.training else self.test_integrator
+    reg_states = tuple(torch.zeros(x.size(0)).to(x) for i in range(self.nreg))
+    func = self.reg_odefunc if self.training and self.nreg > 0 else self.odefunc
+    state = (x,) + reg_states if self.training and self.nreg > 0 else x
+
+    if self.opt["adjoint"]:
+      state_dt = integrator(
+        func, state, t,
+        method=self.opt['method'],
+        options={'step_size': self.opt['step_size']},
+        adjoint_method=self.opt['adjoint_method'],
+        adjoint_options={'step_size': self.opt['adjoint_step_size']},
+        atol=self.atol,
+        rtol=self.rtol,
+        adjoint_atol=self.atol_adjoint,
+        adjoint_rtol=self.rtol_adjoint)
+    else:
+      state_dt = integrator(
+        func, state, t,
+        method=self.opt['method'],
+        options={'step_size': self.opt['step_size']},
+        atol=self.atol,
+        rtol=self.rtol)
+
+    if self.training and self.nreg > 0:
+      z = state_dt[0][1]
+      reg_states = tuple(st[1] for st in state_dt[1:])
+      return z, reg_states
+    else:
+      z = state_dt[1]
+      return z
+
+
+
 
   def __repr__(self):
     return self.__class__.__name__ + '( Time Interval ' + str(self.t[0].item()) + ' -> ' + str(self.t[1].item()) \

@@ -29,7 +29,8 @@ class LaplacianODEFunc(ODEFunc):
 
   def sparse_multiply(self, x):
     if self.opt['block'] == 'attention':  # adj is a multihead attention
-      mean_attention = self.attention_weights.mean(dim=1)
+      # mean_attention = self.attention_weights.mean(dim=1)
+      mean_attention = self.attention_weights
       ax = torch_sparse.spmm(self.edge_index, mean_attention, x.shape[0], x.shape[0], x)
     elif self.opt['block'] == 'mixed':  # adj is a torch sparse matrix
       ax = torch_sparse.spmm(self.edge_index, self.attention_weights, x.shape[0], x.shape[0], x)

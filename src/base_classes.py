@@ -115,8 +115,7 @@ class BaseGNN(MessagePassing):
     except KeyError:
       self.n_ode_blocks = 1
 
-
-    # self.m2 = nn.Linear(opt['hidden_dim'], num_classes)
+    # self.m2 = nn.Linear(opt['hidden_dim'], opt['pixel_cat'])
 
     self.regularization_fns, self.regularization_coeffs = create_regularization_fns(self.opt)
 
