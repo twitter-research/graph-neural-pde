@@ -59,7 +59,7 @@ def plot_T0(out, num_centroids, SuperPixItem, r_x_coords, r_y_coords, paths, att
   plt.show()
 
 def plot_diffusion(paths, pixel_labels, im_height, im_width, heightSF, widthSF, centroids,
-                   num_centroids, atts, weight_max, NXgraph, SuperPixItem, modelfolder, batch_idx):
+                   num_centroids, atts, weight_max, NXgraph, SuperPixItem, modelfolder, batch_idx, times):
   for time in times:
     x = paths[:, time, :].detach().numpy()
     broadcast_pixels = x[pixel_labels].squeeze()
@@ -85,7 +85,7 @@ def plot_diffusion(paths, pixel_labels, im_height, im_width, heightSF, widthSF, 
     plt.title(f"t={time} Attention, Ground Truth: {SuperPixItem.target.item()}")
     plt.savefig(f"{modelfolder}/sample_{batch_idx}/diffused_{time}.pdf", format="pdf")
     plt.show()
-    return fig
+  # return fig
 
 def save_attention_matrices(SuperPixItem, atts, times, num_centroids, modelfolder, batch_idx):
   for time in times:
@@ -253,7 +253,7 @@ def build_batches(model_keys, model_epochs, attention_epochs, samples, Tmultiple
       check_folder(f"{modelfolder}/sample_{batch_idx}")
       #####PLOT DIFFUSIONS
       plot_diffusion(paths, pixel_labels, im_height, im_width, heightSF, widthSF, centroids,
-                     num_centroids, atts, weight_max, NXgraph, SuperPixItem, modelfolder, batch_idx)
+                     num_centroids, atts, weight_max, NXgraph, SuperPixItem, modelfolder, batch_idx, times)
       #####save down attention matrices
       save_attention_matrices(SuperPixItem, atts, times, num_centroids, modelfolder, batch_idx)
       #####plot attention paths
@@ -261,8 +261,10 @@ def build_batches(model_keys, model_epochs, attention_epochs, samples, Tmultiple
       ####Plot max/min pixel intensity
       plot_max_min_pix_intensity(paths, SuperPixItem, modelfolder, batch_idx)
       ###### CREATE ANIMATION
-      create_animation(paths, atts, pixel_labels, NXgraph, SuperPixItem, im_height, im_width,
-                       heightSF, widthSF, centroids, num_centroids, weight_max, modelfolder, batch_idx)
+
+      # create_animation(paths, atts, pixel_labels, NXgraph, SuperPixItem, im_height, im_width,
+      #                  heightSF, widthSF, centroids, num_centroids, weight_max, modelfolder, batch_idx)
+
       ###### CREATE attention_evolution
       plot_attention_evolution(attention_epochs, model, batch_idx, batch, modelfolder, model_key, device,
                           Tmultiple, partitions)
@@ -281,8 +283,14 @@ def model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmu
     for sample in range(samples):
       region = 0 #330
       # fig, axs = plt.subplots(3,3, figsize=(9, 6), sharex=True, sharey=True)
-      fig, axs = plt.subplots(3,3,figsize=(15,15), sharex=True, sharey=True)
-      fig.suptitle(f"Model Comparison for SuperPixel Diffusion", size=20)#'x-large')
+      # fig, axs = plt.subplots(3,3,figsize=(14,14), sharex=True, sharey=True)
+      fig, axs = plt.subplots(3,4,figsize=(14,14),
+                              gridspec_kw={
+                                'width_ratios': [1, 4, 4, 4],
+                                'height_ratios': [1, 1, 1]},
+                               sharex=True, sharey=True)
+
+      # fig.suptitle(f"Model Comparison for SuperPixel Diffusion", size=24)#'x-large')
 
       label_list = []
       ###LOAD THE MODEL LOAD THE BATCH, GET PATHS AND ATTS
@@ -348,8 +356,11 @@ def model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmu
 
 
         for time in times:
+          if region in [0,4,8]:
+            region += 1
+
           print(f"region {region} {region//3} {region%3}")
-          ax = axs[region//3][region%3]
+          ax = axs[region//4][region%4]#3]
           region += 1
 
           x = paths[:, time, :].detach().numpy()
@@ -361,11 +372,11 @@ def model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmu
           r_pixel_labels = r_pixel_labels.astype(np.int)
           out = segmentation.mark_boundaries(r_pixel_values, r_pixel_labels, (1, 0, 0))
 
-          # ax.axis('off')
+          ax.axis('off')
           ax.imshow(out)
-          for i in range(num_centroids):
-            prediction = round(x[i].item(), 2)
-            ax.annotate(prediction, (r_x_coords[i], r_y_coords[i]), c="red")
+          # for i in range(num_centroids):
+          #   prediction = round(x[i].item(), 2)
+          #   ax.annotate(prediction, (r_x_coords[i], r_y_coords[i]), c="red")
           ax.scatter(x=r_x_coords, y=r_y_coords)
           edge_weights = atts[time].detach().numpy()
           edge_weights = ((edge_weights - edge_weights.min()) / (edge_weights.max() - edge_weights.min())) \
@@ -373,49 +384,102 @@ def model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmu
           nx.draw(NXgraph, r_centroids, ax=ax, node_size=300 / 4, edge_color=list(edge_weights),  # "lime",
                   node_color=x, cmap=plt.get_cmap('Spectral'), width=list(edge_weights))
 
-      # plt.subplots_adjust(wspace=-0.2, hspace=0)
+      plt.subplots_adjust(wspace=-0.1, hspace=-0.1)
       # plt.subplots_adjust(left=0.2, right=1, bottom=0.1, top=0.95, wspace=-0.1, hspace=0.0)
 
-      new_label_dict = {f"constant\nlaplacian" : f"constant\nlaplacian",
+      new_label_dict = {f"constant\nlaplacian" : f"Laplacian",
                      f"attention\nlaplacian": f"GRAND-l",
                      f"constant\ntransformer": f"GRAND-nl"}
       new_label_list = [new_label_dict[label] for label in label_list]
-      plot_times = [f"t={opt['time'] * time}" for time in times]
+      plot_times = [f"t={round(opt['time'] * time,1)}" for time in times]
+      plot_times = [""] + plot_times
       for ax, t in zip(axs[0], plot_times):
           ax.set_title(t, size=18)
 
       # pad = 2
-      for ax, row in zip(axs[:,0], new_label_list):
+      # for ax, row in zip(axs[:,0], new_label_list):
           # ax.annotate(row, xy=(0, 0.5), xytext=(-ax.yaxis.labelpad - pad, 0),
           #             xycoords=ax.yaxis.label, textcoords='offset points',
           #             size='large', ha='right', va='center')
-          ax.set_ylabel(row, rotation=0, size='medium')
-
+          # ax.set_ylabel(row, rotation=0, size='medium')
       # axs[0,0].set(ylabel="a")
       # axs[1,0].set(ylabel="b")
       # axs[2,0].set(ylabel="c")
+      axs[0,0].axis('off')
+      axs[1,0].axis('off')
+      axs[2,0].axis('off')
+      axs[0,0].text(0.5, 0.5, new_label_list[0], horizontalalignment='center', verticalalignment='center',
+               transform=axs[0,0].transAxes, rotation=90, size=20)
+      axs[1,0].text(0.5, 0.5, new_label_list[1], horizontalalignment='center', verticalalignment='center',
+               transform=axs[1,0].transAxes, rotation=90, size=20)
+      axs[2,0].text(0.5, 0.5, new_label_list[2], horizontalalignment='center', verticalalignment='center',
+               transform=axs[2,0].transAxes, rotation=90, size=20)
 
+      plt.tight_layout()
       plt.ylabel("Please any give me any label")
       plt.savefig(f"{savefolder}/sample_{sample}.pdf",format="pdf")
 
 
+def find_best_epoch(model_keys):
+  directory = f"../SuperPix/"
+  df = pd.read_csv(f'{directory}models.csv')
+  best_epochs = []
+  for i, model_key in enumerate(model_keys):
+    for filename in os.listdir(directory):
+      if filename.startswith(model_key):
+        path = os.path.join(directory, filename)
+        print(path)
+        break
+    [_, _, data_name, blck, fct] = path.split("_")
+    modelfolder = f"{directory}{model_key}_{data_name}_{blck}_{fct}"
+    optdf = df[df.model_key == model_key]
+    intcols = ['num_class', 'im_chan', 'im_height', 'im_width', 'num_nodes']
+    optdf[intcols].astype(int)
+    opt = optdf.to_dict('records')[0]
+
+    test_acc_df = pd.read_csv(f'{modelfolder}/test_acc.csv')
+    batch_per_epoch = opt['train_size'] / opt['batch_size']
+
+    test_acc_df = test_acc_df[(test_acc_df.index + 1) % batch_per_epoch == 0]
+    test_acc_df.idxmax(axis=0)
+    best_epoch = int((test_acc_df['test_acc'].idxmax() + 1) / batch_per_epoch)
+    # print(test_acc_df['test_acc'].idxmax())
+    # print(bestepoch)
+    # test_acc_df.loc[test_acc_df['test_acc'].idxmax()]
+    best_epochs.append(best_epoch)
+
+  return best_epochs
+
+
+
 if __name__ == '__main__':
-  Tmultiple = 1
-  partitions = 10  #partitions of each T = 1
-  batch_num = 0 #1#2
-  samples = 6
-  times = [0,1*Tmultiple,5*Tmultiple,10*Tmultiple]
+  m_Tmultiple = 1
+  m_partitions = 10  #partitions of each T = 1
+  m_batch_num = 0 #1#2
+  m_samples = 6
+  m_times = [0,1*m_Tmultiple,5*m_Tmultiple,10*m_Tmultiple]
 
-  model_keys = ['20210222_130717','20210222_125239','20210222_115159']
-  model_epochs = [63,63,63]#[20]#,7]#, 4] #, 63, 63] #, 15, 15]
-  attention_epochs = [0,1,2,4,7,31,63]
-  # build_batches(model_keys, model_epochs, attention_epochs, samples, Tmultiple, partitions, batch_num, times)
+  # m_model_keys = ['20210222_130717','20210222_125239','20210222_115159']
 
-  times = [1, 5, 10]
-  image_folder = 'MNIST_Superpix'
-  model_comparison(model_keys, model_epochs, times, image_folder, samples, Tmultiple, partitions, batch_num)
+  # m_model_keys = ['20210223_165541','20210223_140846','20210223_141039']
+  m_model_keys = ['20210223_165541','20210223_140846','20210224_142846']
+
+  m_model_epochs = find_best_epoch(m_model_keys)
+  # print(f"Best epochs {m_model_epochs}")
+  # m_model_epochs = [63,63,63]#[20]#,7]#, 4] #, 63, 63] #, 15, 15]
+  m_attention_epochs = [0,1,2,4,7,31,63]
+  build_batches(m_model_keys, m_model_epochs, m_attention_epochs, m_samples, m_Tmultiple, m_partitions, m_batch_num, m_times)
+
+  # times = [1, 5, 10]
+  m_times = [1, 3, 6]
+  m_samples = 12
+  image_folder = 'MNIST_Superpix_powers2'
+  model_comparison(m_model_keys, m_model_epochs, m_times, image_folder, m_samples, m_Tmultiple, m_partitions, m_batch_num)
 
   # attention_evolution_old(model_keys, attention_epochs, samples, Tmultiple, partitions, batch_num, times)
   # model_comparison
   # model_keys = ['20210212_101642','20210221_173048','20210218_132704']
   # model_epochs = [63,63,63]
+
+  # model_keys = ['20210222_125239']
+  # find_best_epoch(model_keys)

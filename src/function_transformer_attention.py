@@ -98,6 +98,10 @@ class SpGraphTransAttentionLayer(nn.Module):
     self.Wout = nn.Linear(self.d_k, in_features)
     self.init_weights(self.Wout)
 
+    self.src_pow = nn.Parameter(torch.tensor(0.5))
+    self.dst_pow =  nn.Parameter(torch.tensor(0.5))
+
+
   def init_weights(self, m):
     if type(m) == nn.Linear:
       nn.init.xavier_uniform_(m.weight)#, gain=1.414)
@@ -124,15 +128,27 @@ class SpGraphTransAttentionLayer(nn.Module):
 
     src = q[edge[0, :], :, :]
     dst_k = k[edge[1, :], :, :]
+    # S = torch.nn.Sigmoid()
+    # src = S(src)
+    # dst_k = S(dst_k)
+
     # prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
     # prods = torch.sum(src * dst_k, dim=1) / ((torch.linalg.norm(src,ord=2,dim=1)+1e-5)
     #                                          *(torch.linalg.norm(dst_k,ord=2,dim=1)+1e-5))
-    cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
-    prods = cos(src, dst_k)
+    prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.linalg.norm(src,ord=2,dim=1)+1e-5, self.src_pow)
+                                             *torch.pow(torch.linalg.norm(dst_k,ord=2,dim=1)+1e-5, self.dst_pow))
+
+    # cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
+    # prods = cos(src, dst_k)
+
     if self.opt['reweight_attention'] and self.edge_weights is not None:
       prods = prods * self.edge_weights.unsqueeze(dim=1)
     attention = softmax(prods, edge[self.opt['attention_norm_idx']])
     # attention = self.my_softmax(prods, edge[self.opt['attention_norm_idx']])
+
+
+
+
 
     return attention, v
 
