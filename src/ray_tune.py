@@ -522,7 +522,8 @@ def set_arxiv_search_space(opt):
   # opt['data_norm'] = tune.choice(['rw', 'gcn'])
   # opt['add_source'] = tune.choice([True, False])
   opt['add_source'] = tune.choice([True, False])
-  # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+  if opt['block'] == 'hard_attention':
+    opt['att_samp_pct'] = tune.uniform(0.3, 1)
   # opt['batch_norm'] = tune.choice([True, False])
   opt['batch_norm'] = True
   # opt['label_rate'] = tune.uniform(0.05, 0.5)
@@ -706,7 +707,7 @@ if __name__ == "__main__":
   parser.add_argument("--attention_norm_idx", type=int, default=0, help="0 = normalise rows, 1 = normalise cols")
   parser.add_argument('--mix_features', dest='mix_features', action='store_true',
                       help='apply a feature transformation xW to the ODE')
-  parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention, SDE')
+  parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention, hard_attention, SDE')
   parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
   parser.add_argument('--reweight_attention', dest='reweight_attention', action='store_true',
                       help="multiply attention scores by edge weights before softmax")
