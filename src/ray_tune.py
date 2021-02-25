@@ -20,6 +20,7 @@ from GDE import GDE
 from GDE import train as train_GDE
 from utils import adjust_learning_rate
 
+
 def average_test(models, datas, opt):
   if opt['dataset'] == 'ogbn-arxiv':
     results = [test_OGB(model, data, opt) for model, data in zip(models, datas)]
@@ -504,7 +505,7 @@ def set_arxiv_search_space(opt):
   elif opt['block'] == 'attention' and opt['function'] not in {'transformer'}:
     opt['optimizer'] = 'rmsprop'
   else:
-    opt['optimizer'] = tune.choice(['adamax','adam', 'rmsprop'])
+    opt['optimizer'] = tune.choice(['adamax', 'adam', 'rmsprop'])
   if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     # opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
     opt["heads"] = 2
@@ -538,7 +539,7 @@ def set_arxiv_search_space(opt):
 
   opt["method"] = "rk4"
   # opt['method'] = tune.choice(['dopri5', 'rk4'])
-
+  opt['use_mlp'] = tune.choice([True, False])
 
   if opt['rewiring'] == 'gdc':
     # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
