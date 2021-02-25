@@ -131,7 +131,6 @@ class SpGraphTransAttentionLayer(nn.Module):
     # S = torch.nn.Sigmoid()
     # src = S(src)
     # dst_k = S(dst_k)
-
     # prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
     # prods = torch.sum(src * dst_k, dim=1) / ((torch.linalg.norm(src,ord=2,dim=1)+1e-5)
     #                                          *(torch.linalg.norm(dst_k,ord=2,dim=1)+1e-5))
