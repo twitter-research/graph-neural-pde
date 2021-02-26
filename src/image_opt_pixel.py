@@ -62,7 +62,7 @@ def get_image_opt(opt):
   opt['simple'] = True #True
   # opt['alpha'] = 0   ###note alpha and beta manually turned off at the function level
   # opt['adjoint'] = True
-  opt['attention_type'] = "cosine_sim" # "scaled_dot" "cosine_power" "pearson" "spearman"
+  opt['attention_type'] = "pearson" #"cosine_sim" "scaled_dot" "cosine_power" "pearson" "spearman"
   opt['method'] = 'rk4'
   opt['adjoint_method'] = 'rk4'
   opt['adjoint'] = True
