@@ -76,6 +76,8 @@ class SpGraphTransAttentionLayer(nn.Module):
     self.opt = opt
     self.h = int(opt['heads'])
     self.edge_weights = edge_weights
+    if opt['cosine_sim']:
+      self.cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
 
     try:
       self.attention_dim = opt['attention_dim']
@@ -125,7 +127,10 @@ class SpGraphTransAttentionLayer(nn.Module):
 
     src = q[edge[0, :], :, :]
     dst_k = k[edge[1, :], :, :]
-    prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
+    if self.opt['cosine_sim']:
+      prods = self.cos(src, dst_k)
+    else:
+      prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
     if self.opt['reweight_attention'] and self.edge_weights is not None:
       prods = prods * self.edge_weights.unsqueeze(dim=1)
     attention = softmax(prods, edge[self.opt['attention_norm_idx']])
