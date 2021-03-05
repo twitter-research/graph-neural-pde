@@ -43,10 +43,12 @@ class ODEblock(nn.Module):
 
     if opt['adjoint']:
       from torchdiffeq import odeint_adjoint as odeint
+    elif opt['MALI']:
+      from TorchDiffEqPack import odesolve_adjoint_sym12 as odeint
     else:
       from torchdiffeq import odeint
     self.train_integrator = odeint
-    self.test_integrator = None
+    self.test_integrator = odeint  #  gets overwritten if using GNN_Early
     self.set_tol()
 
   def set_x0(self, x0):
