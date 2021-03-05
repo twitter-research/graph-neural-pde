@@ -1,223 +1,20 @@
+import pandas as pd
 import argparse
 
-import torch
-from torch_geometric.nn import GCNConv, ChebConv  # noqa
-from GNN import GNN
-import time
-from data import get_dataset
-from ogb.nodeproppred import Evaluator
+from run_GNN import main
 
-def get_cora_opt(opt):
-  opt['dataset'] = 'Cora'
-  opt['data'] = 'Planetoid'
-  opt['hidden_dim'] = 16
-  opt['input_dropout'] = 0.5
-  opt['dropout'] = 0
-  opt['optimizer'] = 'rmsprop'
-  opt['lr'] = 0.0047
-  opt['decay'] = 5e-4
-  opt['self_loop_weight'] = 0.555
-  opt['alpha'] = 0.918
-  opt['epoch'] = 400
-  opt['time'] = 12.1
-  opt['num_feature'] = 1433
-  opt['num_class'] = 7
-  opt['num_nodes'] = 2708
-  opt['epoch'] = 50
-  opt['augment'] = True
-  opt['attention_dropout'] = 0
-  opt['adjoint'] = False
-  opt['ode'] = 'ode'
-  return opt
+def mali_test(opt):
+    results_dict = {}
+    N = 20
+    for i in range(N):
+        opt['adjoint'] = True
+        results_dict["adjoint"+str(i)] = main(opt)
+    for i in range(N):
+        opt['MALI'] = True
+        results_dict["MALI"+str(i)] = main(opt)
 
-
-def get_computers_opt(opt):
-  opt['dataset'] = 'Computers'
-  opt['hidden_dim'] = 16
-  opt['input_dropout'] = 0.5
-  opt['dropout'] = 0
-  opt['optimizer'] = 'adam'
-  opt['lr'] = 0.01
-  opt['decay'] = 5e-4
-  opt['self_loop_weight'] = 0.555
-  opt['alpha'] = 0.918
-  opt['epoch'] = 400
-  opt['time'] = 12.1
-  opt['num_feature'] = 1433
-  opt['num_class'] = 7
-  opt['num_nodes'] = 2708
-  opt['epoch'] = 50
-  opt['attention_dropout'] = 0
-  opt['ode'] = 'ode'
-  return opt
-
-
-def get_optimizer(name, parameters, lr, weight_decay=0):
-  if name == 'sgd':
-    return torch.optim.SGD(parameters, lr=lr, weight_decay=weight_decay)
-  elif name == 'rmsprop':
-    return torch.optim.RMSprop(parameters, lr=lr, weight_decay=weight_decay)
-  elif name == 'adagrad':
-    return torch.optim.Adagrad(parameters, lr=lr, weight_decay=weight_decay)
-  elif name == 'adam':
-    return torch.optim.Adam(parameters, lr=lr, weight_decay=weight_decay)
-  elif name == 'adamax':
-    return torch.optim.Adamax(parameters, lr=lr, weight_decay=weight_decay)
-  else:
-    raise Exception("Unsupported optimizer: {}".format(name))
-
-
-def add_labels(feat, labels, idx, num_classes, device):
-  onehot = torch.zeros([feat.shape[0], num_classes]).to(device)
-  if idx.dtype == torch.bool:
-    idx = torch.where(idx)[0]  # convert mask to linear index
-  onehot[idx, labels.squeeze()[idx]] = 1
-  # onehot[idx, labels[idx, 0]] = 1
-  return torch.cat([feat, onehot], dim=-1)
-
-
-def get_label_masks(data, mask_rate=0.5):
-  """
-  when using labels as features need to split training nodes into training and prediction
-  """
-  if data.train_mask.dtype == torch.bool:
-    idx = torch.where(data.train_mask)[0]
-  else:
-    idx = data.train_mask
-  mask = torch.rand(idx.shape) < mask_rate
-  train_label_idx = idx[mask]
-  train_pred_idx = idx[~mask]
-  return train_label_idx, train_pred_idx
-
-
-def train(model, optimizer, data):
-  model.train()
-  optimizer.zero_grad()
-  feat = data.x
-  if model.opt['use_labels']:
-    train_label_idx, train_pred_idx = get_label_masks(data, model.opt['label_rate'])
-
-    feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
-  else:
-    # todo in the DGL code from OGB, they seem to apply an additional mask to the training data - currently commented
-    # mask_rate = 0.5
-    # mask = torch.rand(data.train_index.shape) < mask_rate
-    #
-    # train_pred_idx = data.train_idx[mask]
-    train_pred_idx = data.train_mask
-
-  out = model(feat)
-  if model.opt['dataset'] == 'ogbn-arxiv':
-    lf = torch.nn.functional.nll_loss
-    loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
-  else:
-    lf = torch.nn.CrossEntropyLoss()
-    loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
-  if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
-    reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
-    regularization_coeffs = model.regularization_coeffs
-
-    reg_loss = sum(
-      reg_state * coeff for reg_state, coeff in zip(reg_states, regularization_coeffs) if coeff != 0
-    )
-    loss = loss + reg_loss
-
-  model.fm.update(model.getNFE())
-  model.resetNFE()
-  # F.nll_loss(out[data.train_mask], data.y[data.train_mask]).backward()
-  loss.backward()
-  optimizer.step()
-  model.bm.update(model.getNFE())
-  model.resetNFE()
-  return loss.item()
-
-
-@torch.no_grad()
-def test(model, data, opt=None):  # opt required for runtime polymorphism
-  model.eval()
-  feat = data.x
-  if model.opt['use_labels']:
-    feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
-  logits, accs = model(feat), []
-  for _, mask in data('train_mask', 'val_mask', 'test_mask'):
-    pred = logits[mask].max(1)[1]
-    acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
-    accs.append(acc)
-  return accs
-
-
-def print_model_params(model):
-  print(model)
-  for name, param in model.named_parameters():
-    if param.requires_grad:
-      print(name)
-      print(param.data.shape)
-
-
-@torch.no_grad()
-def test_OGB(model, data, opt):
-  if opt['dataset'] == 'ogbn-arxiv':
-    name = 'ogbn-arxiv'
-
-  feat = data.x
-  if model.opt['use_labels']:
-    feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
-
-  evaluator = Evaluator(name=name)
-  model.eval()
-
-  out = model(feat).log_softmax(dim=-1)
-  y_pred = out.argmax(dim=-1, keepdim=True)
-
-  train_acc = evaluator.eval({
-    'y_true': data.y[data.train_mask],
-    'y_pred': y_pred[data.train_mask],
-  })['acc']
-  valid_acc = evaluator.eval({
-    'y_true': data.y[data.val_mask],
-    'y_pred': y_pred[data.val_mask],
-  })['acc']
-  test_acc = evaluator.eval({
-    'y_true': data.y[data.test_mask],
-    'y_pred': y_pred[data.test_mask],
-  })['acc']
-
-  return train_acc, valid_acc, test_acc
-
-
-def main(opt):
-  try:
-    if opt['use_cora_defaults']:
-      opt = get_cora_opt(opt)
-  except KeyError:
-    pass  # not always present when called as lib
-  dataset = get_dataset(opt, '../data', False)
-  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  model, data = GNN(opt, dataset, device).to(device), dataset.data.to(device)
-  print(opt)
-  # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
-  parameters = [p for p in model.parameters() if p.requires_grad]
-  print_model_params(model)
-  optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-  best_val_acc = test_acc = train_acc = best_epoch = 0
-  test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
-  for epoch in range(1, opt['epoch']):
-    start_time = time.time()
-
-    loss = train(model, optimizer, data)
-    train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
-
-    if val_acc > best_val_acc:
-      best_val_acc = val_acc
-      test_acc = tmp_test_acc
-      best_epoch = epoch
-    log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-    print(
-      log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, best_val_acc, test_acc))
-  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
-
-  return train_acc, best_val_acc, test_acc
-
+    df = pd.DataFrame.from_dict(results_dict)
+    df.to_csv('../MALI.csv')
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -320,5 +117,5 @@ if __name__ == '__main__':
 
   opt = vars(args)
 
-  main(opt)
+  mali_test(opt)
 

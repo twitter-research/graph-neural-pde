@@ -22,7 +22,22 @@ class ConstantODEblock(ODEblock):
     self.odefunc.edge_weight = edge_weight.to(device)
     self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight
 
-    if opt['adjoint']:
+    if opt['MALI']:
+      from TorchDiffEqPack import odesolve_adjoint_sym12 as odeint
+      # configure training options
+      self.options = {}
+      self.options.update({'method': 'sym12async'})
+      self.options.update({'h': None})
+      self.options.update({'t0': 0.0})
+      self.options.update({'t1': 1.0})
+      self.options.update({'rtol': 1e-3})
+      self.options.update({'atol': 1e-3})
+      self.options.update({'print_neval': False})
+      self.options.update({'neval_max': 1000000})
+      self.options.update({'t_eval': None})
+      self.options.update({'interpolation_method': 'cubic'})
+      self.options.update({'regenerate_graph': False})
+    elif opt['adjoint']:
       from torchdiffeq import odeint_adjoint as odeint
     else:
       from torchdiffeq import odeint
@@ -41,7 +56,10 @@ class ConstantODEblock(ODEblock):
     func = self.reg_odefunc if self.training and self.nreg > 0 else self.odefunc
     state = (x,) + reg_states if self.training and self.nreg > 0 else x
 
-    if self.opt["adjoint"] and self.training:
+    if self.opt['MALI']:
+      # state_dt = odesolve_adjoint_sym12(func, y0, options=options)
+      state_dt = integrator(func, state, options=self.options)
+    elif self.opt["adjoint"] and self.training:
       state_dt = integrator(
         func, state, t,
         method=self.opt['method'],
@@ -64,9 +82,11 @@ class ConstantODEblock(ODEblock):
       z = state_dt[0][1]
       reg_states = tuple( st[1] for st in state_dt[1:] )
       return z, reg_states
-    else: 
+    elif self.opt['MALI']:
+      z = state_dt
+    else:
       z = state_dt[1]
-      return z
+    return z
 
   def __repr__(self):
     return self.__class__.__name__ + '( Time Interval ' + str(self.t[0].item()) + ' -> ' + str(self.t[1].item()) \
