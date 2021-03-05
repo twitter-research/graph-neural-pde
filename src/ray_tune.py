@@ -486,7 +486,7 @@ def set_arxiv_search_space(opt):
   # opt["hidden_dim"] = 128
   # opt["hidden_dim"] = 200  # best choice with attention
   # opt["hidden_dim"] = 256  # best choice without attention
-  opt["lr"] = tune.loguniform(0.01, 0.02)
+  opt["lr"] = tune.uniform(0.01, 0.02)
   # opt['lr'] = 0.02
   # opt["input_dropout"] = tune.uniform(0., 0.2)
   opt["input_dropout"] = 0
@@ -528,7 +528,7 @@ def set_arxiv_search_space(opt):
   # opt['batch_norm'] = tune.choice([True, False])
   opt['batch_norm'] = True
   # opt['label_rate'] = tune.uniform(0.05, 0.5)
-  opt['label_rate'] = tune.uniform(0.05, 0.5)
+  opt['label_rate'] = tune.uniform(0.1, 0.5)
 
   # opt["tol_scale"] = tune.loguniform(1000, 1e7)
 
