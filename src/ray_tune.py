@@ -568,7 +568,7 @@ def main(opt):
     metric_columns=["accuracy", "test_acc", "train_acc", "loss", "training_iteration", "forward_nfe", "backward_nfe"]
   )
   # choose a search algorithm from https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
-  search_alg = AxSearch(metric=opt['metric'])
+  # search_alg = AxSearch(metric=opt['metric'])
   search_alg = None
 
   train_fn = train_ray if opt["num_splits"] == 0 else train_ray_rand
