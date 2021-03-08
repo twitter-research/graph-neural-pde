@@ -518,7 +518,7 @@ def set_arxiv_search_space(opt):
 
     # opt["method"] = tune.choice(["dopri5", "rk4"])
     # opt["method"] = tune.choice(["midpoint", "rk4"])
-    opt["method"] = "rk4"
+    # opt["method"] = "rk4"
 
     if opt['rewiring'] == 'gdc':
       # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])

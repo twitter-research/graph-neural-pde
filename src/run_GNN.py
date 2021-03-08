@@ -320,5 +320,17 @@ if __name__ == '__main__':
 
   opt = vars(args)
 
+  if opt['MALI']:
+    # configure training options
+    opt['method'] = 'sym12async'
+    opt['h'] = None
+    opt['t0'] = 0.0
+    opt['t1'] = opt['time']
+    opt['print_neval'] = False
+    opt['neval_max'] = 1000000
+    opt['t_eval'] = None
+    opt['interpolation_method'] = 'cubic'
+    opt['regenerate_graph'] = False
+
   main(opt)
 
