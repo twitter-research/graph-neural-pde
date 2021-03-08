@@ -11,7 +11,7 @@ from GNN import GNN
 from ray import tune
 from ray.tune import CLIReporter
 from ray.tune.schedulers import ASHAScheduler
-from ray.tune.suggest.ax import AxSearch
+# from ray.tune.suggest.ax import AxSearch #removed for ax-platform v TorchDiffExPack torch clash
 from run_GNN import get_optimizer, test, test_OGB, train
 from torch import nn
 from GNN_ICML20 import ICML_GNN, get_sym_adj
