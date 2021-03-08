@@ -670,6 +670,8 @@ if __name__ == "__main__":
                       help='rw for random walk, gcn for symmetric gcn norm')
   parser.add_argument('--add_source', dest='add_source', action='store_true',
                       help='If try get rid of alpha param and the beta*x0 source term')
+  parser.add_argument('--MALI', dest='MALI', action='store_true',
+                      help='use the MALI ODE method to reduce memory footprint')
   # SDE args
   parser.add_argument("--dt_min", type=float, default=1e-5, help="minimum timestep for the SDE solver")
   parser.add_argument("--dt", type=float, default=1e-3, help="fixed step size")
