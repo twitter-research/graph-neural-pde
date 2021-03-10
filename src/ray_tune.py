@@ -452,7 +452,7 @@ def set_photo_search_space(opt):
   return opt
 
 
-def set_arxiv_search_space(opt):
+def old_set_arxiv_search_space(opt):
   opt["decay"] = 0  # tune.loguniform(1e-10, 1e-6)
   # opt["decay"] = 0
   if opt['regularise']:
@@ -462,7 +462,7 @@ def set_arxiv_search_space(opt):
   # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 9))
   opt["hidden_dim"] = 128  # best choice with attention
   # opt["hidden_dim"] = 256  # best choice without attention
-  opt["lr"] = 0.005  # tune.uniform(0.001, 0.05)
+  opt["lr"] = tune.loguniform(0.01, 0.02)
   # opt['lr'] = 0.02
   opt["input_dropout"] = 0  # tune.uniform(0., 0.6)
   # opt["input_dropout"] = 0
@@ -537,6 +537,108 @@ def set_arxiv_search_space(opt):
     # opt['heat_time'] = tune.uniform(1, 5)
 
   return opt
+
+
+
+def set_arxiv_search_space(opt):
+  # opt["decay"] = tune.loguniform(1e-10, 1e-6)
+  opt["decay"] = 0
+  # opt["decay"] = 0
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+
+  # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
+  # opt["hidden_dim"] = 128
+  # opt["hidden_dim"] = 200  # best choice with attention
+  # opt["hidden_dim"] = 256  # best choice without attention
+  opt["lr"] = tune.loguniform(0.01, 0.02)
+  # opt['lr'] = 0.02
+  # opt["input_dropout"] = tune.uniform(0., 0.2)
+  opt["input_dropout"] = 0
+  opt["dropout"] = tune.uniform(0, 0.2)
+  # opt["dropout"] = 0
+  # opt['step_size'] = tune.choice([0.5, 1])
+  opt['step_size'] = 0.1
+  # opt['adjoint_step_size'] = tune.choice([0.5, 1])
+  opt['adjoint_step_size'] = 0.1
+  # opt["time"] = tune.choice([1,2,3,4,5,6,7,8,9,10])
+  opt['time'] = tune.uniform(1, 8)
+  # opt['time'] = 5
+  # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
+  if opt['function'] == 'transformer':
+    opt['optimizer'] = 'adamax'
+  elif opt['block'] == 'attention' and opt['function'] not in {'transformer'}:
+    opt['optimizer'] = 'rmsprop'
+  else:
+    opt['optimizer'] = tune.choice(['adamax','adam', 'rmsprop'])
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+    # opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
+    opt["heads"] = 2
+    # opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
+    opt["attention_dim"] = 32
+    # opt['attention_norm_idx'] = tune.choice([0, 1])
+    # opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+    #   [0, 1])
+    opt["self_loop_weight"] = 1
+    # opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+    opt["leaky_relu_slope"] = 0.2
+  else:
+    # opt["self_loop_weight"] = tune.uniform(0, 3)
+    opt["self_loop_weight"] = tune.choice([0, 1])
+  # opt['data_norm'] = tune.choice(['rw', 'gcn'])
+  # opt['add_source'] = tune.choice([True, False])
+  opt['add_source'] = tune.choice([True, False])
+  # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+  # opt['batch_norm'] = tune.choice([True, False])
+  opt['batch_norm'] = True
+  # opt['label_rate'] = tune.uniform(0.05, 0.5)
+  opt['label_rate'] = tune.uniform(0.05, 0.5)
+
+  if opt['MALI']:
+    # configure training options
+    opt['method'] = 'sym12async'
+    opt['h'] = None
+    opt['t0'] = 0.0
+    opt['t1'] = opt['time']
+    opt['print_neval'] = False
+    opt['neval_max'] = 1000000
+    opt['t_eval'] = None
+    opt['interpolation_method'] = 'cubic'
+    opt['regenerate_graph'] = False
+
+  # opt["tol_scale"] = tune.loguniform(1000, 1e7)
+
+  # if opt["adjoint"]:
+  #   # opt["tol_scale_adjoint"] = tune.loguniform(1000, 1e5)
+  #   # opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+  #   opt["adjoint_method"] = "rk4"
+
+  # opt["method"] = "rk4"
+  # opt['method'] = tune.choice(['dopri5', 'rk4'])
+
+
+  if opt['rewiring'] == 'gdc':
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'threshold'
+    opt['exact'] = False
+    # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    opt['gdc_method'] = 'ppr'
+    # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
+    opt['gdc_threshold'] = tune.uniform(0.0005, 0.005)
+    # opt['gdc_threshold'] = None
+    # opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
+    opt['ppr_alpha'] = 0.15
+    # opt['heat_time'] = tune.uniform(1, 5)
+
+
+  #todo add transformer attention type
+
+  return opt
+
+
+
+
 
 
 def set_search_space(opt):
