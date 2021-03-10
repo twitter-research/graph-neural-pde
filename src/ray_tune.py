@@ -541,6 +541,12 @@ def old_set_arxiv_search_space(opt):
 
 
 def set_arxiv_search_space(opt):
+
+  opt["block"] = 'constant'
+  opt["function"] = 'transformer'
+  opt["attention_type"] = tune.choice(["scaled_dot", "cosine_sim", "cosine_power", "pearson"])
+
+
   # opt["decay"] = tune.loguniform(1e-10, 1e-6)
   opt["decay"] = 0
   # opt["decay"] = 0
