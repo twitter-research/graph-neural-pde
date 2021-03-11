@@ -174,11 +174,12 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
     # need next line as it sets the attributes in the solver
 
     if opt["no_early"]:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
+      # tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
+      train_acc, val_acc, test_acc = this_test(model, data, opt)
       best_time = opt['time']
     else:
       tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
-
+      #the below is all early stop logic? so
       #tentitative indentation to get working for MALI no early stop
       if tmp_val_acc > val_acc:
         best_epoch = epoch
