@@ -587,8 +587,8 @@ def set_arxiv_search_space(opt):
     # opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
     opt["heads"] = 2
     # opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
-    # opt["attention_dim"] = 32
-    opt["attention_dim"] = tune.choice([32,64])
+    opt["attention_dim"] = 32
+    # opt["attention_dim"] = tune.choice([32,64])
     # opt['attention_norm_idx'] = tune.choice([0, 1])
     # opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
     #   [0, 1])
