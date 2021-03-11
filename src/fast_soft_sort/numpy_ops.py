@@ -24,7 +24,9 @@ This implementation follows the notation of the paper whenever possible.
 # from .third_party import isotonic
 import sys
 # sys.path.insert(1, "./third_party/")
-sys.path.insert(1, "../../fss/fast-soft-sort/fast_soft_sort/third_party")
+# sys.path.insert(1, "../../fss/fast-soft-sort/fast_soft_sort/third_party")
+sys.path.insert(1, "./fast_soft_sort/third_party")
+
 import isotonic
 
 import numpy as np
