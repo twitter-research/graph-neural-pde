@@ -545,7 +545,8 @@ def set_arxiv_search_space(opt):
 
   opt["block"] = 'constant'
   opt["function"] = 'transformer'
-  opt["attention_type"] = tune.choice(["scaled_dot", "cosine_sim", "cosine_power", "pearson"])
+  opt["attention_type"] = tune.choice(["scaled_dot", "cosine_sim", "cosine_power",
+                                       "pearson", "rank_pearson"])
 
 
   # opt["decay"] = tune.loguniform(1e-10, 1e-6)
@@ -574,17 +575,20 @@ def set_arxiv_search_space(opt):
   opt['time'] = tune.uniform(1, 8)
   # opt['time'] = 5
   # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
-  if opt['function'] == 'transformer':
-    opt['optimizer'] = 'adamax'
-  elif opt['block'] == 'attention' and opt['function'] not in {'transformer'}:
-    opt['optimizer'] = 'rmsprop'
-  else:
-    opt['optimizer'] = tune.choice(['adamax','adam', 'rmsprop'])
+  # if opt['function'] == 'transformer':
+  #   opt['optimizer'] = 'adamax'
+  # elif opt['block'] == 'attention' and opt['function'] not in {'transformer'}:
+  #   opt['optimizer'] = 'rmsprop'
+  # else:
+  #   opt['optimizer'] = tune.choice(['adamax','adam', 'rmsprop'])
+  opt['optimizer'] = tune.choice(['adamax', 'adam', 'rmsprop'])
+
   if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     # opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
     opt["heads"] = 2
     # opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
-    opt["attention_dim"] = 32
+    # opt["attention_dim"] = 32
+    opt["attention_dim"] = tune.choice([32,64])
     # opt['attention_norm_idx'] = tune.choice([0, 1])
     # opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
     #   [0, 1])

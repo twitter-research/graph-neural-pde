@@ -316,6 +316,9 @@ if __name__ == '__main__':
   parser.add_argument("--exact", action="store_true",
                       help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
 
+  parser.add_argument('--attention_type', type=str,default="scaled_dot",help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
+
+
   args = parser.parse_args()
 
   opt = vars(args)

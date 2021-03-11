@@ -8,6 +8,13 @@ from data import get_dataset
 from utils import MaxNFEException
 from base_classes import ODEFunc
 
+# https://stackoverflow.com/questions/4383571/importing-files-from-different-folder
+import sys
+# insert at 1, 0 is the script path (or '' in REPL)
+# sys.path.insert(1, "../../fss/fast-soft-sort/fast_soft_sort")
+sys.path.insert(1, "./fast_soft_sort")
+from pytorch_ops import soft_rank, soft_sort
+
 
 class ODEFuncTransformerAtt(ODEFunc):
 
@@ -144,6 +151,36 @@ class SpGraphTransAttentionLayer(nn.Module):
       src = src - src_mu
       dst_k = dst_k - dst_mu
       cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
+      prods = cos(src, dst_k)
+    elif self.opt['attention_type'] == "rank_pearson":
+
+      src_mu = torch.mean(src, dim=1, keepdim=True)
+      dst_mu = torch.mean(dst_k, dim=1, keepdim=True)
+      src = src - src_mu
+      dst_k = dst_k - dst_mu
+
+      # batched_soft_rank = torch.vmap(soft_rank)
+      # soft_src = soft_rank(src, regularization_strength=1.0)
+      # soft_dst_k = soft_rank(dst_k, regularization_strength=1.0)
+      # src = src.permute(2,1,0)
+      # dst_k = dst_k.permute(2,1,0)
+      src = src.transpose(1, 2)
+      dst_k = dst_k.transpose(1, 2)
+
+      src = src.view(-1, self.d_k)
+      dst_k = dst_k.view(-1, self.d_k)
+
+      src = soft_rank(src, regularization_strength=1.0)
+      dst_k = soft_rank(dst_k, regularization_strength=1.0)
+
+      src = src.view(-1, self.h, self.d_k)
+      dst_k = dst_k.view(-1, self.h, self.d_k)
+
+      src = src.transpose(1, 2)
+      dst_k = dst_k.transpose(1, 2)
+
+      cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
+      # prods = cos(src, dst_k)
       prods = cos(src, dst_k)
 
 

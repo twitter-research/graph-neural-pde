@@ -18,12 +18,13 @@ class AttODEblock(ODEblock):
     self.odefunc.edge_weight = edge_weight.to(device)
     self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight
 
-    if opt['adjoint']:
-      from torchdiffeq import odeint_adjoint as odeint
-    else:
-      from torchdiffeq import odeint
-    self.train_integrator = odeint
-    self.test_integrator = odeint
+    # if opt['adjoint']:
+    #   from torchdiffeq import odeint_adjoint as odeint
+    # else:
+    #   from torchdiffeq import odeint
+    # self.train_integrator = odeint
+    # self.test_integrator = odeint
+
     self.set_tol()
     # parameter trading off between attention and the Laplacian
     self.multihead_att_layer = SpGraphTransAttentionLayer(opt['hidden_dim'], opt['hidden_dim'], opt,
@@ -44,7 +45,9 @@ class AttODEblock(ODEblock):
     func = self.reg_odefunc if self.training and self.nreg > 0 else self.odefunc
     state = (x,) + reg_states if self.training and self.nreg > 0 else x
 
-    if self.opt["adjoint"] and self.training:
+    if self.opt['MALI']:
+      state_dt = integrator(func, state, options=self.opt)
+    elif self.opt["adjoint"] and self.training:
       state_dt = integrator(
         func, state, t,
         method=self.opt['method'],
@@ -67,9 +70,11 @@ class AttODEblock(ODEblock):
       z = state_dt[0][1]
       reg_states = tuple(st[1] for st in state_dt[1:])
       return z, reg_states
+    elif self.opt['MALI']:
+      z = state_dt
     else:
       z = state_dt[1]
-      return z
+    return z
 
   def __repr__(self):
     return self.__class__.__name__ + '( Time Interval ' + str(self.t[0].item()) + ' -> ' + str(self.t[1].item()) \
