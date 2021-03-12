@@ -543,8 +543,11 @@ def old_set_arxiv_search_space(opt):
 
 def set_arxiv_search_space(opt):
 
-  # opt["block"] = 'attention'#'constant'
-  # opt["function"] = 'laplacian' #'transformer'
+  opt["block"] = 'constant'
+  opt["function"] = 'transformer'
+
+  # opt["block"] = 'attention'
+  # opt["function"] = 'laplacian'
   opt["attention_type"] = tune.choice(["scaled_dot", "cosine_sim", "cosine_power",
                                        "pearson"])#, "rank_pearson"])
 
