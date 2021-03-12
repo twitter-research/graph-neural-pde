@@ -543,13 +543,13 @@ def old_set_arxiv_search_space(opt):
 
 def set_arxiv_search_space(opt):
 
-  opt["block"] = 'constant'
-  opt["function"] = 'transformer'
+  # opt["block"] = 'constant'
+  # opt["function"] = 'transformer'
 
-  # opt["block"] = 'attention'
-  # opt["function"] = 'laplacian'
+  opt["block"] = 'attention'
+  opt["function"] = 'laplacian'
   opt["attention_type"] = tune.choice(["scaled_dot", "cosine_sim", "cosine_power",
-                                       "pearson"])#, "rank_pearson"])
+                                       "pearson", "rank_pearson"])
 
   # opt["decay"] = tune.loguniform(1e-10, 1e-6)
   opt["decay"] = 0
@@ -558,7 +558,7 @@ def set_arxiv_search_space(opt):
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
-  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 9))
+  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))
 
   # opt["hidden_dim"] = 128
   # opt["hidden_dim"] = 200  # best choice with attention
