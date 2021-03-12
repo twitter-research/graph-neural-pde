@@ -549,7 +549,7 @@ def set_arxiv_search_space(opt):
   opt["block"] = 'attention'
   opt["function"] = 'laplacian'
   opt["attention_type"] = tune.choice(["scaled_dot", "cosine_sim", "cosine_power",
-                                       "pearson", "rank_pearson"])
+                                       "pearson"]#, "rank_pearson"]) RP not ready for GPU https://github.com/google-research/fast-soft-sort/issues/9
 
   # opt["decay"] = tune.loguniform(1e-10, 1e-6)
   opt["decay"] = 0
