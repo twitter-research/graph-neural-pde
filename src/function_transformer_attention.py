@@ -143,8 +143,12 @@ class SpGraphTransAttentionLayer(nn.Module):
       cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
       prods = cos(src, dst_k)
     elif self.opt['attention_type'] == "cosine_power":
-      prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.linalg.norm(src,ord=2,dim=1)+1e-5, self.src_pow)
-                                             *torch.pow(torch.linalg.norm(dst_k,ord=2,dim=1)+1e-5, self.dst_pow))
+      if torch.__version__ == "1.6*":
+        prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.norm(src,p=2,dim=1)+1e-5, self.src_pow)
+                                               *torch.pow(torch.norm(dst_k,p=2,dim=1)+1e-5, self.dst_pow))
+      else:
+        prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.linalg.norm(src, ord=2, dim=1) + 1e-5, self.src_pow)
+                                                *torch.pow(torch.linalg.norm(dst_k,ord=2,dim=1)+1e-5, self.dst_pow))
     elif self.opt['attention_type'] == "pearson":
       src_mu = torch.mean(src, dim=1, keepdim=True)
       dst_mu = torch.mean(dst_k, dim=1, keepdim=True)
