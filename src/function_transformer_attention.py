@@ -143,7 +143,7 @@ class SpGraphTransAttentionLayer(nn.Module):
       cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
       prods = cos(src, dst_k)
     elif self.opt['attention_type'] == "cosine_power":
-      if torch.__version__ == "1.6*":
+      if torch.__version__ == '1.6.0':
         prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.norm(src,p=2,dim=1)+1e-5, self.src_pow)
                                                *torch.pow(torch.norm(dst_k,p=2,dim=1)+1e-5, self.dst_pow))
       else:
