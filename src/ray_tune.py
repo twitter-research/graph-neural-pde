@@ -543,11 +543,10 @@ def old_set_arxiv_search_space(opt):
 
 def set_arxiv_search_space(opt):
 
-  opt["block"] = 'attention'#'constant'
-  opt["function"] = 'laplacian' #'transformer'
+  # opt["block"] = 'attention'#'constant'
+  # opt["function"] = 'laplacian' #'transformer'
   opt["attention_type"] = tune.choice(["scaled_dot", "cosine_sim", "cosine_power",
                                        "pearson"])#, "rank_pearson"])
-
 
   # opt["decay"] = tune.loguniform(1e-10, 1e-6)
   opt["decay"] = 0
@@ -642,9 +641,6 @@ def set_arxiv_search_space(opt):
     # opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
     opt['ppr_alpha'] = 0.15
     # opt['heat_time'] = tune.uniform(1, 5)
-
-
-  #todo add transformer attention type
 
   return opt
 
