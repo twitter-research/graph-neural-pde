@@ -540,7 +540,6 @@ def old_set_arxiv_search_space(opt):
   return opt
 
 
-
 def set_arxiv_search_space(opt):
 
   # opt["block"] = 'constant'

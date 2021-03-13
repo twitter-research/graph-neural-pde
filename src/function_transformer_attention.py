@@ -163,11 +163,6 @@ class SpGraphTransAttentionLayer(nn.Module):
       src = src - src_mu
       dst_k = dst_k - dst_mu
 
-      # batched_soft_rank = torch.vmap(soft_rank)
-      # soft_src = soft_rank(src, regularization_strength=1.0)
-      # soft_dst_k = soft_rank(dst_k, regularization_strength=1.0)
-      # src = src.permute(2,1,0)
-      # dst_k = dst_k.permute(2,1,0)
       src = src.transpose(1, 2)
       dst_k = dst_k.transpose(1, 2)
 
@@ -184,9 +179,7 @@ class SpGraphTransAttentionLayer(nn.Module):
       dst_k = dst_k.transpose(1, 2)
 
       cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
-      # prods = cos(src, dst_k)
       prods = cos(src, dst_k)
-
 
     if self.opt['reweight_attention'] and self.edge_weights is not None:
       prods = prods * self.edge_weights.unsqueeze(dim=1)
