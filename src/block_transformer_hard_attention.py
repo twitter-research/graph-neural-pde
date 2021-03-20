@@ -4,6 +4,7 @@ from base_classes import ODEblock
 from utils import get_rw_adj
 from torch_scatter import scatter
 import numpy as np
+import torch_sparse
 
 class HardAttODEblock(ODEblock):
   def __init__(self, odefunc, regularization_fns, opt, data, device, t=torch.tensor([0, 1]), gamma=0.5):
@@ -53,6 +54,7 @@ class HardAttODEblock(ODEblock):
     with torch.no_grad():
       new_edges = np.random.choice(self.num_nodes, size=(2,M), replace=True, p=None)
       new_edges = torch.tensor(new_edges)
+      #todo check if using coallese insted of cat
       cat = torch.cat([self.data_edge_index, new_edges],dim=1)
       no_repeats = torch.unique(cat, sorted=False, return_inverse=False,
                                 return_counts=False, dim=0)
@@ -63,6 +65,32 @@ class HardAttODEblock(ODEblock):
   # hard_attention - -att_samp_pct
   # 0.98 - -new_edges
   # random_walk
+
+  def add_khop_edges(self, k=1):
+    n = self.num_nodes
+    # do k_hop
+    for i in range(k):
+      new_edges, new_weights = \
+        torch_sparse.spspmm(self.odefunc.edge_index, self.odefunc.edge_weight,
+                            self.odefunc.edge_index, self.odefunc.edge_weight, n, n, n, coalesced=True)
+
+      old = torch.sparse_coo_tensor(self.odefunc.edge_index, self.odefunc.edge_weight, (n, n))
+      new = torch.sparse_coo_tensor(new_edges, new_weights, (n, n))
+
+      S_hat = 0.5 * old.coalesce() + 0.5 * new.coalesce()
+    # self.odefunc.edge_weight = 0.5 * self.odefunc.edge_weight + 0.5 * new_weights
+    # cat = torch.cat([self.data_edge_index, new_edges], dim=1)
+    # self.odefunc.edge_index = torch.unique(cat, sorted=False, return_inverse=False,
+    #                                return_counts=False, dim=0)
+    # threshold
+    # normalise
+
+    self.odefunc.edge_index = S_hat.indices()
+    self.odefunc.edge_weight = S_hat.values()
+  # self.odefunc.edge_index, self.odefunc.edge_weight =
+  # get_rw_adj(edge_index, edge_weight=None, norm_dim=1, fill_value=0., num_nodes=None, dtype=None):
+  # num_nodes = maybe_num_nodes(edge_index, num_nodes)
+
 
   def add_rw_edges(self):
     # check
@@ -93,6 +121,8 @@ class HardAttODEblock(ODEblock):
     if self.training:
       if self.opt['new_edges'] == 'random':
         self.add_random_edges()
+      elif self.opt['new_edges'] == 'k_hop' and self.odefunc.attention_weights is not None:
+        self.add_khop_edges(k=1)
       elif self.opt['new_edges'] == 'random_walk' and self.odefunc.attention_weights is not None:
         self.add_rw_edges()
 

@@ -51,19 +51,22 @@ class ConstantODEblock(ODEblock):
 
   def add_khop_edges(self, k):
     n = self.num_nodes
-
-    #do k_hop
+    # do k_hop
     for i in range(k):
-      torch_sparse.spspmm(self.odefunc.edge_index, self.odefunc.edge_weight,
-                          self.odefunc.edge_index, self.odefunc.edge_weight, n, n, n, coalesced=False)
-    #threshold
-
-
-    #normalise
+      new_edges, new_weights = \
+        torch_sparse.spspmm(self.odefunc.edge_index, self.odefunc.edge_weight,
+                            self.odefunc.edge_index, self.odefunc.edge_weight, n, n, n, coalesced=False)
+    self.edge_weight = 0.5 * self.edge_weight + 0.5 * new_weights
+    cat = torch.cat([self.data_edge_index, new_edges], dim=1)
+    self.edge_index = torch.unique(cat, sorted=False, return_inverse=False,
+                                   return_counts=False, dim=0)
+    # threshold
+    # normalise
 
   # self.odefunc.edge_index, self.odefunc.edge_weight =
   # get_rw_adj(edge_index, edge_weight=None, norm_dim=1, fill_value=0., num_nodes=None, dtype=None):
   # num_nodes = maybe_num_nodes(edge_index, num_nodes)
+
 
   def forward(self, x):
     t = self.t.type_as(x)
