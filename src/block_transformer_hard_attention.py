@@ -3,6 +3,7 @@ from function_transformer_attention import SpGraphTransAttentionLayer
 from base_classes import ODEblock
 from utils import get_rw_adj
 from torch_scatter import scatter
+import numpy as np
 
 class HardAttODEblock(ODEblock):
   def __init__(self, odefunc, regularization_fns, opt, data, device, t=torch.tensor([0, 1]), gamma=0.5):
@@ -45,8 +46,56 @@ class HardAttODEblock(ODEblock):
     att_sums = scatter(attention, index, dim=0, dim_size=self.num_nodes, reduce='sum')[index]
     return attention / (att_sums + 1e-16)
 
+  def add_random_edges(self):
+    # M = self.opt["M_nodes"]
+    M = int(self.num_nodes * (1/(1 - (1 - self.opt['att_samp_pct'])) - 1))
+
+    with torch.no_grad():
+      new_edges = np.random.choice(self.num_nodes, size=(2,M), replace=True, p=None)
+      new_edges = torch.tensor(new_edges)
+      cat = torch.cat([self.data_edge_index, new_edges],dim=1)
+      no_repeats = torch.unique(cat, sorted=False, return_inverse=False,
+                                return_counts=False, dim=0)
+      self.data_edge_index = no_repeats
+
+  # configs
+  # --block
+  # hard_attention - -att_samp_pct
+  # 0.98 - -new_edges
+  # random_walk
+
+  def add_rw_edges(self):
+    # check
+    # https: // github.com / rusty1s / pytorch_sparse / blob / master / torch_sparse / sample.py
+    # def sample(src: SparseTensor, num_neighbors: int,
+    #            subset: Optional[torch.Tensor] = None) -> torch.Tensor:
+
+    M = int(self.num_nodes * (1/(1 - (1 - self.opt['att_samp_pct'])) - 1))
+    with torch.no_grad():
+      M_start = np.random.choice(self.num_nodes, size=(M), replace=True, p=None)
+      scale = 3.0
+      L = np.abs(np.random.normal(loc=0, scale=scale, size=(M)))
+      attention_weights = self.odefunc.attention_weights
+      M_end = torch.zeros(M)
+      for m, m_start in enumerate(M_start):
+        fuel = L[m]
+        while fuel > 0:
+          current_node_mask = self.data_edge_index[0,:] == m_start
+          p = attention_weights * current_node_mask
+          m_start = np.random.choice(len(p), size=(M), replace=True, p=p)
+          fuel -= 1 #written this way in case change cost of path length
+        M_end[m] = m_start
+      # keep going until all steps taken
+      # L[m] -= 1
+
   def forward(self, x):
     t = self.t.type_as(x)
+    if self.training:
+      if self.opt['new_edges'] == 'random':
+        self.add_random_edges()
+      elif self.opt['new_edges'] == 'random_walk' and self.odefunc.attention_weights is not None:
+        self.add_rw_edges()
+
     attention_weights = self.get_attention_weights(x)
     # create attention mask
     if self.training:

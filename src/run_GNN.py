@@ -313,6 +313,8 @@ if __name__ == '__main__':
                       help='incorporate the feature grad in attention based edge dropout')
   parser.add_argument("--exact", action="store_true",
                       help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
+  parser.add_argument('--M_nodes', type=int, default=64, help="new number of nodes to add")
+  parser.add_argument('--new_edges', type=str, default="random", help="random, random_walk")
 
   args = parser.parse_args()
 

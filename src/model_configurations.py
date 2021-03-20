@@ -2,6 +2,7 @@ from function_transformer_attention import ODEFuncTransformerAtt
 from function_GAT_attention import ODEFuncAtt
 from function_dorsey_attention import ODEFuncDorseyAtt
 from function_laplacian_diffusion import LaplacianODEFunc
+from function_laplacian_rewire import LaplacianRewireODEFunc
 from sde import SDEFunc, SDEblock
 from block_transformer_attention import AttODEblock
 from block_constant import ConstantODEblock
@@ -44,6 +45,8 @@ def set_function(opt):
     f = ODEFuncDorseyAtt
   elif ode_str == 'transformer':
     f = ODEFuncTransformerAtt
+  elif ode_str == 'laplacian_rewire':
+    f = LaplacianRewireODEFunc
   else:
     raise FunctionNotDefined
   return f
