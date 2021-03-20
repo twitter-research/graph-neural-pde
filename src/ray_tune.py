@@ -10,7 +10,7 @@ from GNN_early import GNNEarly
 from GNN import GNN
 from ray import tune
 from ray.tune import CLIReporter
-from ray.tune.schedulers import ASHAScheduler
+from ray.tune.schedulers import ASHAScheduler, FIFOScheduler
 # from ray.tune.suggest.ax import AxSearch #removed for ax-platform v TorchDiffExPack torch clash
 from run_GNN import get_optimizer, test, test_OGB, train
 from torch import nn
@@ -547,8 +547,8 @@ def set_arxiv_search_space(opt):
 
   opt["block"] = 'attention'
   opt["function"] = 'laplacian'
-  opt["attention_type"] = "scaled_dot" #tune.choice(["scaled_dot", "cosine_sim", "cosine_power",
-                                       # "pearson"])#, "rank_pearson"]) RP not ready for GPU https://github.com/google-research/fast-soft-sort/issues/9
+  opt["attention_type"] = tune.choice(["scaled_dot", "cosine_sim", "cosine_power",
+                                       "pearson"])#, "rank_pearson"]) RP not ready for GPU https://github.com/google-research/fast-soft-sort/issues/9
 
   # opt["decay"] = tune.loguniform(1e-10, 1e-6)
   opt["decay"] = 0
@@ -556,7 +556,6 @@ def set_arxiv_search_space(opt):
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
-
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))
 
   # opt["hidden_dim"] = 128
@@ -648,9 +647,6 @@ def set_arxiv_search_space(opt):
 
 
 
-
-
-
 def set_search_space(opt):
   if opt["dataset"] == "Cora":
     return set_cora_search_space(opt)
@@ -672,13 +668,15 @@ def main(opt):
   data_dir = os.path.abspath("../data")
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   opt = set_search_space(opt)
-  scheduler = ASHAScheduler(
-    metric=opt['metric'],
-    mode="max",
-    max_t=opt["epoch"],
-    grace_period=opt["grace_period"],
-    reduction_factor=opt["reduction_factor"],
-  )
+  # scheduler = ASHAScheduler(
+  #   metric=opt['metric'],
+  #   mode="max",
+  #   max_t=opt["epoch"],
+  #   grace_period=opt["grace_period"],
+  #   reduction_factor=opt["reduction_factor"],
+  # )
+
+  scheduler = FIFOScheduler()
   reporter = CLIReporter(
     metric_columns=["accuracy", "test_acc", "train_acc", "loss", "training_iteration", "forward_nfe", "backward_nfe"]
   )
