@@ -8,6 +8,7 @@ from block_transformer_attention import AttODEblock
 from block_constant import ConstantODEblock
 from block_mixed import MixedODEblock
 from block_transformer_hard_attention import HardAttODEblock
+from block_transformer_rewiring import RewireAttODEblock
 
 class BlockNotDefined(Exception):
   pass
@@ -24,6 +25,8 @@ def set_block(opt):
     block = AttODEblock
   elif ode_str == 'hard_attention':
     block = HardAttODEblock
+  elif ode_str == 'rewire_attention':
+    block = RewireAttODEblock
   elif ode_str == 'constant':
     block = ConstantODEblock
   elif ode_str == 'SDE':

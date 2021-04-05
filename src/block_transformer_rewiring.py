@@ -6,9 +6,9 @@ from torch_scatter import scatter
 import numpy as np
 import torch_sparse
 
-class HardAttODEblock(ODEblock):
+class RewireAttODEblock(ODEblock):
   def __init__(self, odefunc, regularization_fns, opt, data, device, t=torch.tensor([0, 1]), gamma=0.5):
-    super(HardAttODEblock, self).__init__(odefunc, regularization_fns, opt, data, device, t)
+    super(RewireAttODEblock, self).__init__(odefunc, regularization_fns, opt, data, device, t)
     assert opt['att_samp_pct'] > 0 and opt['att_samp_pct'] <= 1, "attention sampling threshold must be in (0,1]"
     self.opt = opt
     self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, data, device)
@@ -54,7 +54,7 @@ class HardAttODEblock(ODEblock):
     with torch.no_grad():
       new_edges = np.random.choice(self.num_nodes, size=(2,M), replace=True, p=None)
       new_edges = torch.tensor(new_edges)
-      #todo check if should be using coallese insted of cat
+      #todo check if should be using coalesce insted of unique
       #eg https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/transforms/two_hop.html#TwoHop
       cat = torch.cat([self.data_edge_index, new_edges],dim=1)
       no_repeats = torch.unique(cat, sorted=False, return_inverse=False,
@@ -62,7 +62,9 @@ class HardAttODEblock(ODEblock):
       self.data_edge_index = no_repeats
 
   # run config
-  # --block hard_attention - -att_samp_pct 0.98 - -new_edges random
+  # --block hard_attention - -att_samp_pct 0.98 --new_edges random
+  # --block rewire_attention - -att_samp_pct 0.98 --new_edges k_hop --sparsify S_hat
+
 
   def add_khop_edges(self, k=2):
     n = self.num_nodes
@@ -82,11 +84,10 @@ class HardAttODEblock(ODEblock):
     # cat = torch.cat([self.data_edge_index, new_edges], dim=1)
     # self.odefunc.edge_index = torch.unique(cat, sorted=False, return_inverse=False,
     #                                return_counts=False, dim=0)
-    # threshold
-    # normalise
 
-    self.odefunc.edge_index = S_hat.indices()
-    self.odefunc.edge_weight = S_hat.values() #<- this breaks the code
+    # self.odefunc.edge_index = S_hat.indices()
+    self.data_edge_index = S_hat.indices()
+    self.odefunc.attention_weights = S_hat.values() #<- this breaks the code due to EWs != AttWs
 
   # self.odefunc.edge_index, self.odefunc.edge_weight =
   # get_rw_adj(edge_index, edge_weight=None, norm_dim=1, fill_value=0., num_nodes=None, dtype=None):
@@ -118,34 +119,47 @@ class HardAttODEblock(ODEblock):
 
   def forward(self, x):
     t = self.t.type_as(x)
-    #Densify
-    if self.training:
-      if self.opt['new_edges'] == 'random':
-        self.add_random_edges()
-      elif self.opt['new_edges'] == 'k_hop' and self.odefunc.attention_weights is not None:
-        self.add_khop_edges(k=2)
-      elif self.opt['new_edges'] == 'random_walk' and self.odefunc.attention_weights is not None:
-        self.add_rw_edges()
-    #Sparsify
-    #sparsify on S_hat
-
-    #sparsify on recalced attention
-    #Calc attention
     attention_weights = self.get_attention_weights(x)
+    self.odefunc.attention_weights = attention_weights.mean(dim=1, keepdim=False)
+
     # create attention threshold mask
     if self.training:
       with torch.no_grad():
-        mean_att = attention_weights.mean(dim=1, keepdim=False)
+
+        # Densify
+        if self.training:
+          if self.opt['new_edges'] == 'random':
+            self.add_random_edges()
+          elif self.opt['new_edges'] == 'random_walk':
+            self.add_rw_edges()
+          elif self.opt['new_edges'] == 'k_hop_lap':
+            pass
+          elif self.opt['new_edges'] == 'k_hop_att':
+            self.add_khop_edges(k=2)
+
+        # Sparsify
+        # i) sparsify on S_hat
+        if self.opt['sparsify'] == 'S_hat':
+          attention_weights = self.odefunc.attention_weights
+          mean_att = attention_weights
+        # ii) sparsify on recalced attention
+        elif self.opt['sparsify'] == 'recalc_att':
+          attention_weights = self.get_attention_weights(x)
+          mean_att = attention_weights.mean(dim=1, keepdim=False)
         if self.opt['use_flux']:
           src_features = x[self.data_edge_index[0, :], :]
           dst_features = x[self.data_edge_index[1, :], :]
           delta = torch.linalg.norm(src_features-dst_features, dim=1)
           mean_att = mean_att * delta
+
+        #threshold
         threshold = torch.quantile(mean_att, 1-self.opt['att_samp_pct'])
         mask = mean_att > threshold
         self.odefunc.edge_index = self.data_edge_index[:, mask.T]
         sampled_attention_weights = self.renormalise_attention(mean_att[mask])
+        #this print is broken now
         print('retaining {} of {} edges'.format(self.odefunc.edge_index.shape[1], self.data_edge_index.shape[1]))
+        self.odefunc.edge_weight = sampled_attention_weights
         self.odefunc.attention_weights = sampled_attention_weights
     else:
       self.odefunc.edge_index = self.data_edge_index

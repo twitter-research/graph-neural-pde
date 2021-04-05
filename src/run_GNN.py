@@ -314,7 +314,8 @@ if __name__ == '__main__':
   parser.add_argument("--exact", action="store_true",
                       help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
   parser.add_argument('--M_nodes', type=int, default=64, help="new number of nodes to add")
-  parser.add_argument('--new_edges', type=str, default="random", help="random, random_walk")
+  parser.add_argument('--new_edges', type=str, default="random", help="random, random_walk, k_hop")
+  parser.add_argument('--sparsify', type=str, default="S_hat", help="S_hat, recalc_att")
 
   args = parser.parse_args()
 
