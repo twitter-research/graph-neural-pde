@@ -1,11 +1,11 @@
 import argparse
-
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
 from GNN import GNN
 import time
 from data import get_dataset
 from ogb.nodeproppred import Evaluator
+from graph_rewiring_tests import test_rewiring_churn
 
 def get_cora_opt(opt):
   opt['dataset'] = 'Cora'
@@ -216,6 +216,8 @@ def main(opt):
       log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, best_val_acc, test_acc))
   print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
 
+  test_rewiring_churn(data.edge_index, model.odeblock.odefunc.edge_index)
+
   return train_acc, best_val_acc, test_acc
 
 
@@ -316,6 +318,11 @@ if __name__ == '__main__':
   parser.add_argument('--M_nodes', type=int, default=64, help="new number of nodes to add")
   parser.add_argument('--new_edges', type=str, default="random", help="random, random_walk, k_hop")
   parser.add_argument('--sparsify', type=str, default="S_hat", help="S_hat, recalc_att")
+  parser.add_argument('--threshold_type', type=str, default="addD_rvR", help="topk_adj, addD_rvR")
+  parser.add_argument('--rw_addD', type=float, default=0.02, help="percentage of new edges to add")
+  parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
+
+
 
   args = parser.parse_args()
 

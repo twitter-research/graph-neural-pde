@@ -1,10 +1,13 @@
 """
 functions to generate a graph from the input graph and features
 """
-
+import argparse
+import numpy as np
+import torch
 from torch_geometric.transforms.two_hop import TwoHop
 from torch_geometric.transforms import GDC
-
+from utils import get_rw_adj
+# from data import get_dataset
 
 def get_two_hop(data):
   print('raw data contains {} edges and {} nodes'.format(data.num_edges, data.num_nodes))

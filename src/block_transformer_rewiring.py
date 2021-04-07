@@ -5,6 +5,7 @@ from utils import get_rw_adj
 from torch_scatter import scatter
 import numpy as np
 import torch_sparse
+from torch_geometric.utils import remove_self_loops
 
 class RewireAttODEblock(ODEblock):
   def __init__(self, odefunc, regularization_fns, opt, data, device, t=torch.tensor([0, 1]), gamma=0.5):
@@ -47,6 +48,7 @@ class RewireAttODEblock(ODEblock):
     att_sums = scatter(attention, index, dim=0, dim_size=self.num_nodes, reduce='sum')[index]
     return attention / (att_sums + 1e-16)
 
+
   def add_random_edges(self):
     # M = self.opt["M_nodes"]
     M = int(self.num_nodes * (1/(1 - (1 - self.opt['att_samp_pct'])) - 1))
@@ -61,38 +63,66 @@ class RewireAttODEblock(ODEblock):
                                 return_counts=False, dim=0)
       self.data_edge_index = no_repeats
 
-  # run config
-  # --block hard_attention - -att_samp_pct 0.98 --new_edges random
-  # --block rewire_attention - -att_samp_pct 0.98 --new_edges k_hop --sparsify S_hat
 
-
-  def add_khop_edges(self, k=2):
+  def add_khop_edges(self, k=2, rm_self_loops=True):
     n = self.num_nodes
-    # do k_hop
     for i in range(k-1):
-      new_edges, new_weights = \
-        torch_sparse.spspmm(self.odefunc.edge_index, self.odefunc.edge_weight,
+      new_edges, new_weights = torch_sparse.spspmm(self.odefunc.edge_index, self.odefunc.edge_weight,
                             self.odefunc.edge_index, self.odefunc.edge_weight, n, n, n, coalesced=True)
 
-      old = torch.sparse_coo_tensor(self.odefunc.edge_index, self.odefunc.edge_weight, (n, n))
-      new = torch.sparse_coo_tensor(new_edges, new_weights, (n, n))
+      new_edges, new_weights = remove_self_loops(new_edges, new_weights)
 
-      # S_hat = 0.5 * old.coalesce() + 0.5 * new.coalesce()
-      S_hat = (0.5 * old + 0.5 * new).coalesce()
+      A1 = torch.sparse_coo_tensor(self.odefunc.edge_index, self.odefunc.edge_weight, (n, n)).coalesce()
+      A2 = torch.sparse_coo_tensor(new_edges, new_weights, (n, n)).coalesce()
 
-    # self.odefunc.edge_weight = 0.5 * self.odefunc.edge_weight + 0.5 * new_weights
-    # cat = torch.cat([self.data_edge_index, new_edges], dim=1)
-    # self.odefunc.edge_index = torch.unique(cat, sorted=False, return_inverse=False,
-    #                                return_counts=False, dim=0)
+    if self.opt['threshold_type'] == 'topk_adj':
+      S_hat = (0.5 * A1 + 0.5 * A2).coalesce()
+      self.data_edge_index = S_hat.indices()
+      self.odefunc.attention_weights = S_hat.values()
 
-    # self.odefunc.edge_index = S_hat.indices()
-    self.data_edge_index = S_hat.indices()
-    self.odefunc.attention_weights = S_hat.values() #<- this breaks the code due to EWs != AttWs
+    elif self.opt['threshold_type'] == 'addD_rvR':
+      AN = A2
+      npA1idx = A1.indices().numpy().T
+      npANidx = AN.indices().numpy().T
 
-  # self.odefunc.edge_index, self.odefunc.edge_weight =
-  # get_rw_adj(edge_index, edge_weight=None, norm_dim=1, fill_value=0., num_nodes=None, dtype=None):
-  # num_nodes = maybe_num_nodes(edge_index, num_nodes)
+      # https: // stackoverflow.com / questions / 16970982 / find - unique - rows - in -numpy - array
+      # A1_rows = npA1idx.view([('', npA1idx.dtype)] * npA1idx.shape[0])
+      # AN_rows = npANidx.view([('', npANidx.dtype)] * npANidx.shape[0])
 
+      # data = npA1idx
+      # ncols = data.shape[1]
+      # dtype = data.dtype.descr * ncols
+      # struct = data.view(dtype)
+      #
+      # uniq = np.unique(struct)
+      # uniq = uniq.view(data.dtype).reshape(-1, ncols)
+      # removed_mask = np.in1d(A1_rows, AN_rows, assume_unique=True, invert=True)
+      # added_mask = np.in1d(AN_rows, A1_rows, assume_unique=True, invert=True)
+
+      # combined = torch.cat((A1.indices(), AN.indices()), dim=1)
+      # uniques, counts = combined.unique(return_counts=True, dim=1)
+      # difference = uniques[counts == 1]
+      # intersection = uniques[counts > 1]
+
+      A1_rows = np.ascontiguousarray(npA1idx).view(np.dtype((np.void, npA1idx.dtype.itemsize * npA1idx.shape[1])))
+      AN_rows = np.ascontiguousarray(npANidx).view(np.dtype((np.void, npANidx.dtype.itemsize * npANidx.shape[1])))
+      #todo use jax.numpy.in1d to do on GPU
+      removed_mask = np.in1d(A1_rows, AN_rows, assume_unique=True, invert=True)
+      added_mask = np.in1d(AN_rows, A1_rows, assume_unique=True, invert=True)
+
+      assert len(A1_rows)+added_mask.sum()-removed_mask.sum()-len(AN_rows)==0
+
+      threshold = torch.quantile(AN.values()[added_mask], 1 - self.opt['rw_addD'])
+      threshold_mask = AN.values()[added_mask] > threshold
+
+      add_edges = npANidx[added_mask,:][threshold_mask,:]
+      add_values = AN.values()[added_mask][threshold_mask]
+
+      combined_edges = torch.cat((self.odefunc.edge_index, torch.from_numpy(add_edges).T), dim=1)
+      combined_values = torch.cat((self.odefunc.edge_weight, add_values))
+
+      self.data_edge_index = combined_edges
+      self.odefunc.attention_weights = combined_values
 
   # def add_rw_edges(self): #NOT COMPLETE
   #   # function to sample M random walks rather than densifying Adjacency
@@ -117,62 +147,69 @@ class RewireAttODEblock(ODEblock):
   #     # keep going until all steps taken
   #     # L[m] -= 1
 
+  def densify_edges(self):
+    if self.opt['new_edges'] == 'random':
+      self.add_random_edges()
+    elif self.opt['new_edges'] == 'random_walk':
+      self.add_rw_edges()
+    elif self.opt['new_edges'] == 'k_hop_lap':
+      pass
+    elif self.opt['new_edges'] == 'k_hop_att':
+      self.add_khop_edges(k=2)
+
+  def threshold_edges(self, x):
+    # get mean attention
+    # i) sparsify on S_hat
+    if self.opt['sparsify'] == 'S_hat':
+      attention_weights = self.odefunc.attention_weights
+      mean_att = attention_weights
+
+    # ii) sparsify on recalced attention
+    elif self.opt['sparsify'] == 'recalc_att':
+      attention_weights = self.get_attention_weights(x)
+      mean_att = attention_weights.mean(dim=1, keepdim=False)
+
+    if self.opt['use_flux']:
+      src_features = x[self.data_edge_index[0, :], :]
+      dst_features = x[self.data_edge_index[1, :], :]
+      delta = torch.linalg.norm(src_features - dst_features, dim=1)
+      mean_att = mean_att * delta
+
+    unique_att = torch.unique(mean_att, sorted=False, return_inverse=False, return_counts=False, dim=0)  #just for the test where threshold catches all edges
+    print(f"mean_att {mean_att.shape}, unqiue atts: {unique_att.shape}")
+    # threshold
+    threshold = torch.quantile(mean_att, 1 - self.opt['att_samp_pct'])
+    mask = mean_att > threshold
+    self.odefunc.edge_index = self.data_edge_index[:, mask.T]
+    sampled_attention_weights = self.renormalise_attention(mean_att[mask])
+    print('retaining {} of {} edges'.format(self.odefunc.edge_index.shape[1], self.data_edge_index.shape[1]))
+    self.data_edge_index = self.data_edge_index[:, mask.T]
+    self.odefunc.edge_weight = sampled_attention_weights
+    self.odefunc.attention_weights = sampled_attention_weights
+
   def forward(self, x):
     t = self.t.type_as(x)
-    attention_weights = self.get_attention_weights(x)
-    self.odefunc.attention_weights = attention_weights.mean(dim=1, keepdim=False)
 
-    # create attention threshold mask
     if self.training:
       with torch.no_grad():
+        #calc attentions for transition matrix
+        attention_weights = self.get_attention_weights(x)
+        self.odefunc.attention_weights = attention_weights.mean(dim=1, keepdim=False)
 
-        # Densify
-        if self.training:
-          if self.opt['new_edges'] == 'random':
-            self.add_random_edges()
-          elif self.opt['new_edges'] == 'random_walk':
-            self.add_rw_edges()
-          elif self.opt['new_edges'] == 'k_hop_lap':
-            pass
-          elif self.opt['new_edges'] == 'k_hop_att':
-            self.add_khop_edges(k=2)
+        # Densify and threshold attention weights
+        self.densify_edges()
+        self.threshold_edges(x)
 
-        # Sparsify
-        # i) sparsify on S_hat
-        if self.opt['sparsify'] == 'S_hat':
-          attention_weights = self.odefunc.attention_weights
-          mean_att = attention_weights
-        # ii) sparsify on recalced attention
-        elif self.opt['sparsify'] == 'recalc_att':
-          attention_weights = self.get_attention_weights(x)
-          mean_att = attention_weights.mean(dim=1, keepdim=False)
-        if self.opt['use_flux']:
-          src_features = x[self.data_edge_index[0, :], :]
-          dst_features = x[self.data_edge_index[1, :], :]
-          delta = torch.linalg.norm(src_features-dst_features, dim=1)
-          mean_att = mean_att * delta
-
-        #threshold
-        threshold = torch.quantile(mean_att, 1-self.opt['att_samp_pct'])
-        mask = mean_att > threshold
-        self.odefunc.edge_index = self.data_edge_index[:, mask.T]
-        sampled_attention_weights = self.renormalise_attention(mean_att[mask])
-        #this print is broken now
-        print('retaining {} of {} edges'.format(self.odefunc.edge_index.shape[1], self.data_edge_index.shape[1]))
-        self.odefunc.edge_weight = sampled_attention_weights
-        self.odefunc.attention_weights = sampled_attention_weights
-    else:
-      self.odefunc.edge_index = self.data_edge_index
-      self.odefunc.attention_weights = attention_weights.mean(dim=1, keepdim=False)
-
-
+    self.odefunc.edge_index = self.data_edge_index
+    attention_weights = self.get_attention_weights(x)
+    mean_att = attention_weights.mean(dim=1, keepdim=False)
+    self.odefunc.edge_weight = mean_att
+    self.odefunc.attention_weights = mean_att
 
     self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight
     self.reg_odefunc.odefunc.attention_weights = self.odefunc.attention_weights
     integrator = self.train_integrator if self.training else self.test_integrator
-
     reg_states = tuple(torch.zeros(x.size(0)).to(x) for i in range(self.nreg))
-
     func = self.reg_odefunc if self.training and self.nreg > 0 else self.odefunc
     state = (x,) + reg_states if self.training and self.nreg > 0 else x
 

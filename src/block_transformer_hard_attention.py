@@ -49,6 +49,7 @@ class HardAttODEblock(ODEblock):
     t = self.t.type_as(x)
     attention_weights = self.get_attention_weights(x)
     # create attention mask
+
     if self.training:
       with torch.no_grad():
         mean_att = attention_weights.mean(dim=1, keepdim=False)
