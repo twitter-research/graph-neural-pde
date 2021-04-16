@@ -117,6 +117,7 @@ class RewireAttODEblock(ODEblock):
 
       add_edges = npANidx[added_mask,:][threshold_mask,:]
       add_values = AN.values()[added_mask][threshold_mask]
+      print(f"Add {add_edges.shape[0]} edges")
 
       combined_edges = torch.cat((self.odefunc.edge_index, torch.from_numpy(add_edges).T), dim=1)
       combined_values = torch.cat((self.odefunc.edge_weight, add_values))
@@ -175,8 +176,9 @@ class RewireAttODEblock(ODEblock):
       delta = torch.linalg.norm(src_features - dst_features, dim=1)
       mean_att = mean_att * delta
 
-    unique_att = torch.unique(mean_att, sorted=False, return_inverse=False, return_counts=False, dim=0)  #just for the test where threshold catches all edges
-    print(f"mean_att {mean_att.shape}, unqiue atts: {unique_att.shape}")
+    # just for the test where threshold catches all edges
+    # unique_att = torch.unique(mean_att, sorted=False, return_inverse=False, return_counts=False, dim=0)
+    # print(f"mean_att {mean_att.shape}, unqiue atts: {unique_att.shape}")
     # threshold
     threshold = torch.quantile(mean_att, 1 - self.opt['att_samp_pct'])
     mask = mean_att > threshold
