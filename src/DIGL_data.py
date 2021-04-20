@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.datasets import Planetoid, Amazon, Coauthor
 from torch.optim import Adam, Optimizer
-from seeds import development_seed
+from DIGL_seeds import development_seed
 
 DATA_PATH = 'data'
 
