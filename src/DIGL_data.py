@@ -7,13 +7,38 @@ import numpy as np
 from scipy.linalg import expm
 
 import torch
+import torch.nn.functional as F
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.datasets import Planetoid, Amazon, Coauthor
-
+from torch.optim import Adam, Optimizer
 from seeds import development_seed
 
 DATA_PATH = 'data'
 
+
+def train(model: torch.nn.Module, optimizer: Optimizer, data: Data):
+    model.train()
+    optimizer.zero_grad()
+    logits = model(data.x) #data
+    loss = F.nll_loss(logits[data.train_mask], data.y[data.train_mask])
+    loss.backward()
+    optimizer.step()
+
+
+def evaluate(model: torch.nn.Module, data: Data, test: bool):
+    model.eval()
+    with torch.no_grad():
+        logits = model(data.x) #data
+    eval_dict = {}
+    keys = ['val', 'test'] if test else ['val']
+    for key in keys:
+        mask = data[f'{key}_mask']
+        # loss = F.nll_loss(logits[mask], data.y[mask]).item()
+        # eval_dict[f'{key}_loss'] = loss
+        pred = logits[mask].max(1)[1]
+        acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
+        eval_dict[f'{key}_acc'] = acc
+    return eval_dict
 
 def get_dataset(name: str, use_lcc: bool = True) -> InMemoryDataset:
     path = os.path.join(DATA_PATH, name)
@@ -140,7 +165,7 @@ def set_train_val_test_split(
         data: Data,
         num_development: int = 1500,
         num_per_class: int = 20) -> Data:
-    rnd_state = np.random.RandomState(development_seed)
+    rnd_state = np.random.RandomState(seed)  #seed development_seed)
     num_nodes = data.y.shape[0]
     development_idx = rnd_state.choice(num_nodes, num_development, replace=False)
     test_idx = [i for i in np.arange(num_nodes) if i not in development_idx]

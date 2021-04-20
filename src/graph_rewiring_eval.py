@@ -15,7 +15,7 @@ from graph_rewiring import get_two_hop, apply_gdc, GDC, dirichlet_energy
 from run_GNN import print_model_params, get_optimizer, test_OGB, test, train
 from GNN import GNN
 from GNN_GCN import GCN
-from graph_rewiring_data import PPRDataset, set_train_val_test_split #HeatDataset
+from DIGL_data import PPRDataset, set_train_val_test_split #HeatDataset
 
 
 def rewiring_get_optimizer(name, model, lr, weight_decay):
@@ -46,8 +46,8 @@ def rewiring_train(model, optimizer, data):
     lf = torch.nn.functional.nll_loss
     loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
   else:
+    # nll used in DIGL example
     loss = torch.nn.functional.nll_loss(out[data.train_mask], data.y.squeeze()[data.train_mask])
-    #nll used in DIGL example
     # lf = torch.nn.CrossEntropyLoss()
     # loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
 
@@ -200,7 +200,7 @@ def main(opt):
   # lr: 0.01
   # dropout: 0.5
   # weight_decay: 0.09604826107599472
-  opt['decay'] = 0.09604826107599472
+  opt['decay'] = 0.05931537406301254 #0.09604826107599472
   # alpha: 0.05
   # k: 128
   # eps:
@@ -226,35 +226,35 @@ def main(opt):
   # results[1] = edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
   #               + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil]
 
-  print('sparsify..')
-  ks = [1,2,4,8,16,32,64,128,256]
-  for i,k in enumerate(ks):
-    opt['gdc_k'] = k
-    #reset to dense
-    # dataset.data.edge_index = edge_index_dense
-    # dataset.data.edge_attr = torch.ones(edge_index_dense.size(1),
-    #                              device=edge_index_dense.device)
-    #
-    # sparsified_data = apply_gdc(dataset.data, opt, type = 'sparsify')
-
-    dataset.data.edge_index = edge_index0
-    dataset.data.edge_attr = torch.ones(edge_index0.size(1),
-                                 device=edge_index0.device)
-    sparsified_data = apply_gdc(dataset.data, opt, type = 'combined')
-
-    dataset.data = sparsified_data
-    train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
-    sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil \
-    = rewiring_main(opt, dataset, model_type="GCN")
-
-    # edges_stats = rewiring_test("GDENSE", edge_index_dense, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
-    # results[2+2*i] = edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
-    #             + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil]
-
-    print('overall change..')
-    edges_stats = rewiring_test("G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
-    results[3+2*i] = edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
-                + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil]
+  # print('sparsify..')
+  # ks = [1,2,4,8,16,32,64,128,256]
+  # for i,k in enumerate(ks):
+  #   opt['gdc_k'] = k
+  #   #reset to dense
+  #   # dataset.data.edge_index = edge_index_dense
+  #   # dataset.data.edge_attr = torch.ones(edge_index_dense.size(1),
+  #   #                              device=edge_index_dense.device)
+  #   #
+  #   # sparsified_data = apply_gdc(dataset.data, opt, type = 'sparsify')
+  #
+  #   dataset.data.edge_index = edge_index0
+  #   dataset.data.edge_attr = torch.ones(edge_index0.size(1),
+  #                                device=edge_index0.device)
+  #   sparsified_data = apply_gdc(dataset.data, opt, type = 'combined')
+  #
+  #   dataset.data = sparsified_data
+  #   train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
+  #   sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil \
+  #   = rewiring_main(opt, dataset, model_type="GCN")
+  #
+  #   # edges_stats = rewiring_test("GDENSE", edge_index_dense, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
+  #   # results[2+2*i] = edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
+  #   #             + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil]
+  #
+  #   print('overall change..')
+  #   edges_stats = rewiring_test("G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
+  #   results[3+2*i] = edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
+  #               + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil]
 
   df =  pd.DataFrame.from_dict(results, orient='index',
   columns = ['name0', 'name1', 'orig_edges', 'final_edges', 'orig_removed', 'orig_retained', 'added',
@@ -265,7 +265,7 @@ def main(opt):
               'sd_T0_dirichlet', 'sd_TN_dirichlet', 'sd_pred_homophil','sd_label_homophil'])
 
   print(df)
-  df.to_csv('../results/rewiring.csv')
+  df.to_csv('../results/rewiring_G0.csv')
 
 def test_DIGL_data(opt):
   results = {}
@@ -286,7 +286,7 @@ def test_DIGL_data(opt):
   # lr: 0.01
   # dropout: 0.5
   # weight_decay: 0.09604826107599472
-  opt['decay'] = 0.09604826107599472
+  opt['decay'] = 0.09604826107599472 #
   # alpha: 0.05
   # k: 128
   # eps:
@@ -303,7 +303,7 @@ def test_DIGL_data(opt):
   PPR_dataset.data = apply_gdc(dataset.data, opt, type='combined')
 
   edge_indexPPR = PPR_dataset.data.edge_index
-  seed = 1684992425
+  seed = 12345 #1684992425
   num_development = 1500
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   # PPR_dataset.data = set_train_val_test_split(
