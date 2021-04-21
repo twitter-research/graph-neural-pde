@@ -145,8 +145,11 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
   res_label_homophil = []
 
   for i in range(its):
+    # it_num_dev = test_seeds[i] #seed to choose the test set
+    # development_seed = 1684992425
+    it_num_dev = 1684992425 #test_seeds[i] #seed to choose the test set
+
     it_seed = val_seeds[i] # seed to choose the train/val nodes from the development set
-    it_num_dev = test_seeds[i] #seed to choose the test set
     dataset.data = set_train_val_test_split(seed=it_seed, data=dataset.data,
                                             development_seed=it_num_dev, ).to(device)
     if model_type == "GRAND":
