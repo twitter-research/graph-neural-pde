@@ -4,6 +4,7 @@ functions to generate a graph from the input graph and features
 import argparse
 import time
 import numpy as np
+# import jax as jnp
 import pandas as pd
 import torch
 from torch_geometric.transforms.two_hop import TwoHop
@@ -56,13 +57,14 @@ def rewiring_train(model, optimizer, data):
   return loss.item()
 
 def rewiring_test(name0, edge_index0, name1, edge_index1, n):
+# todo see if can use jax.numpy.in1d to do on GPU
 # https: // stackoverflow.com / questions / 11903083 / find - the - set - difference - between - two - large - arrays - matrices - in -python
 # https: // stackoverflow.com / questions / 55110047 / finding - non - intersection - of - two - pytorch - tensors
-  np_idx0 = edge_index0.numpy().T
-  np_idx1 = edge_index1.numpy().T
+  np_idx0 = edge_index0.cpu().numpy().T
+  np_idx1 = edge_index1.cpu().numpy().T
   rows0 = np.ascontiguousarray(np_idx0).view(np.dtype((np.void, np_idx0.dtype.itemsize * np_idx0.shape[1])))
   rows1 = np.ascontiguousarray(np_idx1).view(np.dtype((np.void, np_idx1.dtype.itemsize * np_idx1.shape[1])))
-  # todo use jax.numpy.in1d to do on GPU
+
   new_added_mask = np.in1d(rows1, rows0, assume_unique=True, invert=True)
   orig_removed_mask = np.in1d(rows0, rows1, assume_unique=True, invert=True)
 
@@ -92,8 +94,8 @@ def rewiring_test(name0, edge_index0, name1, edge_index1, n):
 
 def rewiring_node_test(name0, edge_index0, name1, edge_index1, n, k):
   node_results = {}
-  np_idx0 = edge_index0.numpy().T
-  np_idx1 = edge_index1.numpy().T
+  np_idx0 = edge_index0.cpu().numpy().T
+  np_idx1 = edge_index1.cpu().numpy().T
   rows0 = np.ascontiguousarray(np_idx0).view(np.dtype((np.void, np_idx0.dtype.itemsize * np_idx0.shape[1])))
   rows1 = np.ascontiguousarray(np_idx1).view(np.dtype((np.void, np_idx1.dtype.itemsize * np_idx1.shape[1])))
 
@@ -248,7 +250,7 @@ def main(opt):
   edges_stats = rewiring_test("G0", edge_index0, "G0", edge_index0, n)
   train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
   sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil\
-  = rewiring_main(opt, dataset, model_type="GCN")
+  = rewiring_main(opt, dataset, model_type="GCN", its=100)
 
   results[0] = edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
                 + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil]
@@ -286,7 +288,7 @@ def main(opt):
     dataset.data = sparsified_data
     train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
     sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil \
-    = rewiring_main(opt, dataset, model_type="GCN",its=10)
+    = rewiring_main(opt, dataset, model_type="GCN",its=100)
 
     # edges_stats = rewiring_test("GDENSE", edge_index_dense, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
     # results[2+2*i] = edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
