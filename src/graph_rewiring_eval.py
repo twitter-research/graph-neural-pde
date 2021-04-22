@@ -92,7 +92,7 @@ def rewiring_test(name0, edge_index0, name1, edge_index1, n):
                 pc_change, pc_removed, pc_retained, pc_added, edges_div_nodes]
   return comparison
 
-def rewiring_node_test(name0, edge_index0, name1, edge_index1, n, k):
+def rewiring_node_test(name0, edge_index0, name1, edge_index1, n, k, rc):
   node_results = {}
   np_idx0 = edge_index0.cpu().numpy().T
   np_idx1 = edge_index1.cpu().numpy().T
@@ -109,9 +109,12 @@ def rewiring_node_test(name0, edge_index0, name1, edge_index1, n, k):
   for current_node in range(n):
     current_node_mask0 = np.where(src0 == current_node)
     current_node_mask1 = np.where(src1 == current_node)
-
-    src_idx0 = np_idx0[:, 0][current_node_mask0]
-    src_idx1 = np_idx1[:, 0][current_node_mask1]
+    if rc == 'r':
+      src_idx0 = np_idx0[:, 0][current_node_mask0]
+      src_idx1 = np_idx1[:, 0][current_node_mask1]
+    elif rc == 'c':
+      src_idx0 = np_idx0[:, 1][current_node_mask0]
+      src_idx1 = np_idx1[:, 1][current_node_mask1]
 
     orig_edges = src_idx0.shape[0]
     final_edges = src_idx1.shape[0]
@@ -227,7 +230,9 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
 
 def main(opt):
   results = {}
-  node_results_df = pd.DataFrame()
+  node_results_df_row = pd.DataFrame()
+  node_results_df_col = pd.DataFrame()
+
   opt['self_loop_weight'] = None
   dataset = get_dataset(opt, '../data', use_lcc=True)
   n = dataset.data.num_nodes
@@ -303,8 +308,12 @@ def main(opt):
                 + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil]
 
     print('node test')
-    node_results_df_k = rewiring_node_test("G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k)
-    node_results_df = node_results_df.append(node_results_df_k)
+    node_results_df_k = rewiring_node_test("G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'r')
+    node_results_df_row = node_results_df_row.append(node_results_df_k)
+
+    node_results_df_k = rewiring_node_test("G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'c')
+    node_results_df_col = node_results_df_col.append(node_results_df_k)
+
 
   df =  pd.DataFrame.from_dict(results, orient='index',
   columns = ['name0', 'name1', 'orig_edges', 'final_edges', 'orig_removed', 'orig_retained', 'added',
@@ -316,8 +325,10 @@ def main(opt):
   print(df)
   df.to_csv('../results/rewiring.csv')
 
-  print(node_results_df)
-  node_results_df.to_csv('../results/rewiring_node.csv')
+  print(node_results_df_row)
+  node_results_df_row.to_csv('../results/rewiring_node_row.csv')
+  print(node_results_df_col)
+  node_results_df_col.to_csv('../results/rewiring_node_col.csv')
 
 
 def test_DIGL_data(opt):

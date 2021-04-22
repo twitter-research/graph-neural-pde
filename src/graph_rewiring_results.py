@@ -13,10 +13,10 @@ from graph_rewiring import apply_gdc
 
 def main(opt):
     opt['self_loop_weight'] = None
-    dataset = get_dataset(opt, '../data', use_lcc=True)
-    n = dataset.data.num_nodes
-    edge_index0 = dataset.data.edge_index.detach().clone()
-    print(f"edge_index0 contains_self_loops: {contains_self_loops(edge_index0)}")
+    # dataset = get_dataset(opt, '../data', use_lcc=True)
+    # n = dataset.data.num_nodes
+    # edge_index0 = dataset.data.edge_index.detach().clone()
+    # print(f"edge_index0 contains_self_loops: {contains_self_loops(edge_index0)}")
     opt['exact'] = True
     opt['gdc_sparsification'] = 'topk'  # 'threshold'
     opt['gdc_threshold'] = 0.01
@@ -44,7 +44,30 @@ def main(opt):
         nodes, degrees = torch.unique(edge_index_PPR, return_counts=True)
         unique_degrees, count_degrees = torch.unique(degrees, return_counts=True)
 
-        # Plot
+        # ax.hist(degree, )
+        ax = fig.add_subplot(3, 3, rc + 1)
+        ax.bar(unique_degrees, count_degrees)
+        ax.set_xlabel('degree per node')
+        ax.set_ylabel('frequency')
+        ax.set_title(f"target degree {k}")
+    ax.set_title('distribution of node degrees - per row')
+    plt.show()
+
+    fig=plt.figure(figsize=(16,16))
+    ks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+    for rc, k in enumerate(ks):
+        PPRdataset = PPRDataset(
+            name=opt['dataset'],
+            use_lcc=opt['use_lcc'],
+            alpha=opt['ppr_alpha'],
+            k=k,
+            eps=None)#opt['gdc_threshold']
+        # )
+
+        # Loop over target degrees
+        edge_index_PPR = PPRdataset.data.edge_index[1,:]
+        nodes, degrees = torch.unique(edge_index_PPR, return_counts=True)
+        unique_degrees, count_degrees = torch.unique(degrees, return_counts=True)
 
         # ax.hist(degree, )
         ax = fig.add_subplot(3, 3, rc + 1)
@@ -52,7 +75,7 @@ def main(opt):
         ax.set_xlabel('degree per node')
         ax.set_ylabel('frequency')
         ax.set_title(f"target degree {k}")
-    ax.set_title('distribution of node degrees')
+    ax.set_title('distribution of node degrees - per column')
     plt.show()
 
 
