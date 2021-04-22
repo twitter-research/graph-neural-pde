@@ -94,35 +94,63 @@ def rewiring_test(name0, edge_index0, name1, edge_index1, n):
 
 def rewiring_node_test(name0, edge_index0, name1, edge_index1, n, k, rc):
   node_results = {}
-  np_idx0 = edge_index0.cpu().numpy().T
-  np_idx1 = edge_index1.cpu().numpy().T
-  rows0 = np.ascontiguousarray(np_idx0).view(np.dtype((np.void, np_idx0.dtype.itemsize * np_idx0.shape[1])))
-  rows1 = np.ascontiguousarray(np_idx1).view(np.dtype((np.void, np_idx1.dtype.itemsize * np_idx1.shape[1])))
 
-  orig_removed_mask = np.in1d(rows0, rows1, assume_unique=True, invert=True)
-  orig_retained_mask = np.in1d(rows0, rows1, assume_unique=True, invert=False)
-  new_added_mask = np.in1d(rows1, rows0, assume_unique=True, invert=True)
+  if rc == 'r':
+    np_idx0 = edge_index0.cpu().numpy().T
+    np_idx1 = edge_index1.cpu().numpy().T
+    rows0 = np.ascontiguousarray(np_idx0).view(np.dtype((np.void, np_idx0.dtype.itemsize * np_idx0.shape[1])))
+    rows1 = np.ascontiguousarray(np_idx1).view(np.dtype((np.void, np_idx1.dtype.itemsize * np_idx1.shape[1])))
 
-  src0, dst1 = np_idx0.T
-  src1, dst1 = np_idx1.T
+    orig_removed_mask = np.in1d(rows0, rows1, assume_unique=True, invert=True)
+    orig_retained_mask = np.in1d(rows0, rows1, assume_unique=True, invert=False)
+    new_added_mask = np.in1d(rows1, rows0, assume_unique=True, invert=True)
 
-  for current_node in range(n):
-    current_node_mask0 = np.where(src0 == current_node)
-    current_node_mask1 = np.where(src1 == current_node)
-    if rc == 'r':
+    src0, dst1 = np_idx0.T
+    src1, dst1 = np_idx1.T
+
+    for current_node in range(n):
+      current_node_mask0 = np.where(src0 == current_node)
+      current_node_mask1 = np.where(src1 == current_node)
       src_idx0 = np_idx0[:, 0][current_node_mask0]
       src_idx1 = np_idx1[:, 0][current_node_mask1]
-    elif rc == 'c':
-      src_idx0 = np_idx0[:, 1][current_node_mask0]
-      src_idx1 = np_idx1[:, 1][current_node_mask1]
+      orig_edges = src_idx0.shape[0]
+      final_edges = src_idx1.shape[0]
+      orig_removed = -orig_removed_mask[current_node_mask0].sum()
+      orig_retained = orig_retained_mask[current_node_mask0].sum()
+      added = new_added_mask[current_node_mask1].sum()
+      node_results[current_node] = [name0, name1, k, orig_edges, final_edges, orig_removed, orig_retained, added]
 
-    orig_edges = src_idx0.shape[0]
-    final_edges = src_idx1.shape[0]
-    orig_removed = -orig_removed_mask[current_node_mask0].sum()
-    orig_retained = orig_retained_mask[current_node_mask0].sum()
-    added = new_added_mask[current_node_mask1].sum()
+  elif rc == 'c':
+    np_idx0 = edge_index0.cpu().numpy().T
+    np_idx1 = edge_index1.cpu().numpy().T
 
-    node_results[current_node] = [name0, name1, k, orig_edges, final_edges, orig_removed, orig_retained, added]
+    #########
+    #flip rows and cols
+    #########
+    np_idx0 = np_idx0[:,[1,0]]
+    np_idx1 = np_idx1[:,[1,0]]
+
+    cols0 = np.ascontiguousarray(np_idx0).view(np.dtype((np.void, np_idx0.dtype.itemsize * np_idx0.shape[1])))
+    cols1 = np.ascontiguousarray(np_idx1).view(np.dtype((np.void, np_idx1.dtype.itemsize * np_idx1.shape[1])))
+
+    orig_removed_mask = np.in1d(cols0, cols1, assume_unique=True, invert=True)
+    orig_retained_mask = np.in1d(cols0, cols1, assume_unique=True, invert=False)
+    new_added_mask = np.in1d(cols1, cols0, assume_unique=True, invert=True)
+
+    src0, dst1 = np_idx0.T
+    src1, dst1 = np_idx1.T
+
+    for current_node in range(n):
+      current_node_mask0 = np.where(src0 == current_node)
+      current_node_mask1 = np.where(src1 == current_node)
+      src_idx0 = np_idx0[:, 0][current_node_mask0]
+      src_idx1 = np_idx1[:, 0][current_node_mask1]
+      orig_edges = src_idx0.shape[0]
+      final_edges = src_idx1.shape[0]
+      orig_removed = -orig_removed_mask[current_node_mask0].sum()
+      orig_retained = orig_retained_mask[current_node_mask0].sum()
+      added = new_added_mask[current_node_mask1].sum()
+      node_results[current_node] = [name0, name1, k, orig_edges, final_edges, orig_removed, orig_retained, added]
 
   node_df =  pd.DataFrame.from_dict(node_results, orient='index',
   columns = ['name0', 'name1', 'k', 'orig_edges', 'final_edges', 'orig_removed', 'orig_retained', 'added'])
@@ -243,6 +271,7 @@ def main(opt):
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
   opt['decay'] = 0.05931537406301254 #0.09604826107599472
+  its = 100 #2
 
   # opt['gdc_k'] = 10
   # ppr:
@@ -258,7 +287,7 @@ def main(opt):
   edges_stats = rewiring_test("G0", edge_index0, "G0", edge_index0, n)
   train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
   sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil\
-  = rewiring_main(opt, dataset, model_type="GCN", its=100)
+  = rewiring_main(opt, dataset, model_type="GCN", its=its)
 
   results[0] = edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
                 + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil]
@@ -296,7 +325,7 @@ def main(opt):
     dataset.data = sparsified_data
     train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
     sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil \
-    = rewiring_main(opt, dataset, model_type="GCN",its=100)
+    = rewiring_main(opt, dataset, model_type="GCN",its=its)
 
     # edges_stats = rewiring_test("GDENSE", edge_index_dense, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
     # results[2+2*i] = edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
@@ -427,7 +456,7 @@ if __name__ == "__main__":
   parser.add_argument('--optimizer', type=str, default='adam', help='One from sgd, rmsprop, adam, adagrad, adamax.')
   parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
   parser.add_argument('--decay', type=float, default=5e-4, help='Weight decay for optimization')
-  parser.add_argument('--epoch', type=int, default=100, help='Number of training epochs per iteration.')
+  parser.add_argument('--epoch', type=int, default=50, help='Number of training epochs per iteration.')
   parser.add_argument('--alpha', type=float, default=1.0, help='Factor in front matrix A.')
   parser.add_argument('--alpha_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) alpha')
   parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true',
