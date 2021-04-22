@@ -147,7 +147,7 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
   for i in range(its):
     # it_num_dev = test_seeds[i] #seed to choose the test set
     # development_seed = 1684992425
-    it_num_dev = 123456789 #1684992425 #test_seeds[i] #seed to choose the test set
+    it_num_dev = 1684992425 #123456789 #1684992425 #test_seeds[i] #seed to choose the test set
 
     it_seed = val_seeds[i] # seed to choose the train/val nodes from the development set
     dataset.data = set_train_val_test_split(seed=it_seed, data=dataset.data,
@@ -416,7 +416,7 @@ if __name__ == "__main__":
   parser.add_argument('--optimizer', type=str, default='adam', help='One from sgd, rmsprop, adam, adagrad, adamax.')
   parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
   parser.add_argument('--decay', type=float, default=5e-4, help='Weight decay for optimization')
-  parser.add_argument('--epoch', type=int, default=50, help='Number of training epochs per iteration.')
+  parser.add_argument('--epoch', type=int, default=100, help='Number of training epochs per iteration.')
   parser.add_argument('--alpha', type=float, default=1.0, help='Factor in front matrix A.')
   parser.add_argument('--alpha_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) alpha')
   parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true',
