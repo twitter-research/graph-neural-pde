@@ -253,7 +253,7 @@ def main(opt):
   edges_stats = rewiring_test("G0", edge_index0, "G0", edge_index0, n)
   train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
   sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil\
-  = rewiring_main(opt, dataset, model_type="GCN", its=2)#100)
+  = rewiring_main(opt, dataset, model_type="GCN", its=100)
 
   results[0] = edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
                 + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil]
@@ -291,7 +291,7 @@ def main(opt):
     dataset.data = sparsified_data
     train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
     sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil \
-    = rewiring_main(opt, dataset, model_type="GCN",its=2)#100)
+    = rewiring_main(opt, dataset, model_type="GCN",its=100)
 
     # edges_stats = rewiring_test("GDENSE", edge_index_dense, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
     # results[2+2*i] = edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
