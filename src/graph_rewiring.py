@@ -51,7 +51,7 @@ def apply_gdc(data, opt, type="combined"):
     sparse_args = dict(method='threshold', eps=opt['gdc_threshold'])
     diff_args['eps'] = opt['gdc_threshold']
   print('gdc sparse args: {}'.format(sparse_args))
-  if opt['self_loop_weight']:
+  if opt['self_loop_weight'] != 0:
       gdc = GDC(float(opt['self_loop_weight']), normalization_in='sym',
                 normalization_out='col',
                 diffusion_kwargs=diff_args,
