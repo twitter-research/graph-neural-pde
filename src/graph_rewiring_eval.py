@@ -13,7 +13,7 @@ from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, r
 from utils import get_rw_adj
 from data import get_dataset, set_train_val_test_split
 from graph_rewiring import get_two_hop, apply_gdc, GDC, dirichlet_energy
-from run_GNN import print_model_params, get_optimizer, test_OGB, test, train
+from run_GNN import print_model_params, get_optimizer, test_OGB, test, train, get_cora_opt
 from GNN import GNN
 from GNN_GCN import GCN
 from DIGL_data import PPRDataset, set_train_val_test_split as DIGL_set_train_val_test_split #HeatDataset
@@ -184,6 +184,7 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
     dataset.data = set_train_val_test_split(seed=it_seed, data=dataset.data,
                                             development_seed=it_num_dev, ).to(device)
     if model_type == "GRAND":
+      opt = get_cora_opt(opt)
       model = GNN(opt, dataset, device).to(device)
       data = dataset.data.to(device)
       print(opt)
@@ -204,7 +205,8 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
         print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, best_val_acc, test_acc))
         print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
     elif model_type == "GCN":
-      model = GCN(opt, dataset).to(device)
+      opt = get_cora_GCN_opt(opt)
+      model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['input_dropout']).to(device)
       if opt['reweight_attention'] == False:
         dataset.data.edge_attr = torch.ones(dataset.data.edge_index.size(1))
       data = dataset.data.to(device)
@@ -256,6 +258,17 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
          res_train_acc.std().detach().item(), res_best_val_acc.std().detach().item(), res_test_acc.std().detach().item(), \
          res_T0_dirichlet.std().detach().item(), res_TN_dirichlet.std().detach().item(), res_pred_homophil.std().detach().item(), res_label_homophil.std().detach().item()
 
+def get_cora_GCN_opt(opt):
+  opt['dataset'] = 'Cora'
+  opt['data'] = 'Planetoid'
+  opt['input_dropout'] = 0.5
+  opt['optimizer'] = 'adam'
+  opt['lr'] = 0.01
+  opt['decay'] = 0.09604826107599472 #0.05931537406301254
+  opt['hidden_dim'] = 64
+
+  return opt
+
 
 def main(opt):
   results = {}
@@ -271,11 +284,10 @@ def main(opt):
   opt['exact'] = True
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
-  opt['decay'] = 0.05931537406301254 #0.09604826107599472
   ks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
   rw_atts = [True, False]
   model_types = ['GCN', 'GRAND']
-  its = 100 #2
+  its = 1#00 #2
 
   pd_idx = 0
   for rw_att in rw_atts:
@@ -329,7 +341,7 @@ def main(opt):
 
         print('overall change..')
         edges_stats = rewiring_test("G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
-        results[3+2*i] = [model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
+        results[pd_idx] = [model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
                     + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil]
 
         print('node test')
@@ -338,7 +350,6 @@ def main(opt):
 
         node_results_df_k = rewiring_node_test(rw_att, model_type, "G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'c')
         node_results_df_col = node_results_df_col.append(node_results_df_k)
-
 
   df =  pd.DataFrame.from_dict(results, orient='index',
   columns = ['model_type', 'rw_att', 'name0', 'name1', 'orig_edges', 'final_edges', 'orig_removed', 'orig_retained', 'added',
@@ -366,7 +377,7 @@ def test_DIGL_data(opt):
   opt['exact'] = True
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
-  # opt['gdc_k'] = 10
+  opt['ppr_alpha'] = 0.05
 
   # ppr:
   # hidden_layers: 1
