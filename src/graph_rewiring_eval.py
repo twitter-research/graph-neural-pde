@@ -41,7 +41,7 @@ def rewiring_train(model, optimizer, data):
     # mask = torch.rand(data.train_index.shape) < mask_rate
     # train_pred_idx = data.train_idx[mask]
     train_pred_idx = data.train_mask
-
+  print("forward")
   out = model(feat)
   if model.opt['dataset'] == 'ogbn-arxiv':
     lf = torch.nn.functional.nll_loss
@@ -51,7 +51,7 @@ def rewiring_train(model, optimizer, data):
     loss = torch.nn.functional.nll_loss(out[data.train_mask], data.y.squeeze()[data.train_mask])
     # lf = torch.nn.CrossEntropyLoss()
     # loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
-
+  print("backward")
   loss.backward()
   optimizer.step()
   return loss.item()
