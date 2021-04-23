@@ -268,7 +268,7 @@ def get_cora_opt(opt):
 
   opt['dataset'] = 'Cora'
   opt['data'] = 'Planetoid'
-  opt['hidden_dim'] = 16
+  opt['hidden_dim'] = 32
   opt['input_dropout'] = 0.5
   opt['dropout'] = 0
   opt['optimizer'] = 'rmsprop'
