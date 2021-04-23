@@ -319,17 +319,18 @@ def main(opt):
   opt['exact'] = True
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
-  ks = [1, 2, 4, 8, 16]#, 32]#, 64] #, 128] #, 256]
+  ks = [16]# [1, 2, 4, 8, 16]#, 32]#, 64] #, 128] #, 256]
 
   #experiment args
   rw_atts = [True, False]
   model_types = ['GCN', 'GRAND']
-  make_symm = [True, False]
-  ms = True
+  make_symms = [True, False]
+  make_symm = False
   its = 20 #2
 
   pd_idx = -1
   for rw_att in rw_atts:
+    print(f"rw_att {rw_att}")
     for model_type in model_types:
       pd_idx += 1
       opt['reweight_attention'] = rw_att
@@ -357,6 +358,7 @@ def main(opt):
 
       # print('sparsify..')
       for i,k in enumerate(ks):
+        print(f"gdc_k {k}")
         opt['gdc_k'] = k
         pd_idx += 1
         #reset to dense
@@ -372,7 +374,7 @@ def main(opt):
 
         dataset.data = sparsified_data
 
-        if ms:
+        if make_symm:
           dataset.data.edge_index, dataset.data.edge_attr = make_symmetric(dataset.data)
 
         train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
