@@ -89,6 +89,9 @@ def make_symmetric(data):
     else:
         ei = to_undirected(data.edge_index)
         ew = None
+
+    ei, ew = get_rw_adj(ei, edge_weight=ew, norm_dim=1, fill_value=0., num_nodes=n)
+
     return ei, ew
 
 def dirichlet_energy(edge_index, edge_weight, n, X):
