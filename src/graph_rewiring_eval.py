@@ -12,7 +12,7 @@ from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, r
 # from torch_geometric.transforms import GDC
 from utils import get_rw_adj
 from data import get_dataset, set_train_val_test_split
-from graph_rewiring import get_two_hop, apply_gdc, GDC, dirichlet_energy
+from graph_rewiring import get_two_hop, apply_gdc, GDC, dirichlet_energy, make_symmetric
 from run_GNN import print_model_params, get_optimizer, test_OGB, test, train
 from GNN import GNN
 from GNN_GCN import GCN
@@ -265,11 +265,12 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
 
 
 def get_cora_opt(opt):
-  #todo need to make this faster using EUler / tol or MALI
+  opt['block'] = 'attention'
+  opt['transformer'] = 'constant'
 
   # opt['tol_scale'] = 1.0 #help='multiplier for atol and rtol'
   opt['method'] = 'rk4'
-  opt['step_size'] = 0.5
+  opt['step_size'] = 0.25
 
   opt['dataset'] = 'Cora'
   opt['data'] = 'Planetoid'
@@ -314,12 +315,17 @@ def main(opt):
   edge_index0 = dataset.data.edge_index.detach().clone()
   print(f"edge_index0 contains_self_loops: {contains_self_loops(edge_index0)}")
 
+  #DIGL args
   opt['exact'] = True
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
   ks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+
+  #experiment args
   rw_atts = [True, False]
   model_types = ['GCN', 'GRAND']
+  make_symm = [True, False]
+  ms = True
   its = 20 #2
 
   pd_idx = -1
@@ -365,6 +371,10 @@ def main(opt):
         sparsified_data = apply_gdc(dataset.data, opt, type = 'combined')
 
         dataset.data = sparsified_data
+
+        if ms:
+          dataset.data.edge_index, dataset.data.edge_attr = make_symmetric(dataset.data)
+
         train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
         sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time\
         = rewiring_main(opt, dataset, model_type=model_type,its=its)
@@ -393,11 +403,11 @@ def main(opt):
               'sd_train_acc', 'sd_best_val_acc', 'sd_test_acc',
               'sd_T0_dirichlet', 'sd_TN_dirichlet', 'sd_pred_homophil','sd_label_homophil','time'])
   print(df)
-  df.to_csv('../results/rewiring.csv')
+  df.to_csv('../results/rewiring_sym.csv')
   print(node_results_df_row)
-  node_results_df_row.to_csv('../results/rewiring_node_row.csv')
+  node_results_df_row.to_csv('../results/rewiring_node_row_sym.csv')
   print(node_results_df_col)
-  node_results_df_col.to_csv('../results/rewiring_node_col.csv')
+  node_results_df_col.to_csv('../results/rewiring_node_col_sym.csv')
 
 
 def test_DIGL_data(opt):

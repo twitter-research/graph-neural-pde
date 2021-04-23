@@ -15,7 +15,8 @@ import torch
 import numba
 import numpy as np
 from scipy.linalg import expm
-from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, remove_self_loops, dense_to_sparse
+from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, \
+    remove_self_loops, dense_to_sparse, to_undirected
 from torch_sparse import coalesce
 from torch_scatter import scatter_add
 
@@ -75,8 +76,22 @@ def apply_gdc(data, opt, type="combined"):
   print('following rewiring data contains {} edges and {} nodes'.format(data.num_edges, data.num_nodes))
   return data
 
+
+def make_symmetric(data):
+    n = data.num_nodes
+    if data.edge_attr is not None:
+        A = torch.sparse_coo_tensor(data.edge_index, data.edge_attr, (n, n)).coalesce()
+        AT_ei, AT_ew = torch_sparse.transpose(data.edge_index, data.edge_attr, n, n)
+        AT = torch.sparse_coo_tensor(AT_ei, AT_ew, (n, n)).coalesce()
+        A_sym = (0.5 * A + 0.5 * AT).coalesce()
+        ei = A_sym.indices()
+        ew = A_sym.values()
+    else:
+        ei = to_undirected(data.edge_index)
+        ew = None
+    return ei, ew
+
 def dirichlet_energy(edge_index, edge_weight, n, X):
-    #todo this becomes a dxd matrix not a scalar
     if edge_weight is None:
         edge_weight = torch.ones(edge_index.size(1),
                                  device=edge_index.device)
@@ -84,7 +99,7 @@ def dirichlet_energy(edge_index, edge_weight, n, X):
     return X.T @ de
 
 
-#editted PyGeo source code
+#Editted PyGeo source code
 class GDC(object):
     r"""Processes the graph via Graph Diffusion Convolution (GDC) from the
     `"Diffusion Improves Graph Learning" <https://www.kdd.in.tum.de/gdc>`_
