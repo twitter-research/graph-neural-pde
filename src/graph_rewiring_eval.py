@@ -319,7 +319,7 @@ def main(opt):
   opt['exact'] = True
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
-  ks = [32] #[1, 2, 4, 8, 16, 32] #, 64] #, 128] #, 256]
+  ks = [1, 2, 4, 8, 16, 32, 64] #, 128] #, 256]
 
   #experiment args
   rw_atts = [True, False]
