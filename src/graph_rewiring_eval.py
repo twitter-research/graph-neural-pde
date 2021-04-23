@@ -260,6 +260,9 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
 
 
 def get_cora_opt(opt):
+  #todo need to make this faster using EUler / tol or MALI
+  opt['tol_scale'] = 1.0 #help='multiplier for atol and rtol'
+
   opt['dataset'] = 'Cora'
   opt['data'] = 'Planetoid'
   opt['hidden_dim'] = 16
@@ -278,7 +281,6 @@ def get_cora_opt(opt):
   opt['augment'] = True
   opt['attention_dropout'] = 0
   opt['adjoint'] = False
-  opt['ode'] = 'ode'
   return opt
 
 def get_cora_GCN_opt(opt):

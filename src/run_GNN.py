@@ -26,6 +26,19 @@ def get_cora_opt(opt):
   opt['attention_dropout'] = 0
   opt['adjoint'] = False
   opt['ode'] = 'ode'
+
+  # opt['block'] = 'constant'
+  # opt['function'] = 'transformer'
+
+  # opt['block'] = 'constant'
+  # opt['function'] = 'laplacian'
+
+  opt['block'] = 'attention'
+  opt['function'] = 'laplacian'
+
+  opt['heads'] = 4
+  opt['attention_dim'] = 64
+
   return opt
 
 
@@ -238,7 +251,7 @@ if __name__ == '__main__':
   parser.add_argument('--optimizer', type=str, default='adam', help='One from sgd, rmsprop, adam, adagrad, adamax.')
   parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
   parser.add_argument('--decay', type=float, default=5e-4, help='Weight decay for optimization')
-  parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')
+  parser.add_argument('--epoch', type=int, default=100, help='Number of training epochs per iteration.')
   parser.add_argument('--alpha', type=float, default=1.0, help='Factor in front matrix A.')
   parser.add_argument('--alpha_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) alpha')
   parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true',
