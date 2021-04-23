@@ -164,7 +164,6 @@ def rewiring_node_test(rw_att, model_type, name0, edge_index0, name1, edge_index
 #todo
 # Check robustness to noise
 # put fully connected layer at the end to check for bottleneck
-@torch.no_grad()
 def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   res_train_acc = []
@@ -289,7 +288,10 @@ def get_cora_opt(opt):
   opt['epoch'] = 50
 
   opt['attention_dropout'] = 0
-  opt['adjoint'] = False
+  opt['adjoint'] = True
+  opt['adjoint_method'] = 'rk4'
+  opt['adjoint_step_size'] = 0.25
+
   return opt
 
 def get_cora_GCN_opt(opt):
@@ -319,7 +321,7 @@ def main(opt):
   opt['exact'] = True
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
-  ks = [16]# [1, 2, 4, 8, 16]#, 32]#, 64] #, 128] #, 256]
+  ks = [1, 2, 4, 8, 16, 32]#, 64] #, 128] #, 256]
 
   #experiment args
   rw_atts = [True, False]
