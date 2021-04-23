@@ -22,22 +22,10 @@ def get_cora_opt(opt):
   opt['num_class'] = 7
   opt['num_nodes'] = 2708
   opt['epoch'] = 50
-  opt['augment'] = True
+  # opt['augment'] = True
   opt['attention_dropout'] = 0
   opt['adjoint'] = False
-  opt['ode'] = 'ode'
-
-  # opt['block'] = 'constant'
-  # opt['function'] = 'transformer'
-
-  # opt['block'] = 'constant'
-  # opt['function'] = 'laplacian'
-
-  opt['block'] = 'attention'
-  opt['function'] = 'laplacian'
-
-  opt['heads'] = 4
-  opt['attention_dim'] = 64
+  # opt['ode'] = 'ode'
 
   return opt
 

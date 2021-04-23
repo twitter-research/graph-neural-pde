@@ -261,7 +261,10 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
 
 def get_cora_opt(opt):
   #todo need to make this faster using EUler / tol or MALI
-  opt['tol_scale'] = 1.0 #help='multiplier for atol and rtol'
+
+  # opt['tol_scale'] = 1.0 #help='multiplier for atol and rtol'
+  opt['method'] = 'rk4'
+  opt['step_size'] = 0.5
 
   opt['dataset'] = 'Cora'
   opt['data'] = 'Planetoid'
@@ -278,7 +281,7 @@ def get_cora_opt(opt):
   opt['num_class'] = 7
   opt['num_nodes'] = 2708
   opt['epoch'] = 50
-  opt['augment'] = True
+
   opt['attention_dropout'] = 0
   opt['adjoint'] = False
   return opt
@@ -312,11 +315,12 @@ def main(opt):
   ks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
   rw_atts = [True, False]
   model_types = ['GCN', 'GRAND']
-  its = 20 #2
+  its = 2 #0 #2
 
-  pd_idx = 0
+  pd_idx = -1
   for rw_att in rw_atts:
     for model_type in model_types:
+      pd_idx += 1
       opt['reweight_attention'] = rw_att
 
       edges_stats = rewiring_test("G0", edge_index0, "G0", edge_index0, n)
