@@ -164,7 +164,7 @@ def rewiring_node_test(rw_att, model_type, name0, edge_index0, name1, edge_index
 #todo
 # Check robustness to noise
 # put fully connected layer at the end to check for bottleneck
-@torch.no_grad
+@torch.no_grad()
 def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   res_train_acc = []
