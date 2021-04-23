@@ -325,7 +325,7 @@ def main(opt):
   rw_atts = [True, False]
   model_types = ['GRAND']#['GCN', 'GRAND']
   make_symms = [True, False]
-  make_symm = False
+  make_symm = True
   its = 20 #2
 
   pd_idx = -1
