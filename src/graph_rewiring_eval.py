@@ -299,7 +299,7 @@ def get_cora_GCN_opt(opt):
   opt['optimizer'] = 'adam'
   opt['lr'] = 0.01
   opt['decay'] = 0.09604826107599472 #0.05931537406301254
-  opt['hidden_dim'] = 64
+  opt['hidden_dim'] = 32#64
 
   return opt
 
@@ -319,14 +319,14 @@ def main(opt):
   opt['exact'] = True
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
-  ks = [1, 2, 4, 8, 16, 32] #, 64] #, 128] #, 256]
+  ks = [32] #[1, 2, 4, 8, 16, 32] #, 64] #, 128] #, 256]
 
   #experiment args
   rw_atts = [True, False]
   model_types = ['GCN', 'GRAND']
   make_symm = [True, False]
   ms = True
-  its = 20 #2
+  its = 2#0 #2
 
   pd_idx = -1
   for rw_att in rw_atts:
