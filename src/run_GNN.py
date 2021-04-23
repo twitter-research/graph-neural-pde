@@ -104,7 +104,7 @@ def train(model, optimizer, data):
     #
     # train_pred_idx = data.train_idx[mask]
     train_pred_idx = data.train_mask
-  print("froward")
+  # print("froward")
   out = model(feat)
   if model.opt['dataset'] == 'ogbn-arxiv':
     lf = torch.nn.functional.nll_loss
@@ -124,7 +124,7 @@ def train(model, optimizer, data):
   model.fm.update(model.getNFE())
   model.resetNFE()
   # F.nll_loss(out[data.train_mask], data.y[data.train_mask]).backward()
-  print("brackward")
+  # print("brackward")
   loss.backward()
   optimizer.step()
   model.bm.update(model.getNFE())
