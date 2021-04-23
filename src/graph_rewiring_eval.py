@@ -323,7 +323,7 @@ def main(opt):
 
   #experiment args
   rw_atts = [True, False]
-  model_types = ['GCN', 'GRAND']
+  model_types = ['GRAND']#['GCN', 'GRAND']
   make_symms = [True, False]
   make_symm = False
   its = 20 #2
