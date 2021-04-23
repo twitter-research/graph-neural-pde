@@ -17,7 +17,6 @@ def get_cora_opt(opt):
   opt['decay'] = 5e-4
   opt['self_loop_weight'] = 0.555
   opt['alpha'] = 0.918
-  opt['epoch'] = 400
   opt['time'] = 12.1
   opt['num_feature'] = 1433
   opt['num_class'] = 7

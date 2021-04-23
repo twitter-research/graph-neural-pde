@@ -13,7 +13,7 @@ from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, r
 from utils import get_rw_adj
 from data import get_dataset, set_train_val_test_split
 from graph_rewiring import get_two_hop, apply_gdc, GDC, dirichlet_energy
-from run_GNN import print_model_params, get_optimizer, test_OGB, test, train, get_cora_opt
+from run_GNN import print_model_params, get_optimizer, test_OGB, test, train
 from GNN import GNN
 from GNN_GCN import GCN
 from DIGL_data import PPRDataset, set_train_val_test_split as DIGL_set_train_val_test_split #HeatDataset
@@ -258,6 +258,29 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
          res_train_acc.std().detach().item(), res_best_val_acc.std().detach().item(), res_test_acc.std().detach().item(), \
          res_T0_dirichlet.std().detach().item(), res_TN_dirichlet.std().detach().item(), res_pred_homophil.std().detach().item(), res_label_homophil.std().detach().item()
 
+
+def get_cora_opt(opt):
+  opt['dataset'] = 'Cora'
+  opt['data'] = 'Planetoid'
+  opt['hidden_dim'] = 16
+  opt['input_dropout'] = 0.5
+  opt['dropout'] = 0
+  opt['optimizer'] = 'rmsprop'
+  opt['lr'] = 0.0047
+  opt['decay'] = 5e-4
+  opt['self_loop_weight'] = 0.555
+  opt['alpha'] = 0.918
+  opt['time'] = 12.1
+  opt['num_feature'] = 1433
+  opt['num_class'] = 7
+  opt['num_nodes'] = 2708
+  opt['epoch'] = 50
+  opt['augment'] = True
+  opt['attention_dropout'] = 0
+  opt['adjoint'] = False
+  opt['ode'] = 'ode'
+  return opt
+
 def get_cora_GCN_opt(opt):
   opt['dataset'] = 'Cora'
   opt['data'] = 'Planetoid'
@@ -287,7 +310,7 @@ def main(opt):
   ks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
   rw_atts = [True, False]
   model_types = ['GCN', 'GRAND']
-  its = 1#00 #2
+  its = 20 #2
 
   pd_idx = 0
   for rw_att in rw_atts:
