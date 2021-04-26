@@ -7,6 +7,7 @@ import numpy as np
 # import jax as jnp
 import pandas as pd
 import torch
+import torch.nn.functional as F
 from torch_geometric.transforms.two_hop import TwoHop
 from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, remove_self_loops, contains_self_loops, homophily_ratio
 # from torch_geometric.transforms import GDC
@@ -161,6 +162,31 @@ def rewiring_node_test(rw_att, model_type, name0, edge_index0, name1, edge_index
                                           'orig_removed':np.mean, 'orig_retained':np.mean, 'added':np.mean})
   return node_df_pivot
 
+
+def train_GRAND(dataset, opt):
+  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+  model = GNN(opt, dataset, device).to(device)
+  data = dataset.data.to(device)
+  print(opt)
+  parameters = [p for p in model.parameters() if p.requires_grad]
+  print_model_params(model)
+  optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
+  best_val_acc = test_acc = train_acc = best_epoch = 0
+  test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+  for epoch in range(1, opt['epoch']):
+    start_time = time.time()
+    loss = train(model, optimizer, data)
+    train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
+    if val_acc > best_val_acc:
+      best_val_acc = val_acc
+      test_acc = tmp_test_acc
+      best_epoch = epoch
+    log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+    print(
+      log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, best_val_acc, test_acc))
+    print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
+  return model
+
 #todo
 # Check robustness to noise
 # put fully connected layer at the end to check for bottleneck
@@ -180,10 +206,10 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
     it_num_dev = test_seeds[i] #seed to choose the test set
     # development_seed = 1684992425
     # it_num_dev = 1684992425 #123456789 #1684992425 # #seed to choose the test set
-
     it_seed = val_seeds[i] # seed to choose the train/val nodes from the development set
     dataset.data = set_train_val_test_split(seed=it_seed, data=dataset.data,
                                             development_seed=it_num_dev, ).to(device)
+
     if model_type == "GRAND":
       opt = get_cora_opt(opt)
       model = GNN(opt, dataset, device).to(device)
@@ -265,11 +291,12 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
 
 def get_cora_opt(opt):
   opt['block'] = 'attention'
-  opt['transformer'] = 'constant'
+  opt['function'] = 'laplacian'
 
   # opt['tol_scale'] = 1.0 #help='multiplier for atol and rtol'
-  opt['method'] = 'rk4'
-  opt['step_size'] = 0.25
+
+  # opt['method'] = 'rk4'
+  # opt['step_size'] = 0.25
 
   opt['dataset'] = 'Cora'
   opt['data'] = 'Planetoid'
@@ -322,13 +349,25 @@ def main(opt):
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
   ks = [1, 2, 4, 8, 16, 32]#, 64] #, 128] #, 256]
+  opt['attention_rewiring'] = True
+  opt['block'] = 'attention'
+  opt['function'] = 'laplacian'
+
 
   #experiment args
-  rw_atts = [True, False]
-  model_types = ['GRAND']#['GCN', 'GRAND']
-  make_symms = [True, False]
-  make_symm = True
-  its = 20 #2
+  rw_atts = [True, False] #reweight attention ie use DIGL weights
+  model_types = ['GRAND'] #['GCN', 'GRAND']
+  make_symms = [True, False] #S_hat = 0.5*(A+A.T)
+  make_symm = False #True
+  its = 2#0 #2
+
+  if opt['attention_rewiring']:
+    GRAND0 = train_GRAND(dataset, opt)
+    x = dataset.data.x
+    x = GRAND0.m1(x)
+    x = x + GRAND0.m11(F.relu(x))
+    x = x + GRAND0.m12(F.relu(x))
+    G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone()
 
   pd_idx = -1
   for rw_att in rw_atts:
@@ -345,35 +384,19 @@ def main(opt):
       results[pd_idx] = [model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
                     + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time]
 
-      # print('densify..')
-      # densified_data = apply_gdc(dataset.data, opt, type = 'densify')
-      # edge_index_dense = densified_data.edge_index.detach().clone()
-      #
-      # edges_stats = rewiring_test("G0", edge_index0, "G_DENSE", edge_index_dense, n)
-      # dataset.data = densified_data
-      # train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
-      # sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time \
-      # = rewiring_main(opt, dataset, model_type="GCN", its=2)
-      #
-      # results[1] = edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
-      #               + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time]
-
-      # print('sparsify..')
       for i,k in enumerate(ks):
         print(f"gdc_k {k}")
         opt['gdc_k'] = k
         pd_idx += 1
-        #reset to dense
-        # dataset.data.edge_index = edge_index_dense
-        # dataset.data.edge_attr = torch.ones(edge_index_dense.size(1),
-        #                              device=edge_index_dense.device)
-        # sparsified_data = apply_gdc(dataset.data, opt, type = 'sparsify')
 
         dataset.data.edge_index = edge_index0
         dataset.data.edge_attr = torch.ones(edge_index0.size(1),
                                      device=edge_index0.device)
-        sparsified_data = apply_gdc(dataset.data, opt, type = 'combined')
 
+        if opt['attention_rewiring']:
+          dataset.data.edge_attr = G0_attention
+
+        sparsified_data = apply_gdc(dataset.data, opt, type = 'combined')
         dataset.data = sparsified_data
 
         if make_symm:
@@ -382,10 +405,6 @@ def main(opt):
         train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
         sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time\
         = rewiring_main(opt, dataset, model_type=model_type,its=its)
-
-        # edges_stats = rewiring_test("GDENSE", edge_index_dense, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
-        # results[2+2*i] = edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
-        #             + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time]
 
         print('overall change..')
         edges_stats = rewiring_test("G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
@@ -485,7 +504,6 @@ def test_DIGL_data(opt):
 
   print(df)
   df.to_csv('../results/rewiring_PPR.csv')
-
 
 
 if __name__ == "__main__":
@@ -589,6 +607,7 @@ if __name__ == "__main__":
   parser.add_argument('--threshold_type', type=str, default="addD_rvR", help="topk_adj, addD_rvR")
   parser.add_argument('--rw_addD', type=float, default=0.02, help="percentage of new edges to add")
   parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
+  parser.add_argument('--attention_rewiring', action='store_true', help='perform DIGL using precalcualted GRAND attention')
 
 
   args = parser.parse_args()
