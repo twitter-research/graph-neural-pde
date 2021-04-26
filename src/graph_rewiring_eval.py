@@ -348,7 +348,7 @@ def main(opt):
   opt['exact'] = True
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
-  ks = [1, 2, 4, 8, 16, 32]#, 64] #, 128] #, 256]
+  ks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
   opt['attention_rewiring'] = True
   opt['block'] = 'attention'
   opt['function'] = 'laplacian'
