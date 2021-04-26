@@ -368,7 +368,7 @@ def main(opt):
     x = GRAND0.m1(x)
     x = x + GRAND0.m11(F.relu(x))
     x = x + GRAND0.m12(F.relu(x))
-    G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone().to(device)
+    G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone()
 
   pd_idx = -1
   for rw_att in rw_atts:
@@ -377,25 +377,25 @@ def main(opt):
       pd_idx += 1
       opt['reweight_attention'] = rw_att
 
-      edges_stats = rewiring_test("G0", edge_index0, "G0", edge_index0, n)
-      train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
-      sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time\
-      = rewiring_main(opt, dataset, model_type=model_type, its=its)
-
-      results[pd_idx] = [model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
-                    + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time]
+      # edges_stats = rewiring_test("G0", edge_index0, "G0", edge_index0, n)
+      # train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
+      # sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time\
+      # = rewiring_main(opt, dataset, model_type=model_type, its=its)
+      #
+      # results[pd_idx] = [model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
+      #               + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time]
 
       for i,k in enumerate(ks):
         print(f"gdc_k {k}")
         opt['gdc_k'] = k
         pd_idx += 1
 
-        dataset.data.edge_index = edge_index0
+        dataset.data.edge_index = edge_index0.to(device)
         dataset.data.edge_attr = torch.ones(edge_index0.size(1),
                                      device=edge_index0.device)
 
         if opt['attention_rewiring']:
-          dataset.data.edge_attr = G0_attention
+          dataset.data.edge_attr = G0_attention.to(device)
 
         sparsified_data = apply_gdc(dataset.data, opt, type = 'combined')
         dataset.data = sparsified_data
