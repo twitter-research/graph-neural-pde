@@ -404,6 +404,7 @@ def main(opt):
         dataset.data.edge_attr = torch.ones(edge_index0.size(1),device=edge_index0.device)
         if opt['attention_rewiring']:
           dataset.data.edge_attr = G0_attention.to(device)
+        dataset.data.to(device)
         sparsified_data = apply_gdc(dataset.data, opt, type = 'combined')
         dataset.data = sparsified_data
 
