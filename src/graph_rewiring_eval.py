@@ -374,10 +374,10 @@ def main(opt):
   if opt['beltrami']:
     #update model dimensions
     # opt['attention_type'] = "exp_kernel"
-    opt['hidden_dim'] = opt['hidden_dim']
+    # opt['hidden_dim'] = opt['hidden_dim']
     #get positional encoding and concat with features
     pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
-    dataset.data.x.to(device)
+    dataset.data.to(device)
     dataset.data.x = torch.cat([dataset.data.x, pos_encoding],dim=1).to(device)
 
   pd_idx = -1
