@@ -334,6 +334,7 @@ def get_cora_GCN_opt(opt):
 
 
 def main(opt):
+  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   results = {}
   node_results_df_row = pd.DataFrame()
   node_results_df_col = pd.DataFrame()
@@ -367,7 +368,7 @@ def main(opt):
     x = GRAND0.m1(x)
     x = x + GRAND0.m11(F.relu(x))
     x = x + GRAND0.m12(F.relu(x))
-    G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone()
+    G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone().to(device)
 
   pd_idx = -1
   for rw_att in rw_atts:
