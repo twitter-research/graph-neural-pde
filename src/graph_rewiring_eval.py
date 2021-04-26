@@ -376,8 +376,8 @@ def main(opt):
     # opt['attention_type'] = "exp_kernel"
     opt['hidden_dim'] = opt['hidden_dim']
     #get positional encoding and concat with features
-    pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding')
-    dataset.data.x = torch.cat([dataset.data.x, pos_encoding],dim=1)
+    pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
+    dataset.data.x = torch.cat([dataset.data.x, pos_encoding],dim=1).to(device)
 
   pd_idx = -1
   for rw_att in rw_atts:
@@ -400,12 +400,9 @@ def main(opt):
         pd_idx += 1
 
         dataset.data.edge_index = edge_index0.to(device)
-        dataset.data.edge_attr = torch.ones(edge_index0.size(1),
-                                     device=edge_index0.device)
-
+        dataset.data.edge_attr = torch.ones(edge_index0.size(1),device=edge_index0.device)
         if opt['attention_rewiring']:
           dataset.data.edge_attr = G0_attention.to(device)
-
         sparsified_data = apply_gdc(dataset.data, opt, type = 'combined')
         dataset.data = sparsified_data
 
