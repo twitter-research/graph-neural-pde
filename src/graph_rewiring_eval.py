@@ -426,11 +426,11 @@ def main(opt):
               'sd_train_acc', 'sd_best_val_acc', 'sd_test_acc',
               'sd_T0_dirichlet', 'sd_TN_dirichlet', 'sd_pred_homophil','sd_label_homophil','time'])
   print(df)
-  df.to_csv('../results/rewiring_sym.csv')
+  df.to_csv('../results/rewiring_attRW.csv')
   print(node_results_df_row)
-  node_results_df_row.to_csv('../results/rewiring_node_row_sym.csv')
+  node_results_df_row.to_csv('../results/rewiring_node_row_attRW.csv')
   print(node_results_df_col)
-  node_results_df_col.to_csv('../results/rewiring_node_col_sym.csv')
+  node_results_df_col.to_csv('../results/rewiring_node_col_attRW.csv')
 
 
 def test_DIGL_data(opt):
