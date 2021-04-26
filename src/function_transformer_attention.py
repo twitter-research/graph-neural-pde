@@ -125,7 +125,54 @@ class SpGraphTransAttentionLayer(nn.Module):
 
     src = q[edge[0, :], :, :]
     dst_k = k[edge[1, :], :, :]
-    prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
+    # prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
+    if self.opt['attention_type'] == "scaled_dot":
+      prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
+    elif self.opt['attention_type'] == "exp_kernel":
+      #todo WRONG don't use keys and queries
+      #need to split the metric
+      prods = self.output_var**2 * torch.exp(-(src - dst_k)**2/(2*self.lengthscale**2))
+    elif self.opt['attention_type'] == "cosine_sim":
+      cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
+      prods = cos(src, dst_k)
+    elif self.opt['attention_type'] == "cosine_power":
+      if torch.__version__ == '1.6.0':
+        prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.norm(src,p=2,dim=1)+1e-5, self.src_pow)
+                                               *torch.pow(torch.norm(dst_k,p=2,dim=1)+1e-5, self.dst_pow))
+      else:
+        prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.linalg.norm(src, ord=2, dim=1) + 1e-5, self.src_pow)
+                                                *torch.pow(torch.linalg.norm(dst_k,ord=2,dim=1)+1e-5, self.dst_pow))
+    elif self.opt['attention_type'] == "pearson":
+      src_mu = torch.mean(src, dim=1, keepdim=True)
+      dst_mu = torch.mean(dst_k, dim=1, keepdim=True)
+      src = src - src_mu
+      dst_k = dst_k - dst_mu
+      cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
+      prods = cos(src, dst_k)
+    elif self.opt['attention_type'] == "rank_pearson":
+      src_mu = torch.mean(src, dim=1, keepdim=True)
+      dst_mu = torch.mean(dst_k, dim=1, keepdim=True)
+      src = src - src_mu
+      dst_k = dst_k - dst_mu
+
+      src = src.transpose(1, 2)
+      dst_k = dst_k.transpose(1, 2)
+
+      src = src.view(-1, self.d_k)
+      dst_k = dst_k.view(-1, self.d_k)
+
+      src = soft_rank(src, regularization_strength=1.0)
+      dst_k = soft_rank(dst_k, regularization_strength=1.0)
+
+      src = src.view(-1, self.h, self.d_k)
+      dst_k = dst_k.view(-1, self.h, self.d_k)
+
+      src = src.transpose(1, 2)
+      dst_k = dst_k.transpose(1, 2)
+
+      cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
+      prods = cos(src, dst_k)
+
     if self.opt['reweight_attention'] and self.edge_weights is not None:
       prods = prods * self.edge_weights.unsqueeze(dim=1)
     attention = softmax(prods, edge[self.opt['attention_norm_idx']])

@@ -350,7 +350,8 @@ def main(opt):
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
   ks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
-  opt['attention_rewiring'] = True
+  opt['attention_rewiring'] = False #True
+  opt['beltrami'] = True
   opt['block'] = 'attention'
   opt['function'] = 'laplacian'
 
@@ -370,6 +371,14 @@ def main(opt):
     x = x + GRAND0.m12(F.relu(x))
     G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone()
 
+  if opt['beltrami']:
+    #update model dimensions
+    # opt['attention_type'] = "exp_kernel"
+    opt['hidden_dim'] = opt['hidden_dim']
+    #get positional encoding and concat with features
+    pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding')
+    dataset.data.x = torch.cat([dataset.data.x, pos_encoding],dim=1)
+
   pd_idx = -1
   for rw_att in rw_atts:
     print(f"rw_att {rw_att}")
@@ -377,13 +386,13 @@ def main(opt):
       pd_idx += 1
       opt['reweight_attention'] = rw_att
 
-      # edges_stats = rewiring_test("G0", edge_index0, "G0", edge_index0, n)
-      # train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
-      # sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time\
-      # = rewiring_main(opt, dataset, model_type=model_type, its=its)
-      #
-      # results[pd_idx] = [model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
-      #               + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time]
+      edges_stats = rewiring_test("G0", edge_index0, "G0", edge_index0, n)
+      train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
+      sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time\
+      = rewiring_main(opt, dataset, model_type=model_type, its=its)
+
+      results[pd_idx] = [model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
+                    + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time]
 
       for i,k in enumerate(ks):
         print(f"gdc_k {k}")
@@ -427,11 +436,11 @@ def main(opt):
               'sd_train_acc', 'sd_best_val_acc', 'sd_test_acc',
               'sd_T0_dirichlet', 'sd_TN_dirichlet', 'sd_pred_homophil','sd_label_homophil','time'])
   print(df)
-  df.to_csv('../results/rewiring_attRW.csv')
+  df.to_csv('../results/rewiring_beltrami.csv')#_attRW.csv')
   print(node_results_df_row)
-  node_results_df_row.to_csv('../results/rewiring_node_row_attRW.csv')
+  node_results_df_row.to_csv('../results/rewiring_node_row_beltrami.csv')#attRW.csv')
   print(node_results_df_col)
-  node_results_df_col.to_csv('../results/rewiring_node_col_attRW.csv')
+  node_results_df_col.to_csv('../results/rewiring_node_col_beltrami.csv')#_attRW.csv')
 
 
 def test_DIGL_data(opt):
@@ -609,7 +618,9 @@ if __name__ == "__main__":
   parser.add_argument('--rw_addD', type=float, default=0.02, help="percentage of new edges to add")
   parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
   parser.add_argument('--attention_rewiring', action='store_true', help='perform DIGL using precalcualted GRAND attention')
-
+  parser.add_argument('--attention_type', type=str, default="scaled_dot",
+                      help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
+  parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
 
   args = parser.parse_args()
   opt = vars(args)

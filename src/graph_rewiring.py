@@ -72,6 +72,8 @@ def apply_gdc(data, opt, type="combined"):
     data = gdc.densify(data)
   elif type == 'sparsify':
     data = gdc.sparsify(data)
+  elif type == 'position_encoding':
+    return gdc.position_encoding(data)
 
   print('following rewiring data contains {} edges and {} nodes'.format(data.num_edges, data.num_nodes))
   return data
@@ -299,7 +301,45 @@ class GDC(object):
 
       return data
 
+    def position_encoding(self, data):
+      N = data.num_nodes
+      edge_index = data.edge_index
+      if data.edge_attr is None:
+        edge_weight = torch.ones(edge_index.size(1),
+                                 device=edge_index.device)
+      else:
+        edge_weight = data.edge_attr
+        assert self.exact
+        assert edge_weight.dim() == 1
 
+      if self.self_loop_weight:
+        edge_index, edge_weight = add_self_loops(
+          edge_index, edge_weight, fill_value=self.self_loop_weight,
+          num_nodes=N)
+
+      edge_index, edge_weight = coalesce(edge_index, edge_weight, N, N)
+
+      if self.exact:
+        edge_index, edge_weight = self.transition_matrix(
+          edge_index, edge_weight, N, self.normalization_in)
+        diff_mat = self.diffusion_matrix_exact(edge_index, edge_weight, N,
+                                               **self.diffusion_kwargs)
+        edge_index, edge_weight = dense_to_sparse(diff_mat)
+        # edge_index, edge_weight = self.sparsify_dense(
+        #   diff_mat, **self.sparsification_kwargs)
+      else:
+        edge_index, edge_weight = self.diffusion_matrix_approx(
+          edge_index, edge_weight, N, self.normalization_in,
+          **self.diffusion_kwargs)
+        # edge_index, edge_weight = self.sparsify_sparse(
+        #   edge_index, edge_weight, N, **self.sparsification_kwargs)
+
+      edge_index, edge_weight = coalesce(edge_index, edge_weight, N, N)
+      edge_index, edge_weight = self.transition_matrix(
+        edge_index, edge_weight, N, self.normalization_out)
+
+      return to_dense_adj(edge_index,
+                   edge_attr=edge_weight).squeeze()
 
     def transition_matrix(self, edge_index, edge_weight, num_nodes,
                           normalization):
