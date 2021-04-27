@@ -277,7 +277,7 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
       res_pred_homophil.append(torch.tensor([pred_homophil]))
       res_label_homophil.append(torch.tensor([label_homophil]))
       res_time.append(torch.tensor([time.time() - it_start]))
-      epochs.append[torch.tensor([epoch])]
+      epochs.append(torch.tensor([epoch]))
       succesful_its += 1
     except:
       print("Iteration had an error - probably cuda..")
