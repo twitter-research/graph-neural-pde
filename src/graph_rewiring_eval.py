@@ -42,7 +42,6 @@ def rewiring_train(model, optimizer, data):
     # mask = torch.rand(data.train_index.shape) < mask_rate
     # train_pred_idx = data.train_idx[mask]
     train_pred_idx = data.train_mask
-  print("forward")
   out = model(feat)
   if model.opt['dataset'] == 'ogbn-arxiv':
     lf = torch.nn.functional.nll_loss
@@ -52,7 +51,6 @@ def rewiring_train(model, optimizer, data):
     loss = torch.nn.functional.nll_loss(out[data.train_mask], data.y.squeeze()[data.train_mask])
     # lf = torch.nn.CrossEntropyLoss()
     # loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
-  print("backward")
   loss.backward()
   optimizer.step()
   return loss.item()
@@ -190,7 +188,7 @@ def train_GRAND(dataset, opt):
 #todo
 # Check robustness to noise
 # put fully connected layer at the end to check for bottleneck
-def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
+def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   res_train_acc = []
   res_best_val_acc = []
@@ -203,11 +201,14 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
 
   for i in range(its):
     it_start = time.time()
-    it_num_dev = test_seeds[i] #seed to choose the test set
-    # development_seed = 1684992425
-    # it_num_dev = 1684992425 #123456789 #1684992425 # #seed to choose the test set
-    it_seed = val_seeds[i] # seed to choose the train/val nodes from the development set
-    dataset.data = set_train_val_test_split(seed=it_seed, data=dataset.data,
+    if fixed_seed: #seed to choose the test set
+      development_seed = 1684992425 #123456789
+      it_num_dev = development_seed
+    else:
+      it_num_dev = test_seeds[i]
+
+    train_val_seed = val_seeds[i] # seed to choose the train/val nodes from the development set
+    dataset.data = set_train_val_test_split(seed=train_val_seed, data=dataset.data,
                                             development_seed=it_num_dev, ).to(device)
 
     if model_type == "GRAND":
@@ -232,7 +233,7 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2):#10):
         print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, best_val_acc, test_acc))
         print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
     elif model_type == "GCN":
-      opt = get_cora_GCN_opt(opt)
+      opt = get_GCN_opt(opt)
       model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['input_dropout']).to(device)
       if opt['reweight_attention'] == False:
         dataset.data.edge_attr = torch.ones(dataset.data.edge_index.size(1))
@@ -294,7 +295,6 @@ def get_cora_opt(opt):
   opt['function'] = 'laplacian'
 
   # opt['tol_scale'] = 1.0 #help='multiplier for atol and rtol'
-
   # opt['method'] = 'rk4'
   # opt['step_size'] = 0.25
 
@@ -321,15 +321,19 @@ def get_cora_opt(opt):
 
   return opt
 
-def get_cora_GCN_opt(opt):
-  opt['dataset'] = 'Cora'
+def get_GCN_opt(opt):
   opt['data'] = 'Planetoid'
   opt['input_dropout'] = 0.5
   opt['optimizer'] = 'adam'
   opt['lr'] = 0.01
-  opt['decay'] = 0.09604826107599472 #0.05931537406301254
-  opt['hidden_dim'] = 32#64
+  opt['hidden_dim'] = 64
 
+  if opt['dataset'] == 'Cora':
+    opt['decay'] = 0.05931537406301254 #0.09604826107599472 #
+  elif opt['dataset'] == 'Citeseer':
+    opt['decay'] = 10.0
+  elif opt['dataset'] == 'Pubmed':
+    opt['decay'] = 0.03
   return opt
 
 
@@ -339,107 +343,114 @@ def main(opt):
   node_results_df_row = pd.DataFrame()
   node_results_df_col = pd.DataFrame()
 
-  opt['self_loop_weight'] = 0
-  dataset = get_dataset(opt, '../data', use_lcc=True)
-  n = dataset.data.num_nodes
-  edge_index0 = dataset.data.edge_index.detach().clone()
-  print(f"edge_index0 contains_self_loops: {contains_self_loops(edge_index0)}")
-
   #DIGL args
   opt['exact'] = True
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
+  opt['ppr_alpha'] = 0.05
   ks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+
+  #experiment args
+  opt['self_loop_weight'] = 0
   opt['attention_rewiring'] = False #True
-  opt['beltrami'] = True
   opt['block'] = 'attention'
   opt['function'] = 'laplacian'
 
-
-  #experiment args
-  rw_atts = [True, False] #reweight attention ie use DIGL weights
-  model_types = ['GRAND'] #['GCN', 'GRAND']
-  make_symms = [True, False] #S_hat = 0.5*(A+A.T)
+  opt['beltrami'] = False #True
+  opt['use_lcc'] = True
+  datasets = ['Cora', 'Citeseer', 'Pubmed']
+  rw_atts = [True] #[False] #[True, False] #reweight attention ie use DIGL weights
+  model_types = ['GCN'] #['GCN', 'GRAND']
+  # make_symms = [True, False] #S_hat = 0.5*(A+A.T)
   make_symm = False #True
-  its = 2#0 #2
+  its = 2 #100 #2
+  fixed_seed = True
 
-  if opt['attention_rewiring']:
-    GRAND0 = train_GRAND(dataset, opt)
-    x = dataset.data.x
-    x = GRAND0.m1(x)
-    x = x + GRAND0.m11(F.relu(x))
-    x = x + GRAND0.m12(F.relu(x))
-    G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone()
+  for d in datasets:
+    opt['dataset'] = d
+    dataset = get_dataset(opt, '../data', use_lcc=True)
+    n = dataset.data.num_nodes
+    edge_index0 = dataset.data.edge_index.detach().clone()
+    print(f"edge_index0 contains_self_loops: {contains_self_loops(edge_index0)}")
 
-  if opt['beltrami']:
-    #update model dimensions
-    # opt['attention_type'] = "exp_kernel"
-    # opt['hidden_dim'] = opt['hidden_dim']
-    #get positional encoding and concat with features
-    pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
-    dataset.data.to(device)
-    dataset.data.x = torch.cat([dataset.data.x, pos_encoding],dim=1).to(device)
+    if opt['attention_rewiring']:
+      GRAND0 = train_GRAND(dataset, opt)
+      x = dataset.data.x
+      x = GRAND0.m1(x)
+      x = x + GRAND0.m11(F.relu(x))
+      x = x + GRAND0.m12(F.relu(x))
+      G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone()
 
-  pd_idx = -1
-  for rw_att in rw_atts:
-    print(f"rw_att {rw_att}")
-    for model_type in model_types:
-      pd_idx += 1
-      opt['reweight_attention'] = rw_att
+    if opt['beltrami']:
+      #update model dimensions
+      # opt['attention_type'] = "exp_kernel"
+      opt['hidden_dim'] = opt['hidden_dim'] + opt['pos_enc_hidden_dim']
+      #get positional encoding and concat with features
+      pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
+      dataset.data.to(device)
+      dataset.data.x = torch.cat([dataset.data.x, pos_encoding],dim=1).to(device)
 
-      edges_stats = rewiring_test("G0", edge_index0, "G0", edge_index0, n)
-      train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
-      sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time\
-      = rewiring_main(opt, dataset, model_type=model_type, its=its)
-
-      results[pd_idx] = [model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
-                    + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time]
-
-      for i,k in enumerate(ks):
-        print(f"gdc_k {k}")
-        opt['gdc_k'] = k
+    pd_idx = -1
+    for rw_att in rw_atts:
+      print(f"rw_att {rw_att}")
+      for model_type in model_types:
         pd_idx += 1
+        opt['reweight_attention'] = rw_att
 
-        dataset.data.edge_index = edge_index0.to(device)
-        dataset.data.edge_attr = torch.ones(edge_index0.size(1),device=edge_index0.device)
-        if opt['attention_rewiring']:
-          dataset.data.edge_attr = G0_attention.to(device)
-        dataset.data.to(device)
-        sparsified_data = apply_gdc(dataset.data, opt, type = 'combined')
-        dataset.data = sparsified_data
-
-        if make_symm:
-          dataset.data.edge_index, dataset.data.edge_attr = make_symmetric(dataset.data)
-
+        edges_stats = rewiring_test("G0", edge_index0, "G0", edge_index0, n)
         train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
         sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time\
-        = rewiring_main(opt, dataset, model_type=model_type,its=its)
+        = rewiring_main(opt, dataset, model_type=model_type, its=its, fixed_seed=fixed_seed)
 
-        print('overall change..')
-        edges_stats = rewiring_test("G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
         results[pd_idx] = [model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
-                    + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time]
+                      + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time]
 
-        print('node test')
-        node_results_df_k = rewiring_node_test(rw_att, model_type, "G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'r')
-        node_results_df_row = node_results_df_row.append(node_results_df_k)
+        for i,k in enumerate(ks):
+          print(f"gdc_k {k}")
+          opt['gdc_k'] = k
+          pd_idx += 1
 
-        node_results_df_k = rewiring_node_test(rw_att, model_type, "G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'c')
-        node_results_df_col = node_results_df_col.append(node_results_df_k)
+          dataset.data.edge_index = edge_index0.to(device)
+          dataset.data.edge_attr = torch.ones(edge_index0.size(1),device=edge_index0.device)
+          if opt['attention_rewiring']:
+            dataset.data.edge_attr = G0_attention.to(device)
+          dataset.data.to(device)
+          sparsified_data = apply_gdc(dataset.data, opt, type = 'combined')
+          dataset.data = sparsified_data
 
-  df =  pd.DataFrame.from_dict(results, orient='index',
-  columns = ['model_type', 'rw_att', 'name0', 'name1', 'orig_edges', 'final_edges', 'orig_removed', 'orig_retained', 'added',
-              'pc_change', 'pc_removed', 'pc_retained', 'pc_added', 'edges/nodes',
-              'train_acc', 'best_val_acc', 'test_acc',
-              'T0_dirichlet', 'TN_av_dirichlet', 'pred_homophil', 'label_homophil',
-              'sd_train_acc', 'sd_best_val_acc', 'sd_test_acc',
-              'sd_T0_dirichlet', 'sd_TN_dirichlet', 'sd_pred_homophil','sd_label_homophil','time'])
-  print(df)
-  df.to_csv('../results/rewiring_beltrami.csv')#_attRW.csv')
-  print(node_results_df_row)
-  node_results_df_row.to_csv('../results/rewiring_node_row_beltrami.csv')#attRW.csv')
-  print(node_results_df_col)
-  node_results_df_col.to_csv('../results/rewiring_node_col_beltrami.csv')#_attRW.csv')
+          if make_symm:
+            dataset.data.edge_index, dataset.data.edge_attr = make_symmetric(dataset.data)
+
+          train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
+          sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time\
+          = rewiring_main(opt, dataset, model_type=model_type,its=its, fixed_seed=fixed_seed)
+
+          print('overall change..')
+          edges_stats = rewiring_test("G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
+          results[pd_idx] = [model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
+                      + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time]
+
+          print('node test')
+          node_results_df_k = rewiring_node_test(rw_att, model_type, "G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'r')
+          node_results_df_row = node_results_df_row.append(node_results_df_k)
+
+          node_results_df_k = rewiring_node_test(rw_att, model_type, "G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'c')
+          node_results_df_col = node_results_df_col.append(node_results_df_k)
+
+    df =  pd.DataFrame.from_dict(results, orient='index',
+    columns = ['model_type', 'rw_att', 'name0', 'name1', 'orig_edges', 'final_edges', 'orig_removed', 'orig_retained', 'added',
+                'pc_change', 'pc_removed', 'pc_retained', 'pc_added', 'edges/nodes',
+                'train_acc', 'best_val_acc', 'test_acc',
+                'T0_dirichlet', 'TN_av_dirichlet', 'pred_homophil', 'label_homophil',
+                'sd_train_acc', 'sd_best_val_acc', 'sd_test_acc',
+                'sd_T0_dirichlet', 'sd_TN_dirichlet', 'sd_pred_homophil','sd_label_homophil','time'])
+    print(df)
+    suffix = '' #'_suffix'
+    df.to_csv(f"../results/{d}/rewiring{suffix}.csv")#_attRW.csv')
+    print(node_results_df_row)
+    node_results_df_row.to_csv(f"../results/{d}/rewiring_node_row{suffix}.csv")#attRW.csv')
+    print(node_results_df_col)
+    node_results_df_col.to_csv(f"../results/{d}/rewiring_node_col{suffix}.csv")#_attRW.csv')
 
 
 def test_DIGL_data(opt):
@@ -537,7 +548,7 @@ if __name__ == "__main__":
   parser.add_argument('--optimizer', type=str, default='adam', help='One from sgd, rmsprop, adam, adagrad, adamax.')
   parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
   parser.add_argument('--decay', type=float, default=5e-4, help='Weight decay for optimization')
-  parser.add_argument('--epoch', type=int, default=50, help='Number of training epochs per iteration.')
+  parser.add_argument('--epoch', type=int, default=100, help='Number of training epochs per iteration.')
   parser.add_argument('--alpha', type=float, default=1.0, help='Factor in front matrix A.')
   parser.add_argument('--alpha_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) alpha')
   parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true',
