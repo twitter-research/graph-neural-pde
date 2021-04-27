@@ -300,6 +300,7 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
     res_pred_homophil = torch.cat(res_pred_homophil)
     res_label_homophil = torch.cat(res_label_homophil)
     res_time = torch.cat(res_time)
+    epochs = torch.cat(epochs)
 
   return res_train_acc.mean().detach().item(), res_best_val_acc.mean().detach().item(), res_test_acc.mean().detach().item(), \
          res_T0_dirichlet.mean().detach().item(), res_TN_dirichlet.mean().detach().item(), res_pred_homophil.mean().detach().item(), res_label_homophil.mean().detach().item(), \
@@ -384,7 +385,7 @@ def main(opt):
   opt['make_symm'] = False #True
   its = 50
   fixed_seed = False #True
-  suffix = 'varySeed'
+  suffix = 'varySeed1'
 
   for d in datasets:
     opt['dataset'] = d
