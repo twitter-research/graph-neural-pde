@@ -363,7 +363,7 @@ def main(opt):
   model_types = ['GCN'] #['GCN', 'GRAND']
   # make_symms = [True, False] #S_hat = 0.5*(A+A.T)
   make_symm = False #True
-  its = 2 #100 #2
+  its = 100 #100 #2
   fixed_seed = True
 
   for d in datasets:
