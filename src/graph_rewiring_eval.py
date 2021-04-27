@@ -328,7 +328,7 @@ def get_cora_opt(opt):
   opt['lr'] = 0.0151
   opt['decay'] = 0.089 #5e-4
 
-  opt['self_loop_weight'] = 1.0 # 0.555
+  opt['self_loop_weight'] = 0.0 # 1.0 # 0.555 0 not optimal
   opt['alpha_dim'] = 'sc'
   # opt['alpha'] = 0.918
   opt['time'] = 27.0
