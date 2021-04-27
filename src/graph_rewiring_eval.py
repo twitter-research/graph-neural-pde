@@ -185,9 +185,7 @@ def train_GRAND(dataset, opt):
     print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
   return model
 
-#todo
-# Check robustness to noise
-# put fully connected layer at the end to check for bottleneck
+
 def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   res_train_acc = []
@@ -221,19 +219,8 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
         parameters = [p for p in model.parameters() if p.requires_grad]
         print_model_params(model)
         optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-        best_val_acc = test_acc = train_acc = best_epoch = 0
-        test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
-        for epoch in range(1, opt['epoch']):
-          start_time = time.time()
-          loss = train(model, optimizer, data)
-          train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
-          if val_acc > best_val_acc:
-            best_val_acc = val_acc
-            test_acc = tmp_test_acc
-            best_epoch = epoch
-          log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-          print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, best_val_acc, test_acc))
-          print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
+        train_fn = train
+
       elif model_type == "GCN":
         opt = get_GCN_opt(opt)
         model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['input_dropout']).to(device)
@@ -244,20 +231,23 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
         parameters = [p for p in model.parameters() if p.requires_grad]
         print_model_params(model)
         optimizer = rewiring_get_optimizer('adam', model, opt['lr'], opt['decay'])
-        best_val_acc = test_acc = train_acc = best_epoch = 0
-        test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
-        for epoch in range(1, opt['epoch']):
-          start_time = time.time()
-          loss = rewiring_train(model, optimizer, data)
-          train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
+        train_fn = rewiring_train
 
-          if val_acc > best_val_acc:
-            best_val_acc = val_acc
-            test_acc = tmp_test_acc
-            best_epoch = epoch
-          log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-          print(log.format(epoch, time.time() - start_time, loss, train_acc, best_val_acc, test_acc))
-          print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
+      best_val_acc = test_acc = train_acc = best_epoch = 0
+      test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+
+      for epoch in range(1, opt['epoch']):
+        start_time = time.time()
+        loss = train_fn(model, optimizer, data)
+        train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
+
+        if val_acc > best_val_acc:
+          best_val_acc = val_acc
+          test_acc = tmp_test_acc
+          best_epoch = epoch
+        log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+        print(log.format(epoch, time.time() - start_time, loss, train_acc, best_val_acc, test_acc))
+        print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
 
 
       T0_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, dataset.data.x)))
@@ -307,6 +297,7 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
 
 
 def get_cora_opt(opt):
+  #todo add tuned grand params
   opt['block'] = 'attention'
   opt['function'] = 'laplacian'
 
@@ -371,16 +362,16 @@ def main(opt):
   opt['attention_rewiring'] = False #True
   opt['block'] = 'attention'
   opt['function'] = 'laplacian'
-
   opt['beltrami'] = False #True
   opt['use_lcc'] = True
-  datasets = ['Cora', 'Citeseer', 'Pubmed']
-  rw_atts = [True] #[False] #[True, False] #reweight attention ie use DIGL weights
+  datasets = ['Cora', 'Citeseer']#, 'Pubmed']
+  rw_atts = [True] #[True, False] #reweight attention ie use DIGL weights
   model_types = ['GCN'] #['GCN', 'GRAND']
   # make_symms = [True, False] #S_hat = 0.5*(A+A.T)
-  make_symm = False #True
-  its = 20 #100 #2
+  opt['make_symm'] = False #True
+  its = 50
   fixed_seed = True
+  suffix = '_fixedSeed'
 
   for d in datasets:
     opt['dataset'] = d
@@ -434,14 +425,14 @@ def main(opt):
           sparsified_data = apply_gdc(dataset.data, opt, type = 'combined')
           dataset.data = sparsified_data
 
-          if make_symm:
+          if opt['make_symm']:
             dataset.data.edge_index, dataset.data.edge_attr = make_symmetric(dataset.data)
 
           train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
           sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its\
           = rewiring_main(opt, dataset, model_type=model_type,its=its, fixed_seed=fixed_seed)
 
-          print('overall change..')
+          print('results..')
           edges_stats = rewiring_test("G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
           results[pd_idx] = [model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
                       + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its]
@@ -461,85 +452,11 @@ def main(opt):
                 'sd_train_acc', 'sd_best_val_acc', 'sd_test_acc',
                 'sd_T0_dirichlet', 'sd_TN_dirichlet', 'sd_pred_homophil','sd_label_homophil','time', 'successful_its'])
     print(df)
-    suffix = '_fixedSeed' #'_suffix'
-    df.to_csv(f"../results/{d}/rewiring{suffix}.csv")#_attRW.csv')
+    df.to_csv(f"../results/{d}/rewiring{suffix}.csv")
     print(node_results_df_row)
-    node_results_df_row.to_csv(f"../results/{d}/rewiring_node_row{suffix}.csv")#attRW.csv')
+    node_results_df_row.to_csv(f"../results/{d}/rewiring_node_row{suffix}.csv")
     print(node_results_df_col)
-    node_results_df_col.to_csv(f"../results/{d}/rewiring_node_col{suffix}.csv")#_attRW.csv')
-
-
-def test_DIGL_data(opt):
-  results = {}
-  opt['self_loop_weight'] = None
-  dataset = get_dataset(opt, '../data', use_lcc=True)
-  n = dataset.data.num_nodes
-  edge_index0 = dataset.data.edge_index.detach().clone()
-  print(f"edge_index0 contains_self_loops: {contains_self_loops(edge_index0)}")
-
-  opt['exact'] = True
-  opt['gdc_sparsification'] = 'topk' #'threshold'
-  opt['gdc_threshold'] = 0.01
-  opt['ppr_alpha'] = 0.05
-
-  # ppr:
-  # hidden_layers: 1
-  # hidden_units: 64
-  # lr: 0.01
-  # dropout: 0.5
-  # weight_decay: 0.09604826107599472
-  opt['decay'] = 0.09604826107599472 #
-  # alpha: 0.05
-  # k: 128
-  # eps:
-  opt['use_lcc'] = True
-
-  # PPR_dataset = PPRDataset(
-  #           name=opt['dataset'],
-  #           use_lcc=opt['use_lcc'],
-  #           alpha=opt['ppr_alpha'],
-  #           k=opt['gdc_k'],
-  #           eps=opt['gdc_threshold'])#'eps'])
-  #or
-  PPR_dataset = get_dataset(opt, '../data', use_lcc=True)
-  PPR_dataset.data = apply_gdc(dataset.data, opt, type='combined')
-
-  edge_indexPPR = PPR_dataset.data.edge_index
-  seed = 12345 #1684992425
-  num_development = 1500
-  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  # PPR_dataset.data = set_train_val_test_split(
-  #     seed,
-  #     dataset.data,
-  #     num_development=num_development,
-  #   ).to(device)
-
-  edges_stats = rewiring_test("G0", edge_index0, "PPR", edge_indexPPR, n)
-  train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
-  sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil\
-  = rewiring_main(opt, dataset, model_type="GCN")
-
-  results[0] = edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
-                + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil]
-
-
-  train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
-  sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil\
-  = rewiring_main(opt, PPR_dataset, model_type="GCN")
-
-  results[1] = edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
-                + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil]
-
-  df =  pd.DataFrame.from_dict(results, orient='index',
-  columns = ['name0', 'name1', 'orig_edges', 'final_edges', 'orig_removed', 'orig_retained', 'added',
-              'pc_change', 'pc_removed', 'pc_retained', 'pc_added', 'edges/nodes',
-              'train_acc', 'best_val_acc', 'test_acc',
-              'T0_dirichlet', 'TN_av_dirichlet', 'pred_homophil', 'label_homophil',
-              'sd_train_acc', 'sd_best_val_acc', 'sd_test_acc',
-              'sd_T0_dirichlet', 'sd_TN_dirichlet', 'sd_pred_homophil','sd_label_homophil'])
-
-  print(df)
-  df.to_csv('../results/rewiring_PPR.csv')
+    node_results_df_col.to_csv(f"../results/{d}/rewiring_node_col{suffix}.csv")
 
 
 if __name__ == "__main__":
