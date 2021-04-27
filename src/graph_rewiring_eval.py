@@ -364,7 +364,7 @@ def main(opt):
   opt['function'] = 'laplacian'
   opt['beltrami'] = False #True
   opt['use_lcc'] = True
-  datasets = ['Cora', 'Citeseer']#, 'Pubmed']
+  datasets = ['Citeseer'] #['Cora', 'Citeseer']#, 'Pubmed']
   reweight_atts = [True] #[True, False] #reweight attention ie use DIGL weights
   model_types = ['GCN'] #['GCN', 'GRAND']
   # make_symms = [True, False] #S_hat = 0.5*(A+A.T)
@@ -419,6 +419,7 @@ def main(opt):
 
           dataset.data.edge_index = edge_index0.to(device)
           dataset.data.edge_attr = torch.ones(edge_index0.size(1),device=edge_index0.device)
+
           if opt['attention_rewiring']:
             dataset.data.edge_attr = G0_attention.to(device)
           dataset.data.to(device)
@@ -457,8 +458,8 @@ def main(opt):
     node_results_df_row.to_csv(f"../results/{d}/rewiring_node_row{suffix}.csv")
     print(node_results_df_col)
     node_results_df_col.to_csv(f"../results/{d}/rewiring_node_col{suffix}.csv")
-    opt_df = pd.DataFrame.from_dict(opt)
-    opt_df.to_csv(f"../results/{d}/opt{suffix}.csv")
+    # opt_df = pd.DataFrame.from_dict(opt)
+    # opt_df.to_csv(f"../results/{d}/opt{suffix}.csv")
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
