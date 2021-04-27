@@ -196,6 +196,7 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
   res_pred_homophil = []
   res_label_homophil = []
   res_time = []
+  epochs = []
 
   succesful_its = 0
   for i in range(its):
@@ -236,7 +237,12 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
       best_val_acc = test_acc = train_acc = best_epoch = 0
       test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
 
-      for epoch in range(1, opt['epoch']):
+      # for epoch in range(1, opt['epoch']):
+      patience_counter = 0
+      for epoch in range(1, opt['max_epochs']):
+        if patience_counter == opt['patience']:
+          break
+
         start_time = time.time()
         loss = train_fn(model, optimizer, data)
         train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
@@ -245,6 +251,10 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
           best_val_acc = val_acc
           test_acc = tmp_test_acc
           best_epoch = epoch
+          patience_counter = 0
+        else:
+          patience_counter += 1
+
         log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
         print(log.format(epoch, time.time() - start_time, loss, train_acc, best_val_acc, test_acc))
         print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
@@ -266,6 +276,7 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
       res_pred_homophil.append(torch.tensor([pred_homophil]))
       res_label_homophil.append(torch.tensor([label_homophil]))
       res_time.append(torch.tensor([time.time() - it_start]))
+      epochs.append[torch.tensor([epoch])]
       succesful_its += 1
     except:
       print("Iteration had an error - probably cuda..")
@@ -293,7 +304,7 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
          res_T0_dirichlet.mean().detach().item(), res_TN_dirichlet.mean().detach().item(), res_pred_homophil.mean().detach().item(), res_label_homophil.mean().detach().item(), \
          res_train_acc.std().detach().item(), res_best_val_acc.std().detach().item(), res_test_acc.std().detach().item(), \
          res_T0_dirichlet.std().detach().item(), res_TN_dirichlet.std().detach().item(), res_pred_homophil.std().detach().item(), res_label_homophil.std().detach().item(),\
-         res_time.mean().detach().item(), succesful_its
+         res_time.mean().detach().item(), succesful_its, epochs.mean().detach().item()
 
 
 def get_cora_opt(opt):
@@ -359,19 +370,19 @@ def main(opt):
 
   #experiment args
   opt['self_loop_weight'] = 0
-  opt['attention_rewiring'] = False #True
   opt['block'] = 'attention'
   opt['function'] = 'laplacian'
   opt['beltrami'] = False #True
   opt['use_lcc'] = True
-  datasets = ['Citeseer'] #['Cora', 'Citeseer']#, 'Pubmed']
-  reweight_atts = [True] #[True, False] #reweight attention ie use DIGL weights
-  model_types = ['GCN'] #['GCN', 'GRAND']
+  datasets = ['Cora', 'Citeseer'] #['Cora', 'Citeseer']#, 'Pubmed']
+  reweight_atts = [True, False] #reweight attention ie use DIGL weights
+  model_types = ['GCN', 'GRAND']
+  att_rewirings = [True, False]
   # make_symms = [True, False] #S_hat = 0.5*(A+A.T)
   opt['make_symm'] = False #True
   its = 50
   fixed_seed = False #True
-  suffix = '_varySeed'
+  suffix = 'varySeed'
 
   for d in datasets:
     opt['dataset'] = d
@@ -379,85 +390,87 @@ def main(opt):
     n = dataset.data.num_nodes
     edge_index0 = dataset.data.edge_index.detach().clone()
     print(f"edge_index0 contains_self_loops: {contains_self_loops(edge_index0)}")
-
-    if opt['attention_rewiring']:
-      GRAND0 = train_GRAND(dataset, opt)
-      x = dataset.data.x
-      x = GRAND0.m1(x)
-      x = x + GRAND0.m11(F.relu(x))
-      x = x + GRAND0.m12(F.relu(x))
-      G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone()
-
-    if opt['beltrami']:
-      #update model dimensions
-      # opt['attention_type'] = "exp_kernel"
-      opt['hidden_dim'] = opt['hidden_dim'] + opt['pos_enc_hidden_dim']
-      #get positional encoding and concat with features
-      pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
-      dataset.data.to(device)
-      dataset.data.x = torch.cat([dataset.data.x, pos_encoding],dim=1).to(device)
-
     pd_idx = -1
-    for rw_att in reweight_atts:
-      print(f"rw_att {rw_att}")
-      for model_type in model_types:
-        pd_idx += 1
-        opt['reweight_attention'] = rw_att
+    for att_rewire in att_rewirings:
+      opt['attention_rewiring'] = att_rewire  # True
 
-        edges_stats = rewiring_test("G0", edge_index0, "G0", edge_index0, n)
-        train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
-        sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its\
-        = rewiring_main(opt, dataset, model_type=model_type, its=its, fixed_seed=fixed_seed)
+      if opt['attention_rewiring']:
+        GRAND0 = train_GRAND(dataset, opt)
+        x = dataset.data.x
+        x = GRAND0.m1(x)
+        x = x + GRAND0.m11(F.relu(x))
+        x = x + GRAND0.m12(F.relu(x))
+        G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone()
 
-        results[pd_idx] = [model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
-                      + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its]
+      if opt['beltrami']:
+        #update model dimensions
+        # opt['attention_type'] = "exp_kernel"
+        opt['hidden_dim'] = opt['hidden_dim'] + opt['pos_enc_hidden_dim']
+        #get positional encoding and concat with features
+        pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
+        dataset.data.to(device)
+        dataset.data.x = torch.cat([dataset.data.x, pos_encoding],dim=1).to(device)
 
-        for i,k in enumerate(ks):
-          print(f"gdc_k {k}")
-          opt['gdc_k'] = k
+      for rw_att in reweight_atts:
+        print(f"rw_att {rw_att}")
+        for model_type in model_types:
           pd_idx += 1
+          opt['reweight_attention'] = rw_att
 
-          dataset.data.edge_index = edge_index0.to(device)
-          dataset.data.edge_attr = torch.ones(edge_index0.size(1),device=edge_index0.device)
-
-          if opt['attention_rewiring']:
-            dataset.data.edge_attr = G0_attention.to(device)
-          dataset.data.to(device)
-          sparsified_data = apply_gdc(dataset.data, opt, type = 'combined')
-          dataset.data = sparsified_data
-
-          if opt['make_symm']:
-            dataset.data.edge_index, dataset.data.edge_attr = make_symmetric(dataset.data)
-
+          edges_stats = rewiring_test("G0", edge_index0, "G0", edge_index0, n)
           train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
-          sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its\
-          = rewiring_main(opt, dataset, model_type=model_type,its=its, fixed_seed=fixed_seed)
+          sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its, av_epochs\
+          = rewiring_main(opt, dataset, model_type=model_type, its=its, fixed_seed=fixed_seed)
 
-          print('results..')
-          edges_stats = rewiring_test("G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
-          results[pd_idx] = [model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
-                      + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its]
+          results[pd_idx] = [att_rewire, model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
+                        + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its, av_epochs]
 
-          print('node test')
-          node_results_df_k = rewiring_node_test(rw_att, model_type, "G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'r')
-          node_results_df_row = node_results_df_row.append(node_results_df_k)
+          for i,k in enumerate(ks):
+            print(f"gdc_k {k}")
+            opt['gdc_k'] = k
+            pd_idx += 1
 
-          node_results_df_k = rewiring_node_test(rw_att, model_type, "G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'c')
-          node_results_df_col = node_results_df_col.append(node_results_df_k)
+            dataset.data.edge_index = edge_index0.to(device)
+            dataset.data.edge_attr = torch.ones(edge_index0.size(1),device=edge_index0.device)
+
+            if opt['attention_rewiring']:
+              dataset.data.edge_attr = G0_attention.to(device)
+            dataset.data.to(device)
+            sparsified_data = apply_gdc(dataset.data, opt, type = 'combined')
+            dataset.data = sparsified_data
+
+            if opt['make_symm']:
+              dataset.data.edge_index, dataset.data.edge_attr = make_symmetric(dataset.data)
+
+            train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
+            sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its, av_epochs\
+            = rewiring_main(opt, dataset, model_type=model_type,its=its, fixed_seed=fixed_seed)
+
+            print('results..')
+            edges_stats = rewiring_test("G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
+            results[pd_idx] = [att_rewire, model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
+                        + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its, av_epochs]
+
+            print('node test')
+            node_results_df_k = rewiring_node_test(rw_att, model_type, "G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'r')
+            node_results_df_row = node_results_df_row.append(node_results_df_k)
+
+            node_results_df_k = rewiring_node_test(rw_att, model_type, "G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'c')
+            node_results_df_col = node_results_df_col.append(node_results_df_k)
 
     df =  pd.DataFrame.from_dict(results, orient='index',
-    columns = ['model_type', 'rw_att', 'name0', 'name1', 'orig_edges', 'final_edges', 'orig_removed', 'orig_retained', 'added',
+    columns = ['att_rewire','model_type', 'rw_att', 'name0', 'name1', 'orig_edges', 'final_edges', 'orig_removed', 'orig_retained', 'added',
                 'pc_change', 'pc_removed', 'pc_retained', 'pc_added', 'edges/nodes',
                 'train_acc', 'best_val_acc', 'test_acc',
                 'T0_dirichlet', 'TN_av_dirichlet', 'pred_homophil', 'label_homophil',
                 'sd_train_acc', 'sd_best_val_acc', 'sd_test_acc',
-                'sd_T0_dirichlet', 'sd_TN_dirichlet', 'sd_pred_homophil','sd_label_homophil','time', 'successful_its'])
+                'sd_T0_dirichlet', 'sd_TN_dirichlet', 'sd_pred_homophil','sd_label_homophil','time', 'successful_its', 'av_epochs'])
     print(df)
-    df.to_csv(f"../results/{d}/rewiring{suffix}.csv")
+    df.to_csv(f"../results/{d}/rewiring_{suffix}.csv")
     print(node_results_df_row)
-    node_results_df_row.to_csv(f"../results/{d}/rewiring_node_row{suffix}.csv")
+    node_results_df_row.to_csv(f"../results/{d}/rewiring_node_row_{suffix}.csv")
     print(node_results_df_col)
-    node_results_df_col.to_csv(f"../results/{d}/rewiring_node_col{suffix}.csv")
+    node_results_df_col.to_csv(f"../results/{d}/rewiring_node_col_{suffix}.csv")
     # opt_df = pd.DataFrame.from_dict(opt)
     # opt_df.to_csv(f"../results/{d}/opt{suffix}.csv")
 
@@ -566,6 +579,8 @@ if __name__ == "__main__":
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
+  parser.add_argument('--max_epochs', type=int, default=1000, help="max epochs to train before patience")
+  parser.add_argument('--patience', type=int, default=100, help="amount of patience for non improving val acc")
 
   args = parser.parse_args()
   opt = vars(args)
