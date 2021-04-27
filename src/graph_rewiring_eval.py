@@ -291,6 +291,7 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
     res_pred_homophil = torch.tensor([0.])
     res_label_homophil = torch.tensor([0.])
     res_time = torch.tensor([0.])
+    epochs = torch.tensor([0.])
   else:
     res_train_acc = torch.cat(res_train_acc)
     res_best_val_acc = torch.cat(res_best_val_acc)
