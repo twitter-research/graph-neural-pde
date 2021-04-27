@@ -162,6 +162,7 @@ def rewiring_node_test(rw_att, model_type, name0, edge_index0, name1, edge_index
 
 
 def train_GRAND(dataset, opt):
+  opt = get_cora_opt(opt)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   model = GNN(opt, dataset, device).to(device)
   data = dataset.data.to(device)
