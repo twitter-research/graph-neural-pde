@@ -365,12 +365,12 @@ def main(opt):
   opt['beltrami'] = False #True
   opt['use_lcc'] = True
   datasets = ['Cora', 'Citeseer']#, 'Pubmed']
-  rw_atts = [True] #[True, False] #reweight attention ie use DIGL weights
+  reweight_atts = [True] #[True, False] #reweight attention ie use DIGL weights
   model_types = ['GCN'] #['GCN', 'GRAND']
   # make_symms = [True, False] #S_hat = 0.5*(A+A.T)
   opt['make_symm'] = False #True
   its = 50
-  fixed_seed = True
+  fixed_seed = False #True
   suffix = '_fixedSeed'
 
   for d in datasets:
@@ -398,7 +398,7 @@ def main(opt):
       dataset.data.x = torch.cat([dataset.data.x, pos_encoding],dim=1).to(device)
 
     pd_idx = -1
-    for rw_att in rw_atts:
+    for rw_att in reweight_atts:
       print(f"rw_att {rw_att}")
       for model_type in model_types:
         pd_idx += 1
@@ -457,7 +457,8 @@ def main(opt):
     node_results_df_row.to_csv(f"../results/{d}/rewiring_node_row{suffix}.csv")
     print(node_results_df_col)
     node_results_df_col.to_csv(f"../results/{d}/rewiring_node_col{suffix}.csv")
-
+    opt_df = pd.DataFrame.from_dict(opt)
+    opt_df.to_csv(f"../results/{d}/opt{suffix}.csv")
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
