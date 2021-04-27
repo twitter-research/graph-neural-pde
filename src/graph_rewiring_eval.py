@@ -319,7 +319,7 @@ def get_cora_opt(opt):
 
   # opt['dataset'] = 'Cora'
   # opt['data'] = 'Planetoid'
-  # opt['hidden_dim'] = 64
+  opt['hidden_dim'] = 64
   opt['input_dropout'] = 0.5
   opt['dropout'] = 0.04
   opt['optimizer'] = 'adamax'
@@ -327,6 +327,7 @@ def get_cora_opt(opt):
   opt['decay'] = 0.089 #5e-4
 
   opt['self_loop_weight'] = 1.0 # 0.555
+  opt['alpha_dim'] = 'sc'
   # opt['alpha'] = 0.918
   opt['time'] = 27.0
   opt['num_feature'] = 1433
