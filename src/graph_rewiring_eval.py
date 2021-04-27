@@ -312,30 +312,30 @@ def get_cora_opt(opt):
   opt['block'] = 'attention'
   opt['function'] = 'laplacian'
 
-  # opt['tol_scale'] = 1.0 #help='multiplier for atol and rtol'
-  # opt['method'] = 'rk4'
+  opt['tol_scale'] = 90 #1.0 #help='multiplier for atol and rtol'
+  opt['method'] = 'dopri5'
   # opt['step_size'] = 0.25
 
-  opt['dataset'] = 'Cora'
-  opt['data'] = 'Planetoid'
-  opt['hidden_dim'] = 32
+  # opt['dataset'] = 'Cora'
+  # opt['data'] = 'Planetoid'
+  # opt['hidden_dim'] = 64
   opt['input_dropout'] = 0.5
-  opt['dropout'] = 0
-  opt['optimizer'] = 'rmsprop'
-  opt['lr'] = 0.0047
-  opt['decay'] = 5e-4
-  opt['self_loop_weight'] = 0.555
-  opt['alpha'] = 0.918
-  opt['time'] = 12.1
+  opt['dropout'] = 0.04
+  opt['optimizer'] = 'adamax'
+  opt['lr'] = 0.0151
+  opt['decay'] = 0.089 #5e-4
+
+  opt['self_loop_weight'] = 1.0 # 0.555
+  # opt['alpha'] = 0.918
+  opt['time'] = 27.0
   opt['num_feature'] = 1433
   opt['num_class'] = 7
   opt['num_nodes'] = 2708
-  opt['epoch'] = 50
+  opt['epoch'] = 200
+  # opt['attention_dropout'] = 0
+  # opt['adjoint'] = True
+  # opt['adjoint_method'] = 'rk4'
 
-  opt['attention_dropout'] = 0
-  opt['adjoint'] = True
-  opt['adjoint_method'] = 'rk4'
-  opt['adjoint_step_size'] = 0.25
 
   return opt
 
