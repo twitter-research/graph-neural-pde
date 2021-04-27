@@ -199,95 +199,111 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
   res_label_homophil = []
   res_time = []
 
+  succesful_its = 0
   for i in range(its):
-    it_start = time.time()
-    if fixed_seed: #seed to choose the test set
-      development_seed = 1684992425 #123456789
-      it_num_dev = development_seed
-    else:
-      it_num_dev = test_seeds[i]
+    try:
+      it_start = time.time()
+      if fixed_seed: #seed to choose the test set
+        development_seed = 1684992425 #123456789
+        it_num_dev = development_seed
+      else:
+        it_num_dev = test_seeds[i]
 
-    train_val_seed = val_seeds[i] # seed to choose the train/val nodes from the development set
-    dataset.data = set_train_val_test_split(seed=train_val_seed, data=dataset.data,
-                                            development_seed=it_num_dev, ).to(device)
+      train_val_seed = val_seeds[i] # seed to choose the train/val nodes from the development set
+      dataset.data = set_train_val_test_split(seed=train_val_seed, data=dataset.data,
+                                              development_seed=it_num_dev, ).to(device)
 
-    if model_type == "GRAND":
-      opt = get_cora_opt(opt)
-      model = GNN(opt, dataset, device).to(device)
-      data = dataset.data.to(device)
-      print(opt)
-      parameters = [p for p in model.parameters() if p.requires_grad]
-      print_model_params(model)
-      optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-      best_val_acc = test_acc = train_acc = best_epoch = 0
-      test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
-      for epoch in range(1, opt['epoch']):
-        start_time = time.time()
-        loss = train(model, optimizer, data)
-        train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
-        if val_acc > best_val_acc:
-          best_val_acc = val_acc
-          test_acc = tmp_test_acc
-          best_epoch = epoch
-        log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-        print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, best_val_acc, test_acc))
-        print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
-    elif model_type == "GCN":
-      opt = get_GCN_opt(opt)
-      model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['input_dropout']).to(device)
-      if opt['reweight_attention'] == False:
-        dataset.data.edge_attr = torch.ones(dataset.data.edge_index.size(1))
-      data = dataset.data.to(device)
-      print(opt)
-      parameters = [p for p in model.parameters() if p.requires_grad]
-      print_model_params(model)
-      optimizer = rewiring_get_optimizer('adam', model, opt['lr'], opt['decay'])
-      best_val_acc = test_acc = train_acc = best_epoch = 0
-      test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
-      for epoch in range(1, opt['epoch']):
-        start_time = time.time()
-        loss = rewiring_train(model, optimizer, data)
-        train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
+      if model_type == "GRAND":
+        opt = get_cora_opt(opt)
+        model = GNN(opt, dataset, device).to(device)
+        data = dataset.data.to(device)
+        print(opt)
+        parameters = [p for p in model.parameters() if p.requires_grad]
+        print_model_params(model)
+        optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
+        best_val_acc = test_acc = train_acc = best_epoch = 0
+        test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+        for epoch in range(1, opt['epoch']):
+          start_time = time.time()
+          loss = train(model, optimizer, data)
+          train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
+          if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            test_acc = tmp_test_acc
+            best_epoch = epoch
+          log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+          print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, best_val_acc, test_acc))
+          print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
+      elif model_type == "GCN":
+        opt = get_GCN_opt(opt)
+        model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['input_dropout']).to(device)
+        if opt['reweight_attention'] == False:
+          dataset.data.edge_attr = torch.ones(dataset.data.edge_index.size(1))
+        data = dataset.data.to(device)
+        print(opt)
+        parameters = [p for p in model.parameters() if p.requires_grad]
+        print_model_params(model)
+        optimizer = rewiring_get_optimizer('adam', model, opt['lr'], opt['decay'])
+        best_val_acc = test_acc = train_acc = best_epoch = 0
+        test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+        for epoch in range(1, opt['epoch']):
+          start_time = time.time()
+          loss = rewiring_train(model, optimizer, data)
+          train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
 
-        if val_acc > best_val_acc:
-          best_val_acc = val_acc
-          test_acc = tmp_test_acc
-          best_epoch = epoch
-        log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-        print(log.format(epoch, time.time() - start_time, loss, train_acc, best_val_acc, test_acc))
-        print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
+          if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            test_acc = tmp_test_acc
+            best_epoch = epoch
+          log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+          print(log.format(epoch, time.time() - start_time, loss, train_acc, best_val_acc, test_acc))
+          print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
 
-    T0_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, dataset.data.x)))
-    xN = model(dataset.data.x)
-    TN_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, xN)))
 
-    #edge homophilly ratio https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/utils/homophily.html#homophily
-    pred_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=xN.max(1)[1]) #, method='edge')
-    label_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=dataset.data.y) #, method='edge')
+      T0_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, dataset.data.x)))
+      xN = model(dataset.data.x)
+      TN_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, xN)))
 
-    res_train_acc.append(torch.tensor([train_acc]))
-    res_best_val_acc.append(torch.tensor([best_val_acc]))
-    res_test_acc.append(torch.tensor([test_acc]))
-    res_T0_dirichlet.append(T0_dirichlet.unsqueeze(0))
-    res_TN_dirichlet.append(TN_dirichlet.unsqueeze(0))
-    res_pred_homophil.append(torch.tensor([pred_homophil]))
-    res_label_homophil.append(torch.tensor([label_homophil]))
-    res_time.append(torch.tensor([time.time() - it_start]))
+      #edge homophilly ratio https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/utils/homophily.html#homophily
+      pred_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=xN.max(1)[1]) #, method='edge')
+      label_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=dataset.data.y) #, method='edge')
 
-  res_train_acc = torch.cat(res_train_acc)
-  res_best_val_acc = torch.cat(res_best_val_acc)
-  res_test_acc = torch.cat(res_test_acc)
-  res_T0_dirichlet = torch.cat(res_T0_dirichlet)
-  res_TN_dirichlet = torch.cat(res_TN_dirichlet)
-  res_pred_homophil = torch.cat(res_pred_homophil)
-  res_label_homophil = torch.cat(res_label_homophil)
-  res_time = torch.cat(res_time)
+      res_train_acc.append(torch.tensor([train_acc]))
+      res_best_val_acc.append(torch.tensor([best_val_acc]))
+      res_test_acc.append(torch.tensor([test_acc]))
+      res_T0_dirichlet.append(T0_dirichlet.unsqueeze(0))
+      res_TN_dirichlet.append(TN_dirichlet.unsqueeze(0))
+      res_pred_homophil.append(torch.tensor([pred_homophil]))
+      res_label_homophil.append(torch.tensor([label_homophil]))
+      res_time.append(torch.tensor([time.time() - it_start]))
+      succesful_its += 1
+    except:
+      print("Iteration had an error - probably cuda..")
+
+  if len(res_train_acc) == 0:
+    res_train_acc = torch.tensor([0])
+    res_best_val_acc = torch.tensor([0])
+    res_test_acc = torch.tensor([0])
+    res_T0_dirichlet = torch.tensor([0])
+    res_TN_dirichlet = torch.tensor([0])
+    res_pred_homophil = torch.tensor([0])
+    res_label_homophil = torch.tensor([0])
+    res_time = torch.tensor([0])
+  else:
+    res_train_acc = torch.cat(res_train_acc)
+    res_best_val_acc = torch.cat(res_best_val_acc)
+    res_test_acc = torch.cat(res_test_acc)
+    res_T0_dirichlet = torch.cat(res_T0_dirichlet)
+    res_TN_dirichlet = torch.cat(res_TN_dirichlet)
+    res_pred_homophil = torch.cat(res_pred_homophil)
+    res_label_homophil = torch.cat(res_label_homophil)
+    res_time = torch.cat(res_time)
 
   return res_train_acc.mean().detach().item(), res_best_val_acc.mean().detach().item(), res_test_acc.mean().detach().item(), \
          res_T0_dirichlet.mean().detach().item(), res_TN_dirichlet.mean().detach().item(), res_pred_homophil.mean().detach().item(), res_label_homophil.mean().detach().item(), \
          res_train_acc.std().detach().item(), res_best_val_acc.std().detach().item(), res_test_acc.std().detach().item(), \
          res_T0_dirichlet.std().detach().item(), res_TN_dirichlet.std().detach().item(), res_pred_homophil.std().detach().item(), res_label_homophil.std().detach().item(),\
-         res_time.mean().detach().item()
+         res_time.mean().detach().item(), succesful_its
 
 
 def get_cora_opt(opt):
@@ -399,11 +415,11 @@ def main(opt):
 
         edges_stats = rewiring_test("G0", edge_index0, "G0", edge_index0, n)
         train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
-        sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time\
+        sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its\
         = rewiring_main(opt, dataset, model_type=model_type, its=its, fixed_seed=fixed_seed)
 
         results[pd_idx] = [model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
-                      + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time]
+                      + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its]
 
         for i,k in enumerate(ks):
           print(f"gdc_k {k}")
@@ -422,13 +438,13 @@ def main(opt):
             dataset.data.edge_index, dataset.data.edge_attr = make_symmetric(dataset.data)
 
           train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
-          sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time\
+          sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its\
           = rewiring_main(opt, dataset, model_type=model_type,its=its, fixed_seed=fixed_seed)
 
           print('overall change..')
           edges_stats = rewiring_test("G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
           results[pd_idx] = [model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
-                      + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time]
+                      + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its]
 
           print('node test')
           node_results_df_k = rewiring_node_test(rw_att, model_type, "G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'r')
@@ -443,7 +459,7 @@ def main(opt):
                 'train_acc', 'best_val_acc', 'test_acc',
                 'T0_dirichlet', 'TN_av_dirichlet', 'pred_homophil', 'label_homophil',
                 'sd_train_acc', 'sd_best_val_acc', 'sd_test_acc',
-                'sd_T0_dirichlet', 'sd_TN_dirichlet', 'sd_pred_homophil','sd_label_homophil','time'])
+                'sd_T0_dirichlet', 'sd_TN_dirichlet', 'sd_pred_homophil','sd_label_homophil','time', 'successful_its'])
     print(df)
     suffix = '' #'_suffix'
     df.to_csv(f"../results/{d}/rewiring{suffix}.csv")#_attRW.csv')
