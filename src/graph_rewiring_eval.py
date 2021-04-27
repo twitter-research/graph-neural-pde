@@ -281,14 +281,14 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
       print("Iteration had an error - probably cuda..")
 
   if len(res_train_acc) == 0:
-    res_train_acc = torch.tensor([0])
-    res_best_val_acc = torch.tensor([0])
-    res_test_acc = torch.tensor([0])
-    res_T0_dirichlet = torch.tensor([0])
-    res_TN_dirichlet = torch.tensor([0])
-    res_pred_homophil = torch.tensor([0])
-    res_label_homophil = torch.tensor([0])
-    res_time = torch.tensor([0])
+    res_train_acc = torch.tensor([0.])
+    res_best_val_acc = torch.tensor([0.])
+    res_test_acc = torch.tensor([0.])
+    res_T0_dirichlet = torch.tensor([0.])
+    res_TN_dirichlet = torch.tensor([0.])
+    res_pred_homophil = torch.tensor([0.])
+    res_label_homophil = torch.tensor([0.])
+    res_time = torch.tensor([0.])
   else:
     res_train_acc = torch.cat(res_train_acc)
     res_best_val_acc = torch.cat(res_best_val_acc)
@@ -379,7 +379,7 @@ def main(opt):
   model_types = ['GCN'] #['GCN', 'GRAND']
   # make_symms = [True, False] #S_hat = 0.5*(A+A.T)
   make_symm = False #True
-  its = 100 #100 #2
+  its = 20 #100 #2
   fixed_seed = True
 
   for d in datasets:
@@ -461,7 +461,7 @@ def main(opt):
                 'sd_train_acc', 'sd_best_val_acc', 'sd_test_acc',
                 'sd_T0_dirichlet', 'sd_TN_dirichlet', 'sd_pred_homophil','sd_label_homophil','time', 'successful_its'])
     print(df)
-    suffix = '' #'_suffix'
+    suffix = '_fixedSeed' #'_suffix'
     df.to_csv(f"../results/{d}/rewiring{suffix}.csv")#_attRW.csv')
     print(node_results_df_row)
     node_results_df_row.to_csv(f"../results/{d}/rewiring_node_row{suffix}.csv")#attRW.csv')
