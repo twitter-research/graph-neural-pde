@@ -3,6 +3,7 @@ functions to generate a graph from the input graph and features
 """
 import argparse
 import time
+import json
 import numpy as np
 # import jax as jnp
 import pandas as pd
@@ -162,7 +163,7 @@ def rewiring_node_test(att_rewire, rw_att, model_type, name0, edge_index0, name1
 
 
 def train_GRAND(dataset, opt):
-  opt = get_cora_opt(opt)
+  opt = get_GRAND_opt(opt)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   model = GNN(opt, dataset, device).to(device)
   data = dataset.data.to(device)
@@ -214,7 +215,7 @@ def rewiring_main(opt, dataset, model_type, its=2, fixed_seed=True):
                                             development_seed=it_num_dev, ).to(device)
 
     if model_type == "GRAND":
-      opt = get_cora_opt(opt)
+      opt = get_GRAND_opt(opt)
       model = GNN(opt, dataset, device).to(device)
       data = dataset.data.to(device)
       print(opt)
@@ -317,8 +318,7 @@ def rewiring_main(opt, dataset, model_type, its=2, fixed_seed=True):
          res_time.mean().detach().item(), succesful_its, epochs.mean().detach().item()
 
 
-def get_cora_opt(opt):
-  #todo add tuned grand params
+def get_GRAND_opt(opt):
   opt['block'] = 'attention'
   opt['function'] = 'laplacian'
 
@@ -377,7 +377,7 @@ def main(opt):
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
   opt['ppr_alpha'] = 0.05
-  ks = [2, 64] #[1, 2, 4, 8, 16, 32, 64, 128, 256]
+  ks = [] #[1, 2, 4, 8, 16, 32, 64, 128, 256]
 
   #experiment args
   opt['self_loop_weight'] = 0
@@ -386,14 +386,14 @@ def main(opt):
   opt['beltrami'] = False #True
   opt['use_lcc'] = True
   datasets = ['Cora'] #, 'Citeseer'] #, 'Pubmed']
-  reweight_atts = [True, False] #reweight attention ie use DIGL weights
+  reweight_atts = [False] #[True, False] #reweight attention ie use DIGL weights
   model_types = ['GRAND'] #['GCN', 'GRAND']
-  att_rewirings = [True, False]
+  att_rewirings = [False] #[True, False]
   # make_symms = [True, False] #S_hat = 0.5*(A+A.T)
   opt['make_symm'] = False #True
-  its = 2#0 #50
+  its = 20 #50
   fixed_seed = False #True
-  suffix = 'varySeed1'
+  suffix = 'test GRAND'
 
   for d in datasets:
     opt['dataset'] = d
@@ -482,8 +482,9 @@ def main(opt):
     node_results_df_row.to_csv(f"../results/{d}/rewiring_node_row_{suffix}.csv")
     print(node_results_df_col)
     node_results_df_col.to_csv(f"../results/{d}/rewiring_node_col_{suffix}.csv")
-    # opt_df = pd.DataFrame.from_dict(opt)
-    # opt_df.to_csv(f"../results/{d}/opt{suffix}.csv")
+
+    with open(f"../results/{d}/opt_{suffix}.json", 'w') as fp:
+      json.dump(opt, fp)
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
