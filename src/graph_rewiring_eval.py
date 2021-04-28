@@ -201,86 +201,93 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
 
   succesful_its = 0
   for i in range(its):
-    # try:
-    it_start = time.time()
-    if fixed_seed: #seed to choose the test set
-      development_seed = 1684992425 #123456789
-      it_num_dev = development_seed
-    else:
-      it_num_dev = test_seeds[i]
-
-    train_val_seed = val_seeds[i] # seed to choose the train/val nodes from the development set
-    dataset.data = set_train_val_test_split(seed=train_val_seed, data=dataset.data,
-                                            development_seed=it_num_dev, ).to(device)
-
-    if model_type == "GRAND":
-      opt = get_cora_opt(opt)
-      model = GNN(opt, dataset, device).to(device)
-      data = dataset.data.to(device)
-      print(opt)
-      parameters = [p for p in model.parameters() if p.requires_grad]
-      print_model_params(model)
-      optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-      train_fn = train
-
-    elif model_type == "GCN":
-      opt = get_GCN_opt(opt)
-      model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['input_dropout']).to(device)
-      if opt['reweight_attention'] == False:
-        dataset.data.edge_attr = torch.ones(dataset.data.edge_index.size(1))
-      data = dataset.data.to(device)
-      print(opt)
-      parameters = [p for p in model.parameters() if p.requires_grad]
-      print_model_params(model)
-      optimizer = rewiring_get_optimizer('adam', model, opt['lr'], opt['decay'])
-      train_fn = rewiring_train
-
-    best_val_acc = test_acc = train_acc = best_epoch = 0
-    test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
-
-    # for epoch in range(1, opt['epoch']):
-    patience_counter = 0
-    for epoch in range(1, opt['max_epochs']):
-      if patience_counter == opt['patience']:
-        break
-
-      start_time = time.time()
-      loss = train_fn(model, optimizer, data)
-      train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
-
-      if val_acc > best_val_acc:
-        best_val_acc = val_acc
-        test_acc = tmp_test_acc
-        best_epoch = epoch
-        patience_counter = 0
+    try:
+      it_start = time.time()
+      if fixed_seed: #seed to choose the test set
+        development_seed = 1684992425 #123456789
+        it_num_dev = development_seed
       else:
-        patience_counter += 1
+        it_num_dev = test_seeds[i]
 
-      log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-      print(log.format(epoch, time.time() - start_time, loss, train_acc, best_val_acc, test_acc))
-      print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
+      train_val_seed = val_seeds[i] # seed to choose the train/val nodes from the development set
+      dataset.data = set_train_val_test_split(seed=train_val_seed, data=dataset.data,
+                                              development_seed=it_num_dev, ).to(device)
 
+      if model_type == "GRAND":
+        opt = get_cora_opt(opt)
+        model = GNN(opt, dataset, device).to(device)
+        data = dataset.data.to(device)
+        print(opt)
+        parameters = [p for p in model.parameters() if p.requires_grad]
+        print_model_params(model)
+        optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
+        train_fn = train
 
-    T0_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, dataset.data.x)))
-    xN = model(dataset.data.x)
-    TN_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, xN)))
+      elif model_type == "GCN":
+        opt = get_GCN_opt(opt)
+        model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['input_dropout']).to(device)
+        if opt['reweight_attention'] == False:
+          dataset.data.edge_attr = torch.ones(dataset.data.edge_index.size(1))
+        data = dataset.data.to(device)
+        print(opt)
+        parameters = [p for p in model.parameters() if p.requires_grad]
+        print_model_params(model)
+        optimizer = rewiring_get_optimizer('adam', model, opt['lr'], opt['decay'])
+        train_fn = rewiring_train
 
-    #edge homophilly ratio https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/utils/homophily.html#homophily
-    pred_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=xN.max(1)[1]) #, method='edge')
-    label_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=dataset.data.y) #, method='edge')
+      best_val_acc = test_acc = train_acc = best_epoch = 0
+      test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
 
-    res_train_acc.append(torch.tensor([train_acc]))
-    res_best_val_acc.append(torch.tensor([best_val_acc]))
-    res_test_acc.append(torch.tensor([test_acc]))
-    res_T0_dirichlet.append(T0_dirichlet.unsqueeze(0))
-    res_TN_dirichlet.append(TN_dirichlet.unsqueeze(0))
-    res_pred_homophil.append(torch.tensor([pred_homophil]))
-    res_label_homophil.append(torch.tensor([label_homophil]))
-    res_time.append(torch.tensor([time.time() - it_start]))
-    epochs.append(torch.tensor([float(epoch)]))
-    succesful_its += 1
-    # except:
-    #   print("Iteration had an error - probably cuda..")
+      # for epoch in range(1, opt['epoch']):
+      patience_counter = 0
+      for epoch in range(1, opt['max_epochs']):
+        if patience_counter == opt['patience']:
+          break
+
+        start_time = time.time()
+        loss = train_fn(model, optimizer, data)
+        train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
+
+        if val_acc > best_val_acc:
+          best_val_acc = val_acc
+          test_acc = tmp_test_acc
+          best_epoch = epoch
+          patience_counter = 0
+        else:
+          patience_counter += 1
+
+        log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+        print(log.format(epoch, time.time() - start_time, loss, train_acc, best_val_acc, test_acc))
+        print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
+
+      try:
+        T0_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, dataset.data.x)))
+        res_T0_dirichlet.append(T0_dirichlet.unsqueeze(0))
+      except:
+        print('failed to calc dirichlet T0')
+      try:
+        xN = model(dataset.data.x)
+        TN_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, xN)))
+        res_TN_dirichlet.append(TN_dirichlet.unsqueeze(0))
+      except:
+        print('failed to calc dirichlet TN')
+
+      #edge homophilly ratio https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/utils/homophily.html#homophily
+      pred_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=xN.max(1)[1]) #, method='edge')
+      label_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=dataset.data.y) #, method='edge')
+
+      res_train_acc.append(torch.tensor([train_acc]))
+      res_best_val_acc.append(torch.tensor([best_val_acc]))
+      res_test_acc.append(torch.tensor([test_acc]))
+      # res_T0_dirichlet.append(T0_dirichlet.unsqueeze(0))
+      # res_TN_dirichlet.append(TN_dirichlet.unsqueeze(0))
+      res_pred_homophil.append(torch.tensor([pred_homophil]))
+      res_label_homophil.append(torch.tensor([label_homophil]))
+      res_time.append(torch.tensor([time.time() - it_start]))
+      epochs.append(torch.tensor([float(epoch)]))
+      succesful_its += 1
+    except:
+      print("Iteration had an error - probably cuda..")
 
   if len(res_train_acc) == 0:
     res_train_acc = torch.tensor([0.])
@@ -370,7 +377,7 @@ def main(opt):
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
   opt['ppr_alpha'] = 0.05
-  ks = [] #[1, 2, 4, 8, 16, 32, 64, 128, 256]
+  ks = [64] #[1, 2, 4, 8, 16, 32, 64, 128, 256]
 
   #experiment args
   opt['self_loop_weight'] = 0
@@ -378,7 +385,7 @@ def main(opt):
   opt['function'] = 'laplacian'
   opt['beltrami'] = False #True
   opt['use_lcc'] = True
-  datasets = ['Cora', 'Citeseer'] #, 'Pubmed']
+  datasets = ['Cora'] #, 'Citeseer'] #, 'Pubmed']
   reweight_atts = [True, False] #reweight attention ie use DIGL weights
   model_types = ['GCN', 'GRAND']
   att_rewirings = [True, False]
