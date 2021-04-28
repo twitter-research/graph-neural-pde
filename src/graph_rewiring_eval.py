@@ -377,7 +377,7 @@ def main(opt):
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
   opt['ppr_alpha'] = 0.05
-  ks = [64] #[1, 2, 4, 8, 16, 32, 64, 128, 256]
+  ks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
   #experiment args
   opt['self_loop_weight'] = 0
@@ -391,9 +391,9 @@ def main(opt):
   att_rewirings = [True, False]
   # make_symms = [True, False] #S_hat = 0.5*(A+A.T)
   opt['make_symm'] = False #True
-  its = 2 #50
+  its = 5 #50
   fixed_seed = False #True
-  suffix = 'varySeed1'
+  suffix = 'varySeed2'
 
   for d in datasets:
     opt['dataset'] = d
