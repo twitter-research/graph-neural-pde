@@ -318,11 +318,11 @@ def rewiring_main(opt, dataset, model_type, its=2, fixed_seed=True):
          res_time.mean().detach().item(), succesful_its, epochs.mean().detach().item()
 
 
-def get_GRAND_opt(opt):
+def get_GRAND_opt(opt): #second best set of HP's with 8 heads instead of 1
   opt['block'] = 'attention'
   opt['function'] = 'laplacian'
 
-  opt['tol_scale'] = 90 #1.0 #help='multiplier for atol and rtol'
+  opt['tol_scale'] = 13.087 #1.0 #help='multiplier for atol and rtol'
   opt['method'] = 'dopri5'
   # opt['step_size'] = 0.25
 
@@ -330,15 +330,15 @@ def get_GRAND_opt(opt):
   # opt['data'] = 'Planetoid'
   opt['hidden_dim'] = 64
   opt['input_dropout'] = 0.5
-  opt['dropout'] = 0.04
-  opt['optimizer'] = 'adamax'
-  opt['lr'] = 0.0151
-  opt['decay'] = 0.089 #5e-4
+  opt['dropout'] = 0.01296
+  opt['optimizer'] = 'adam'
+  opt['lr'] = 0.0297
+  opt['decay'] = 0.067 #5e-4
 
-  opt['self_loop_weight'] = 0.0 # 1.0 # 0.555 0 not optimal
+  opt['self_loop_weight'] = 0.0 # 1.0 # 0.555 0 not optimal !!!! but choosen for consistency with implementation
   opt['alpha_dim'] = 'sc'
   # opt['alpha'] = 0.918
-  opt['time'] = 27.0
+  opt['time'] = 22.0
   opt['num_feature'] = 1433
   opt['num_class'] = 7
   opt['num_nodes'] = 2708
@@ -346,7 +346,13 @@ def get_GRAND_opt(opt):
   # opt['attention_dropout'] = 0
   # opt['adjoint'] = True
   # opt['adjoint_method'] = 'rk4'
-
+  opt['heads'] = 8
+  opt['attention_dim'] = 16
+  opt['attention_norm_idx'] = 0
+  opt['leaky_relu_slope'] = 0.2
+  opt['add_source'] = True
+  opt['att_samp_pct'] = 0.568
+  opt['batch_norm'] = True
 
   return opt
 
