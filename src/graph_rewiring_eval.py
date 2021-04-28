@@ -393,7 +393,7 @@ def main(opt):
   opt['make_symm'] = False #True
   its = 2#0 #50
   fixed_seed = False #True
-  suffix = 'varySeed2'
+  suffix = 'varySeed1'
 
   for d in datasets:
     opt['dataset'] = d
