@@ -105,20 +105,29 @@ class SpGraphTransAttentionLayer(nn.Module):
       # nn.init.xavier_uniform_(m.weight, gain=1.414)
       # m.bias.data.fill_(0.01)
       nn.init.constant_(m.weight, 1e-5)
+      #todo initialising constant weights on NN gives constant gradients/output??
 
   def forward(self, x, edge):
+
+    if self.opt['attention_type'] == "exp_kernel":
+      src = x[edge[0, :], :]
+      dst_k = x[edge[1, :], :]
+      prods = self.output_var ** 2 * torch.exp(-(src - dst_k) ** 2 / (2 * self.lengthscale ** 2))
+
+      attention = softmax(prods, edge[self.opt['attention_norm_idx']])
+      return attention, None
+
+
     q = self.Q(x)
     k = self.K(x)
     v = self.V(x)
 
     # perform linear operation and split into h heads
-
     k = k.view(-1, self.h, self.d_k)
     q = q.view(-1, self.h, self.d_k)
     v = v.view(-1, self.h, self.d_k)
 
     # transpose to get dimensions [n_nodes, attention_dim, n_heads]
-
     k = k.transpose(1, 2)
     q = q.transpose(1, 2)
     v = v.transpose(1, 2)
@@ -128,13 +137,11 @@ class SpGraphTransAttentionLayer(nn.Module):
     # prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
     if self.opt['attention_type'] == "scaled_dot":
       prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
-    elif self.opt['attention_type'] == "exp_kernel":
-      #todo WRONG don't use keys and queries
-      #need to split the metric
-      prods = self.output_var**2 * torch.exp(-(src - dst_k)**2/(2*self.lengthscale**2))
+
     elif self.opt['attention_type'] == "cosine_sim":
       cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
       prods = cos(src, dst_k)
+
     elif self.opt['attention_type'] == "cosine_power":
       if torch.__version__ == '1.6.0':
         prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.norm(src,p=2,dim=1)+1e-5, self.src_pow)
@@ -142,6 +149,7 @@ class SpGraphTransAttentionLayer(nn.Module):
       else:
         prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.linalg.norm(src, ord=2, dim=1) + 1e-5, self.src_pow)
                                                 *torch.pow(torch.linalg.norm(dst_k,ord=2,dim=1)+1e-5, self.dst_pow))
+
     elif self.opt['attention_type'] == "pearson":
       src_mu = torch.mean(src, dim=1, keepdim=True)
       dst_mu = torch.mean(dst_k, dim=1, keepdim=True)
@@ -149,6 +157,7 @@ class SpGraphTransAttentionLayer(nn.Module):
       dst_k = dst_k - dst_mu
       cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
       prods = cos(src, dst_k)
+
     elif self.opt['attention_type'] == "rank_pearson":
       src_mu = torch.mean(src, dim=1, keepdim=True)
       dst_mu = torch.mean(dst_k, dim=1, keepdim=True)

@@ -91,7 +91,7 @@ def rewiring_test(name0, edge_index0, name1, edge_index1, n):
                 pc_change, pc_removed, pc_retained, pc_added, edges_div_nodes]
   return comparison
 
-def rewiring_node_test(rw_att, model_type, name0, edge_index0, name1, edge_index1, n, k, rc):
+def rewiring_node_test(att_rewire, rw_att, model_type, name0, edge_index0, name1, edge_index1, n, k, rc):
   node_results = {}
 
   if rc == 'r':
@@ -117,7 +117,7 @@ def rewiring_node_test(rw_att, model_type, name0, edge_index0, name1, edge_index
       orig_removed = -orig_removed_mask[current_node_mask0].sum()
       orig_retained = orig_retained_mask[current_node_mask0].sum()
       added = new_added_mask[current_node_mask1].sum()
-      node_results[current_node] = [rw_att, model_type, name0, name1, k, orig_edges, final_edges, orig_removed, orig_retained, added]
+      node_results[current_node] = [att_rewire, rw_att, model_type, name0, name1, k, orig_edges, final_edges, orig_removed, orig_retained, added]
 
   elif rc == 'c':
     np_idx0 = edge_index0.cpu().numpy().T
@@ -149,13 +149,13 @@ def rewiring_node_test(rw_att, model_type, name0, edge_index0, name1, edge_index
       orig_removed = -orig_removed_mask[current_node_mask0].sum()
       orig_retained = orig_retained_mask[current_node_mask0].sum()
       added = new_added_mask[current_node_mask1].sum()
-      node_results[current_node] = [rw_att, model_type, name0, name1, k, orig_edges, final_edges, orig_removed, orig_retained, added]
+      node_results[current_node] = [att_rewire, rw_att, model_type, name0, name1, k, orig_edges, final_edges, orig_removed, orig_retained, added]
 
   node_df =  pd.DataFrame.from_dict(node_results, orient='index',
-  columns = ['reweight_attention', 'model_type', 'name0', 'name1', 'k', 'orig_edges', 'final_edges', 'orig_removed', 'orig_retained', 'added'])
+  columns = ['att_rewire', 'reweight_attention', 'model_type', 'name0', 'name1', 'k', 'orig_edges', 'final_edges', 'orig_removed', 'orig_retained', 'added'])
 
   node_df_pivot = pd.pivot_table(node_df, values=['final_edges', 'orig_removed', 'orig_retained', 'added'],
-                                 index=['reweight_attention', 'model_type', 'name0', 'name1', 'k', 'orig_edges'],
+                                 index=['att_rewire', 'reweight_attention', 'model_type', 'name0', 'name1', 'k', 'orig_edges'],
                                  aggfunc={'final_edges':['count',np.mean],
                                           'orig_removed':np.mean, 'orig_retained':np.mean, 'added':np.mean})
   return node_df_pivot
@@ -201,86 +201,86 @@ def rewiring_main(opt, dataset, model_type='GCN', its=2, fixed_seed=True):
 
   succesful_its = 0
   for i in range(its):
-    try:
-      it_start = time.time()
-      if fixed_seed: #seed to choose the test set
-        development_seed = 1684992425 #123456789
-        it_num_dev = development_seed
+    # try:
+    it_start = time.time()
+    if fixed_seed: #seed to choose the test set
+      development_seed = 1684992425 #123456789
+      it_num_dev = development_seed
+    else:
+      it_num_dev = test_seeds[i]
+
+    train_val_seed = val_seeds[i] # seed to choose the train/val nodes from the development set
+    dataset.data = set_train_val_test_split(seed=train_val_seed, data=dataset.data,
+                                            development_seed=it_num_dev, ).to(device)
+
+    if model_type == "GRAND":
+      opt = get_cora_opt(opt)
+      model = GNN(opt, dataset, device).to(device)
+      data = dataset.data.to(device)
+      print(opt)
+      parameters = [p for p in model.parameters() if p.requires_grad]
+      print_model_params(model)
+      optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
+      train_fn = train
+
+    elif model_type == "GCN":
+      opt = get_GCN_opt(opt)
+      model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['input_dropout']).to(device)
+      if opt['reweight_attention'] == False:
+        dataset.data.edge_attr = torch.ones(dataset.data.edge_index.size(1))
+      data = dataset.data.to(device)
+      print(opt)
+      parameters = [p for p in model.parameters() if p.requires_grad]
+      print_model_params(model)
+      optimizer = rewiring_get_optimizer('adam', model, opt['lr'], opt['decay'])
+      train_fn = rewiring_train
+
+    best_val_acc = test_acc = train_acc = best_epoch = 0
+    test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+
+    # for epoch in range(1, opt['epoch']):
+    patience_counter = 0
+    for epoch in range(1, opt['max_epochs']):
+      if patience_counter == opt['patience']:
+        break
+
+      start_time = time.time()
+      loss = train_fn(model, optimizer, data)
+      train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
+
+      if val_acc > best_val_acc:
+        best_val_acc = val_acc
+        test_acc = tmp_test_acc
+        best_epoch = epoch
+        patience_counter = 0
       else:
-        it_num_dev = test_seeds[i]
+        patience_counter += 1
 
-      train_val_seed = val_seeds[i] # seed to choose the train/val nodes from the development set
-      dataset.data = set_train_val_test_split(seed=train_val_seed, data=dataset.data,
-                                              development_seed=it_num_dev, ).to(device)
-
-      if model_type == "GRAND":
-        opt = get_cora_opt(opt)
-        model = GNN(opt, dataset, device).to(device)
-        data = dataset.data.to(device)
-        print(opt)
-        parameters = [p for p in model.parameters() if p.requires_grad]
-        print_model_params(model)
-        optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-        train_fn = train
-
-      elif model_type == "GCN":
-        opt = get_GCN_opt(opt)
-        model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['input_dropout']).to(device)
-        if opt['reweight_attention'] == False:
-          dataset.data.edge_attr = torch.ones(dataset.data.edge_index.size(1))
-        data = dataset.data.to(device)
-        print(opt)
-        parameters = [p for p in model.parameters() if p.requires_grad]
-        print_model_params(model)
-        optimizer = rewiring_get_optimizer('adam', model, opt['lr'], opt['decay'])
-        train_fn = rewiring_train
-
-      best_val_acc = test_acc = train_acc = best_epoch = 0
-      test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
-
-      # for epoch in range(1, opt['epoch']):
-      patience_counter = 0
-      for epoch in range(1, opt['max_epochs']):
-        if patience_counter == opt['patience']:
-          break
-
-        start_time = time.time()
-        loss = train_fn(model, optimizer, data)
-        train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
-
-        if val_acc > best_val_acc:
-          best_val_acc = val_acc
-          test_acc = tmp_test_acc
-          best_epoch = epoch
-          patience_counter = 0
-        else:
-          patience_counter += 1
-
-        log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-        print(log.format(epoch, time.time() - start_time, loss, train_acc, best_val_acc, test_acc))
-        print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
+      log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+      print(log.format(epoch, time.time() - start_time, loss, train_acc, best_val_acc, test_acc))
+      print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
 
 
-      T0_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, dataset.data.x)))
-      xN = model(dataset.data.x)
-      TN_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, xN)))
+    T0_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, dataset.data.x)))
+    xN = model(dataset.data.x)
+    TN_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, xN)))
 
-      #edge homophilly ratio https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/utils/homophily.html#homophily
-      pred_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=xN.max(1)[1]) #, method='edge')
-      label_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=dataset.data.y) #, method='edge')
+    #edge homophilly ratio https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/utils/homophily.html#homophily
+    pred_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=xN.max(1)[1]) #, method='edge')
+    label_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=dataset.data.y) #, method='edge')
 
-      res_train_acc.append(torch.tensor([train_acc]))
-      res_best_val_acc.append(torch.tensor([best_val_acc]))
-      res_test_acc.append(torch.tensor([test_acc]))
-      res_T0_dirichlet.append(T0_dirichlet.unsqueeze(0))
-      res_TN_dirichlet.append(TN_dirichlet.unsqueeze(0))
-      res_pred_homophil.append(torch.tensor([pred_homophil]))
-      res_label_homophil.append(torch.tensor([label_homophil]))
-      res_time.append(torch.tensor([time.time() - it_start]))
-      epochs.append(torch.tensor([float(epoch)]))
-      succesful_its += 1
-    except:
-      print("Iteration had an error - probably cuda..")
+    res_train_acc.append(torch.tensor([train_acc]))
+    res_best_val_acc.append(torch.tensor([best_val_acc]))
+    res_test_acc.append(torch.tensor([test_acc]))
+    res_T0_dirichlet.append(T0_dirichlet.unsqueeze(0))
+    res_TN_dirichlet.append(TN_dirichlet.unsqueeze(0))
+    res_pred_homophil.append(torch.tensor([pred_homophil]))
+    res_label_homophil.append(torch.tensor([label_homophil]))
+    res_time.append(torch.tensor([time.time() - it_start]))
+    epochs.append(torch.tensor([float(epoch)]))
+    succesful_its += 1
+    # except:
+    #   print("Iteration had an error - probably cuda..")
 
   if len(res_train_acc) == 0:
     res_train_acc = torch.tensor([0.])
@@ -370,7 +370,7 @@ def main(opt):
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
   opt['ppr_alpha'] = 0.05
-  ks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+  ks = [] #[1, 2, 4, 8, 16, 32, 64, 128, 256]
 
   #experiment args
   opt['self_loop_weight'] = 0
@@ -378,13 +378,13 @@ def main(opt):
   opt['function'] = 'laplacian'
   opt['beltrami'] = False #True
   opt['use_lcc'] = True
-  datasets = ['Cora', 'Citeseer'] #['Cora', 'Citeseer']#, 'Pubmed']
+  datasets = ['Cora', 'Citeseer'] #, 'Pubmed']
   reweight_atts = [True, False] #reweight attention ie use DIGL weights
   model_types = ['GCN', 'GRAND']
   att_rewirings = [True, False]
   # make_symms = [True, False] #S_hat = 0.5*(A+A.T)
   opt['make_symm'] = False #True
-  its = 50
+  its = 2 #50
   fixed_seed = False #True
   suffix = 'varySeed1'
 
@@ -408,8 +408,8 @@ def main(opt):
 
       if opt['beltrami']:
         #update model dimensions
-        # opt['attention_type'] = "exp_kernel"
-        opt['hidden_dim'] = opt['hidden_dim'] + opt['pos_enc_hidden_dim']
+        opt['attention_type'] = "exp_kernel"
+        # opt['hidden_dim'] = opt['hidden_dim'] + opt['pos_enc_hidden_dim']
         #get positional encoding and concat with features
         pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
         dataset.data.to(device)
@@ -448,7 +448,7 @@ def main(opt):
 
             train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
             sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its, av_epochs\
-            = rewiring_main(opt, dataset, model_type=model_type,its=its, fixed_seed=fixed_seed)
+            = rewiring_main(opt, dataset, model_type=model_type, its=its, fixed_seed=fixed_seed)
 
             print('results..')
             edges_stats = rewiring_test("G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n)
@@ -456,10 +456,10 @@ def main(opt):
                         + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its, av_epochs]
 
             print('node test')
-            node_results_df_k = rewiring_node_test(rw_att, model_type, "G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'r')
+            node_results_df_k = rewiring_node_test(att_rewire, rw_att, model_type, "G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'r')
             node_results_df_row = node_results_df_row.append(node_results_df_k)
 
-            node_results_df_k = rewiring_node_test(rw_att, model_type, "G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'c')
+            node_results_df_k = rewiring_node_test(att_rewire, rw_att, model_type, "G0", edge_index0, f"GSPARSE_k{k}", sparsified_data.edge_index, n, k, 'c')
             node_results_df_col = node_results_df_col.append(node_results_df_k)
 
     df =  pd.DataFrame.from_dict(results, orient='index',
