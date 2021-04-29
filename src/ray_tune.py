@@ -203,6 +203,8 @@ def set_cora_search_space(opt):
     opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
+  opt["method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
   opt["lr"] = tune.uniform(0.01, 0.2)
   # opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
@@ -221,16 +223,17 @@ def set_cora_search_space(opt):
     opt["leaky_relu_slope"] = 0.2
 
     opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
+    opt['att_samp_pct'] = tune.uniform(0.3, 1)
   else:
     opt["self_loop_weight"] = tune.uniform(0, 3)
 
-  opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
+  opt["tol_scale"] = tune.loguniform(100, 10000)  # num you multiply the default rtol and atol by
   if opt["adjoint"]:
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
     opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
 
   opt['add_source'] = tune.choice([True, False])
-  opt['att_samp_pct'] = tune.uniform(0.3, 1)
+
   opt['batch_norm'] = tune.choice([True, False])
   # opt['batch_norm'] = True
 
