@@ -46,6 +46,11 @@ class LaplacianODEFunc(ODEFunc):
       alpha = self.alpha_train
 
     f = alpha * (ax - x)
+    if self.opt['mix_features']:
+      d = torch.clamp(self.d, min=0, max=1)
+      w = torch.mm(self.w * d, torch.t(self.w))
+      xw = torch.spmm(x, w)
+      f = f + xw - x
     if self.opt['add_source']:
       f = f + self.beta_train * self.x0
     return f
