@@ -100,8 +100,10 @@ class SpGraphTransAttentionLayer(nn.Module):
     self.Wout = nn.Linear(self.d_k, in_features)
     self.init_weights(self.Wout)
 
-    self.output_var = 1
-    self.lengthscale = 1
+    if opt['beltrami']:
+      self.output_var = nn.Parameter(torch.ones(1))
+      self.lengthscale = nn.Parameter(torch.ones(1))
+
   def init_weights(self, m):
     if type(m) == nn.Linear:
       # nn.init.xavier_uniform_(m.weight, gain=1.414)
@@ -110,15 +112,6 @@ class SpGraphTransAttentionLayer(nn.Module):
       #todo initialising constant weights on NN gives constant gradients/output??
 
   def forward(self, x, edge):
-
-    if self.opt['attention_type'] == "exp_kernel":
-      src = x[edge[0, :], :]
-      dst_k = x[edge[1, :], :]
-      prods = self.output_var ** 2 * torch.exp(-(src - dst_k) ** 2 / (2 * self.lengthscale ** 2))
-
-      attention = softmax(prods, edge[self.opt['attention_norm_idx']])
-      return attention, None
-
 
     q = self.Q(x)
     k = self.K(x)
@@ -136,9 +129,12 @@ class SpGraphTransAttentionLayer(nn.Module):
 
     src = q[edge[0, :], :, :]
     dst_k = k[edge[1, :], :, :]
-    # prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
+
     if self.opt['attention_type'] == "scaled_dot":
       prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
+
+    elif self.opt['attention_type'] == "exp_kernel":
+      prods = self.output_var ** 2 * torch.exp(-(src - dst_k) ** 2 / (2 * self.lengthscale ** 2))
 
     elif self.opt['attention_type'] == "cosine_sim":
       cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)

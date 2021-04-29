@@ -105,9 +105,17 @@ class BaseGNN(MessagePassing):
     self.device = device
     self.fm = Meter()
     self.bm = Meter()
-    self.m1 = nn.Linear(dataset.data.num_features, opt['hidden_dim'])
-    self.m11 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
-    self.m12 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
+
+    if not opt['beltrami']:
+      self.m1 = nn.Linear(dataset.data.num_features, opt['hidden_dim'])
+      self.m11 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
+      self.m12 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
+    else:
+      self.m1 = nn.Linear(dataset.data.num_features, opt['feat_hidden_dim'])
+      self.m11 = nn.Linear(opt['feat_hidden_dim'], opt['feat_hidden_dim'])
+      self.m12 = nn.Linear(opt['feat_hidden_dim'], opt['feat_hidden_dim'])
+      self.m1b = nn.Linear(dataset.data.num_nodes, opt['pos_enc_hidden_dim'])
+
     if opt['use_labels']:
       # todo - fastest way to propagate this everywhere, but error prone - refactor later
       opt['hidden_dim'] = opt['hidden_dim'] + dataset.num_classes

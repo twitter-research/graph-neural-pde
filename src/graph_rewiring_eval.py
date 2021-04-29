@@ -389,17 +389,23 @@ def main(opt):
   opt['self_loop_weight'] = 0
   opt['block'] = 'attention'
   opt['function'] = 'laplacian'
-  opt['beltrami'] = True #False #True
+  opt['beltrami'] = False #True
   opt['use_lcc'] = True
-  datasets = ['Cora']#, 'Citeseer'] #, 'Pubmed']
-  reweight_atts = [True]#, False] #reweight attention ie use DIGL weights
-  model_types = ['GRAND']#, 'GRAND']
-  att_rewirings = [False]#, True]
+  datasets = ['Cora', 'Citeseer'] #, 'Pubmed']
+  reweight_atts = [True, False] #reweight attention ie use DIGL weights
+  model_types = ['GCN', 'GRAND']
+  att_rewirings = [False, True]
   # make_symms = [True, False] #S_hat = 0.5*(A+A.T)
-  opt['make_symm'] = False #True
-  its = 2 #50
+  opt['make_symm'] = False #True #todo check DIGL make sym
+  its = 20
   fixed_seed = False #True
-  suffix = 'beltrami_GRAND'
+  suffix = 'varySeed_20its'
+
+  if opt['beltrami']:
+    opt['feat_hidden_dim'] = 32
+    opt['pos_enc_hidden_dim'] = 32
+    opt['feat_hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
+    #todo need to make sure this doesn't get overidden by latter param settings
 
   for d in datasets:
     opt['dataset'] = d
