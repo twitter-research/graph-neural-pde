@@ -397,7 +397,7 @@ def main(opt):
   att_rewirings = [True, False]
   # make_symms = [True, False] #S_hat = 0.5*(A+A.T)
   opt['make_symm'] = False #True
-  its = 10 #50
+  its = 6 #50
   fixed_seed = False #True
   suffix = 'varySeed3'
 
