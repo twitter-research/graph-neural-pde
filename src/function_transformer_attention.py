@@ -100,6 +100,8 @@ class SpGraphTransAttentionLayer(nn.Module):
     self.Wout = nn.Linear(self.d_k, in_features)
     self.init_weights(self.Wout)
 
+    self.output_var = 1
+    self.lengthscale = 1
   def init_weights(self, m):
     if type(m) == nn.Linear:
       # nn.init.xavier_uniform_(m.weight, gain=1.414)

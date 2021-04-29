@@ -383,23 +383,23 @@ def main(opt):
   opt['gdc_sparsification'] = 'topk' #'threshold'
   opt['gdc_threshold'] = 0.01
   opt['ppr_alpha'] = 0.05
-  ks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+  ks = [4, 8, 16, 32, 64] # [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
   #experiment args
   opt['self_loop_weight'] = 0
   opt['block'] = 'attention'
   opt['function'] = 'laplacian'
-  opt['beltrami'] = False #True
+  opt['beltrami'] = True #False #True
   opt['use_lcc'] = True
-  datasets = ['Cora', 'Citeseer'] #, 'Pubmed']
-  reweight_atts = [True, False] #reweight attention ie use DIGL weights
-  model_types = ['GCN', 'GRAND']
-  att_rewirings = [True, False]
+  datasets = ['Cora']#, 'Citeseer'] #, 'Pubmed']
+  reweight_atts = [True]#, False] #reweight attention ie use DIGL weights
+  model_types = ['GRAND']#, 'GRAND']
+  att_rewirings = [False]#, True]
   # make_symms = [True, False] #S_hat = 0.5*(A+A.T)
   opt['make_symm'] = False #True
-  its = 6 #50
+  its = 2 #50
   fixed_seed = False #True
-  suffix = 'varySeed3'
+  suffix = 'beltrami_GRAND'
 
   for d in datasets:
     opt['dataset'] = d
