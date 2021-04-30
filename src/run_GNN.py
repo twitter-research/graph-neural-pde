@@ -127,6 +127,10 @@ def train(model, optimizer, data):
   # F.nll_loss(out[data.train_mask], data.y[data.train_mask]).backward()
   loss.backward()
   optimizer.step()
+  if model.opt['mix_features']:
+    W = model.odeblock.odefunc.w.data
+    beta = 0.5
+    W.copy_((1 + beta) * W - beta * W.mm(W.transpose(0, 1).mm(W)))
   model.bm.update(model.getNFE())
   model.resetNFE()
   return loss.item()
@@ -248,6 +252,8 @@ if __name__ == '__main__':
   parser.add_argument('--beta_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) beta')
   parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention, hard_attention, SDE')
   parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
+  parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
+                      help='Add a fully connected layer to the encoder.')
   # ODE args
   parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
   parser.add_argument('--augment', action='store_true',

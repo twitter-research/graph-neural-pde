@@ -21,7 +21,7 @@ class ODEFuncTransformerAtt(ODEFunc):
       self.edge_index, self.edge_weight = data.edge_index, data.edge_attr
     # self.alpha = nn.Parameter(torch.ones([data.num_nodes, 1]))
     self.multihead_att_layer = SpGraphTransAttentionLayer(in_features, out_features, opt,
-                                                          device).to(device)
+                                                          device, edge_weights=self.edge_weight).to(device)
 
   def multiply_attention(self, x, attention, v=None):
     # todo would be nice if this was more efficient

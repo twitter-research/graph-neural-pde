@@ -638,6 +638,8 @@ if __name__ == "__main__":
   parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true',
                       help='apply sigmoid before multiplying by alpha')
   parser.add_argument("--beta_dim", type=str, default="sc", help="choose either scalar (sc) or vector (vc) beta")
+  parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
+                      help='Add a fully connected layer to the encoder.')
   # ODE args
   parser.add_argument(
     "--method", type=str, default="dopri5", help="set the numerical solver: dopri5, euler, rk4, midpoint"
