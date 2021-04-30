@@ -20,19 +20,22 @@ class GNN(BaseGNN):
       y = x[:, self.num_features:]
       x = x[:, :self.num_features]
 
-    if not self.opt['beltrami']:
-      x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-      x = F.dropout(self.m1(x), self.opt['dropout'], training=self.training)
-      x = F.dropout(x + self.m11(F.relu(x)), self.opt['dropout'], training=self.training)
-      x = F.dropout(x + self.m12(F.relu(x)), self.opt['dropout'], training=self.training)
-    else:
+    if self.opt['beltrami']:
       p = x[:, self.num_features:]
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
       x = F.dropout(self.m1(x), self.opt['dropout'], training=self.training)
-      x = F.dropout(x + self.m11(F.relu(x)), self.opt['dropout'], training=self.training)
-      x = F.dropout(x + self.m12(F.relu(x)), self.opt['dropout'], training=self.training)
+      if self.opt['use_mlp']:
+        x = F.dropout(x + self.m11(F.relu(x)), self.opt['dropout'], training=self.training)
+        x = F.dropout(x + self.m12(F.relu(x)), self.opt['dropout'], training=self.training)
       p = F.dropout(self.m1b(p), self.opt['dropout'], training=self.training)
       x = torch.cat([x, p], dim=1)
+
+    else:
+      x = F.dropout(x, self.opt['input_dropout'], training=self.training)
+      x = F.dropout(self.m1(x), self.opt['dropout'], training=self.training)
+      if self.opt['use_mlp']:
+        x = F.dropout(x + self.m11(F.relu(x)), self.opt['dropout'], training=self.training)
+        x = F.dropout(x + self.m12(F.relu(x)), self.opt['dropout'], training=self.training)
 
     # todo investigate if some input non-linearity solves the problem with smooth deformations identified in the ANODE paper
     # if True:

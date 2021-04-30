@@ -528,6 +528,8 @@ if __name__ == "__main__":
   parser.add_argument('--beta_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) beta')
   parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention, hard_attention, SDE')
   parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
+  parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
+                      help='Add a fully connected layer to the encoder.')
   # ODE args
   parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
   parser.add_argument('--augment', action='store_true',
