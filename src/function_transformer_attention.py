@@ -21,7 +21,7 @@ class ODEFuncTransformerAtt(ODEFunc):
       self.edge_index, self.edge_weight = data.edge_index, data.edge_attr
     # self.alpha = nn.Parameter(torch.ones([data.num_nodes, 1]))
     self.multihead_att_layer = SpGraphTransAttentionLayer(in_features, out_features, opt,
-                                                          device).to(device)
+                                                          device, edge_weights=self.edge_weight).to(device)
 
   def multiply_attention(self, x, attention, v=None):
     # todo would be nice if this was more efficient
@@ -134,8 +134,10 @@ class SpGraphTransAttentionLayer(nn.Module):
       prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
 
     elif self.opt['attention_type'] == "exp_kernel":
-      prods = self.output_var ** 2 * torch.exp(-(src - dst_k) ** 2 / (2 * self.lengthscale ** 2))
+      # prods = self.output_var ** 2 * torch.exp(-(src - dst_k) ** 2 / (2 * self.lengthscale ** 2))
+      prods = self.output_var ** 2 * torch.exp(-torch.sum(src - dst_k, dim=1) / (2 * self.lengthscale ** 2))
 
+      torch.sum(src * dst_k, dim=1)
     elif self.opt['attention_type'] == "cosine_sim":
       cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
       prods = cos(src, dst_k)

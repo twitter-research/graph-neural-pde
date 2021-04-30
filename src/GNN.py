@@ -17,25 +17,25 @@ class GNN(BaseGNN):
   def forward(self, x):
     # Encode each node based on its feature.
     if self.opt['use_labels']:
-      y = x[:, self.num_features:]
-      x = x[:, :self.num_features]
+      y = x[:, -self.num_classes:]
+      x = x[:, :-self.num_classes]
 
     if self.opt['beltrami']:
-      p = x[:, self.num_features:]
+      p = x[:, self.opt['num_feature']:]
+      x = x[:, :self.opt['num_feature']]
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-      x = F.dropout(self.m1(x), self.opt['dropout'], training=self.training)
-      if self.opt['use_mlp']:
-        x = F.dropout(x + self.m11(F.relu(x)), self.opt['dropout'], training=self.training)
-        x = F.dropout(x + self.m12(F.relu(x)), self.opt['dropout'], training=self.training)
-      p = F.dropout(self.m1b(p), self.opt['dropout'], training=self.training)
+      p = F.dropout(p, self.opt['input_dropout'], training=self.training)
+      x = self.mx(x)
+      p = self.mp(p)
       x = torch.cat([x, p], dim=1)
-
     else:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-      x = F.dropout(self.m1(x), self.opt['dropout'], training=self.training)
-      if self.opt['use_mlp']:
-        x = F.dropout(x + self.m11(F.relu(x)), self.opt['dropout'], training=self.training)
-        x = F.dropout(x + self.m12(F.relu(x)), self.opt['dropout'], training=self.training)
+      x = self.m1(x)
+
+    if self.opt['use_mlp']:
+      x = F.dropout(x, self.opt['dropout'], training=self.training)
+      x = F.dropout(x + self.m11(F.relu(x)), self.opt['dropout'], training=self.training)
+      x = F.dropout(x + self.m12(F.relu(x)), self.opt['dropout'], training=self.training)
 
     # todo investigate if some input non-linearity solves the problem with smooth deformations identified in the ANODE paper
     # if True:

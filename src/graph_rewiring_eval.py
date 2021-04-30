@@ -202,76 +202,76 @@ def rewiring_main(opt, dataset, model_type, its=2, fixed_seed=True):
 
   succesful_its = 0
   for i in range(its):
-    try:
-      it_start = time.time()
-      if fixed_seed: #seed to choose the test set
-        development_seed = 1684992425 #123456789
-        it_num_dev = development_seed
+    # try:
+    it_start = time.time()
+    if fixed_seed: #seed to choose the test set
+      development_seed = 1684992425 #123456789
+      it_num_dev = development_seed
+    else:
+      it_num_dev = test_seeds[i]
+
+    train_val_seed = val_seeds[i] # seed to choose the train/val nodes from the development set
+    dataset.data = set_train_val_test_split(seed=train_val_seed, data=dataset.data,
+                                            development_seed=it_num_dev, ).to(device)
+
+    if model_type == "GRAND":
+      opt = get_GRAND_opt(opt)
+      model = GNN(opt, dataset, device).to(device)
+      data = dataset.data.to(device)
+      print(opt)
+      parameters = [p for p in model.parameters() if p.requires_grad]
+      print_model_params(model)
+      optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
+      train_fn = train
+
+    elif model_type == "GCN":
+      opt = get_GCN_opt(opt)
+      model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['input_dropout']).to(device)
+      if opt['reweight_attention'] == False:
+        dataset.data.edge_attr = torch.ones(dataset.data.edge_index.size(1))
+      data = dataset.data.to(device)
+      print(opt)
+      parameters = [p for p in model.parameters() if p.requires_grad]
+      print_model_params(model)
+      optimizer = rewiring_get_optimizer('adam', model, opt['lr'], opt['decay'])
+      train_fn = rewiring_train
+
+    best_val_acc = test_acc = train_acc = best_epoch = 0
+    test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+
+    # for epoch in range(1, opt['epoch']):
+    patience_counter = 0
+    for epoch in range(1, opt['max_epochs']):
+      if patience_counter == opt['patience']:
+        break
+
+      start_time = time.time()
+      loss = train_fn(model, optimizer, data)
+      train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
+
+      if val_acc > best_val_acc:
+        best_val_acc = val_acc
+        test_acc = tmp_test_acc
+        best_epoch = epoch
+        patience_counter = 0
       else:
-        it_num_dev = test_seeds[i]
+        patience_counter += 1
 
-      train_val_seed = val_seeds[i] # seed to choose the train/val nodes from the development set
-      dataset.data = set_train_val_test_split(seed=train_val_seed, data=dataset.data,
-                                              development_seed=it_num_dev, ).to(device)
+      log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+      print(log.format(epoch, time.time() - start_time, loss, train_acc, best_val_acc, test_acc))
+      print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
 
-      if model_type == "GRAND":
-        opt = get_GRAND_opt(opt)
-        model = GNN(opt, dataset, device).to(device)
-        data = dataset.data.to(device)
-        print(opt)
-        parameters = [p for p in model.parameters() if p.requires_grad]
-        print_model_params(model)
-        optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-        train_fn = train
-
-      elif model_type == "GCN":
-        opt = get_GCN_opt(opt)
-        model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['input_dropout']).to(device)
-        if opt['reweight_attention'] == False:
-          dataset.data.edge_attr = torch.ones(dataset.data.edge_index.size(1))
-        data = dataset.data.to(device)
-        print(opt)
-        parameters = [p for p in model.parameters() if p.requires_grad]
-        print_model_params(model)
-        optimizer = rewiring_get_optimizer('adam', model, opt['lr'], opt['decay'])
-        train_fn = rewiring_train
-
-      best_val_acc = test_acc = train_acc = best_epoch = 0
-      test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
-
-      # for epoch in range(1, opt['epoch']):
-      patience_counter = 0
-      for epoch in range(1, opt['max_epochs']):
-        if patience_counter == opt['patience']:
-          break
-
-        start_time = time.time()
-        loss = train_fn(model, optimizer, data)
-        train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
-
-        if val_acc > best_val_acc:
-          best_val_acc = val_acc
-          test_acc = tmp_test_acc
-          best_epoch = epoch
-          patience_counter = 0
-        else:
-          patience_counter += 1
-
-        log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-        print(log.format(epoch, time.time() - start_time, loss, train_acc, best_val_acc, test_acc))
-        print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
-
-      try:
-        T0_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, dataset.data.x)))
-        res_T0_dirichlet.append(T0_dirichlet.unsqueeze(0))
-      except:
-        print('failed to calc dirichlet T0')
-      try:
-        xN = model(dataset.data.x)
-        TN_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, xN)))
-        res_TN_dirichlet.append(TN_dirichlet.unsqueeze(0))
-      except:
-        print('failed to calc dirichlet TN')
+    try:
+      T0_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, dataset.data.x)))
+      res_T0_dirichlet.append(T0_dirichlet.unsqueeze(0))
+    except:
+      print('failed to calc dirichlet T0')
+    try:
+      xN = model(dataset.data.x)
+      TN_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, xN)))
+      res_TN_dirichlet.append(TN_dirichlet.unsqueeze(0))
+      # except:
+      #   print('failed to calc dirichlet TN')
 
       #edge homophilly ratio https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/utils/homophily.html#homophily
       pred_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=xN.max(1)[1]) #, method='edge')
@@ -389,22 +389,22 @@ def main(opt):
   opt['self_loop_weight'] = 0
   opt['block'] = 'attention'
   opt['function'] = 'laplacian'
-  opt['beltrami'] = False #True
+  opt['beltrami'] = True #True
   opt['use_lcc'] = True
-  datasets = ['Cora', 'Citeseer'] #, 'Pubmed']
-  reweight_atts = [True, False] #reweight attention ie use DIGL weights
-  model_types = ['GCN', 'GRAND']
-  att_rewirings = [False, True]
+  datasets = ['Cora']#, 'Citeseer'] #, 'Pubmed']
+  reweight_atts = [False] #[True, False] #reweight attention ie use DIGL weights
+  model_types = ['GRAND'] #['GCN', 'GRAND']
+  att_rewirings = [False] #[False, True]
   # make_symms = [True, False] #S_hat = 0.5*(A+A.T)
   opt['make_symm'] = False #True #todo check DIGL make sym
-  its = 20
+  its = 10 #2#0
   fixed_seed = False #True
   suffix = 'varySeed_20its'
 
   if opt['beltrami']:
-    opt['feat_hidden_dim'] = 32
-    opt['pos_enc_hidden_dim'] = 32
-    opt['feat_hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
+    opt['feat_hidden_dim'] = 64
+    opt['pos_enc_hidden_dim'] = 16
+    opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
     #todo need to make sure this doesn't get overidden by latter param settings
 
   for d in datasets:
@@ -418,6 +418,7 @@ def main(opt):
       opt['attention_rewiring'] = att_rewire  # True
 
       if opt['attention_rewiring']:
+        #to do fix this with beltrami interactions
         GRAND0 = train_GRAND(dataset, opt)
         x = dataset.data.x
         x = GRAND0.m1(x)
@@ -427,7 +428,7 @@ def main(opt):
 
       if opt['beltrami']:
         #update model dimensions
-        opt['attention_type'] = "exp_kernel"
+        opt['attention_type'] = "exp_kernel" #"scaled_dot" #"exp_kernel"
         # opt['hidden_dim'] = opt['hidden_dim'] + opt['pos_enc_hidden_dim']
         #get positional encoding and concat with features
         pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
