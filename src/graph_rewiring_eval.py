@@ -399,7 +399,8 @@ def main(opt):
   opt['make_symm'] = False #True #todo check DIGL make sym
   its = 10 #2#0
   fixed_seed = False #True
-  suffix = 'varySeed_20its'
+  suffix = 'beltrami_proper'
+  # suffix = 'varySeed_20its'
 
   if opt['beltrami']:
     opt['feat_hidden_dim'] = 64
