@@ -205,7 +205,7 @@ def set_cora_search_space(opt):
 
   opt["method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
 
-  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 8))  # hidden dim of X in dX/dt
+  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  # hidden dim of X in dX/dt
   opt["lr"] = tune.uniform(0.01, 0.2)
   # opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
   opt["input_dropout"] = 0.5
