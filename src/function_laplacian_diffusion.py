@@ -39,6 +39,10 @@ class LaplacianODEFunc(ODEFunc):
 
   def forward(self, t, x):  # the t param is needed by the ODE solver.
     self.nfe += 1
+    if self.opt['mix_features']:
+      d = torch.clamp(self.d, min=0, max=1)  # enforce evalues in (0,1)
+      w = torch.mm(self.w * d, torch.t(self.w))
+      x = torch.spmm(x, w)
     ax = self.sparse_multiply(x)
     if not self.opt['no_alpha_sigmoid']:
       alpha = torch.sigmoid(self.alpha_train)
@@ -48,11 +52,4 @@ class LaplacianODEFunc(ODEFunc):
     f = alpha * (ax - x)
     if self.opt['add_source']:
       f = f + self.beta_train * self.x0
-
-    if self.opt['mix_features']:
-      d = torch.clamp(self.d, min=0, max=1)  # enforce evalues in (0,1)
-      w = torch.mm(self.w * d, torch.t(self.w))
-      xw = torch.spmm(x, w)
-
-      f = f + xw - x
     return f
