@@ -203,7 +203,8 @@ def set_cora_search_space(opt):
     opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
-  opt["method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+  # opt["method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+  opt["method"] = "rk4"
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  # hidden dim of X in dX/dt
   opt["lr"] = tune.uniform(0.01, 0.2)
