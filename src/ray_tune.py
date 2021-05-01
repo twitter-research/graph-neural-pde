@@ -210,7 +210,7 @@ def set_cora_search_space(opt):
   # opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
   opt["input_dropout"] = 0.5
   opt["optimizer"] = tune.choice(["adam", "rmsprop", "adamax"])
-  opt["dropout"] = tune.loguniform(0, 0.1)  # output dropout
+  opt["dropout"] = tune.loguniform(1e-5, 0.1)  # output dropout
   opt["time"] = tune.uniform(10.0, 30.0)  # terminal time of the ODE integrator;
   # when it's big, the training hangs (probably due a big NFEs of the ODE)
 
