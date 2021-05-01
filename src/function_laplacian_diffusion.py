@@ -20,7 +20,7 @@ class LaplacianODEFunc(ODEFunc):
     self.in_features = in_features
     self.out_features = out_features
     self.w = nn.Parameter(torch.eye(opt['hidden_dim']))
-    self.d = nn.Parameter(torch.zeros(opt['hidden_dim']) + 1)
+    self.d = nn.Parameter(torch.ones(opt['hidden_dim']))
     self.alpha_sc = nn.Parameter(torch.ones(1))
     self.beta_sc = nn.Parameter(torch.ones(1))
 
@@ -48,4 +48,11 @@ class LaplacianODEFunc(ODEFunc):
     f = alpha * (ax - x)
     if self.opt['add_source']:
       f = f + self.beta_train * self.x0
+
+    if self.opt['mix_features']:
+      d = torch.clamp(self.d, min=0, max=1)  # enforce evalues in (0,1)
+      w = torch.mm(self.w * d, torch.t(self.w))
+      xw = torch.spmm(x, w)
+
+      f = f + xw - x
     return f
