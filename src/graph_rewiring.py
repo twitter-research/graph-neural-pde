@@ -82,12 +82,16 @@ def apply_gdc(data, opt, type="combined"):
 def make_symmetric(data):
     n = data.num_nodes
     if data.edge_attr is not None:
-        A = torch.sparse_coo_tensor(data.edge_index, data.edge_attr, (n, n)).coalesce()
-        AT_ei, AT_ew = torch_sparse.transpose(data.edge_index, data.edge_attr, n, n)
-        AT = torch.sparse_coo_tensor(AT_ei, AT_ew, (n, n)).coalesce()
-        A_sym = (0.5 * A + 0.5 * AT).coalesce()
-        ei = A_sym.indices()
-        ew = A_sym.values()
+        ApAT_index = torch.cat([data.edge_index, data.edge_index[[1, 0],:]], dim=1)
+        ApAT_value = torch.cat([data.edge_attr, data.edge_attr], dim=0)
+        ei, ew = torch_sparse.coalesce(ApAT_index, ApAT_value, n, n, op="add")
+
+        # A = torch.sparse_coo_tensor(data.edge_index, data.edge_attr, (n, n)).coalesce()
+        # AT_ei, AT_ew = torch_sparse.transpose(data.edge_index, data.edge_attr, n, n)
+        # AT = torch.sparse_coo_tensor(AT_ei, AT_ew, (n, n)).coalesce()
+        # A_sym = (0.5 * A + 0.5 * AT).coalesce()
+        # ei = A_sym.indices()
+        # ew = A_sym.values()
     else:
         ei = to_undirected(data.edge_index)
         ew = None

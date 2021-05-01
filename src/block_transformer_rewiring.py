@@ -76,6 +76,7 @@ class RewireAttODEblock(ODEblock):
       A2 = torch.sparse_coo_tensor(new_edges, new_weights, (n, n)).coalesce()
 
     if self.opt['threshold_type'] == 'topk_adj':
+      #todo not efficient see graph rewiting A+A.T
       S_hat = (0.5 * A1 + 0.5 * A2).coalesce()
       self.data_edge_index = S_hat.indices()
       self.odefunc.attention_weights = S_hat.values()
