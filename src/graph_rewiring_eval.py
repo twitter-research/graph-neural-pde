@@ -442,13 +442,13 @@ def main(opt):
           pd_idx += 1
           opt['reweight_attention'] = rw_att
 
-          # edges_stats = rewiring_test("G0", edge_index0, "G0", edge_index0, n)
-          # train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
-          # sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its, av_epochs\
-          # = rewiring_main(opt, dataset, model_type=model_type, its=its, fixed_seed=fixed_seed)
-          #
-          # results[pd_idx] = [att_rewire, model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
-          #               + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its, av_epochs]
+          edges_stats = rewiring_test("G0", edge_index0, "G0", edge_index0, n)
+          train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil, \
+          sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its, av_epochs\
+          = rewiring_main(opt, dataset, model_type=model_type, its=its, fixed_seed=fixed_seed)
+
+          results[pd_idx] = [att_rewire, model_type, rw_att] + edges_stats + [train_acc, best_val_acc, test_acc, T0_dirichlet, TN_dirichlet, pred_homophil, label_homophil] \
+                        + [sd_train_acc, sd_best_val_acc, sd_test_acc, sd_T0_dirichlet, sd_TN_dirichlet, sd_pred_homophil, sd_label_homophil, time, successful_its, av_epochs]
 
           for i,k in enumerate(ks):
             print(f"gdc_k {k}")
