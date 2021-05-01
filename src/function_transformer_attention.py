@@ -101,8 +101,12 @@ class SpGraphTransAttentionLayer(nn.Module):
     self.init_weights(self.Wout)
 
     if opt['beltrami']:
-      self.output_var = nn.Parameter(torch.ones(1))
-      self.lengthscale = nn.Parameter(torch.ones(1))
+      self.output_var_x = nn.Parameter(torch.ones(1))
+      self.lengthscale_x = nn.Parameter(torch.ones(1))
+      self.output_var_p = nn.Parameter(torch.ones(1))
+      self.lengthscale_p = nn.Parameter(torch.ones(1))
+
+      #todo need to replicate all the KQV for beltrami x and p
 
   def init_weights(self, m):
     if type(m) == nn.Linear:
@@ -113,79 +117,121 @@ class SpGraphTransAttentionLayer(nn.Module):
 
   def forward(self, x, edge):
 
-    q = self.Q(x)
-    k = self.K(x)
-    v = self.V(x)
+    if self.opt['attention_type'] == "exp_kernel":
+      p = x[:, self.opt['feat_hidden_dim']:]
+      x = x[:, :self.opt['feat_hidden_dim']]
 
-    # perform linear operation and split into h heads
-    k = k.view(-1, self.h, self.d_k)
-    q = q.view(-1, self.h, self.d_k)
-    v = v.view(-1, self.h, self.d_k)
+      qx = self.Q(x)
+      kx = self.K(x)
+      vx = self.V(x)
+      # perform linear operation and split into h heads
+      kx = kx.view(-1, self.h, self.d_k)
+      qx = qx.view(-1, self.h, self.d_k)
+      vx = vx.view(-1, self.h, self.d_k)
+      # transpose to get dimensions [n_nodes, attention_dim, n_heads]
+      kx = kx.transpose(1, 2)
+      qx = qx.transpose(1, 2)
+      vx = vx.transpose(1, 2)
+      src_x = qx[edge[0, :], :, :]
+      dst_x = kx[edge[1, :], :, :]
 
-    # transpose to get dimensions [n_nodes, attention_dim, n_heads]
-    k = k.transpose(1, 2)
-    q = q.transpose(1, 2)
-    v = v.transpose(1, 2)
+      qp = self.Q(p)
+      kp = self.K(p)
+      vp = self.V(p)
+      # perform linear operation and split into h heads
+      k = k.view(-1, self.h, self.d_k)
+      q = q.view(-1, self.h, self.d_k)
+      v = v.view(-1, self.h, self.d_k)
+      # transpose to get dimensions [n_nodes, attention_dim, n_heads]
+      k = k.transpose(1, 2)
+      q = q.transpose(1, 2)
+      v = v.transpose(1, 2)
+      src = q[edge[0, :], :, :]
+      dst_k = k[edge[1, :], :, :]
 
-    src = q[edge[0, :], :, :]
-    dst_k = k[edge[1, :], :, :]
+      src_p = src[self.opt['feat_hidden_dim']:, :, :]
+      dst_p = dst_k[self.opt['feat_hidden_dim']:, :, :]
 
-    if self.opt['attention_type'] == "scaled_dot":
-      prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
+      prods = self.output_var_x ** 2 * torch.exp(
+        -torch.sum((src_x - dst_x) ** 2, dim=1) / (2 * self.lengthscale_x ** 2)) \
+              * self.output_var_p ** 2 * torch.exp(
+        -torch.sum((src_p - dst_p) ** 2, dim=1) / (2 * self.lengthscale_p ** 2))
 
-    elif self.opt['attention_type'] == "exp_kernel":
       # prods = self.output_var ** 2 * torch.exp(-(src - dst_k) ** 2 / (2 * self.lengthscale ** 2))
-      prods = self.output_var ** 2 * torch.exp(-torch.sum(src - dst_k, dim=1) / (2 * self.lengthscale ** 2))
+      # prods = self.output_var ** 2 * torch.exp(-torch.sum((src - dst_k)**2, dim=1) / (2 * self.lengthscale ** 2))
 
-      torch.sum(src * dst_k, dim=1)
-    elif self.opt['attention_type'] == "cosine_sim":
-      cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
-      prods = cos(src, dst_k)
+      attention = softmax(prods, edge[self.opt['attention_norm_idx']])
+      return attention, v
 
-    elif self.opt['attention_type'] == "cosine_power":
-      if torch.__version__ == '1.6.0':
-        prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.norm(src,p=2,dim=1)+1e-5, self.src_pow)
-                                               *torch.pow(torch.norm(dst_k,p=2,dim=1)+1e-5, self.dst_pow))
-      else:
-        prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.linalg.norm(src, ord=2, dim=1) + 1e-5, self.src_pow)
-                                                *torch.pow(torch.linalg.norm(dst_k,ord=2,dim=1)+1e-5, self.dst_pow))
+    else:
+      q = self.Q(x)
+      k = self.K(x)
+      v = self.V(x)
 
-    elif self.opt['attention_type'] == "pearson":
-      src_mu = torch.mean(src, dim=1, keepdim=True)
-      dst_mu = torch.mean(dst_k, dim=1, keepdim=True)
-      src = src - src_mu
-      dst_k = dst_k - dst_mu
-      cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
-      prods = cos(src, dst_k)
+      # perform linear operation and split into h heads
+      k = k.view(-1, self.h, self.d_k)
+      q = q.view(-1, self.h, self.d_k)
+      v = v.view(-1, self.h, self.d_k)
 
-    elif self.opt['attention_type'] == "rank_pearson":
-      src_mu = torch.mean(src, dim=1, keepdim=True)
-      dst_mu = torch.mean(dst_k, dim=1, keepdim=True)
-      src = src - src_mu
-      dst_k = dst_k - dst_mu
+      # transpose to get dimensions [n_nodes, attention_dim, n_heads]
+      k = k.transpose(1, 2)
+      q = q.transpose(1, 2)
+      v = v.transpose(1, 2)
 
-      src = src.transpose(1, 2)
-      dst_k = dst_k.transpose(1, 2)
+      src = q[edge[0, :], :, :]
+      dst_k = k[edge[1, :], :, :]
 
-      src = src.view(-1, self.d_k)
-      dst_k = dst_k.view(-1, self.d_k)
+      if self.opt['attention_type'] == "scaled_dot":
+        prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
 
-      src = soft_rank(src, regularization_strength=1.0)
-      dst_k = soft_rank(dst_k, regularization_strength=1.0)
+      elif self.opt['attention_type'] == "cosine_sim":
+        cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
+        prods = cos(src, dst_k)
 
-      src = src.view(-1, self.h, self.d_k)
-      dst_k = dst_k.view(-1, self.h, self.d_k)
+      elif self.opt['attention_type'] == "cosine_power":
+        if torch.__version__ == '1.6.0':
+          prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.norm(src,p=2,dim=1)+1e-5, self.src_pow)
+                                                 *torch.pow(torch.norm(dst_k,p=2,dim=1)+1e-5, self.dst_pow))
+        else:
+          prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.linalg.norm(src, ord=2, dim=1) + 1e-5, self.src_pow)
+                                                  *torch.pow(torch.linalg.norm(dst_k,ord=2,dim=1)+1e-5, self.dst_pow))
 
-      src = src.transpose(1, 2)
-      dst_k = dst_k.transpose(1, 2)
+      elif self.opt['attention_type'] == "pearson":
+        src_mu = torch.mean(src, dim=1, keepdim=True)
+        dst_mu = torch.mean(dst_k, dim=1, keepdim=True)
+        src = src - src_mu
+        dst_k = dst_k - dst_mu
+        cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
+        prods = cos(src, dst_k)
 
-      cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
-      prods = cos(src, dst_k)
+      elif self.opt['attention_type'] == "rank_pearson":
+        src_mu = torch.mean(src, dim=1, keepdim=True)
+        dst_mu = torch.mean(dst_k, dim=1, keepdim=True)
+        src = src - src_mu
+        dst_k = dst_k - dst_mu
 
-    if self.opt['reweight_attention'] and self.edge_weights is not None:
-      prods = prods * self.edge_weights.unsqueeze(dim=1)
-    attention = softmax(prods, edge[self.opt['attention_norm_idx']])
-    return attention, v
+        src = src.transpose(1, 2)
+        dst_k = dst_k.transpose(1, 2)
+
+        src = src.view(-1, self.d_k)
+        dst_k = dst_k.view(-1, self.d_k)
+
+        src = soft_rank(src, regularization_strength=1.0)
+        dst_k = soft_rank(dst_k, regularization_strength=1.0)
+
+        src = src.view(-1, self.h, self.d_k)
+        dst_k = dst_k.view(-1, self.h, self.d_k)
+
+        src = src.transpose(1, 2)
+        dst_k = dst_k.transpose(1, 2)
+
+        cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
+        prods = cos(src, dst_k)
+
+      if self.opt['reweight_attention'] and self.edge_weights is not None:
+        prods = prods * self.edge_weights.unsqueeze(dim=1)
+      attention = softmax(prods, edge[self.opt['attention_norm_idx']])
+      return attention, v
 
   def __repr__(self):
     return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'
