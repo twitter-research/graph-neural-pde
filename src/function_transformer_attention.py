@@ -86,34 +86,48 @@ class SpGraphTransAttentionLayer(nn.Module):
       self.h, self.attention_dim)
     self.d_k = self.attention_dim // self.h
 
-    self.Q = nn.Linear(in_features, self.attention_dim)
-    self.init_weights(self.Q)
-
-    self.V = nn.Linear(in_features, self.attention_dim)
-    self.init_weights(self.V)
-
-    self.K = nn.Linear(in_features, self.attention_dim)
-    self.init_weights(self.K)
-
-    self.activation = nn.Sigmoid()  # nn.LeakyReLU(self.alpha)
-
-    self.Wout = nn.Linear(self.d_k, in_features)
-    self.init_weights(self.Wout)
-
     if opt['beltrami']:
       self.output_var_x = nn.Parameter(torch.ones(1))
       self.lengthscale_x = nn.Parameter(torch.ones(1))
       self.output_var_p = nn.Parameter(torch.ones(1))
       self.lengthscale_p = nn.Parameter(torch.ones(1))
 
-      #todo need to replicate all the KQV for beltrami x and p
+      self.Qx = nn.Linear(opt['feat_hidden_dim'], self.attention_dim)
+      self.init_weights(self.Qx)
+      self.Vx = nn.Linear(opt['feat_hidden_dim'], self.attention_dim)
+      self.init_weights(self.Vx)
+      self.Kx = nn.Linear(opt['feat_hidden_dim'], self.attention_dim)
+      self.init_weights(self.Kx)
+
+      self.Qp = nn.Linear(opt['pos_enc_hidden_dim'], self.attention_dim)
+      self.init_weights(self.Qp)
+      self.Vp = nn.Linear(opt['pos_enc_hidden_dim'], self.attention_dim)
+      self.init_weights(self.Vp)
+      self.Kp = nn.Linear(opt['pos_enc_hidden_dim'], self.attention_dim)
+      self.init_weights(self.Kp)
+
+    else:
+      self.Q = nn.Linear(in_features, self.attention_dim)
+      self.init_weights(self.Q)
+
+      self.V = nn.Linear(in_features, self.attention_dim)
+      self.init_weights(self.V)
+
+      self.K = nn.Linear(in_features, self.attention_dim)
+      self.init_weights(self.K)
+
+    self.activation = nn.Sigmoid()  # nn.LeakyReLU(self.alpha)
+
+    self.Wout = nn.Linear(self.d_k, in_features)
+    self.init_weights(self.Wout)
+
 
   def init_weights(self, m):
     if type(m) == nn.Linear:
       # nn.init.xavier_uniform_(m.weight, gain=1.414)
       # m.bias.data.fill_(0.01)
       nn.init.constant_(m.weight, 1e-5)
-      #todo initialising constant weights on NN gives constant gradients/output??
+      #todo initialising constant weights on NN gives constant gradients/output???
 
   def forward(self, x, edge):
 
@@ -121,9 +135,10 @@ class SpGraphTransAttentionLayer(nn.Module):
       p = x[:, self.opt['feat_hidden_dim']:]
       x = x[:, :self.opt['feat_hidden_dim']]
 
-      qx = self.Q(x)
-      kx = self.K(x)
-      vx = self.V(x)
+
+      qx = self.Qx(x)
+      kx = self.Kx(x)
+      vx = self.Vx(x)
       # perform linear operation and split into h heads
       kx = kx.view(-1, self.h, self.d_k)
       qx = qx.view(-1, self.h, self.d_k)
@@ -135,22 +150,19 @@ class SpGraphTransAttentionLayer(nn.Module):
       src_x = qx[edge[0, :], :, :]
       dst_x = kx[edge[1, :], :, :]
 
-      qp = self.Q(p)
-      kp = self.K(p)
-      vp = self.V(p)
+      qp = self.Qp(p)
+      kp = self.Kp(p)
+      vp = self.Vp(p)
       # perform linear operation and split into h heads
-      k = k.view(-1, self.h, self.d_k)
-      q = q.view(-1, self.h, self.d_k)
-      v = v.view(-1, self.h, self.d_k)
+      kp = kp.view(-1, self.h, self.d_k)
+      qp = qp.view(-1, self.h, self.d_k)
+      vp = vp.view(-1, self.h, self.d_k)
       # transpose to get dimensions [n_nodes, attention_dim, n_heads]
-      k = k.transpose(1, 2)
-      q = q.transpose(1, 2)
-      v = v.transpose(1, 2)
-      src = q[edge[0, :], :, :]
-      dst_k = k[edge[1, :], :, :]
-
-      src_p = src[self.opt['feat_hidden_dim']:, :, :]
-      dst_p = dst_k[self.opt['feat_hidden_dim']:, :, :]
+      kp = kp.transpose(1, 2)
+      qp = qp.transpose(1, 2)
+      vp = vp.transpose(1, 2)
+      src_p = qp[edge[0, :], :, :]
+      dst_p = kp[edge[1, :], :, :]
 
       prods = self.output_var_x ** 2 * torch.exp(
         -torch.sum((src_x - dst_x) ** 2, dim=1) / (2 * self.lengthscale_x ** 2)) \
@@ -161,7 +173,7 @@ class SpGraphTransAttentionLayer(nn.Module):
       # prods = self.output_var ** 2 * torch.exp(-torch.sum((src - dst_k)**2, dim=1) / (2 * self.lengthscale ** 2))
 
       attention = softmax(prods, edge[self.opt['attention_norm_idx']])
-      return attention, v
+      return attention, None
 
     else:
       q = self.Q(x)
