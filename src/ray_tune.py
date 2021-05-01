@@ -198,20 +198,20 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
 
 
 def set_cora_search_space(opt):
-  opt["decay"] = tune.loguniform(0.001, 0.1)  # weight decay l2 reg
+  opt["decay"] = tune.loguniform(1e-5, 0.1)  # weight decay l2 reg
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
 
-  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
+  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 8))  # hidden dim of X in dX/dt
   opt["lr"] = tune.uniform(0.01, 0.2)
   # opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
   opt["input_dropout"] = 0.5
-  opt["optimizer"] = tune.choice(["adam", "adamax"])
-  opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-  opt["time"] = tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
+  opt["optimizer"] = tune.choice(["adam", "rmsprop", "adamax"])
+  opt["dropout"] = tune.loguniform(0, 0.1)  # output dropout
+  opt["time"] = tune.uniform(10.0, 30.0)  # terminal time of the ODE integrator;
   # when it's big, the training hangs (probably due a big NFEs of the ODE)
 
   if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
@@ -225,12 +225,12 @@ def set_cora_search_space(opt):
     opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
     opt['att_samp_pct'] = tune.uniform(0.3, 1)
   else:
-    opt["self_loop_weight"] = tune.uniform(0, 3)
+    opt["self_loop_weight"] = tune.uniform(0, 4)
 
   opt["tol_scale"] = tune.loguniform(100, 10000)  # num you multiply the default rtol and atol by
   if opt["adjoint"]:
     opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
-    opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
+    opt["tol_scale_adjoint"] = tune.loguniform(10, 10000)
 
   opt['add_source'] = tune.choice([True, False])
 
