@@ -56,17 +56,19 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
         dataset.data = set_train_val_test_split(train_val_seed, dataset.data, development_seed=test_seed,
                                                 num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
-        if opt['attention_rewiring']:
-            # needs to be before Beltrami data augmentation
-            GRAND0 = train_GRAND(dataset, opt)
-            x = dataset.data.x
-            x = GRAND0.m1(x)
-            x = x + GRAND0.m11(F.relu(x))
-            x = x + GRAND0.m12(F.relu(x))
-            G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone()
-            dataset.data.edge_attr = G0_attention.to(device)
-
         if opt['rewiring']:
+            if opt['attention_rewiring']:
+                temp_att_type = opt['attention_type'] = "scaled_dot"
+                # needs to be before Beltrami data augmentation
+                GRAND0 = train_GRAND(dataset, opt)
+                x = dataset.data.x
+                x = GRAND0.m1(x)
+                x = x + GRAND0.m11(F.relu(x))
+                x = x + GRAND0.m12(F.relu(x))
+                G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone()
+                dataset.data.edge_attr = G0_attention.to(device)
+                opt['attention_type'] = temp_att_type
+
             dataset.data.to(device)
             dataset.data = apply_gdc(dataset.data, opt, type='combined')
 
