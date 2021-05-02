@@ -59,9 +59,12 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
 
         if opt['rewiring']:
             if opt['attention_rewiring']:
+                #managing beltrami att_rewiring interactions
                 temp_att_type = opt['attention_type']
+                temp_beltrami_type = opt['beltrami']
                 opt['attention_type'] = "scaled_dot"
-                # needs to be before Beltrami data augmentation
+                opt['beltrami'] = False
+
                 GRAND0 = train_GRAND(dataset, opt)
                 x = dataset.data.x
                 x = GRAND0.m1(x)
@@ -69,6 +72,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
                 x = x + GRAND0.m12(F.relu(x))
                 G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone()
                 dataset.data.edge_attr = G0_attention.to(device)
+                opt['beltrami'] = temp_beltrami_type
                 opt['attention_type'] = temp_att_type
 
             dataset.data.to(device)
