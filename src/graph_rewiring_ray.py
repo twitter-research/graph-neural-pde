@@ -263,6 +263,7 @@ def set_rewiring_space(opt):
     opt['reweight_attention'] = tune.choice([True, False])
     opt['make_symm'] = tune.choice([True, False])
 
+    return opt
 
 def set_cora_search_space(opt):
     opt["decay"] = tune.loguniform(0.001, 0.1)  # weight decay l2 reg
