@@ -134,7 +134,6 @@ class SpGraphTransAttentionLayer(nn.Module):
       p = x[:, self.opt['feat_hidden_dim']:]
       x = x[:, :self.opt['feat_hidden_dim']]
 
-
       qx = self.Qx(x)
       kx = self.Kx(x)
       vx = self.Vx(x)

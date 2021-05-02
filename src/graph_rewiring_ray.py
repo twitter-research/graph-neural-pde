@@ -59,7 +59,8 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
 
         if opt['rewiring']:
             if opt['attention_rewiring']:
-                temp_att_type = opt['attention_type'] = "scaled_dot"
+                temp_att_type = opt['attention_type']
+                opt['attention_type'] = "scaled_dot"
                 # needs to be before Beltrami data augmentation
                 GRAND0 = train_GRAND(dataset, opt)
                 x = dataset.data.x
