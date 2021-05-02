@@ -43,13 +43,14 @@ def average_test(models, datas):
 
 def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    dataset = get_dataset(opt, data_dir, opt['not_lcc'])
+    # dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
     models = []
     datas = []
     optimizers = []
 
     for split in range(opt["num_splits"]):
+        dataset = get_dataset(opt, data_dir, opt['not_lcc'])
         # note here we are forcing a different seed for test split and train/val split
         train_val_seed = np.random.randint(0, 1000)
         test_seed = np.random.randint(0, 1000)
