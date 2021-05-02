@@ -419,7 +419,7 @@ def main(opt):
       opt['attention_rewiring'] = att_rewire  # True
 
       if opt['attention_rewiring']:
-        #to do fix this with beltrami interactions
+        #needs to be before Beltrami data augmentation
         GRAND0 = train_GRAND(dataset, opt)
         x = dataset.data.x
         x = GRAND0.m1(x)

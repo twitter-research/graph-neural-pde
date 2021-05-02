@@ -138,7 +138,6 @@ def set_train_val_test_split(
         num_development: int = 1500,
         num_per_class: int = 20,
         development_seed = 1684992425) -> Data:
-  # development_seed = 1684992425
   rnd_state = np.random.RandomState(development_seed) #seed or development_seed
   num_nodes = data.y.shape[0]
   development_idx = rnd_state.choice(num_nodes, num_development, replace=False)
