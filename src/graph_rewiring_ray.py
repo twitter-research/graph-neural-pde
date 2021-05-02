@@ -55,7 +55,6 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
         test_seed = np.random.randint(0, 1000)
         dataset.data = set_train_val_test_split(train_val_seed, dataset.data, development_seed=test_seed,
                                                 num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
-        datas.append(dataset.data)
 
         if opt['attention_rewiring']:
             # needs to be before Beltrami data augmentation
@@ -79,6 +78,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
             dataset.data.to(device)
             dataset.data.x = torch.cat([dataset.data.x, pos_encoding], dim=1).to(device)
 
+        datas.append(dataset.data)
         model = GNN(opt, dataset, device)
         train_this = train
         models.append(model)
