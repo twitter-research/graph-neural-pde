@@ -484,7 +484,23 @@ if __name__ == "__main__":
                         help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
     parser.add_argument('--att_samp_pct', type=float, default=1,
                         help="float in [0,1). The percentage of edges to retain based on attention scores")
-
+    parser.add_argument('--use_flux', dest='use_flux', action='store_true',
+                        help='incorporate the feature grad in attention based edge dropout')
+    parser.add_argument("--exact", action="store_true",
+                        help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
+    parser.add_argument('--M_nodes', type=int, default=64, help="new number of nodes to add")
+    parser.add_argument('--new_edges', type=str, default="random", help="random, random_walk, k_hop")
+    parser.add_argument('--sparsify', type=str, default="S_hat", help="S_hat, recalc_att")
+    parser.add_argument('--threshold_type', type=str, default="addD_rvR", help="topk_adj, addD_rvR")
+    parser.add_argument('--rw_addD', type=float, default=0.02, help="percentage of new edges to add")
+    parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
+    parser.add_argument('--attention_rewiring', action='store_true',
+                        help='perform DIGL using precalcualted GRAND attention')
+    parser.add_argument('--attention_type', type=str, default="scaled_dot",
+                        help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
+    parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
+    parser.add_argument('--max_epochs', type=int, default=1000, help="max epochs to train before patience")
+    parser.add_argument('--patience', type=int, default=100, help="amount of patience for non improving val acc")
     args = parser.parse_args()
 
     opt = vars(args)
