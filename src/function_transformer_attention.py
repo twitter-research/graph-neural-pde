@@ -86,7 +86,7 @@ class SpGraphTransAttentionLayer(nn.Module):
       self.h, self.attention_dim)
     self.d_k = self.attention_dim // self.h
 
-    if opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
+    if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
       self.output_var_x = nn.Parameter(torch.ones(1))
       self.lengthscale_x = nn.Parameter(torch.ones(1))
       self.output_var_p = nn.Parameter(torch.ones(1))
@@ -130,7 +130,7 @@ class SpGraphTransAttentionLayer(nn.Module):
 
   def forward(self, x, edge):
 
-    if opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
+    if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
       p = x[:, self.opt['feat_hidden_dim']:]
       x = x[:, :self.opt['feat_hidden_dim']]
 
