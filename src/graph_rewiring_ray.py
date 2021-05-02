@@ -268,6 +268,11 @@ def set_rewiring_space(opt):
     return opt
 
 def set_cora_search_space(opt):
+    #need these for beltrami
+    opt['num_feature'] = 1433
+    opt['num_class'] = 7
+    opt['num_nodes'] = 2708
+
     opt["decay"] = tune.loguniform(0.001, 0.1)  # weight decay l2 reg
     if opt['regularise']:
         opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
