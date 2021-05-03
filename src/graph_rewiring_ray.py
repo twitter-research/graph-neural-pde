@@ -49,13 +49,15 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
     datas = []
     optimizers = []
 
-    for split in range(opt["num_splits"]):
-        dataset = get_dataset(opt, data_dir, opt['not_lcc'])
+    # for split in range(opt["num_splits"]):
+    #     dataset = get_dataset(opt, data_dir, opt['not_lcc'])
         # note here we are forcing a different seed for test split and train/val split
-        train_val_seed = np.random.randint(0, 1000)
-        test_seed = np.random.randint(0, 1000)
-        dataset.data = set_train_val_test_split(train_val_seed, dataset.data, development_seed=test_seed,
-                                                num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
+        # train_val_seed = np.random.randint(0, 1000)
+        # test_seed = np.random.randint(0, 1000)
+        # dataset.data = set_train_val_test_split(train_val_seed, dataset.data, development_seed=test_seed,
+        #                                         num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
+    for split in range(opt["num_init"]):
+        dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
         if opt['rewiring']:
             if opt['attention_rewiring']:
@@ -261,7 +263,6 @@ def set_rewiring_space(opt):
     # if opt['rewiring'] == 'gdc':
         # opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
 
-
     # experiment args
     opt['self_loop_weight'] = 0 #todo go through rewiring code and see why doesn't run with self loops
     opt['block'] = 'attention'
@@ -275,17 +276,8 @@ def set_rewiring_space(opt):
 
     opt['feat_hidden_dim'] = tune.choice([32,64])
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
-    # opt['hidden_dim'] = tune.choice([32,64])
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
                                             if spec.config.beltrami else tune.choice([32,64]))
-
-    # if opt['beltrami']:
-    #     opt['feat_hidden_dim'] = 64
-    #     opt['pos_enc_hidden_dim'] = 16
-    #     opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
-    #     opt['attention_type'] = "exp_kernel"  # "scaled_dot"
-    # else:
-    #     opt['attention_type'] = "scaled_dot"
 
     return opt
 
