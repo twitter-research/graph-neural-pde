@@ -277,9 +277,14 @@ def set_rewiring_space(opt):
     opt['use_lcc'] = True
 
     opt['beltrami'] = tune.choice([True, False])
-    opt['attention_type'] = tune.sample_from(lambda spec: "exp_kernel" if spec.config.beltrami else "scaled_dot")
-    opt['feat_hidden_dim'] = 64
-    opt['pos_enc_hidden_dim'] = 16
+    # opt['attention_type'] = tune.sample_from(lambda spec: "exp_kernel" if spec.config.beltrami else "scaled_dot")
+    # opt['attention_type'] = tune.choice(["exp_kernel", "scaled_dot", "cosine_sim", "pearson"])
+    bel_choice = tune.choice(["exp_kernel", "scaled_dot", "cosine_sim", "pearson"])
+    non_bel_choice = tune.choice(["scaled_dot", "cosine_sim", "pearson"])
+    opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
+
+    opt['feat_hidden_dim'] = tune.choice([32,64])
+    opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
     # opt['hidden_dim'] = tune.choice([32,64])
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
                                             if spec.config.beltrami else tune.choice([32,64]))
@@ -291,9 +296,6 @@ def set_rewiring_space(opt):
     #     opt['attention_type'] = "exp_kernel"  # "scaled_dot"
     # else:
     #     opt['attention_type'] = "scaled_dot"
-
-
-
 
     return opt
 
