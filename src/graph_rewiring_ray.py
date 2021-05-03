@@ -60,8 +60,8 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
         if opt['rewiring']:
             if opt['attention_rewiring']:
                 #managing beltrami att_rewiring interactions
-                temp_att_type = opt['attention_type']
                 temp_beltrami_type = opt['beltrami']
+                temp_att_type = opt['attention_type']
                 opt['attention_type'] = "scaled_dot"
                 opt['beltrami'] = False
 
@@ -262,6 +262,8 @@ def set_rewiring_space(opt):
         opt['pos_enc_hidden_dim'] = 16
         opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
         opt['attention_type'] = "exp_kernel"  # "scaled_dot"
+    else:
+        opt['attention_type'] = "scaled_dot"
 
     if opt['rewiring'] == 'gdc':
         opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
