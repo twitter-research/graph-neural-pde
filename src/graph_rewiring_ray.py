@@ -277,8 +277,9 @@ def set_rewiring_space(opt):
     opt['attention_type'] = tune.sample_from(lambda spec: "exp_kernel" if spec.config.beltrami else "scaled_dot")
     opt['feat_hidden_dim'] = 64
     opt['pos_enc_hidden_dim'] = 16
+    opt['hidden_dim'] = tune.choice([32,64])
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
-                                            if spec.config.beltrami else spec.config.scaled_dot)
+                                            if spec.config.beltrami else spec.config.hidden_dim)
 
     # if opt['beltrami']:
     #     opt['feat_hidden_dim'] = 64
