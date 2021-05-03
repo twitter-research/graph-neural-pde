@@ -75,9 +75,12 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
 
                 GRAND0 = train_GRAND(dataset, opt)
                 x = dataset.data.x
+
                 x = GRAND0.m1(x)
-                x = x + GRAND0.m11(F.relu(x))
-                x = x + GRAND0.m12(F.relu(x))
+                if opt['use_mlp']:
+                    x = x + GRAND0.m11(F.relu(x))
+                    x = x + GRAND0.m12(F.relu(x))
+
                 G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone()
                 dataset.data.edge_attr = G0_attention.to(device)
                 opt['beltrami'] = temp_beltrami_type
