@@ -270,14 +270,15 @@ def set_rewiring_space(opt):
     opt['use_lcc'] = True
 
     opt['beltrami'] = True #tune.choice([True, False])
-    bel_choice = tune.choice(["exp_kernel", "scaled_dot", "cosine_sim", "pearson"])
-    non_bel_choice = tune.choice(["scaled_dot", "cosine_sim", "pearson"])
+    bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson"]) #"scaled_dot"
+    non_bel_choice = tune.choice(["cosine_sim", "pearson"]) #"scaled_dot"
     opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
 
     opt['feat_hidden_dim'] = tune.choice([32,64])
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
-                                            if spec.config.beltrami else tune.choice([32,64]))
+                                            if spec.config.beltrami else tune.choice([32,64, 128]))
+    # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
 
     return opt
 
@@ -292,21 +293,18 @@ def set_cora_search_space(opt):
         opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
         opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
-    #don't mess with hidden dim with beltrami
-    # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
     opt["lr"] = tune.uniform(0.01, 0.2)
     # opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
     opt["input_dropout"] = 0.5
     opt["optimizer"] = tune.choice(["adam", "adamax"])
     opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-    opt["time"] = tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
-    # when it's big, the training hangs (probably due a big NFEs of the ODE)
+    opt["time"] = tune.uniform(10.0, 30.0) #tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
     if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
         opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
         opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  # hidden dim for attention
-        # opt['attention_norm_idx'] = tune.choice([0, 1])
-        opt['attention_norm_idx'] = 0
+        opt['attention_norm_idx'] = tune.choice([0, 1])
+        # opt['attention_norm_idx'] = 0
         # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
         opt["leaky_relu_slope"] = 0.2
     # todo go through rewiring code and see why doesn't run with self loops
@@ -320,7 +318,7 @@ def set_cora_search_space(opt):
         opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
 
     opt['add_source'] = tune.choice([True, False])
-    opt['att_samp_pct'] = tune.uniform(0.3, 1)
+    # opt['att_samp_pct'] = tune.uniform(0.3, 1)
     opt['batch_norm'] = tune.choice([True, False])
 
     return opt
