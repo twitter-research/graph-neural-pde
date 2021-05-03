@@ -57,6 +57,14 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
         dataset.data = set_train_val_test_split(train_val_seed, dataset.data, development_seed=test_seed,
                                                 num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
+        if opt['beltrami']:
+            opt['feat_hidden_dim'] = 64
+            opt['pos_enc_hidden_dim'] = 16
+            opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
+            opt['attention_type'] = "exp_kernel"  # "scaled_dot"
+        else:
+            opt['attention_type'] = "scaled_dot"
+
         if opt['rewiring']:
             if opt['attention_rewiring']:
                 #managing beltrami att_rewiring interactions
@@ -257,13 +265,13 @@ def set_rewiring_space(opt):
     opt['use_lcc'] = True
 
     opt['beltrami'] = tune.choice([True, False])
-    if opt['beltrami']:
-        opt['feat_hidden_dim'] = 64
-        opt['pos_enc_hidden_dim'] = 16
-        opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
-        opt['attention_type'] = "exp_kernel"  # "scaled_dot"
-    else:
-        opt['attention_type'] = "scaled_dot"
+    # if opt['beltrami']:
+    #     opt['feat_hidden_dim'] = 64
+    #     opt['pos_enc_hidden_dim'] = 16
+    #     opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
+    #     opt['attention_type'] = "exp_kernel"  # "scaled_dot"
+    # else:
+    #     opt['attention_type'] = "scaled_dot"
 
     if opt['rewiring'] == 'gdc':
         opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
