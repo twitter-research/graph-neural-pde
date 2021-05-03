@@ -129,8 +129,6 @@ class SpGraphTransAttentionLayer(nn.Module):
       # nn.init.constant_(m.weight, 1e-5)
 
   def forward(self, x, edge):
-    print(self.opt['beltrami'])
-    print(self.opt['attention_type'])
     if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
       p = x[:, self.opt['feat_hidden_dim']:]
       x = x[:, :self.opt['feat_hidden_dim']]
