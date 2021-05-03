@@ -279,7 +279,7 @@ def set_rewiring_space(opt):
     opt['pos_enc_hidden_dim'] = 16
     # opt['hidden_dim'] = tune.choice([32,64])
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
-                                            if spec.config.beltrami else [32,64])
+                                            if spec.config.beltrami else tune.choice([32,64]))
 
     # if opt['beltrami']:
     #     opt['feat_hidden_dim'] = 64
