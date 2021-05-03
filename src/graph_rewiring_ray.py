@@ -57,13 +57,13 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
         dataset.data = set_train_val_test_split(train_val_seed, dataset.data, development_seed=test_seed,
                                                 num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
-        if opt['beltrami']:
-            opt['feat_hidden_dim'] = 64
-            opt['pos_enc_hidden_dim'] = 16
-            opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
-            opt['attention_type'] = "exp_kernel"  # "scaled_dot"
-        else:
-            opt['attention_type'] = "scaled_dot"
+        # if opt['beltrami']:
+        #     opt['feat_hidden_dim'] = 64
+        #     opt['pos_enc_hidden_dim'] = 16
+        #     opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
+        #     opt['attention_type'] = "exp_kernel"  # "scaled_dot"
+        # else:
+        #     opt['attention_type'] = "scaled_dot"
 
         if opt['rewiring']:
             if opt['attention_rewiring']:
@@ -251,11 +251,20 @@ def run_best_params(opt):
 
 def set_rewiring_space(opt):
     # DIGL args
+    opt['rewiring'] = tune.choice(['gdc', None])
+
+
+    opt['attention_rewiring'] = tune.choice([True, False])
+    opt['reweight_attention'] = tune.choice([True, False])
+    opt['make_symm'] = tune.choice([True, False])
+    # if opt['rewiring'] == 'gdc':
+        # opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
+    opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
     opt['exact'] = True
     opt['gdc_sparsification'] = 'topk'  # 'threshold'
     opt['gdc_threshold'] = 0.01
     opt['ppr_alpha'] = 0.05
-    ks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+    ks = [4, 8, 16, 32, 64, 128, 256]
     opt['gdc_k'] = tune.choice(ks)
 
     # experiment args
@@ -265,6 +274,12 @@ def set_rewiring_space(opt):
     opt['use_lcc'] = True
 
     opt['beltrami'] = tune.choice([True, False])
+    opt['attention_type'] = tune.sample_from(lambda spec: "exp_kernel" if spec.config.beltrami else "scaled_dot")
+    opt['feat_hidden_dim'] = 64
+    opt['pos_enc_hidden_dim'] = 16
+    opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
+                                            if spec.config.beltrami else spec.config.scaled_dot)
+
     # if opt['beltrami']:
     #     opt['feat_hidden_dim'] = 64
     #     opt['pos_enc_hidden_dim'] = 16
@@ -273,13 +288,8 @@ def set_rewiring_space(opt):
     # else:
     #     opt['attention_type'] = "scaled_dot"
 
-    if opt['rewiring'] == 'gdc':
-        opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
-        opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
 
-    opt['attention_rewiring'] = tune.choice([True, False])
-    opt['reweight_attention'] = tune.choice([True, False])
-    opt['make_symm'] = tune.choice([True, False])
+
 
     return opt
 
