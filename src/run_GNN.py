@@ -127,10 +127,10 @@ def train(model, optimizer, data):
   # F.nll_loss(out[data.train_mask], data.y[data.train_mask]).backward()
   loss.backward()
   optimizer.step()
-  if model.opt['mix_features']:
-    W = model.odeblock.odefunc.w.data
-    beta = 0.5
-    W.copy_((1 + beta) * W - beta * W.mm(W.transpose(0, 1).mm(W)))
+  # if model.opt['mix_features']:
+  #   W = model.odeblock.odefunc.w.data
+  #   beta = 0.5
+  #   W.copy_((1 + beta) * W - beta * W.mm(W.transpose(0, 1).mm(W)))
   model.bm.update(model.getNFE())
   model.resetNFE()
   return loss.item()

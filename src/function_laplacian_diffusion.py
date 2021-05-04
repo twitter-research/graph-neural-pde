@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import torch_sparse
+from torch.nn.functional import normalize
 
 from base_classes import ODEFunc
 
@@ -20,6 +21,8 @@ class LaplacianODEFunc(ODEFunc):
     self.in_features = in_features
     self.out_features = out_features
     self.w = nn.Parameter(torch.eye(opt['hidden_dim']))
+    self.w_rs = nn.Parameter(torch.rand((opt['hidden_dim'], opt['hidden_dim'])))  # right stochastic W
+    # self.w_rs = f.normalize(w, p=1, dim=-1)
     self.d = nn.Parameter(torch.ones(opt['hidden_dim']))
     self.alpha_sc = nn.Parameter(torch.ones(1))
     self.beta_sc = nn.Parameter(torch.ones(1))
@@ -40,9 +43,11 @@ class LaplacianODEFunc(ODEFunc):
   def forward(self, t, x):  # the t param is needed by the ODE solver.
     self.nfe += 1
     if self.opt['mix_features']:
-      d = torch.clamp(self.d, min=0, max=1)  # enforce evalues in (0,1)
-      w = torch.mm(self.w * d, torch.t(self.w))
-      x = torch.spmm(x, w)
+      # d = torch.clamp(self.d, min=0, max=1)  # enforce evalues in (0,1)
+      # w = torch.mm(self.w * d, torch.t(self.w))
+      # x = torch.spmm(x, w)
+      w_rs = normalize(self.w_rs, p=1, dim=-1)
+      x = torch.spmm(x, w_rs)
     ax = self.sparse_multiply(x)
     if not self.opt['no_alpha_sigmoid']:
       alpha = torch.sigmoid(self.alpha_train)
