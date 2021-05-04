@@ -26,7 +26,8 @@ def get_cora_opt(opt):
   opt['attention_dropout'] = 0
   opt['adjoint'] = False
   # opt['ode'] = 'ode'
-
+  opt['block'] = 'rewire_attention'
+  # opt['block'] = 'attention'
   return opt
 
 
@@ -318,9 +319,15 @@ if __name__ == '__main__':
   parser.add_argument('--M_nodes', type=int, default=64, help="new number of nodes to add")
   parser.add_argument('--new_edges', type=str, default="random", help="random, random_walk, k_hop")
   parser.add_argument('--sparsify', type=str, default="S_hat", help="S_hat, recalc_att")
-  parser.add_argument('--threshold_type', type=str, default="addD_rvR", help="topk_adj, addD_rvR")
+  parser.add_argument('--threshold_type', type=str, default="topk_adj", help="topk_adj, addD_rvR")
   parser.add_argument('--rw_addD', type=float, default=0.02, help="percentage of new edges to add")
   parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
+
+
+
+  parser.add_argument('--attention_type', type=str, default="scaled_dot",
+                      help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
+  parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
 
   args = parser.parse_args()
 

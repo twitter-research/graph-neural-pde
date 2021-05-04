@@ -5,7 +5,7 @@ import torch_sparse
 from torch_geometric.utils.loop import add_remaining_self_loops
 import numpy as np
 from data import get_dataset
-from utils import MaxNFEException
+from utils import MaxNFEException, squareplus
 from base_classes import ODEFunc
 
 
@@ -174,7 +174,9 @@ class SpGraphTransAttentionLayer(nn.Module):
       if self.opt['reweight_attention'] and self.edge_weights is not None:
         prods = prods * self.edge_weights.unsqueeze(dim=1)
 
-      attention = softmax(prods, edge[self.opt['attention_norm_idx']])
+      # attention = softmax(prods, edge[self.opt['attention_norm_idx']])
+      attention = squareplus(prods, edge[self.opt['attention_norm_idx']])
+
       return attention, None
 
     else:
@@ -244,7 +246,8 @@ class SpGraphTransAttentionLayer(nn.Module):
 
       if self.opt['reweight_attention'] and self.edge_weights is not None:
         prods = prods * self.edge_weights.unsqueeze(dim=1)
-      attention = softmax(prods, edge[self.opt['attention_norm_idx']])
+      # attention = softmax(prods, edge[self.opt['attention_norm_idx']])
+      attention = squareplus(prods, edge[self.opt['attention_norm_idx']])
       return attention, v
 
   def __repr__(self):

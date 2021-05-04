@@ -49,15 +49,15 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
     datas = []
     optimizers = []
 
-    # for split in range(opt["num_splits"]):
-    #     dataset = get_dataset(opt, data_dir, opt['not_lcc'])
-        # note here we are forcing a different seed for test split and train/val split
-        # train_val_seed = np.random.randint(0, 1000)
-        # test_seed = np.random.randint(0, 1000)
-        # dataset.data = set_train_val_test_split(train_val_seed, dataset.data, development_seed=test_seed,
-        #                                         num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
-    for split in range(opt["num_init"]):
+    for split in range(opt["num_splits"]):
         dataset = get_dataset(opt, data_dir, opt['not_lcc'])
+        # # note here we are forcing a different seed for test split and train/val split
+        train_val_seed = np.random.randint(0, 1000)
+        test_seed = np.random.randint(0, 1000)
+        dataset.data = set_train_val_test_split(train_val_seed, dataset.data, development_seed=test_seed,
+                                                num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
+    # for split in range(opt["num_init"]):
+    #     dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
         if opt['rewiring']:
             if opt['attention_rewiring']:

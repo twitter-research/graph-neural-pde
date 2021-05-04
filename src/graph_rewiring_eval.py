@@ -58,8 +58,8 @@ def rewiring_train(model, optimizer, data):
 
 def rewiring_test(name0, edge_index0, name1, edge_index1, n):
 # todo see if can use jax.numpy.in1d to do on GPU
-# https: // stackoverflow.com / questions / 11903083 / find - the - set - difference - between - two - large - arrays - matrices - in -python
-# https: // stackoverflow.com / questions / 55110047 / finding - non - intersection - of - two - pytorch - tensors
+# https://stackoverflow.com/questions/11903083/find-the-set-difference-between-two-large-arrays-matrices-in-python
+# https://stackoverflow.com/questions/55110047/finding-non-intersection-of-two-pytorch-tensors
   np_idx0 = edge_index0.cpu().numpy().T
   np_idx1 = edge_index1.cpu().numpy().T
   rows0 = np.ascontiguousarray(np_idx0).view(np.dtype((np.void, np_idx0.dtype.itemsize * np_idx0.shape[1])))
@@ -319,7 +319,7 @@ def rewiring_main(opt, dataset, model_type, its=2, fixed_seed=True):
 
 
 def get_GRAND_opt(opt): #second best set of HP's with 8 heads instead of 1
-  opt['block'] = 'attention'
+  opt['block'] = 'rewire_attention'
   opt['function'] = 'laplacian'
 
   opt['tol_scale'] = 13.087 #1.0 #help='multiplier for atol and rtol'
@@ -386,10 +386,11 @@ def main(opt):
   ks = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
   #experiment args
+  # opt['rewiring'] = False #not used in this script
   opt['self_loop_weight'] = 0
-  opt['block'] = 'attention'
+  opt['block'] = 'rewire_attention' #'attention'
   opt['function'] = 'laplacian'
-  opt['beltrami'] = True #True
+  opt['beltrami'] = True #Truec
   opt['use_lcc'] = True
   datasets = ['Cora']#, 'Citeseer'] #, 'Pubmed']
   reweight_atts = [False] #[True, False] #reweight attention ie use DIGL weights
@@ -397,10 +398,12 @@ def main(opt):
   att_rewirings = [False] #[False, True]
   # make_symms = [True, False] #S_hat = 0.5*(A+A.T)
   opt['make_symm'] = True
-  its = 10 #2#0
+  its = 1 #2#0
   fixed_seed = False #True
-  suffix = 'beltrami_proper_sym'
+  suffix = 'beltrami_rewire'
   # suffix = 'varySeed_20its'
+  opt['max_epochs'] = 10
+  opt['patience'] = 10
 
   if opt['beltrami']:
     opt['feat_hidden_dim'] = 64

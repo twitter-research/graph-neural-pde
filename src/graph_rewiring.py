@@ -82,6 +82,7 @@ def apply_gdc(data, opt, type="combined"):
 def make_symmetric(data):
     n = data.num_nodes
     if data.edge_attr is not None:
+        # todo need to write test compare to to_undirected source code
         ApAT_index = torch.cat([data.edge_index, data.edge_index[[1, 0],:]], dim=1)
         ApAT_value = torch.cat([data.edge_attr, data.edge_attr], dim=0)
         ei, ew = torch_sparse.coalesce(ApAT_index, ApAT_value, n, n, op="add")
