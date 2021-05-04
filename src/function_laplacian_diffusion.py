@@ -45,9 +45,10 @@ class LaplacianODEFunc(ODEFunc):
     if self.opt['mix_features']:
       # d = torch.clamp(self.d, min=0, max=1)  # enforce evalues in (0,1)
       # w = torch.mm(self.w * d, torch.t(self.w))
-      # x = torch.spmm(x, w)
-      w_rs = normalize(self.w_rs, p=1, dim=-1)
-      x = torch.spmm(x, w_rs)
+      # x = torch.mm(x, w)
+      # w_rs = normalize(self.w_rs, p=1, dim=-1)
+      w_rs = torch.softmax(self.w_rs)
+      x = torch.mm(x, w_rs)
     ax = self.sparse_multiply(x)
     if not self.opt['no_alpha_sigmoid']:
       alpha = torch.sigmoid(self.alpha_train)
