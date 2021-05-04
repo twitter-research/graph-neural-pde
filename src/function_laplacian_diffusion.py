@@ -26,6 +26,7 @@ class LaplacianODEFunc(ODEFunc):
     self.d = nn.Parameter(torch.ones(opt['hidden_dim']))
     self.alpha_sc = nn.Parameter(torch.ones(1))
     self.beta_sc = nn.Parameter(torch.ones(1))
+    self.sm = torch.nn.Softmax(dim=1)
 
   def sparse_multiply(self, x):
     if self.opt['block'] in ['attention']:  # adj is a multihead attention
@@ -47,7 +48,7 @@ class LaplacianODEFunc(ODEFunc):
       # w = torch.mm(self.w * d, torch.t(self.w))
       # x = torch.mm(x, w)
       # w_rs = normalize(self.w_rs, p=1, dim=-1)
-      w_rs = torch.softmax(self.w_rs)
+      w_rs = self.sm(self.w_rs)
       x = torch.mm(x, w_rs)
     ax = self.sparse_multiply(x)
     if not self.opt['no_alpha_sigmoid']:
