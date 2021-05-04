@@ -107,8 +107,8 @@ class SpGraphTransAttentionLayer(nn.Module):
       nn.init.constant_(m.weight, 1e-5)
 
   def forward(self, x, edge):
-    q = self.Q(x)
     k = self.K(x)
+    q = self.Q(x)
     v = self.V(x)
 
     # perform linear operation and split into h heads

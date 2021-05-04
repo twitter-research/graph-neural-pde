@@ -4,7 +4,7 @@ import torch_sparse
 from torch.nn.functional import normalize
 
 from base_classes import ODEFunc
-
+from feature_attention import TransAttentionLayer
 
 # Define the ODE function.
 # Input:
@@ -27,6 +27,7 @@ class LaplacianODEFunc(ODEFunc):
     self.alpha_sc = nn.Parameter(torch.ones(1))
     self.beta_sc = nn.Parameter(torch.ones(1))
     self.sm = torch.nn.Softmax(dim=1)
+    self.feature_attention = TransAttentionLayer(data.num_nodes, opt['attention_dim'], opt, device, concat=True)
 
   def sparse_multiply(self, x):
     if self.opt['block'] in ['attention']:  # adj is a multihead attention
@@ -48,8 +49,9 @@ class LaplacianODEFunc(ODEFunc):
       # w = torch.mm(self.w * d, torch.t(self.w))
       # x = torch.mm(x, w)
       # w_rs = normalize(self.w_rs, p=1, dim=-1)
-      w_rs = self.sm(self.w_rs)
-      x = torch.mm(x, w_rs)
+      # w_rs = self.sm(self.w_rs)
+      # x = torch.mm(x, w_rs)
+      x = self.feature_attention(x)
     ax = self.sparse_multiply(x)
     if not self.opt['no_alpha_sigmoid']:
       alpha = torch.sigmoid(self.alpha_train)
