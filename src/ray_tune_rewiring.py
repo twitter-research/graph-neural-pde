@@ -204,6 +204,11 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
     if opt["no_early"]:
       tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
       best_time = opt['time']
+      if tmp_val_acc > val_acc:
+        best_epoch = epoch
+        train_acc = tmp_train_acc
+        val_acc = tmp_val_acc
+        test_acc = tmp_test_acc
     else:
       tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
       if tmp_val_acc > val_acc:
