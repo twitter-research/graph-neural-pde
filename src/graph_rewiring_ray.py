@@ -255,7 +255,6 @@ def set_rewiring_space(opt):
     # opt['reweight_attention'] = tune.choice([True, False])
     # opt['make_symm'] = tune.choice([True, False])
     # opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
-    opt['exact'] = True
     opt['gdc_sparsification'] = 'topk'  # 'threshold'
     opt['gdc_threshold'] = 0.01
     opt['ppr_alpha'] = 0.05
@@ -283,7 +282,7 @@ def set_rewiring_space(opt):
     opt['rewire_KNN'] = tune.choice([True, False])
     opt['rewire_KNN_epoch'] = tune.choice([10,20,50])
     opt['rewire_KNN_k'] = tune.choice([16, 32, 64, 128, 256])
-
+    #also test make sym
     return opt
 
 def set_cora_search_space(opt):
