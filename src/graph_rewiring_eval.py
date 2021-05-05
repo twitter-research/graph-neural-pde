@@ -438,7 +438,7 @@ def main(opt):
         #get positional encoding and concat with features
         pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
         dataset.data.to(device)
-        dataset.data.x = torch.cat([dataset.data.x, pos_encoding],dim=1).to(device)
+        dataset.data.x = torch.cat([dataset.data.x, pos_encoding], dim=1).to(device)
 
       for rw_att in reweight_atts:
         print(f"rw_att {rw_att}")
@@ -619,6 +619,7 @@ if __name__ == "__main__":
   parser.add_argument('--rewire_KNN', action='store_true', help='perform KNN rewiring every few epochs')
   parser.add_argument('--rewire_KNN_epoch', type=int, default=10, help="frequency of epochs to rewire")
   parser.add_argument('--rewire_KNN_k', type=int, default=64, help="target degree for KNN rewire")
+  parser.add_argument('--rewire_KNN_sym', action='store_true', help='make KNN symmetric')
 
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")

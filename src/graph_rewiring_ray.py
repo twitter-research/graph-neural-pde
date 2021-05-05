@@ -115,6 +115,8 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
             optimizer.load_state_dict(optimizer_state)
 
     for epoch in range(1, opt["epoch"]):
+        if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0:
+            data.edge_index = KNN(data.x, opt)
         loss = np.mean(
             [train_this(model, optimizer, data) for model, optimizer, data in zip(models, optimizers, datas)])
         train_accs, val_accs, tmp_test_accs = average_test(models, datas)
@@ -277,12 +279,12 @@ def set_rewiring_space(opt):
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
                                             if spec.config.beltrami else tune.choice([32,64, 128]))
     # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
-    opt['beltrami'] = tune.choice([True, False])
+    opt['pos_enc_dim'] = tune.choice(["row", "col"])
     opt['square_plus'] = tune.choice([True, False])
     opt['rewire_KNN'] = tune.choice([True, False])
-    opt['rewire_KNN_epoch'] = tune.choice([10,20,50])
+    opt['rewire_KNN_epoch'] = tune.choice([10,20,50,10000])
     opt['rewire_KNN_k'] = tune.choice([16, 32, 64, 128, 256])
-    #also test make sym
+    opt['rewire_KNN_sym'] = tune.choice([True, False])
     return opt
 
 def set_cora_search_space(opt):
@@ -317,7 +319,6 @@ def set_cora_search_space(opt):
     # if opt['self_loop_weight'] > 0.0:
     #     opt['exact'] = True  # for GDC, need exact if selp loop weight >0
     opt['exact'] = tune.sample_from(lambda spec: True if spec.config.self_loop_weight > 0.0 else False)
-
 
     opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
     if opt["adjoint"]:
@@ -528,6 +529,7 @@ if __name__ == "__main__":
     parser.add_argument('--rewire_KNN', action='store_true', help='perform KNN rewiring every few epochs')
     parser.add_argument('--rewire_KNN_epoch', type=int, default=10, help="frequency of epochs to rewire")
     parser.add_argument('--rewire_KNN_k', type=int, default=64, help="target degree for KNN rewire")
+    parser.add_argument('--rewire_KNN_sym', action='store_true', help='make KNN symmetric')
 
     parser.add_argument('--attention_type', type=str, default="scaled_dot",
                         help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
