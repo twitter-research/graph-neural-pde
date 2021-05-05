@@ -206,17 +206,17 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
       best_time = opt['time']
     else:
       tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
-    if tmp_val_acc > val_acc:
-      best_epoch = epoch
-      train_acc = tmp_train_acc
-      val_acc = tmp_val_acc
-      test_acc = tmp_test_acc
-    if model.odeblock.test_integrator.solver.best_val > val_acc:
-      best_epoch = epoch
-      val_acc = model.odeblock.test_integrator.solver.best_val
-      test_acc = model.odeblock.test_integrator.solver.best_test
-      train_acc = model.odeblock.test_integrator.solver.best_train
-      best_time = model.odeblock.test_integrator.solver.best_time
+      if tmp_val_acc > val_acc:
+        best_epoch = epoch
+        train_acc = tmp_train_acc
+        val_acc = tmp_val_acc
+        test_acc = tmp_test_acc
+      if model.odeblock.test_integrator.solver.best_val > val_acc:
+        best_epoch = epoch
+        val_acc = model.odeblock.test_integrator.solver.best_val
+        test_acc = model.odeblock.test_integrator.solver.best_test
+        train_acc = model.odeblock.test_integrator.solver.best_train
+        best_time = model.odeblock.test_integrator.solver.best_time
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((model.state_dict(), optimizer.state_dict()), path)
