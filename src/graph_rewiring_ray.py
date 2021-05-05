@@ -56,12 +56,12 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
         test_seed = np.random.randint(0, 1000)
         dataset.data = set_train_val_test_split(train_val_seed, dataset.data, development_seed=test_seed,
                                                 num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
-    # for split in range(opt["num_init"]):
-    #     dataset = get_dataset(opt, data_dir, opt['not_lcc'])
+        # for split in range(opt["num_init"]):
+        #     dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
         if opt['rewiring']:
             if opt['attention_rewiring']:
-                #managing beltrami att_rewiring interactions
+                # managing beltrami att_rewiring interactions
                 temp_beltrami_type = opt['beltrami']
                 temp_att_type = opt['attention_type']
                 opt['attention_type'] = "scaled_dot"
@@ -251,7 +251,7 @@ def run_best_params(opt):
 
 def set_rewiring_space(opt):
     # DIGL args
-    opt['rewiring'] = None #tune.choice(['gdc', None])
+    opt['rewiring'] = None  # tune.choice(['gdc', None])
 
     # opt['attention_rewiring'] = tune.choice([True, False])
     # opt['reweight_attention'] = tune.choice([True, False])
@@ -263,7 +263,7 @@ def set_rewiring_space(opt):
     # ks = [4, 8, 16, 32, 64, 128, 256]
     # opt['gdc_k'] = tune.choice(ks)
     # if opt['rewiring'] == 'gdc':
-        # opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
+    # opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
 
     # experiment args
     opt['block'] = 'attention'
@@ -271,24 +271,25 @@ def set_rewiring_space(opt):
     opt['use_lcc'] = True
 
     opt['beltrami'] = tune.choice([True, False])
-    bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"]) #"scaled_dot"
-    non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"]) #"scaled_dot"
+    bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
+    non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
     opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
-    opt['feat_hidden_dim'] = tune.choice([32,64])
+    opt['feat_hidden_dim'] = tune.choice([32, 64])
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
-                                            if spec.config.beltrami else tune.choice([32,64, 128]))
+    if spec.config.beltrami else tune.choice([32, 64, 128]))
     # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
     opt['pos_enc_dim'] = tune.choice(["row", "col"])
     opt['square_plus'] = tune.choice([True, False])
     opt['rewire_KNN'] = tune.choice([True, False])
-    opt['rewire_KNN_epoch'] = tune.choice([10,20,50,10000])
+    opt['rewire_KNN_epoch'] = tune.choice([10, 20, 50, 10000])
     opt['rewire_KNN_k'] = tune.choice([16, 32, 64, 128, 256])
     opt['rewire_KNN_sym'] = tune.choice([True, False])
     return opt
 
+
 def set_cora_search_space(opt):
-    #need these for beltrami
+    # need these for beltrami
     opt['num_feature'] = 1433
     opt['num_class'] = 7
     opt['num_nodes'] = 2708
@@ -303,7 +304,7 @@ def set_cora_search_space(opt):
     opt["input_dropout"] = 0.5
     opt["optimizer"] = tune.choice(["adam", "adamax"])
     opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-    opt["time"] = tune.uniform(10.0, 30.0) #tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
+    opt["time"] = tune.uniform(10.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
     if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
         opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
@@ -328,6 +329,42 @@ def set_cora_search_space(opt):
     opt['add_source'] = tune.choice([True, False])
     # opt['att_samp_pct'] = tune.uniform(0.3, 1)
     opt['batch_norm'] = tune.choice([True, False])
+
+    return opt
+
+
+def set_citeseer_search_space(opt):
+    opt["decay"] = 0.1  # tune.loguniform(2e-3, 1e-2)
+    if opt['regularise']:
+        opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
+        opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+
+    opt["lr"] = tune.loguniform(2e-3, 0.01)
+    opt["input_dropout"] = tune.uniform(0.4, 0.8)
+    opt["dropout"] = tune.uniform(0, 0.8)
+    opt["time"] = tune.uniform(0.5, 8.0)
+    opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
+    #
+
+    if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+        opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(1, 4))
+        opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
+        opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
+        opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
+        opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+            [0, 1])  # whether or not to use self-loops
+    else:
+        opt["self_loop_weight"] = tune.uniform(0, 3)  # 1 seems to work pretty well
+
+    opt["tol_scale"] = tune.loguniform(1, 2e3)
+
+    if opt["adjoint"]:
+        opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
+        opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
+
+        opt['add_source'] = tune.choice([True, False])
+        # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+        opt['batch_norm'] = tune.choice([True, False])
 
     return opt
 
@@ -520,7 +557,6 @@ if __name__ == "__main__":
     parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
     parser.add_argument('--attention_rewiring', action='store_true',
                         help='perform DIGL using precalcualted GRAND attention')
-
 
     parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
     parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
