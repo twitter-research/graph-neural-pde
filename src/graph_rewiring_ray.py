@@ -334,6 +334,11 @@ def set_cora_search_space(opt):
 
 
 def set_citeseer_search_space(opt):
+    # need these for beltrami
+    opt['num_feature'] = 3703
+    opt['num_class'] = 6
+    opt['num_nodes'] = 2120
+
     opt["decay"] = 0.1  # tune.loguniform(2e-3, 1e-2)
     if opt['regularise']:
         opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
