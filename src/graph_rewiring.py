@@ -129,7 +129,7 @@ def KNN(x, opt):
 
     #take the indices of the K closest neighbours measured in euclidean distance
     indKNN = D_ij.argKmin(k, dim=1)
-    LS = torch.linspace(0, len(indKNN.view(-1)), len(indKNN.view(-1))+1)[:-1].unsqueeze(0)//k
+    LS = torch.linspace(0, len(indKNN.view(-1)), len(indKNN.view(-1))+1,device=indKNN.device)[:-1].unsqueeze(0)//k
     ei = torch.cat([LS, indKNN.view(1, -1)], dim=0)
 
     if opt['rewire_KNN_sym']:
