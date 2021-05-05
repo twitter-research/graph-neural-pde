@@ -21,6 +21,7 @@ class LaplacianODEFunc(ODEFunc):
     self.in_features = in_features
     self.out_features = out_features
     self.w = nn.Parameter(torch.eye(opt['hidden_dim']))
+    self.w_eye = torch.eye(opt['hidden_dim'])
     self.w_rs = nn.Parameter(torch.rand((opt['hidden_dim'], opt['hidden_dim'])))  # right stochastic W
     # self.w_rs = f.normalize(w, p=1, dim=-1)
     self.d = nn.Parameter(torch.ones(opt['hidden_dim']))
@@ -51,7 +52,8 @@ class LaplacianODEFunc(ODEFunc):
       # w_rs = normalize(self.w_rs, p=1, dim=-1)
       # w_rs = self.sm(self.w_rs)
       # x = torch.mm(x, w_rs)
-      x = self.feature_attention(x)
+      x = torch.mm(x, self.w_eye)
+      # x = self.feature_attention(x)
     ax = self.sparse_multiply(x)
     if not self.opt['no_alpha_sigmoid']:
       alpha = torch.sigmoid(self.alpha_train)
