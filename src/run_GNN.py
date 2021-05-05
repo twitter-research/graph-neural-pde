@@ -5,6 +5,7 @@ from GNN import GNN
 import time
 from data import get_dataset
 from ogb.nodeproppred import Evaluator
+from graph_rewiring import apply_gdc, KNN
 
 def get_cora_opt(opt):
   opt['dataset'] = 'Cora'
@@ -16,6 +17,8 @@ def get_cora_opt(opt):
   opt['lr'] = 0.0047
   opt['decay'] = 5e-4
   opt['self_loop_weight'] = 0.555
+  if opt['self_loop_weight'] > 0.0:
+    opt['exact'] = True #for GDC, need exact if selp loop weight >0
   opt['alpha'] = 0.918
   opt['time'] = 12.1
   opt['num_feature'] = 1433
@@ -26,8 +29,10 @@ def get_cora_opt(opt):
   opt['attention_dropout'] = 0
   opt['adjoint'] = False
   # opt['ode'] = 'ode'
-  opt['block'] = 'rewire_attention'
-  # opt['block'] = 'attention'
+
+  # opt['block'] = 'rewire_attention'
+  opt['block'] = 'attention'
+
   return opt
 
 
@@ -195,6 +200,12 @@ def main(opt):
   dataset = get_dataset(opt, '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   model, data = GNN(opt, dataset, device).to(device), dataset.data.to(device)
+  if opt['beltrami']:
+    print('Beltrami data transformation')
+    pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
+    dataset.data.to(device)
+    dataset.data.x = torch.cat([dataset.data.x, pos_encoding], dim=1).to(device)
+
   print(opt)
   # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
   parameters = [p for p in model.parameters() if p.requires_grad]
@@ -204,6 +215,9 @@ def main(opt):
   test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
+
+    if opt['rewire_KNN'] and epoch%10==0:
+      data.edge_index = KNN(data.x, 64)
 
     loss = train(model, optimizer, data)
     train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
@@ -323,11 +337,16 @@ if __name__ == '__main__':
   parser.add_argument('--rw_addD', type=float, default=0.02, help="percentage of new edges to add")
   parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
 
-
+  parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
+  parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
+  parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
+  parser.add_argument('--pos_enc_hidden_dim', type=int, default=32, help="dimension of position in beltrami")
+  parser.add_argument('--rewire_KNN', action='store_true', help='perform KNN rewiring every few epochs')
+  parser.add_argument('--rewire_KNN_epoch', type=int, default=10, help="frequency of epochs to rewire")
+  parser.add_argument('--rewire_KNN_k', type=int, default=64, help="target degree for KNN rewire")
 
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
-  parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
 
   args = parser.parse_args()
 

@@ -9,6 +9,7 @@ from torch_geometric.transforms.two_hop import TwoHop
 from utils import get_rw_adj
 # from torch_geometric.transforms import GDC
 # from data import get_dataset
+from pykeops.torch import LazyTensor
 
 ### for custom GDC
 import torch
@@ -28,7 +29,7 @@ def jit(**kwargs):
             return numba.jit(cache=False, **kwargs)(func)
 
     return decorator
-
+###
 
 def get_two_hop(data):
   print('raw data contains {} edges and {} nodes'.format(data.num_edges, data.num_nodes))
@@ -108,6 +109,23 @@ def dirichlet_energy(edge_index, edge_weight, n, X):
     de = torch_sparse.spmm(edge_index, edge_weight, n, n, X)
     return X.T @ de
 
+def KNN(x, k=64):
+    print("Rewiring with KNN")
+    X_i = LazyTensor(x[:, None, :])  # (N, 1, hd)
+    X_j = LazyTensor(x[None, :, :])  # (1, N, hd)
+
+    # distance between all the grid points and all the random data points
+    # D_ij = ((X_i - X_j) ** 2).sum(-1)  # (M**2, N) symbolic matrix of squared distances
+    D_ij = (-((X_i - X_j) ** 2).sum(-1)).exp()
+
+    #todo split into feature and pos with scale params
+    # self.output_var_p ** 2 * torch.exp(-torch.sum((src_p - dst_p) ** 2, dim=1) / (2 * self.lengthscale_p ** 2))
+
+    #take the indices of the K closest neighbours
+    indKNN = D_ij.argKmin(k, dim=1)
+    LS = torch.linspace(0, len(indKNN.view(-1)), len(indKNN.view(-1))+1)[:-1].unsqueeze(0)//k
+    ei = torch.cat([LS, indKNN.view(1, -1)], dim=0)
+    return ei
 
 #Editted PyGeo source code
 class GDC(object):

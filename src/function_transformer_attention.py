@@ -168,16 +168,7 @@ class SpGraphTransAttentionLayer(nn.Module):
               * self.output_var_p ** 2 * torch.exp(
         -torch.sum((src_p - dst_p) ** 2, dim=1) / (2 * self.lengthscale_p ** 2))
 
-      # prods = self.output_var ** 2 * torch.exp(-(src - dst_k) ** 2 / (2 * self.lengthscale ** 2))
-      # prods = self.output_var ** 2 * torch.exp(-torch.sum((src - dst_k)**2, dim=1) / (2 * self.lengthscale ** 2))
-
-      if self.opt['reweight_attention'] and self.edge_weights is not None:
-        prods = prods * self.edge_weights.unsqueeze(dim=1)
-
-      # attention = softmax(prods, edge[self.opt['attention_norm_idx']])
-      attention = squareplus(prods, edge[self.opt['attention_norm_idx']])
-
-      return attention, None
+      v = None
 
     else:
       q = self.Q(x)
@@ -244,11 +235,13 @@ class SpGraphTransAttentionLayer(nn.Module):
         cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
         prods = cos(src, dst_k)
 
-      if self.opt['reweight_attention'] and self.edge_weights is not None:
-        prods = prods * self.edge_weights.unsqueeze(dim=1)
-      # attention = softmax(prods, edge[self.opt['attention_norm_idx']])
+    if self.opt['reweight_attention'] and self.edge_weights is not None:
+      prods = prods * self.edge_weights.unsqueeze(dim=1)
+    if self.opt['square_plus']:
       attention = squareplus(prods, edge[self.opt['attention_norm_idx']])
-      return attention, v
+    else:
+      attention = softmax(prods, edge[self.opt['attention_norm_idx']])
+    return attention, v
 
   def __repr__(self):
     return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'

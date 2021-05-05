@@ -17,7 +17,7 @@ from utils import get_sem, mean_confidence_interval
 from run_GNN import get_optimizer, test, test_OGB, train
 from torch import nn
 from data import get_dataset, set_train_val_test_split
-from graph_rewiring import get_two_hop, apply_gdc, GDC, dirichlet_energy, make_symmetric
+from graph_rewiring import get_two_hop, apply_gdc, GDC, dirichlet_energy, make_symmetric, KNN
 from graph_rewiring_eval import train_GRAND
 
 """
@@ -87,6 +87,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
                 dataset.data.edge_index, dataset.data.edge_attr = make_symmetric(dataset.data)
 
         if opt['beltrami']:
+            print('Beltrami data transformation')
             pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
             dataset.data.to(device)
             dataset.data.x = torch.cat([dataset.data.x, pos_encoding], dim=1).to(device)
@@ -264,21 +265,24 @@ def set_rewiring_space(opt):
         # opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
 
     # experiment args
-    opt['self_loop_weight'] = 0 #todo go through rewiring code and see why doesn't run with self loops
     opt['block'] = 'attention'
     opt['function'] = 'laplacian'
     opt['use_lcc'] = True
 
-    opt['beltrami'] = True #tune.choice([True, False])
-    bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson"]) #"scaled_dot"
-    non_bel_choice = tune.choice(["cosine_sim", "pearson"]) #"scaled_dot"
+    opt['beltrami'] = tune.choice([True, False])
+    bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"]) #"scaled_dot"
+    non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"]) #"scaled_dot"
     opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
-
     opt['feat_hidden_dim'] = tune.choice([32,64])
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
                                             if spec.config.beltrami else tune.choice([32,64, 128]))
     # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
+    opt['beltrami'] = tune.choice([True, False])
+    opt['square_plus'] = tune.choice([True, False])
+    opt['rewire_KNN'] = tune.choice([True, False])
+    opt['rewire_KNN_epoch'] = tune.choice([10,20,50])
+    opt['rewire_KNN_k'] = tune.choice([16, 32, 64, 128, 256])
 
     return opt
 
@@ -307,10 +311,11 @@ def set_cora_search_space(opt):
         # opt['attention_norm_idx'] = 0
         # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
         opt["leaky_relu_slope"] = 0.2
-    # todo go through rewiring code and see why doesn't run with self loops
-    #     opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
-    # else:
-    #     opt["self_loop_weight"] = tune.uniform(0, 3)
+        opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
+    else:
+        opt["self_loop_weight"] = tune.uniform(0, 3)
+    if opt['self_loop_weight'] > 0.0:
+        opt['exact'] = True  # for GDC, need exact if selp loop weight >0
 
     opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
     if opt["adjoint"]:
@@ -512,13 +517,21 @@ if __name__ == "__main__":
     parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
     parser.add_argument('--attention_rewiring', action='store_true',
                         help='perform DIGL using precalcualted GRAND attention')
+
+
+    parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
+    parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
+    parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
+    parser.add_argument('--pos_enc_hidden_dim', type=int, default=32, help="dimension of position in beltrami")
+    parser.add_argument('--rewire_KNN', action='store_true', help='perform KNN rewiring every few epochs')
+    parser.add_argument('--rewire_KNN_epoch', type=int, default=10, help="frequency of epochs to rewire")
+    parser.add_argument('--rewire_KNN_k', type=int, default=64, help="target degree for KNN rewire")
+
     parser.add_argument('--attention_type', type=str, default="scaled_dot",
                         help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
-    parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
     parser.add_argument('--max_epochs', type=int, default=1000, help="max epochs to train before patience")
     parser.add_argument('--patience', type=int, default=100, help="amount of patience for non improving val acc")
     args = parser.parse_args()
-
     opt = vars(args)
 
     main(opt)
