@@ -521,6 +521,29 @@ if __name__ == "__main__":
                       help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
   parser.add_argument('--att_samp_pct', type=float, default=1,
                       help="float in [0,1). The percentage of edges to retain based on attention scores")
+  ###new args
+  parser.add_argument('--M_nodes', type=int, default=64, help="new number of nodes to add")
+  parser.add_argument('--new_edges', type=str, default="random", help="random, random_walk, k_hop")
+  parser.add_argument('--sparsify', type=str, default="S_hat", help="S_hat, recalc_att")
+  parser.add_argument('--threshold_type', type=str, default="addD_rvR", help="topk_adj, addD_rvR")
+  parser.add_argument('--rw_addD', type=float, default=0.02, help="percentage of new edges to add")
+  parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
+  parser.add_argument('--attention_rewiring', action='store_true',
+                      help='perform DIGL using precalcualted GRAND attention')
+
+  parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
+  parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
+  parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
+  parser.add_argument('--pos_enc_hidden_dim', type=int, default=32, help="dimension of position in beltrami")
+  parser.add_argument('--rewire_KNN', action='store_true', help='perform KNN rewiring every few epochs')
+  parser.add_argument('--rewire_KNN_epoch', type=int, default=10, help="frequency of epochs to rewire")
+  parser.add_argument('--rewire_KNN_k', type=int, default=64, help="target degree for KNN rewire")
+  parser.add_argument('--rewire_KNN_sym', action='store_true', help='make KNN symmetric')
+
+  parser.add_argument('--attention_type', type=str, default="scaled_dot",
+                      help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
+  parser.add_argument('--max_epochs', type=int, default=1000, help="max epochs to train before patience")
+  parser.add_argument('--patience', type=int, default=100, help="amount of patience for non improving val acc")
 
   args = parser.parse_args()
 
