@@ -130,123 +130,57 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
                     backward_nfe=model.bm.sum)
 
 
-def train_ray_best(opt, checkpoint_dir=None, data_dir="../data"):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    dataset = get_dataset(opt, data_dir, opt['not_lcc'])
+def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
+  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
-    if opt["num_splits"] > 0:
-        dataset.data = set_train_val_test_split(
-            23 * np.random.randint(0, opt["num_splits"]),
-            # random prime 23 to make the splits 'more' random. Could remove
-            dataset.data,
-            num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
+  if opt["num_splits"] > 0:
+    dataset.data = set_train_val_test_split(
+      23 * np.random.randint(0, opt["num_splits"]),  # random prime 23 to make the splits 'more' random. Could remove
+      dataset.data,
+      num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
-    model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
-    if torch.cuda.device_count() > 1:
-        model = nn.DataParallel(model)
-    model, data = model.to(device), dataset.data.to(device)
-    parameters = [p for p in model.parameters() if p.requires_grad]
-    optimizer = get_optimizer(opt["optimizer"], parameters, lr=opt["lr"], weight_decay=opt["decay"])
+  model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
+  if torch.cuda.device_count() > 1:
+    model = nn.DataParallel(model)
+  model, data = model.to(device), dataset.data.to(device)
+  parameters = [p for p in model.parameters() if p.requires_grad]
+  optimizer = get_optimizer(opt["optimizer"], parameters, lr=opt["lr"], weight_decay=opt["decay"])
 
-    if checkpoint_dir:
-        checkpoint = os.path.join(checkpoint_dir, "checkpoint")
-        model_state, optimizer_state = torch.load(checkpoint)
-        model.load_state_dict(model_state)
-        optimizer.load_state_dict(optimizer_state)
+  if checkpoint_dir:
+    checkpoint = os.path.join(checkpoint_dir, "checkpoint")
+    model_state, optimizer_state = torch.load(checkpoint)
+    model.load_state_dict(model_state)
+    optimizer.load_state_dict(optimizer_state)
 
-    this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
-    best_time = best_epoch = train_acc = val_acc = test_acc = 0
-    for epoch in range(1, opt["epoch"]):
-        loss = train(model, optimizer, data)
-        # need next line as it sets the attributes in the solver
+  this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+  best_time = best_epoch = train_acc = val_acc = test_acc = 0
+  for epoch in range(1, opt["epoch"]):
+    loss = train(model, optimizer, data)
+    # need next line as it sets the attributes in the solver
 
-        if opt["no_early"]:
-            tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
-            best_time = opt['time']
-        else:
-            tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
-        if tmp_val_acc > val_acc:
-            best_epoch = epoch
-            train_acc = tmp_train_acc
-            val_acc = tmp_val_acc
-            test_acc = tmp_test_acc
-        if model.odeblock.test_integrator.solver.best_val > val_acc:
-            best_epoch = epoch
-            val_acc = model.odeblock.test_integrator.solver.best_val
-            test_acc = model.odeblock.test_integrator.solver.best_test
-            train_acc = model.odeblock.test_integrator.solver.best_train
-            best_time = model.odeblock.test_integrator.solver.best_time
-        with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
-            path = os.path.join(checkpoint_dir, "checkpoint")
-            torch.save((model.state_dict(), optimizer.state_dict()), path)
-        tune.report(loss=loss, accuracy=val_acc, test_acc=test_acc, train_acc=train_acc, best_time=best_time,
-                    best_epoch=best_epoch,
-                    forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
-
-
-def get_best_params_dir(opt):
-    analysis = Analysis("../ray_tune/{}".format(opt['folder']))
-    df = analysis.dataframe(metric=opt['metric'], mode='max')
-    best_params_dir = df.sort_values('accuracy', ascending=False)['logdir'].iloc[opt['index']]
-    return best_params_dir
-
-
-def run_best_params(opt):
-    best_params_dir = get_best_params_dir(opt)
-    with open(best_params_dir + '/params.json') as f:
-        best_params = json.loads(f.read())
-    # allow params specified at the cmd line to override
-    best_params_ret = {**best_params, **opt}
-    try:
-        best_params_ret['mix_features']
-    except KeyError:
-        best_params_ret['mix_features'] = False
-    # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
-    best_params_ret['epoch'] = opt['epoch']
-    best_params_ret['max_nfe'] = opt['max_nfe']
-    # handle adjoint
-    if best_params['adjoint'] or opt['adjoint']:
-        best_params_ret['adjoint'] = True
-
-    print("Running with parameters {}".format(best_params_ret))
-
-    data_dir = os.path.abspath("../data")
-    reporter = CLIReporter(
-        metric_columns=["accuracy", "loss", "test_acc", "train_acc", "best_time", "best_epoch", "training_iteration",
-                        "forward_nfe", "backward_nfe"])
-
-    if opt['name'] is None:
-        name = opt['folder'] + '_test'
+    if opt["no_early"]:
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
+      best_time = opt['time']
     else:
-        name = opt['name']
-
-    result = tune.run(
-        partial(train_ray_best, data_dir=data_dir),
-        name=name,
-        resources_per_trial={"cpu": opt['cpus'], "gpu": opt['gpus']},
-        search_alg=None,
-        keep_checkpoints_num=3,
-        checkpoint_score_attr='accuracy',
-        config=best_params_ret,
-        num_samples=opt['reps'] if opt["num_splits"] == 0 else opt["num_splits"] * opt["reps"],
-        scheduler=None,
-        max_failures=1,  # early stop solver can't recover from failure as it doesn't own m2.
-        local_dir='../ray_tune',
-        progress_reporter=reporter,
-        raise_on_failed_trial=False)
-
-    df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
-    try:
-        df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
-    except:
-        pass
-
-    print(df[['accuracy', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
-
-    test_accs = df['test_acc'].values
-    print("test accuracy {}".format(test_accs))
-    log = "mean test {:04f}, test std {:04f}, test sem {:04f}, test 95% conf {:04f}"
-    print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs), mean_confidence_interval(test_accs)))
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
+    if tmp_val_acc > val_acc:
+      best_epoch = epoch
+      train_acc = tmp_train_acc
+      val_acc = tmp_val_acc
+      test_acc = tmp_test_acc
+    if model.odeblock.test_integrator.solver.best_val > val_acc:
+      best_epoch = epoch
+      val_acc = model.odeblock.test_integrator.solver.best_val
+      test_acc = model.odeblock.test_integrator.solver.best_test
+      train_acc = model.odeblock.test_integrator.solver.best_train
+      best_time = model.odeblock.test_integrator.solver.best_time
+    with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
+      path = os.path.join(checkpoint_dir, "checkpoint")
+      torch.save((model.state_dict(), optimizer.state_dict()), path)
+    tune.report(loss=loss, accuracy=val_acc, test_acc=test_acc, train_acc=train_acc, best_time=best_time,
+                best_epoch=best_epoch,
+                forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
 
 
 def set_rewiring_space(opt):
