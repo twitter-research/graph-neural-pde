@@ -21,7 +21,7 @@ class LaplacianODEFunc(ODEFunc):
     self.in_features = in_features
     self.out_features = out_features
     self.w = nn.Parameter(torch.eye(opt['hidden_dim']))
-    self.w_eye = torch.eye(opt['hidden_dim'])
+    self.w_eye = torch.eye(opt['hidden_dim']).to(device)
     self.w_rs = nn.Parameter(torch.rand((opt['hidden_dim'], opt['hidden_dim'])))  # right stochastic W
     # self.w_rs = f.normalize(w, p=1, dim=-1)
     self.d = nn.Parameter(torch.ones(opt['hidden_dim']))
