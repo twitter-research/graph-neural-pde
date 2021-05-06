@@ -27,6 +27,7 @@ class LaplacianODEFunc(ODEFunc):
     self.d = nn.Parameter(torch.ones(opt['hidden_dim']))
     self.alpha_sc = nn.Parameter(torch.ones(1))
     self.beta_sc = nn.Parameter(torch.ones(1))
+    self.gamma_sc = nn.Parameter(torch.zeros(1))
     self.sm = torch.nn.Softmax(dim=1)
     self.feature_attention = TransAttentionLayer(data.num_nodes, opt['attention_dim'], opt, device, concat=True)
 
@@ -47,13 +48,14 @@ class LaplacianODEFunc(ODEFunc):
     self.nfe += 1
     if self.opt['mix_features']:
       # d = torch.clamp(self.d, min=0, max=1)  # enforce evalues in (0,1)
-      # w = torch.mm(self.w * d, torch.t(self.w))
-      # x = torch.mm(x, w)
+      d = torch.clamp(self.d, min=0)  # enforce evalues in (0,1)
+      w = torch.mm(self.w * d, torch.t(self.w))
+      x = torch.mm(x, w)
       # w_rs = normalize(self.w_rs, p=1, dim=-1)
       # w_rs = self.sm(self.w_rs)
       # x = torch.mm(x, w_rs)
-      x = torch.mm(x, self.w_eye)
-      # x = self.feature_attention(x)
+      # gamma = torch.sigmoid(self.gamma_sc)
+      # x = gamma * self.feature_attention(x) + (1-gamma)*x
     ax = self.sparse_multiply(x)
     if not self.opt['no_alpha_sigmoid']:
       alpha = torch.sigmoid(self.alpha_train)

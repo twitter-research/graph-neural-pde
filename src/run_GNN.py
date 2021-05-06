@@ -127,10 +127,10 @@ def train(model, optimizer, data):
   # F.nll_loss(out[data.train_mask], data.y[data.train_mask]).backward()
   loss.backward()
   optimizer.step()
-  # if model.opt['mix_features']:
-  #   W = model.odeblock.odefunc.w.data
-  #   beta = 0.5
-  #   W.copy_((1 + beta) * W - beta * W.mm(W.transpose(0, 1).mm(W)))
+  if model.opt['mix_features']:
+    W = model.odeblock.odefunc.w.data
+    beta = 0.5
+    W.copy_((1 + beta) * W - beta * W.mm(W.transpose(0, 1).mm(W)))
   model.bm.update(model.getNFE())
   model.resetNFE()
   return loss.item()
@@ -215,9 +215,9 @@ def main(opt):
       best_val_acc = val_acc
       test_acc = tmp_test_acc
       best_epoch = epoch
-    log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+    log = 'Gamma : {:03f}, Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
     print(
-      log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, best_val_acc, test_acc))
+      log.format(model.odeblock.odefunc.gamma_sc.item(), epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, best_val_acc, test_acc))
   print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
 
   return train_acc, best_val_acc, test_acc
