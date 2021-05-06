@@ -5,7 +5,7 @@ from functools import partial
 
 import numpy as np
 import torch
-from data import get_dataset, set_train_val_test_split
+from data import get_dataset, set_train_val_test_split_old as set_train_val_test_split
 from GNN_early import GNNEarly
 from GNN import GNN
 from ray import tune
