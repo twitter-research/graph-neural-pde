@@ -61,7 +61,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
 
         if opt['rewiring']:
             if opt['attention_rewiring']:
-                # managing beltrami att_rewiring interactions
+                #managing beltrami att_rewiring interactions
                 temp_beltrami_type = opt['beltrami']
                 temp_att_type = opt['attention_type']
                 opt['attention_type'] = "scaled_dot"
@@ -216,14 +216,13 @@ def set_rewiring_space(opt):
     opt['pos_enc_dim'] = tune.choice(["row", "col"])
     opt['square_plus'] = tune.choice([True, False])
     opt['rewire_KNN'] = tune.choice([True, False])
-    opt['rewire_KNN_epoch'] = tune.choice([10, 20, 50, 10000])
+    opt['rewire_KNN_epoch'] = tune.choice([10,20,50,10000])
     opt['rewire_KNN_k'] = tune.choice([16, 32, 64, 128, 256])
     opt['rewire_KNN_sym'] = tune.choice([True, False])
     return opt
 
-
 def set_cora_search_space(opt):
-    # need these for beltrami
+    #need these for beltrami
     opt['num_feature'] = 1433
     opt['num_class'] = 7
     opt['num_nodes'] = 2708
@@ -238,7 +237,7 @@ def set_cora_search_space(opt):
     opt["input_dropout"] = 0.5
     opt["optimizer"] = tune.choice(["adam", "adamax"])
     opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-    opt["time"] = tune.uniform(10.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
+    opt["time"] = tune.uniform(10.0, 30.0) #tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
     if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
         opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
@@ -496,6 +495,7 @@ if __name__ == "__main__":
     parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
     parser.add_argument('--attention_rewiring', action='store_true',
                         help='perform DIGL using precalcualted GRAND attention')
+
 
     parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
     parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
