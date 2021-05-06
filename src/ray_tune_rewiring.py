@@ -17,7 +17,7 @@ from torch import nn
 from GNN_ICML20 import ICML_GNN, get_sym_adj
 from GNN_ICML20 import train as train_icml
 from graph_rewiring import apply_gdc, KNN
-from graph_rewiring_ray import set_rewiring_space
+from graph_rewiring_ray import set_rewiring_space, set_cora_search_space, set_citeseer_search_space
 """
 python3 ray_tune.py --dataset ogbn-arxiv --lr 0.005 --add_source --function transformer --attention_dim 16 --hidden_dim 128 --heads 4 --input_dropout 0 --decay 0 --adjoint --adjoint_method rk4 --method rk4 --time 5.08 --epoch 500 --num_samples 1 --name ogbn-arxiv-test --gpus 1 --grace_period 50 
 
@@ -50,13 +50,14 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
   for split in range(opt["num_splits"]):
     dataset.data = set_train_val_test_split(
       np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
-    datas.append(dataset.data)
+    # datas.append(dataset.data)
 
     if opt['beltrami']:
       print('Beltrami data transformation')
       pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
       dataset.data.to(device)
       dataset.data.x = torch.cat([dataset.data.x, pos_encoding], dim=1).to(device)
+    datas.append(dataset.data)
 
     if opt['baseline']:
       opt['num_feature'] = dataset.num_node_features
@@ -231,91 +232,6 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
 
 
     opt["tol_scale_adjoint"] = tune.loguniform(1, 1e4)
-
-
-def set_cora_search_space(opt):
-  # need these for beltrami
-  opt['num_feature'] = 1433
-  opt['num_class'] = 7
-  opt['num_nodes'] = 2708
-
-  opt["decay"] = tune.loguniform(0.001, 0.1)  # weight decay l2 reg
-  if opt['regularise']:
-    opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
-    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
-
-  opt["lr"] = tune.uniform(0.01, 0.2)
-  # opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
-  opt["input_dropout"] = 0.5
-  opt["optimizer"] = tune.choice(["adam", "adamax"])
-  opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-  opt["time"] = tune.uniform(10.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
-
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  # hidden dim for attention
-    opt['attention_norm_idx'] = tune.choice([0, 1])
-    # opt['attention_norm_idx'] = 0
-    # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
-    opt["leaky_relu_slope"] = 0.2
-    opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
-  else:
-    opt["self_loop_weight"] = tune.uniform(0, 3)
-
-  # if opt['self_loop_weight'] > 0.0:
-  #     opt['exact'] = True  # for GDC, need exact if selp loop weight >0
-  opt['exact'] = tune.sample_from(lambda spec: True if spec.config.self_loop_weight > 0.0 else False)
-
-  opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
-  if opt["adjoint"]:
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
-    opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
-
-  opt['add_source'] = tune.choice([True, False])
-  # opt['att_samp_pct'] = tune.uniform(0.3, 1)
-  opt['batch_norm'] = tune.choice([True, False])
-
-  return opt
-
-def set_citeseer_search_space(opt):
-  # need these for beltrami
-  opt['num_feature'] = 3703
-  opt['num_class'] = 6
-  opt['num_nodes'] = 2120
-
-  opt["decay"] = 0.1  # tune.loguniform(2e-3, 1e-2)
-  if opt['regularise']:
-    opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
-    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
-
-  opt["lr"] = tune.loguniform(2e-3, 0.01)
-  opt["input_dropout"] = tune.uniform(0.4, 0.8)
-  opt["dropout"] = tune.uniform(0, 0.8)
-  opt["time"] = tune.uniform(0.5, 8.0)
-  opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
-  #
-
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(1, 4))
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
-    opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
-    opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
-    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-      [0, 1])  # whether or not to use self-loops
-  else:
-    opt["self_loop_weight"] = tune.uniform(0, 3)  # 1 seems to work pretty well
-
-  opt["tol_scale"] = tune.loguniform(1, 2e3)
-
-  if opt["adjoint"]:
-    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
-
-    opt['add_source'] = tune.choice([True, False])
-    # opt['att_samp_pct'] = tune.uniform(0.3, 1)
-    opt['batch_norm'] = tune.choice([True, False])
-
-  return opt
 
 
 def set_search_space(opt):
