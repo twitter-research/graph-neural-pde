@@ -5,6 +5,7 @@ from functools import partial
 
 import numpy as np
 import torch
+# from torchsummary import summary
 from data import get_dataset, set_train_val_test_split_old as set_train_val_test_split
 from GNN_early import GNNEarly
 from GNN import GNN
@@ -91,6 +92,9 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
   for epoch in range(1, opt["epoch"]):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0:
       data.edge_index = KNN(data.x, opt)
+    print(f"data.x.shape {data.x.shape}")
+    print(f"model mp {model.mp}")
+    print(f"model {model.}")
 
     loss = np.mean([train_this(model, optimizer, data) for model, optimizer, data in zip(models, optimizers, datas)])
     train_accs, val_accs, tmp_test_accs = average_test(models, datas)
