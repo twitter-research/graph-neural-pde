@@ -55,7 +55,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
     # datas.append(dataset.data)
 
     if opt['beltrami']:
-      dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding")
+      dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding").to(device)
 
     data = dataset.data.to(device)
     datas.append(dataset.data)
