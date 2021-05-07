@@ -47,8 +47,24 @@ class GNNEarly(BaseGNN):
     if self.opt['use_labels']:
       y = x[:, self.num_features:]
       x = x[:, :self.num_features]
-    x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-    x = self.m1(x)
+    # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
+    # x = self.m1(x)
+    if self.opt['beltrami']:
+      p = x[:, self.opt['num_feature']:]
+      x = x[:, :self.opt['num_feature']]
+      x = F.dropout(x, self.opt['input_dropout'], training=self.training)
+      p = F.dropout(p, self.opt['input_dropout'], training=self.training)
+      x = self.mx(x)
+      p = self.mp(p)
+      x = torch.cat([x, p], dim=1)
+    else:
+      x = F.dropout(x, self.opt['input_dropout'], training=self.training)
+      x = self.m1(x)
+
+    if self.opt['use_mlp']:
+      x = F.dropout(x, self.opt['dropout'], training=self.training)
+      x = F.dropout(x + self.m11(F.relu(x)), self.opt['dropout'], training=self.training)
+      x = F.dropout(x + self.m12(F.relu(x)), self.opt['dropout'], training=self.training)
 
     if self.opt['use_labels']:
       x = torch.cat([x, y], dim=-1)

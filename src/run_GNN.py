@@ -1,7 +1,9 @@
 import argparse
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
+import torch.nn.functional as F
 from GNN import GNN
+from GNN_beltrami import GNN_beltrami
 import time
 from data import get_dataset
 from ogb.nodeproppred import Evaluator
@@ -110,8 +112,8 @@ def train(model, optimizer, data):
     #
     # train_pred_idx = data.train_idx[mask]
     train_pred_idx = data.train_mask
-  # print("froward")
   out = model(feat)
+
   if model.opt['dataset'] == 'ogbn-arxiv':
     lf = torch.nn.functional.nll_loss
     loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
@@ -129,8 +131,6 @@ def train(model, optimizer, data):
 
   model.fm.update(model.getNFE())
   model.resetNFE()
-  # F.nll_loss(out[data.train_mask], data.y[data.train_mask]).backward()
-  # print("brackward")
   loss.backward()
   optimizer.step()
   model.bm.update(model.getNFE())
@@ -199,7 +199,15 @@ def main(opt):
     pass  # not always present when called as lib
   dataset = get_dataset(opt, '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  model, data = GNN(opt, dataset, device).to(device), dataset.data.to(device)
+  # model, data = GNN(opt, dataset, device).to(device), dataset.data.to(device)
+
+  data = dataset.data.to(device)
+  # if opt['KNN_online']:
+  if opt['rewire_KNN']:
+    model = GNN_beltrami(opt, dataset, device).to(device)
+  else:
+    model = GNN(opt, dataset, device).to(device)
+
   if opt['beltrami']:
     print('Beltrami data transformation')
     pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
@@ -216,11 +224,28 @@ def main(opt):
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
 
-    if opt['rewire_KNN'] and epoch%opt['rewire_KNN_epoch']==0:
-      data.edge_index = KNN(data.x, opt)
+    if opt['rewire_KNN_T'] == 'T0' and epoch%opt['rewire_KNN_epoch']==0 and epoch != 0:
+      # data.edge_index = KNN(data.x, opt) #problem rewiring on raw features here
+
+      if opt['beltrami']:
+        p = data.x[:, opt['num_feature']:]
+        x = data.x[:, :opt['num_feature']]
+        x = model.mx(x)
+        p = model.mp(p)
+        x = torch.cat([x, p], dim=1)
+      else:
+        x = model.m1(data.x)
+      if opt['use_mlp']:
+        x = x + model.m11(F.relu(x))
+        x = x + model.m12(F.relu(x))
+      data.edge_index = KNN(x, opt) #problem rewiring on raw features here
 
     loss = train(model, optimizer, data)
     train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
+
+    if opt['rewire_KNN_T'] == 'TN' and epoch%opt['rewire_KNN_epoch']==0 and epoch != 0:
+      data.edge_index = KNN(model.forward_ODE(data.x), opt)
+
 
     if val_acc > best_val_acc:
       best_val_acc = val_acc
@@ -343,10 +368,12 @@ if __name__ == '__main__':
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
   parser.add_argument('--pos_enc_hidden_dim', type=int, default=32, help="dimension of position in beltrami")
   parser.add_argument('--rewire_KNN', action='store_true', help='perform KNN rewiring every few epochs')
-  parser.add_argument('--rewire_KNN_epoch', type=int, default=10, help="frequency of epochs to rewire")
+  parser.add_argument('--rewire_KNN_T', type=str, default="TN", help="T0, TN")
+  parser.add_argument('--rewire_KNN_epoch', type=int, default=5, help="frequency of epochs to rewire")
   parser.add_argument('--rewire_KNN_k', type=int, default=64, help="target degree for KNN rewire")
   parser.add_argument('--rewire_KNN_sym', action='store_true', help='make KNN symmetric')
-
+  parser.add_argument('--KNN_online', action='store_true', help='perform rewiring online')
+  parser.add_argument('--KNN_online_reps', type=int, default=4, help="how many online KNN its")
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
 
