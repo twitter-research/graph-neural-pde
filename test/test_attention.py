@@ -30,7 +30,7 @@ class AttentionTests(unittest.TestCase):
                 'attention_norm_idx': 0, 'add_source': False, 'max_nfe': 1000, 'mix_features': False,
                 'attention_dim': 32,
                 'mixed_block': False, 'rewiring': None, 'no_alpha_sigmoid': False, 'reweight_attention': False,
-                'kinetic_energy': None, 'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None}
+                'kinetic_energy': None, 'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None, 'beltrami': False}
 
   def tearDown(self) -> None:
     pass

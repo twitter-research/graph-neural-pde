@@ -9,10 +9,8 @@ from torch import tensor
 from torch import nn
 from torch.optim import Adam, Optimizer
 from data import get_dataset
-from graph_rewiring import apply_gdc
-from graph_rewiring_eval import rewiring_train, rewiring_test, rewiring_get_optimizer
-from run_GNN import print_model_params, get_optimizer, test_OGB, test#, train
 from DIGL_data import PPRDataset, set_train_val_test_split, get_dataset as DIGL_get_dataset, train as DIGL_train, evaluate as DIGL_evaluate
+from test_params import OPT
 
 from GNN_GCN import GCN
 import copy
@@ -22,7 +20,7 @@ class RewiringTests(unittest.TestCase):
 
   def setUp(self):
     self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    self.opt = {
+    opt = {
                 'rewiring':False,
                 'use_lcc': True,
                 'dataset': 'Cora',
@@ -45,8 +43,9 @@ class RewiringTests(unittest.TestCase):
                 'num_development': 1500,
                 'optimizer': 'adam',
                 'epoch': 100,
-                'use_labels': False
+                'use_labels': False, 'beltrami': False
                 }
+    self.opt = {**OPT, **opt}
     # self.dataset = get_dataset(self.opt, '../data', use_lcc=True)
     # self.n = self.dataset.data.num_nodes
 
