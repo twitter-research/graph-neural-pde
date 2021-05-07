@@ -10,7 +10,7 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 from torch_geometric.transforms.two_hop import TwoHop
-from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, remove_self_loops, contains_self_loops, homophily_ratio
+from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, remove_self_loops, contains_self_loops#, homophily_ratio
 # from torch_geometric.transforms import GDC
 from utils import get_rw_adj
 from data import get_dataset, set_train_val_test_split
