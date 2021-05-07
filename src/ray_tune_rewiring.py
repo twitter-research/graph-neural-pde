@@ -57,6 +57,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
     if opt['beltrami']:
       dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding")
 
+    data = dataset.data.to(device)
     datas.append(dataset.data)
 
     if opt['baseline']:
@@ -69,6 +70,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       model = GNN(opt, dataset, device)
       train_this = train
 
+    model = model.to(device)
     models.append(model)
 
     if torch.cuda.device_count() > 1:
@@ -113,8 +115,8 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
   models = []
   optimizers = []
 
-  data = dataset.data.to(device)
-  datas = [data for i in range(opt["num_init"])]
+  dataset.data = dataset.data.to(device)
+  datas = [dataset.data for i in range(opt["num_init"])]
 
   for split in range(opt["num_init"]):
     if opt['baseline']:
@@ -124,7 +126,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
       train_this = train_icml
     else:
-      model = GNN(opt, dataset, device)
+      model, data = GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
       train_this = train
 
     models.append(model)
