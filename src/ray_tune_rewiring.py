@@ -126,7 +126,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
       train_this = train_icml
     else:
-      model, data = GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
+      model = GNN(opt, dataset, device)
       train_this = train
 
     models.append(model)
