@@ -124,9 +124,9 @@ class SpGraphTransAttentionLayer(nn.Module):
 
   def init_weights(self, m):
     if type(m) == nn.Linear:
-      nn.init.xavier_uniform_(m.weight, gain=1.414)
+      # nn.init.xavier_uniform_(m.weight, gain=1.414)
       # m.bias.data.fill_(0.01)
-      # nn.init.constant_(m.weight, 1e-5)
+      nn.init.constant_(m.weight, 1e-5)
 
   def forward(self, x, edge):
     # if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
