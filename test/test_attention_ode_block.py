@@ -51,6 +51,7 @@ class AttentionODEBlockTests(unittest.TestCase):
       pass
 
   def test_gnn(self):
+    self.opt['attention_dim']=32
     gnn = GNN(self.opt, self.dataset, device=self.device)
     gnn.train()
     out = gnn(self.dataset.data.x)
