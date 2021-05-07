@@ -17,7 +17,7 @@ from torch import nn
 from GNN_ICML20 import ICML_GNN, get_sym_adj
 from GNN_ICML20 import train as train_icml
 from graph_rewiring import apply_gdc, KNN
-from graph_rewiring_ray import set_rewiring_space, set_cora_search_space, set_citeseer_search_space
+from graph_rewiring_ray import set_search_space, set_rewiring_space, set_cora_search_space, set_citeseer_search_space
 """
 python3 ray_tune.py --dataset ogbn-arxiv --lr 0.005 --add_source --function transformer --attention_dim 16 --hidden_dim 128 --heads 4 --input_dropout 0 --decay 0 --adjoint --adjoint_method rk4 --method rk4 --time 5.08 --epoch 500 --num_samples 1 --name ogbn-arxiv-test --gpus 1 --grace_period 50 
 
@@ -234,24 +234,6 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
     opt["tol_scale_adjoint"] = tune.loguniform(1, 1e4)
 
 
-def set_search_space(opt):
-  opt = set_rewiring_space(opt)
-  if opt["dataset"] == "Cora":
-    return set_cora_search_space(opt)
-  elif opt["dataset"] == "Pubmed":
-    return set_pubmed_search_space(opt)
-  elif opt["dataset"] == "Citeseer":
-    return set_citeseer_search_space(opt)
-  elif opt["dataset"] == "Computers":
-    return set_computers_search_space(opt)
-  elif opt["dataset"] == "Photo":
-    return set_photo_search_space(opt)
-  elif opt["dataset"] == "CoauthorCS":
-    return set_coauthors_search_space(opt)
-  elif opt["dataset"] == "ogbn-arxiv":
-    return set_arxiv_search_space(opt)
-
-
 def main(opt):
   data_dir = os.path.abspath("../data")
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -437,7 +419,6 @@ if __name__ == "__main__":
                       help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
   parser.add_argument('--att_samp_pct', type=float, default=1,
                       help="float in [0,1). The percentage of edges to retain based on attention scores")
-  ###new args
   parser.add_argument('--M_nodes', type=int, default=64, help="new number of nodes to add")
   parser.add_argument('--new_edges', type=str, default="random", help="random, random_walk, k_hop")
   parser.add_argument('--sparsify', type=str, default="S_hat", help="S_hat, recalc_att")
@@ -462,7 +443,5 @@ if __name__ == "__main__":
   parser.add_argument('--patience', type=int, default=100, help="amount of patience for non improving val acc")
 
   args = parser.parse_args()
-
   opt = vars(args)
-
   main(opt)

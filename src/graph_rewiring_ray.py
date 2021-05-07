@@ -91,7 +91,6 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
             pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
             dataset.data.to(device)
             dataset.data.x = torch.cat([dataset.data.x, pos_encoding], dim=1).to(device)
-
         datas.append(dataset.data)
         model = GNN(opt, dataset, device)
         train_this = train
@@ -496,7 +495,6 @@ if __name__ == "__main__":
     parser.add_argument('--attention_rewiring', action='store_true',
                         help='perform DIGL using precalcualted GRAND attention')
 
-
     parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
     parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
     parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
@@ -510,7 +508,7 @@ if __name__ == "__main__":
                         help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
     parser.add_argument('--max_epochs', type=int, default=1000, help="max epochs to train before patience")
     parser.add_argument('--patience', type=int, default=100, help="amount of patience for non improving val acc")
+
     args = parser.parse_args()
     opt = vars(args)
-
     main(opt)

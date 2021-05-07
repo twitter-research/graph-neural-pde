@@ -115,6 +115,7 @@ def dirichlet_energy(edge_index, edge_weight, n, X):
     return X.T @ de
 
 def KNN(x, opt):
+    # https://github.com/getkeops/keops/tree/3efd428b55c724b12f23982c06de00bc4d02d903
     k = opt['rewire_KNN_k']
     print("Rewiring with KNN")
     X_i = LazyTensor(x[:, None, :])  # (N, 1, hd)
@@ -131,8 +132,8 @@ def KNN(x, opt):
     #take the indices of the K closest neighbours measured in euclidean distance
     indKNN = D_ij.argKmin(k, dim=1)
     # LS = torch.linspace(0, len(indKNN.view(-1)), len(indKNN.view(-1)) + 1)[:-1].unsqueeze(0) // k
-    # LS1 = torch.linspace(0, len(indKNN.view(-1)), len(indKNN.view(-1))+1, dtype=torch.int64, device=indKNN.device)[:-1].unsqueeze(0)//k
-    LS = torch.linspace(0, len(indKNN.view(-1)), len(indKNN.view(-1)) + 1, device=indKNN.device)[:-1].unsqueeze(0) // k
+    LS = torch.linspace(0, len(indKNN.view(-1)), len(indKNN.view(-1))+1, dtype=torch.int64, device=indKNN.device)[:-1].unsqueeze(0)//k
+    # LS     = torch.linspace(0, len(indKNN.view(-1)), len(indKNN.view(-1)) + 1, device=indKNN.device)[:-1].unsqueeze(0) // k
 
     ei = torch.cat([LS, indKNN.view(1, -1)], dim=0)
 
