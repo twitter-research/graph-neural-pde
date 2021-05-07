@@ -91,7 +91,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       optimizer.load_state_dict(optimizer_state)
 
   for epoch in range(1, opt["epoch"]):
-    if opt['rewire_KNN_online'] and epoch % opt['rewire_KNN_epoch'] == 0:
+    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0:
       data.edge_index = KNN(data.x, opt)
 
     loss = np.mean([train_this(model, optimizer, data) for model, optimizer, data in zip(models, optimizers, datas)])
