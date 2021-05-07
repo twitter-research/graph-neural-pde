@@ -204,15 +204,9 @@ def rewiring_main(opt, dataset, model_type, its=2, fixed_seed=True):
   for i in range(its):
     try:
       it_start = time.time()
-      if fixed_seed: #seed to choose the test set
-        development_seed = 1684992425 #123456789
-        it_num_dev = development_seed
-      else:
-        it_num_dev = test_seeds[i]
 
       train_val_seed = val_seeds[i] # seed to choose the train/val nodes from the development set
-      dataset.data = set_train_val_test_split(seed=train_val_seed, data=dataset.data,
-                                              development_seed=it_num_dev, ).to(device)
+      dataset.data = set_train_val_test_split(seed=train_val_seed, data=dataset.data).to(device)
 
       if model_type == "GRAND":
         opt = get_GRAND_opt(opt)

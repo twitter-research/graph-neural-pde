@@ -132,7 +132,7 @@ def remap_edges(edges: list, mapper: dict) -> list:
   return [row, col]
 
 
-def set_train_val_test_split(
+def set_train_val_test_split_fixedSeed(
         seed: int,
         data: Data,
         num_development: int = 1500,
@@ -163,7 +163,7 @@ def set_train_val_test_split(
   return data
 
 
-def set_train_val_test_split_old(
+def set_train_val_test_split(
         seed: int,
         data: Data,
         num_development: int = 1500,
