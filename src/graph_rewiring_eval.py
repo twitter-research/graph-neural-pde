@@ -14,7 +14,7 @@ from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, r
 # from torch_geometric.transforms import GDC
 from utils import get_rw_adj
 from data import get_dataset, set_train_val_test_split
-from graph_rewiring import get_two_hop, apply_gdc, GDC, dirichlet_energy, make_symmetric
+from graph_rewiring import get_two_hop, apply_gdc, GDC, dirichlet_energy, make_symmetric, apply_beltrami
 from run_GNN import print_model_params, get_optimizer, test_OGB, test, train
 from GNN import GNN
 from GNN_GCN import GCN
@@ -204,15 +204,9 @@ def rewiring_main(opt, dataset, model_type, its=2, fixed_seed=True):
   for i in range(its):
     try:
       it_start = time.time()
-      if fixed_seed: #seed to choose the test set
-        development_seed = 1684992425 #123456789
-        it_num_dev = development_seed
-      else:
-        it_num_dev = test_seeds[i]
 
       train_val_seed = val_seeds[i] # seed to choose the train/val nodes from the development set
-      dataset.data = set_train_val_test_split(seed=train_val_seed, data=dataset.data,
-                                              development_seed=it_num_dev, ).to(device)
+      dataset.data = set_train_val_test_split(seed=train_val_seed, data=dataset.data).to(device)
 
       if model_type == "GRAND":
         opt = get_GRAND_opt(opt)
@@ -432,13 +426,7 @@ def main(opt):
         G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone()
 
       if opt['beltrami']:
-        #update model dimensions
-        opt['attention_type'] = "exp_kernel" #"scaled_dot" #"exp_kernel"
-        # opt['hidden_dim'] = opt['hidden_dim'] + opt['pos_enc_hidden_dim']
-        #get positional encoding and concat with features
-        pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
-        dataset.data.to(device)
-        dataset.data.x = torch.cat([dataset.data.x, pos_encoding], dim=1).to(device)
+        dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding")
 
       for rw_att in reweight_atts:
         print(f"rw_att {rw_att}")

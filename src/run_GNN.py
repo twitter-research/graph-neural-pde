@@ -7,7 +7,7 @@ from GNN_beltrami import GNN_beltrami
 import time
 from data import get_dataset
 from ogb.nodeproppred import Evaluator
-from graph_rewiring import apply_gdc, KNN
+from graph_rewiring import apply_gdc, KNN, apply_KNN, apply_beltrami
 
 def get_cora_opt(opt):
   opt['dataset'] = 'Cora'
@@ -209,10 +209,7 @@ def main(opt):
     model = GNN(opt, dataset, device).to(device)
 
   if opt['beltrami']:
-    print('Beltrami data transformation')
-    pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
-    dataset.data.to(device)
-    dataset.data.x = torch.cat([dataset.data.x, pos_encoding], dim=1).to(device)
+    dataset.data.x = apply_beltrami(data, opt,  device, type="pos_encoding")
 
   print(opt)
   # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
@@ -224,28 +221,11 @@ def main(opt):
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
 
-    if opt['rewire_KNN_T'] == 'T0' and epoch%opt['rewire_KNN_epoch']==0 and epoch != 0:
-      # data.edge_index = KNN(data.x, opt) #problem rewiring on raw features here
-
-      if opt['beltrami']:
-        p = data.x[:, opt['num_feature']:]
-        x = data.x[:, :opt['num_feature']]
-        x = model.mx(x)
-        p = model.mp(p)
-        x = torch.cat([x, p], dim=1)
-      else:
-        x = model.m1(data.x)
-      if opt['use_mlp']:
-        x = x + model.m11(F.relu(x))
-        x = x + model.m12(F.relu(x))
-      data.edge_index = KNN(x, opt) #problem rewiring on raw features here
+    if epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
+      data.edge_index = apply_KNN(data, model, opt)
 
     loss = train(model, optimizer, data)
     train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
-
-    if opt['rewire_KNN_T'] == 'TN' and epoch%opt['rewire_KNN_epoch']==0 and epoch != 0:
-      data.edge_index = KNN(model.forward_ODE(data.x), opt)
-
 
     if val_acc > best_val_acc:
       best_val_acc = val_acc
@@ -368,7 +348,7 @@ if __name__ == '__main__':
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
   parser.add_argument('--pos_enc_hidden_dim', type=int, default=32, help="dimension of position in beltrami")
   parser.add_argument('--rewire_KNN', action='store_true', help='perform KNN rewiring every few epochs')
-  parser.add_argument('--rewire_KNN_T', type=str, default="TN", help="T0, TN")
+  parser.add_argument('--rewire_KNN_T', type=str, default="T0", help="T0, TN")
   parser.add_argument('--rewire_KNN_epoch', type=int, default=5, help="frequency of epochs to rewire")
   parser.add_argument('--rewire_KNN_k', type=int, default=64, help="target degree for KNN rewire")
   parser.add_argument('--rewire_KNN_sym', action='store_true', help='make KNN symmetric')

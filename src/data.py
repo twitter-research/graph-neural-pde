@@ -132,13 +132,13 @@ def remap_edges(edges: list, mapper: dict) -> list:
   return [row, col]
 
 
-def set_train_val_test_split(
+def set_train_val_test_split_fixedSeed(
         seed: int,
         data: Data,
         num_development: int = 1500,
         num_per_class: int = 20,
         development_seed = 1684992425) -> Data:
-  rnd_state = np.random.RandomState(development_seed) #seed or development_seed
+  rnd_state = np.random.RandomState(seed)
   num_nodes = data.y.shape[0]
   development_idx = rnd_state.choice(num_nodes, num_development, replace=False)
   test_idx = [i for i in np.arange(num_nodes) if i not in development_idx]
@@ -163,7 +163,7 @@ def set_train_val_test_split(
   return data
 
 
-def set_train_val_test_split_old(
+def set_train_val_test_split(
         seed: int,
         data: Data,
         num_development: int = 1500,

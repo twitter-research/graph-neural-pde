@@ -4,6 +4,7 @@ functions to generate a graph from the input graph and features
 import argparse
 import numpy as np
 import torch
+import torch.nn.functional as F
 import torch_sparse
 from torch_geometric.transforms.two_hop import TwoHop
 from utils import get_rw_adj
@@ -75,7 +76,7 @@ def apply_gdc(data, opt, type="combined"):
   elif type == 'sparsify':
     data = gdc.sparsify(data)
 
-  elif type == 'position_encoding':
+  elif type == 'pos_encoding':
     if opt['pos_enc_dim'] == "row":  # encode row of S_hat
         return gdc.position_encoding(data)
     elif opt['pos_enc_dim'] == "col":  # encode col of S_hat
@@ -141,6 +142,35 @@ def KNN(x, opt):
         ei, _ = to_undirected(ei)
 
     return ei
+
+def apply_KNN(data, model, opt):
+    if opt['rewire_KNN_T'] == "raw":
+        ei = KNN(data.x, opt)  # problem was rewiring on raw features here
+
+    elif opt['rewire_KNN_T'] == "T0":
+      if opt['beltrami']:
+        p = data.x[:, opt['num_feature']:]
+        x = data.x[:, :opt['num_feature']]
+        x = model.mx(x)
+        p = model.mp(p)
+        x = torch.cat([x, p], dim=1)
+      else:
+        x = model.m1(data.x)
+      if opt['use_mlp']:
+        x = x + model.m11(F.relu(x))
+        x = x + model.m12(F.relu(x))
+      ei = KNN(x, opt)
+
+    elif opt['rewire_KNN_T'] == 'TN':
+      ei = KNN(model.forward_ODE(data.x), opt)
+
+    return ei
+
+def apply_beltrami(data, opt, device, type):
+    pos_encoding = apply_gdc(data, opt, type).to(device)
+    data.to(device)
+    x = torch.cat([data.x, pos_encoding], dim=1).to(device)
+    return x
 
 #Editted PyGeo source code
 class GDC(object):

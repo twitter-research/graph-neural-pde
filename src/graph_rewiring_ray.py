@@ -17,7 +17,7 @@ from utils import get_sem, mean_confidence_interval
 from run_GNN import get_optimizer, test, test_OGB, train
 from torch import nn
 from data import get_dataset, set_train_val_test_split
-from graph_rewiring import get_two_hop, apply_gdc, GDC, dirichlet_energy, make_symmetric, KNN
+from graph_rewiring import get_two_hop, apply_gdc, GDC, dirichlet_energy, make_symmetric, KNN, apply_beltrami
 from graph_rewiring_eval import train_GRAND
 
 """
@@ -56,12 +56,12 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
         test_seed = np.random.randint(0, 1000)
         dataset.data = set_train_val_test_split(train_val_seed, dataset.data, development_seed=test_seed,
                                                 num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
-    # for split in range(opt["num_init"]):
-    #     dataset = get_dataset(opt, data_dir, opt['not_lcc'])
+        # for split in range(opt["num_init"]):
+        #     dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
         if opt['rewiring']:
             if opt['attention_rewiring']:
-                #managing beltrami att_rewiring interactions
+                # managing beltrami att_rewiring interactions
                 temp_beltrami_type = opt['beltrami']
                 temp_att_type = opt['attention_type']
                 opt['attention_type'] = "scaled_dot"
@@ -87,10 +87,8 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
                 dataset.data.edge_index, dataset.data.edge_attr = make_symmetric(dataset.data)
 
         if opt['beltrami']:
-            print('Beltrami data transformation')
-            pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
-            dataset.data.to(device)
-            dataset.data.x = torch.cat([dataset.data.x, pos_encoding], dim=1).to(device)
+            dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding")
+
         datas.append(dataset.data)
         model = GNN(opt, dataset, device)
         train_this = train
@@ -130,53 +128,59 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
 
 
 def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
-  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  dataset = get_dataset(opt, data_dir, opt['not_lcc'])
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
-  if opt["num_splits"] > 0:
-    dataset.data = set_train_val_test_split(
-      23 * np.random.randint(0, opt["num_splits"]),  # random prime 23 to make the splits 'more' random. Could remove
-      dataset.data,
-      num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
+    if opt["num_splits"] > 0:
+        dataset.data = set_train_val_test_split(
+            23 * np.random.randint(0, opt["num_splits"]),
+            # random prime 23 to make the splits 'more' random. Could remove
+            dataset.data,
+            num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
-  model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
-  if torch.cuda.device_count() > 1:
-    model = nn.DataParallel(model)
-  model, data = model.to(device), dataset.data.to(device)
-  parameters = [p for p in model.parameters() if p.requires_grad]
-  optimizer = get_optimizer(opt["optimizer"], parameters, lr=opt["lr"], weight_decay=opt["decay"])
+    model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
+    if torch.cuda.device_count() > 1:
+        model = nn.DataParallel(model)
+    model, data = model.to(device), dataset.data.to(device)
+    parameters = [p for p in model.parameters() if p.requires_grad]
+    optimizer = get_optimizer(opt["optimizer"], parameters, lr=opt["lr"], weight_decay=opt["decay"])
 
-  if checkpoint_dir:
-    checkpoint = os.path.join(checkpoint_dir, "checkpoint")
-    model_state, optimizer_state = torch.load(checkpoint)
-    model.load_state_dict(model_state)
-    optimizer.load_state_dict(optimizer_state)
+    if opt['beltrami']:
+        dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding")
 
-  this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
-  best_time = best_epoch = train_acc = val_acc = test_acc = 0
-  for epoch in range(1, opt["epoch"]):
-    loss = train(model, optimizer, data)
-    # need next line as it sets the attributes in the solver
+    if checkpoint_dir:
+        checkpoint = os.path.join(checkpoint_dir, "checkpoint")
+        model_state, optimizer_state = torch.load(checkpoint)
+        model.load_state_dict(model_state)
+        optimizer.load_state_dict(optimizer_state)
+
+    this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+    best_time = best_epoch = train_acc = val_acc = test_acc = 0
+    for epoch in range(1, opt["epoch"]):
+        if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0:
+            data.edge_index = KNN(data.x, opt)
+        loss = train(model, optimizer, data)
+
 
     if opt["no_early"]:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
-      best_time = opt['time']
+        tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
+        best_time = opt['time']
     else:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
+        tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
     if tmp_val_acc > val_acc:
-      best_epoch = epoch
-      train_acc = tmp_train_acc
-      val_acc = tmp_val_acc
-      test_acc = tmp_test_acc
+        best_epoch = epoch
+        train_acc = tmp_train_acc
+        val_acc = tmp_val_acc
+        test_acc = tmp_test_acc
     if model.odeblock.test_integrator.solver.best_val > val_acc:
-      best_epoch = epoch
-      val_acc = model.odeblock.test_integrator.solver.best_val
-      test_acc = model.odeblock.test_integrator.solver.best_test
-      train_acc = model.odeblock.test_integrator.solver.best_train
-      best_time = model.odeblock.test_integrator.solver.best_time
+        best_epoch = epoch
+        val_acc = model.odeblock.test_integrator.solver.best_val
+        test_acc = model.odeblock.test_integrator.solver.best_test
+        train_acc = model.odeblock.test_integrator.solver.best_train
+        best_time = model.odeblock.test_integrator.solver.best_time
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
-      path = os.path.join(checkpoint_dir, "checkpoint")
-      torch.save((model.state_dict(), optimizer.state_dict()), path)
+        path = os.path.join(checkpoint_dir, "checkpoint")
+        torch.save((model.state_dict(), optimizer.state_dict()), path)
     tune.report(loss=loss, accuracy=val_acc, test_acc=test_acc, train_acc=train_acc, best_time=best_time,
                 best_epoch=best_epoch,
                 forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
@@ -203,7 +207,7 @@ def set_rewiring_space(opt):
     opt['function'] = 'laplacian'
     opt['use_lcc'] = True
 
-    opt['beltrami'] = True #tune.choice([True, False])
+    opt['beltrami'] = True  # tune.choice([True, False])
     # bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
     # non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
     # opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
@@ -214,15 +218,16 @@ def set_rewiring_space(opt):
     if spec.config.beltrami else tune.choice([32, 64, 128]))
     # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
     opt['pos_enc_dim'] = tune.choice(["row", "col"])
-    opt['square_plus'] = False #tune.choice([True, False])
-    opt['rewire_KNN'] = False #tune.choice([True, False])
+    opt['square_plus'] = False  # tune.choice([True, False])
+    opt['rewire_KNN'] = False  # tune.choice([True, False])
     # opt['rewire_KNN_epoch'] = tune.choice([10,20,50,10000])
     # opt['rewire_KNN_k'] = tune.choice([16, 32, 64, 128, 256])
     # opt['rewire_KNN_sym'] = tune.choice([True, False])
     return opt
 
+
 def set_cora_search_space(opt):
-    #need these for beltrami
+    # need these for beltrami
     opt['num_feature'] = 1433
     opt['num_class'] = 7
     opt['num_nodes'] = 2708
@@ -237,7 +242,7 @@ def set_cora_search_space(opt):
     opt["input_dropout"] = 0.5
     opt["optimizer"] = tune.choice(["adam", "adamax"])
     opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-    opt["time"] = tune.uniform(10.0, 30.0) #tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
+    opt["time"] = tune.uniform(10.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
     if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
         opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
