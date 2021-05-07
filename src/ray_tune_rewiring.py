@@ -94,7 +94,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       data.edge_index = KNN(data.x, opt)
     print(f"data.x.shape {data.x.shape}")
     print(f"model mp {model.mp}")
-    print(f"model {model.}")
+    print(f"model {model}")
 
     loss = np.mean([train_this(model, optimizer, data) for model, optimizer, data in zip(models, optimizers, datas)])
     train_accs, val_accs, tmp_test_accs = average_test(models, datas)
