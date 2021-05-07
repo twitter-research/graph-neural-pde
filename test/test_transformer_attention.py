@@ -144,3 +144,8 @@ class AttentionTests(unittest.TestCase):
       #   print(edge[:,0][idx])
       #   print(edge_dict[dst])
       self.assertTrue(int(edge[0, idx]) in edge_dict[dst])
+
+
+if __name__ == '__main__':
+  AT = AttentionTests()
+  AT.test_symmetric_attention()
