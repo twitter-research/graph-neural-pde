@@ -5,7 +5,7 @@ from functools import partial
 
 import numpy as np
 import torch
-# from torchsummary import summary
+import torch.nn.functional as F
 from data import get_dataset, set_train_val_test_split_old as set_train_val_test_split
 from GNN_early import GNNEarly
 from GNN import GNN
@@ -17,7 +17,7 @@ from run_GNN import get_optimizer, test, test_OGB, train
 from torch import nn
 from GNN_ICML20 import ICML_GNN, get_sym_adj
 from GNN_ICML20 import train as train_icml
-from graph_rewiring import apply_gdc, KNN
+from graph_rewiring import apply_gdc, KNN, apply_KNN, apply_beltrami
 from graph_rewiring_ray import set_search_space, set_rewiring_space, set_cora_search_space, set_citeseer_search_space
 """
 python3 ray_tune.py --dataset ogbn-arxiv --lr 0.005 --add_source --function transformer --attention_dim 16 --hidden_dim 128 --heads 4 --input_dropout 0 --decay 0 --adjoint --adjoint_method rk4 --method rk4 --time 5.08 --epoch 500 --num_samples 1 --name ogbn-arxiv-test --gpus 1 --grace_period 50 
@@ -55,10 +55,8 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
     # datas.append(dataset.data)
 
     if opt['beltrami']:
-      print('Beltrami data transformation')
-      pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
-      dataset.data.to(device)
-      dataset.data.x = torch.cat([dataset.data.x, pos_encoding], dim=1).to(device)
+      dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding")
+
     datas.append(dataset.data)
 
     if opt['baseline']:
@@ -91,8 +89,8 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       optimizer.load_state_dict(optimizer_state)
 
   for epoch in range(1, opt["epoch"]):
-    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0:
-      data.edge_index = KNN(data.x, opt)
+    if epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
+      data.edge_index = apply_KNN(data, model, opt)
 
     loss = np.mean([train_this(model, optimizer, data) for model, optimizer, data in zip(models, optimizers, datas)])
     train_accs, val_accs, tmp_test_accs = average_test(models, datas)
@@ -110,10 +108,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
   if opt['beltrami']:
-    print('Beltrami data transformation')
-    pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
-    dataset.data.to(device)
-    dataset.data.x = torch.cat([dataset.data.x, pos_encoding], dim=1).to(device)
+    dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding")
 
   models = []
   optimizers = []
@@ -152,8 +147,8 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       optimizer.load_state_dict(optimizer_state)
 
   for epoch in range(1, opt["epoch"]):
-    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0:
-      data.edge_index = KNN(data.x, opt)
+    if epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
+      data.edge_index = apply_KNN(data, model, opt)
 
     loss = np.mean([train_this(model, optimizer, data) for model, optimizer in zip(models, optimizers)])
     train_accs, val_accs, tmp_test_accs = average_test(models, datas)
@@ -177,10 +172,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
       num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
   if opt['beltrami']:
-    print('Beltrami data transformation')
-    pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
-    dataset.data.to(device)
-    dataset.data.x = torch.cat([dataset.data.x, pos_encoding], dim=1).to(device)
+    dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding")
 
   model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
   if torch.cuda.device_count() > 1:
@@ -198,11 +190,10 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
   this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
   best_time = best_epoch = train_acc = val_acc = test_acc = 0
   for epoch in range(1, opt["epoch"]):
-    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0:
-      data.edge_index = KNN(data.x, opt)
+    if epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
+      data.edge_index = apply_KNN(data, model, opt)
 
     loss = train(model, optimizer, data)
-    # need next line as it sets the attributes in the solver
 
     if opt["no_early"]:
       tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
@@ -231,7 +222,6 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
     tune.report(loss=loss, accuracy=val_acc, test_acc=test_acc, train_acc=train_acc, best_time=best_time,
                 best_epoch=best_epoch,
                 forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
-
 
     opt["tol_scale_adjoint"] = tune.loguniform(1, 1e4)
 

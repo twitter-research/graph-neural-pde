@@ -14,7 +14,7 @@ from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, r
 # from torch_geometric.transforms import GDC
 from utils import get_rw_adj
 from data import get_dataset, set_train_val_test_split
-from graph_rewiring import get_two_hop, apply_gdc, GDC, dirichlet_energy, make_symmetric
+from graph_rewiring import get_two_hop, apply_gdc, GDC, dirichlet_energy, make_symmetric, apply_beltrami
 from run_GNN import print_model_params, get_optimizer, test_OGB, test, train
 from GNN import GNN
 from GNN_GCN import GCN
@@ -432,13 +432,7 @@ def main(opt):
         G0_attention = GRAND0.odeblock.get_attention_weights(x).mean(dim=1).detach().clone()
 
       if opt['beltrami']:
-        #update model dimensions
-        opt['attention_type'] = "exp_kernel" #"scaled_dot" #"exp_kernel"
-        # opt['hidden_dim'] = opt['hidden_dim'] + opt['pos_enc_hidden_dim']
-        #get positional encoding and concat with features
-        pos_encoding = apply_gdc(dataset.data, opt, type='position_encoding').to(device)
-        dataset.data.to(device)
-        dataset.data.x = torch.cat([dataset.data.x, pos_encoding], dim=1).to(device)
+        dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding")
 
       for rw_att in reweight_atts:
         print(f"rw_att {rw_att}")
