@@ -261,6 +261,7 @@ def set_cora_search_space(opt):
     opt['add_source'] = tune.choice([True, False])
     # opt['att_samp_pct'] = tune.uniform(0.3, 1)
     opt['batch_norm'] = tune.choice([True, False])
+    opt['use_mlp'] = tune.choice([True, False])
 
     return opt
 
