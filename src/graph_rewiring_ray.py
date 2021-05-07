@@ -203,21 +203,22 @@ def set_rewiring_space(opt):
     opt['function'] = 'laplacian'
     opt['use_lcc'] = True
 
-    opt['beltrami'] = tune.choice([True, False])
-    bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
-    non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
-    opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
+    opt['beltrami'] = True #tune.choice([True, False])
+    # bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
+    # non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
+    # opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
+    opt['attention_type'] = "scaled_dot"
     opt['feat_hidden_dim'] = tune.choice([32, 64])
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
     if spec.config.beltrami else tune.choice([32, 64, 128]))
     # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
     opt['pos_enc_dim'] = tune.choice(["row", "col"])
-    opt['square_plus'] = tune.choice([True, False])
-    opt['rewire_KNN'] = tune.choice([True, False])
-    opt['rewire_KNN_epoch'] = tune.choice([10,20,50,10000])
-    opt['rewire_KNN_k'] = tune.choice([16, 32, 64, 128, 256])
-    opt['rewire_KNN_sym'] = tune.choice([True, False])
+    opt['square_plus'] = False #tune.choice([True, False])
+    opt['rewire_KNN'] = False #tune.choice([True, False])
+    # opt['rewire_KNN_epoch'] = tune.choice([10,20,50,10000])
+    # opt['rewire_KNN_k'] = tune.choice([16, 32, 64, 128, 256])
+    # opt['rewire_KNN_sym'] = tune.choice([True, False])
     return opt
 
 def set_cora_search_space(opt):
@@ -244,7 +245,6 @@ def set_cora_search_space(opt):
         opt['attention_norm_idx'] = tune.choice([0, 1])
         # opt['attention_norm_idx'] = 0
         # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
-        opt["leaky_relu_slope"] = 0.2
         opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
     else:
         opt["self_loop_weight"] = tune.uniform(0, 3)
