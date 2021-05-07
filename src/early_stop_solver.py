@@ -1,3 +1,4 @@
+import torchdiffeq
 from torchdiffeq._impl.dopri5 import _DORMAND_PRINCE_SHAMPINE_TABLEAU, DPS_C_MID
 from torchdiffeq._impl.solvers import FixedGridODESolver
 import torch
@@ -275,8 +276,11 @@ class EarlyStopInt(torch.nn.Module):
     method = self.opt['method']
     assert method in ['rk4', 'dopri5'], "Only dopri5 and rk4 implemented with early stopping"
     event_fn = None
-    # shapes, func, y0, t, rtol, atol, method, options = _check_inputs(func, y0, self.t, rtol, atol, method, options, event_fn, SOLVERS)
-    shapes, func, y0, t, rtol, atol, method, options, event_fn, t_is_reversed = _check_inputs(func, y0, self.t, rtol, atol, method, options, event_fn, SOLVERS)
+    ver = torchdiffeq.__version__
+    if int(ver[0]+ver[2]+ver[4]) >= 21: #0.2.1 change of signiture *around* this release
+      shapes, func, y0, t, rtol, atol, method, options, event_fn, t_is_reversed = _check_inputs(func, y0, self.t, rtol, atol, method, options, event_fn, SOLVERS)
+    else:
+      shapes, func, y0, t, rtol, atol, method, options = _check_inputs(func, y0, self.t, rtol, atol, method, options, event_fn, SOLVERS)
 
     self.solver = SOLVERS[method](func, y0, rtol=rtol, atol=atol, opt=self.opt, **options)
     if self.solver.data is None:
