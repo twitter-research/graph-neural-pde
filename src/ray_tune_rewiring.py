@@ -58,7 +58,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding").to(device)
 
     data = dataset.data.to(device)
-    datas.append(dataset.data)
+    datas.append(data)
 
     if opt['baseline']:
       opt['num_feature'] = dataset.num_node_features
