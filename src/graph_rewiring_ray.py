@@ -295,7 +295,7 @@ def set_citeseer_search_space(opt):
         opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(1, 4))
         opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
         opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
-        opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
+        # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
         opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
             [0, 1])  # whether or not to use self-loops
     else:
@@ -310,7 +310,7 @@ def set_citeseer_search_space(opt):
         opt['add_source'] = tune.choice([True, False])
         # opt['att_samp_pct'] = tune.uniform(0.3, 1)
         opt['batch_norm'] = tune.choice([True, False])
-
+        # opt['use_mlp'] = tune.choice([True, False])
     return opt
 
 def set_pubmed_search_space(opt):
@@ -334,7 +334,7 @@ def set_pubmed_search_space(opt):
         opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))
         opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
         opt['attention_norm_idx'] = tune.choice([0, 1])
-        opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+        # opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
         opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
           [0, 1])  # whether or not to use self-loops
     else:
@@ -347,6 +347,11 @@ def set_pubmed_search_space(opt):
         opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])
     else:
         raise Exception("Can't train on PubMed without the adjoint method.")
+
+    opt['add_source'] = tune.choice([True, False])
+    # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+    opt['batch_norm'] = tune.choice([True, False])
+    opt['use_mlp'] = tune.choice([True, False])
 
     return opt
 
