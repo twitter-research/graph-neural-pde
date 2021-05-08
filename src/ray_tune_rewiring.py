@@ -56,7 +56,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
     # datas.append(dataset.data)
 
     if opt['beltrami']:
-      dataset.data.x = apply_beltrami(dataset.data, opt).to(device)
+      dataset.data.x = apply_beltrami(dataset.data, opt)
 
     data = dataset.data.to(device)
     datas.append(data)
@@ -116,7 +116,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
   if opt['beltrami']:
-    dataset.data.x = apply_beltrami(dataset.data, opt).to(device)
+    dataset.data.x = apply_beltrami(dataset.data, opt)
 
   models = []
   optimizers = []
@@ -185,7 +185,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
       num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
   if opt['beltrami']:
-    dataset.data.x = apply_beltrami(dataset.data, opt).to(device)
+    dataset.data.x = apply_beltrami(dataset.data, opt)
 
   if opt['rewire_KNN_T'] == 'TN': #can't do early stopping if rewiring on terminal value
     model = GNN(opt, dataset, device)

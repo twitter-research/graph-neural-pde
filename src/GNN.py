@@ -21,8 +21,8 @@ class GNN(BaseGNN):
       x = x[:, :-self.num_classes]
 
     if self.opt['beltrami']:
-      p = x[:, self.num_features:]
-      x = x[:, :self.num_features]
+      p = x[:, self.opt['num_feature']:]
+      x = x[:, :self.opt['num_feature']]
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
       p = F.dropout(p, self.opt['input_dropout'], training=self.training)
       x = self.mx(x)
