@@ -187,8 +187,11 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
   if opt['beltrami']:
     dataset.data.x = apply_beltrami(dataset.data, opt)
 
-  if opt['rewire_KNN_T'] == 'TN': #can't do early stopping if rewiring on terminal value
-    model = GNN(opt, dataset, device)
+  if opt['rewire_KNN']:
+    if opt['rewire_KNN_T'] == 'TN': #can't do early stopping if rewiring on terminal value
+      model = GNN(opt, dataset, device)
+    else:
+      model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
   else:
     model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
 
