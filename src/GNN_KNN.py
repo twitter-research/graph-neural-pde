@@ -6,14 +6,15 @@ from model_configurations import set_block, set_function
 from graph_rewiring import KNN
 
 # Define the GNN model.
-class GNN_beltrami(BaseGNN):
+class GNN_KNN(BaseGNN):
   def __init__(self, opt, dataset, device=torch.device('cpu')):
-    super(GNN_beltrami, self).__init__(opt, dataset, device)
+    super(GNN_KNN, self).__init__(opt, dataset, device)
     self.f = set_function(opt)
     block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
     self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
 
+#todo this was looking at rewiring online in diffusion, it runs.. but question over differentiability
   # def forward(self, x):
   #   # Encode each node based on its feature.
   #   if self.opt['use_labels']:

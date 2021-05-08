@@ -166,10 +166,9 @@ def apply_KNN(data, model, opt):
 
     return ei
 
-def apply_beltrami(data, opt, device, type):
-    pos_encoding = apply_gdc(data, opt, type)#.to(device)
-    data#.to(device)
-    x = torch.cat([data.x, pos_encoding], dim=1)#.to(device)
+def apply_beltrami(data, opt):
+    pos_encoding = apply_gdc(data, opt, type="pos_encoding")
+    x = torch.cat([data.x, pos_encoding], dim=1)
     return x
 
 #Editted PyGeo source code

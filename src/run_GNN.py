@@ -3,7 +3,7 @@ import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
 import torch.nn.functional as F
 from GNN import GNN
-from GNN_beltrami import GNN_beltrami
+from GNN_KNN import GNN_KNN
 import time
 from data import get_dataset
 from ogb.nodeproppred import Evaluator
@@ -199,18 +199,17 @@ def main(opt):
     pass  # not always present when called as lib
   dataset = get_dataset(opt, '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  # model, data = GNN(opt, dataset, device).to(device), dataset.data.to(device)
 
-  data = dataset.data.to(device)
-  # if opt['KNN_online']:
+  if opt['beltrami']:
+    dataset.data.x = apply_beltrami(dataset.data, opt).to(device)
+
+  # model, data = GNN(opt, dataset, device).to(device), dataset.data.to(device)
   if opt['rewire_KNN']:
-    model = GNN_beltrami(opt, dataset, device).to(device)
+    model = GNN_KNN(opt, dataset, device).to(device)
   else:
     model = GNN(opt, dataset, device).to(device)
 
-  if opt['beltrami']:
-    dataset.data.x = apply_beltrami(data, opt,  device, type="pos_encoding")
-
+  data = dataset.data.to(device)
   print(opt)
   # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
   parameters = [p for p in model.parameters() if p.requires_grad]
@@ -221,7 +220,7 @@ def main(opt):
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
 
-    if epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
+    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
       data.edge_index = apply_KNN(data, model, opt)
 
     loss = train(model, optimizer, data)

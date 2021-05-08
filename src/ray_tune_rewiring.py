@@ -17,6 +17,7 @@ from run_GNN import get_optimizer, test, test_OGB, train
 from torch import nn
 from GNN_ICML20 import ICML_GNN, get_sym_adj
 from GNN_ICML20 import train as train_icml
+from GNN_KNN import GNN_KNN
 from graph_rewiring import apply_gdc, KNN, apply_KNN, apply_beltrami
 from graph_rewiring_ray import set_search_space, set_rewiring_space, set_cora_search_space, set_citeseer_search_space
 """
@@ -55,7 +56,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
     # datas.append(dataset.data)
 
     if opt['beltrami']:
-      dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding").to(device)
+      dataset.data.x = apply_beltrami(dataset.data, opt).to(device)
 
     data = dataset.data.to(device)
     datas.append(data)
@@ -67,7 +68,11 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
       train_this = train_icml
     else:
-      model = GNN(opt, dataset, device)
+      # model = GNN(opt, dataset, device)
+      if opt['rewire_KNN']:
+        model = GNN_KNN(opt, dataset, device).to(device)
+      else:
+        model = GNN(opt, dataset, device).to(device)
       train_this = train
 
     model = model.to(device)
@@ -76,7 +81,6 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
     if torch.cuda.device_count() > 1:
       model = nn.DataParallel(model)
 
-    model, data = model.to(device), dataset.data.to(device)
     parameters = [p for p in model.parameters() if p.requires_grad]
 
     optimizer = get_optimizer(opt["optimizer"], parameters, lr=opt["lr"], weight_decay=opt["decay"])
@@ -91,8 +95,10 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       optimizer.load_state_dict(optimizer_state)
 
   for epoch in range(1, opt["epoch"]):
-    if epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
-      data.edge_index = apply_KNN(data, model, opt)
+    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
+      KNN_ei = [apply_KNN(data, model, opt) for model, data in zip(models, datas)]
+      for i, data in enumerate(datas):
+        data.edge_index = KNN_ei[i]
 
     loss = np.mean([train_this(model, optimizer, data) for model, optimizer, data in zip(models, optimizers, datas)])
     train_accs, val_accs, tmp_test_accs = average_test(models, datas)
@@ -110,7 +116,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
   if opt['beltrami']:
-    dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding")
+    dataset.data.x = apply_beltrami(dataset.data, opt).to(device)
 
   models = []
   optimizers = []
@@ -126,7 +132,12 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
       train_this = train_icml
     else:
-      model = GNN(opt, dataset, device)
+      if opt['rewire_KNN']:
+        model = GNN_KNN(opt, dataset, device).to(device)
+      else:
+        model = GNN(opt, dataset, device).to(device)
+
+      data = dataset.data.to(device)
       train_this = train
 
     models.append(model)
@@ -149,7 +160,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       optimizer.load_state_dict(optimizer_state)
 
   for epoch in range(1, opt["epoch"]):
-    if epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
+    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
       data.edge_index = apply_KNN(data, model, opt)
 
     loss = np.mean([train_this(model, optimizer, data) for model, optimizer in zip(models, optimizers)])
@@ -174,9 +185,14 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
       num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
   if opt['beltrami']:
-    dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding")
+    dataset.data.x = apply_beltrami(dataset.data, opt).to(device)
 
-  model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
+  if opt['rewire_KNN_T'] == 'TN': #can't do early stopping if rewiring on terminal value
+    model = GNN(opt, dataset, device)
+  else:
+    model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
+
+
   if torch.cuda.device_count() > 1:
     model = nn.DataParallel(model)
   model, data = model.to(device), dataset.data.to(device)
@@ -192,7 +208,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
   this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
   best_time = best_epoch = train_acc = val_acc = test_acc = 0
   for epoch in range(1, opt["epoch"]):
-    if epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
+    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
       data.edge_index = apply_KNN(data, model, opt)
 
     loss = train(model, optimizer, data)
