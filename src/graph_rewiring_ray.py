@@ -314,37 +314,41 @@ def set_citeseer_search_space(opt):
     return opt
 
 def set_pubmed_search_space(opt):
-  opt["decay"] = tune.uniform(0.001, 0.1)
-  if opt['regularise']:
-    opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
-    opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
+    # need these for beltrami
+    opt['num_feature'] = 500
+    opt['num_class'] = 3
+    opt['num_nodes'] = 19717
+    opt["decay"] = tune.uniform(0.001, 0.1)
+    if opt['regularise']:
+        opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
+        opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
 
-  opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
-  opt["lr"] = tune.loguniform(0.02, 0.1)
-  opt["input_dropout"] = 0.4  # tune.uniform(0.2, 0.5)
-  opt["dropout"] = tune.uniform(0, 0.5)
-  opt["time"] = tune.uniform(5.0, 20.0)
-  opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
+    opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+    opt["lr"] = tune.loguniform(0.02, 0.1)
+    opt["input_dropout"] = 0.4  # tune.uniform(0.2, 0.5)
+    opt["dropout"] = tune.uniform(0, 0.5)
+    opt["time"] = tune.uniform(5.0, 20.0)
+    opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
 
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
-    opt['attention_norm_idx'] = tune.choice([0, 1])
-    opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
-    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-      [0, 1])  # whether or not to use self-loops
-  else:
-    opt["self_loop_weight"] = tune.uniform(0, 3)
+    if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+        opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))
+        opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+        opt['attention_norm_idx'] = tune.choice([0, 1])
+        opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+        opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+          [0, 1])  # whether or not to use self-loops
+    else:
+        opt["self_loop_weight"] = tune.uniform(0, 3)
 
-  opt["tol_scale"] = tune.loguniform(1, 1e4)
+    opt["tol_scale"] = tune.loguniform(1, 1e4)
 
-  if opt["adjoint"]:
-    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e4)
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])
-  else:
-    raise Exception("Can't train on PubMed without the adjoint method.")
+    if opt["adjoint"]:
+        opt["tol_scale_adjoint"] = tune.loguniform(1, 1e4)
+        opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])
+    else:
+        raise Exception("Can't train on PubMed without the adjoint method.")
 
-  return opt
+    return opt
 
 def set_search_space(opt):
     opt = set_rewiring_space(opt)
