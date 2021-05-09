@@ -309,10 +309,13 @@ def main(opt):
   # df.to_csv("../hyperopt_results/result_{}.csv".format(timestr))
 
 def mainLoop():
+  datas = ['Citeseer', 'Photo']
+  folders = ['Citeseer_beltrami_1', 'Photot_beltrami_1']
 
-  for ds in ['Citeseer', 'Photo']:
+  for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
-    opt['dataset'] = ds
+    opt["dataset"] = ds
+    opt["name"] = folders[i]
     main(opt)
 
 if __name__ == "__main__":
