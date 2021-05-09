@@ -221,10 +221,11 @@ def set_rewiring_space(opt):
     opt['square_plus'] = tune.choice([True, False])
 
     opt['rewire_KNN'] = False  # tune.choice([True, False])
-    opt['rewire_KNN_T'] = "T0" #tune.choice(["T0,TN"])
-    # opt['rewire_KNN_epoch'] = tune.choice([10,20,50,10000])
-    # opt['rewire_KNN_k'] = tune.choice([16, 32, 64, 128, 256])
-    # opt['rewire_KNN_sym'] = tune.choice([True, False])
+    if opt['rewire_KNN']:
+        opt['rewire_KNN_T'] = tune.choice(["T0,TN"])
+        opt['rewire_KNN_epoch'] = tune.choice([2,10,20,50])
+        opt['rewire_KNN_k'] = tune.choice([16, 32, 64, 128, 256])
+        opt['rewire_KNN_sym'] = tune.choice([True, False])
     return opt
 
 
