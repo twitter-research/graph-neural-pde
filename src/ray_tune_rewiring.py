@@ -308,7 +308,7 @@ def main(opt):
   # timestr = time.strftime("%Y%m%d-%H%M%S")
   # df.to_csv("../hyperopt_results/result_{}.csv".format(timestr))
 
-def mainLoop():
+def mainLoop(opt):
   datas = ['Citeseer', 'Photo']
   folders = ['Citeseer_beltrami_1', 'Photot_beltrami_1']
 
@@ -466,4 +466,5 @@ if __name__ == "__main__":
 
   args = parser.parse_args()
   opt = vars(args)
-  main(opt)
+  # main(opt)
+  mainLoop(opt)
