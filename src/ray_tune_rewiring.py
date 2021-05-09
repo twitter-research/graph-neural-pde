@@ -308,6 +308,12 @@ def main(opt):
   # timestr = time.strftime("%Y%m%d-%H%M%S")
   # df.to_csv("../hyperopt_results/result_{}.csv".format(timestr))
 
+def mainLoop():
+
+  for ds in ['Citeseer', 'Photo']:
+    print(f"Running Tuning for {ds}")
+    opt['dataset'] = ds
+    main(opt)
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()

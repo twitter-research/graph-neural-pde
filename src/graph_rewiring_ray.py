@@ -355,6 +355,56 @@ def set_pubmed_search_space(opt):
 
     return opt
 
+
+def set_photo_search_space(opt):
+  opt["decay"] = tune.loguniform(0.001, 1e-2)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 5.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+
+  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
+  opt["lr"] = tune.loguniform(1e-3, 0.1)
+  opt["input_dropout"] = tune.uniform(0.4, 0.8)
+  opt["dropout"] = tune.uniform(0, 0.8)
+  opt["time"] = tune.uniform(0.5, 7.0)
+  opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
+
+  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 6))
+    opt['attention_norm_idx'] = tune.choice([0, 1])
+    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+      [0, 1])
+    opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+  else:
+    opt["self_loop_weight"] = tune.uniform(0, 3)
+
+  opt["tol_scale"] = tune.loguniform(100, 1e5)
+
+  if opt["adjoint"]:
+    opt["tol_scale_adjoint"] = tune.loguniform(100, 1e5)
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])
+
+  if opt['rewiring'] == 'gdc':
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'threshold'
+    opt['exact'] = False
+    # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    opt['gdc_method'] = 'ppr'
+    # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
+    opt['gdc_threshold'] = tune.loguniform(0.0001, 0.0005)
+    # opt['gdc_threshold'] = None
+    opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
+    # opt['heat_time'] = tune.uniform(1, 5)
+
+    opt['add_source'] = tune.choice([True, False])
+    # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+    opt['batch_norm'] = tune.choice([True, False])
+    opt['use_mlp'] = tune.choice([True, False])
+
+  return opt
+
+
 def set_search_space(opt):
     opt = set_rewiring_space(opt)
     if opt["dataset"] == "Cora":
