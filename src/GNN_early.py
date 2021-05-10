@@ -45,13 +45,13 @@ class GNNEarly(BaseGNN):
   def forward(self, x):
     # Encode each node based on its feature.
     if self.opt['use_labels']:
-      y = x[:, self.num_features:]
-      x = x[:, :self.num_features]
+      y = x[:, -self.num_classes:]
+      x = x[:, :-self.num_classes]
     # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
     # x = self.m1(x)
     if self.opt['beltrami']:
-      p = x[:, self.opt['num_feature']:]
-      x = x[:, :self.opt['num_feature']]
+      p = x[:, self.num_data_features:]
+      x = x[:, :self.num_data_features]
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
       p = F.dropout(p, self.opt['input_dropout'], training=self.training)
       x = self.mx(x)
