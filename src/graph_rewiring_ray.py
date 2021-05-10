@@ -220,7 +220,7 @@ def set_rewiring_space(opt):
     opt['pos_enc_dim'] = tune.choice(["row", "col"])
     opt['square_plus'] = tune.choice([True, False])
 
-    opt['rewire_KNN'] = False  # tune.choice([True, False])
+    # opt['rewire_KNN'] = tune.choice([True, False])
     if opt['rewire_KNN']:
         opt['rewire_KNN_T'] = tune.choice(["T0,TN"])
         opt['rewire_KNN_epoch'] = tune.choice([2,10,20,50])
