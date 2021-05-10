@@ -310,7 +310,7 @@ def main(opt):
 
 def mainLoop(opt):
   # opt['rewire_KNN'] = False
-  # datas = ['Photo'] #['Citeseer', 'Photo']
+  datas = ['Photo'] #['Citeseer', 'Photo']
   # folders = ['Photo_beltrami_1'] #['Citeseer_beltrami_1', 'Photo_beltrami_1']
   # for i, ds in enumerate(datas):
   #   print(f"Running Tuning for {ds}")
