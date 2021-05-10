@@ -87,7 +87,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
                 dataset.data.edge_index, dataset.data.edge_attr = make_symmetric(dataset.data)
 
         if opt['beltrami']:
-            dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding")
+            dataset.data = apply_beltrami(dataset.data, opt)
 
         datas.append(dataset.data)
         model = GNN(opt, dataset, device)
@@ -146,7 +146,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
     optimizer = get_optimizer(opt["optimizer"], parameters, lr=opt["lr"], weight_decay=opt["decay"])
 
     if opt['beltrami']:
-        dataset.data.x = apply_beltrami(dataset.data, opt, device, type="pos_encoding")
+        dataset.data = apply_beltrami(dataset.data, opt)
 
     if checkpoint_dir:
         checkpoint = os.path.join(checkpoint_dir, "checkpoint")
