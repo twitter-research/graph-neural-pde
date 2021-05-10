@@ -189,6 +189,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
 
   if opt['rewire_KNN']:
     if opt['rewire_KNN_T'] == 'TN': #can't do early stopping if rewiring on terminal value
+      opt["no_early"] = False
       model = GNN(opt, dataset, device)
     else:
       model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
