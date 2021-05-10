@@ -83,7 +83,7 @@ def mainLoop(opt):
     print(f"Running Best Params for {ds}")
     opt["dataset"] = ds
     opt["folder"] = folders[i]
-    opt["dataset"] = indexes[i]
+    opt["index"] = indexes[i]
 
     run_best_params(opt)
 
