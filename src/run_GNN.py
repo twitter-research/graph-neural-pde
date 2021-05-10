@@ -201,7 +201,7 @@ def main(opt):
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
   if opt['beltrami']:
-    dataset.data.x = apply_beltrami(dataset.data, opt).to(device)
+    dataset.data = apply_beltrami(dataset.data, opt).to(device)
 
   # model, data = GNN(opt, dataset, device).to(device), dataset.data.to(device)
   if opt['rewire_KNN']:

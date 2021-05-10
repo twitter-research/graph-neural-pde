@@ -230,10 +230,6 @@ def set_rewiring_space(opt):
 
 
 def set_cora_search_space(opt):
-    # need these for beltrami
-    opt['num_feature'] = 1433
-    opt['num_class'] = 7
-    opt['num_nodes'] = 2708
 
     opt["decay"] = tune.loguniform(0.001, 0.1)  # weight decay l2 reg
     if opt['regularise']:
@@ -275,10 +271,6 @@ def set_cora_search_space(opt):
 
 
 def set_citeseer_search_space(opt):
-    # need these for beltrami
-    opt['num_feature'] = 3703
-    opt['num_class'] = 6
-    opt['num_nodes'] = 2120
 
     opt["decay"] = 0.1  # tune.loguniform(2e-3, 1e-2)
     if opt['regularise']:
@@ -315,10 +307,7 @@ def set_citeseer_search_space(opt):
     return opt
 
 def set_pubmed_search_space(opt):
-    # need these for beltrami
-    opt['num_feature'] = 500
-    opt['num_class'] = 3
-    opt['num_nodes'] = 19717
+
     opt["decay"] = tune.uniform(0.001, 0.1)
     if opt['regularise']:
         opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
@@ -358,6 +347,7 @@ def set_pubmed_search_space(opt):
 
 
 def set_photo_search_space(opt):
+
   opt["decay"] = tune.loguniform(0.001, 1e-2)
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 5.0)
