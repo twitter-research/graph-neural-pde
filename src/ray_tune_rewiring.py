@@ -283,30 +283,7 @@ def main(opt):
     raise_on_failed_trial=False,
   )
 
-  # df = result.dataframe(metric='accuracy', mode='max')
-  # best_trial = result.get_best_trial("accuracy", "max", "all")
-  # print("Best trial config: {}".format(best_trial.config))
-  # print("Best trial final validation loss: {}".format(best_trial.best_result["loss"]))
-  # print("Best trial final validation accuracy: {}".format(best_trial.best_result["accuracy"]))
-  #
-  # dataset = get_dataset(opt, data_dir, opt['not_lcc'])
-  # best_trained_model = GNN(best_trial.config, dataset, device)
-  # if opt["gpus"] > 1:
-  #   best_trained_model = nn.DataParallel(best_trained_model)
-  # best_trained_model.to(device)
-  #
-  # checkpoint_path = os.path.join(best_trial.checkpoint.value, "checkpoint")
-  #
-  # model_state, optimizer_state = torch.load(checkpoint_path)
-  # best_trained_model.load_state_dict(model_state)
-  #
-  # test_acc = test(best_trained_model, best_trained_model.data.to(device))
-  # print("Best trial test set accuracy: {}".format(test_acc))
-  # df = result.dataframe(metric="accuracy", mode="max").sort_values(
-  #   "accuracy", ascending=False
-  # )  # get max accuracy for each trial
-  # timestr = time.strftime("%Y%m%d-%H%M%S")
-  # df.to_csv("../hyperopt_results/result_{}.csv".format(timestr))
+
 
 def mainLoop(opt):
   # opt['rewire_KNN'] = False
@@ -477,5 +454,5 @@ if __name__ == "__main__":
 
   args = parser.parse_args()
   opt = vars(args)
-  # main(opt)
-  mainLoop(opt)
+  main(opt)
+  # mainLoop(opt)
