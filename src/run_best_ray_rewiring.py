@@ -13,8 +13,7 @@ from ray.tune import CLIReporter
 def get_best_params_dir(opt):
   analysis = Analysis("../ray_tune/{}".format(opt['folder']))
   df = analysis.dataframe(metric=opt['metric'], mode='max')
-  # best_params_dir = df.sort_values('accuracy', ascending=False)['logdir'].iloc[opt['index']]
-  best_params_dir = df.sort_values('test_acc', ascending=False)['logdir'].iloc[opt['index']]
+  best_params_dir = df.sort_values('accuracy', ascending=False)['logdir'].iloc[opt['index']]
   return best_params_dir
 
 
