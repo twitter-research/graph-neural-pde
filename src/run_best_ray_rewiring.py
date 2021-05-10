@@ -74,6 +74,13 @@ def run_best_params(opt):
   print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs), mean_confidence_interval(test_accs)))
 
 
+def mainLoop(opt):
+  datas = ['Cora', 'Citeseer', 'Photo']
+  for i, ds in enumerate(datas):
+    print(f"Running Best Params for {ds}")
+    opt["dataset"] = ds
+    run_best_params(opt)
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')
@@ -98,4 +105,5 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   opt = vars(args)
-  run_best_params(opt)
+  # run_best_params(opt)
+  mainLoop(opt)

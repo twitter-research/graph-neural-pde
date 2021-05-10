@@ -167,7 +167,6 @@ def apply_KNN(data, model, opt):
     return ei
 
 def apply_beltrami(data, opt):
-
     data.num_data_features=data.num_features
     pos_encoding = apply_gdc(data, opt, type="pos_encoding")
     data.x = torch.cat([data.x, pos_encoding], dim=1)
