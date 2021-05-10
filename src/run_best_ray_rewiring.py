@@ -111,5 +111,5 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   opt = vars(args)
-  # run_best_params(opt)
-  mainLoop(opt)
+  run_best_params(opt)
+  # mainLoop(opt)
