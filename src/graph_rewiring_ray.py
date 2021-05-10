@@ -194,11 +194,11 @@ def set_rewiring_space(opt):
     # opt['reweight_attention'] = tune.choice([True, False])
     # opt['make_symm'] = tune.choice([True, False])
     # opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
-    opt['gdc_sparsification'] = 'topk'  # 'threshold'
+    # opt['gdc_sparsification'] = 'topk'  # 'threshold'
     opt['gdc_threshold'] = 0.01
-    opt['ppr_alpha'] = 0.05
-    ks = [4, 8, 16, 32, 64, 128, 256]
-    opt['gdc_k'] = tune.choice(ks)
+    # opt['ppr_alpha'] = 0.05
+    # ks = [4, 8, 16, 32, 64, 128, 256]
+    # opt['gdc_k'] = tune.choice(ks)
     # if opt['rewiring'] == 'gdc':
     # opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
 
