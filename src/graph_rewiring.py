@@ -56,7 +56,8 @@ def apply_gdc(data, opt, type="combined"):
     diff_args['eps'] = opt['gdc_threshold']
   print('gdc sparse args: {}'.format(sparse_args))
   if opt['self_loop_weight'] != 0:
-      gdc = GDC(float(opt['self_loop_weight']), normalization_in='sym',
+      gdc = GDC(float(opt['self_loop_weight']),
+                normalization_in='sym',
                 normalization_out='col',
                 diffusion_kwargs=diff_args,
                 sparsification_kwargs=sparse_args, exact=opt['exact'])
@@ -118,7 +119,7 @@ def dirichlet_energy(edge_index, edge_weight, n, X):
 def KNN(x, opt):
     # https://github.com/getkeops/keops/tree/3efd428b55c724b12f23982c06de00bc4d02d903
     k = opt['rewire_KNN_k']
-    print("Rewiring with KNN")
+    print(f"Rewiring with KNN: t={opt['rewire_KNN_T']}, k={opt['rewire_KNN_k']}")
     X_i = LazyTensor(x[:, None, :])  # (N, 1, hd)
     X_j = LazyTensor(x[None, :, :])  # (1, N, hd)
 
@@ -143,26 +144,19 @@ def KNN(x, opt):
 
     return ei
 
+@torch.no_grad()
 def apply_KNN(data, model, opt):
     if opt['rewire_KNN_T'] == "raw":
-        ei = KNN(data.x, opt)  # problem was rewiring on raw features here
+        ei = KNN(data.x, opt)  # rewiring on raw features here
 
     elif opt['rewire_KNN_T'] == "T0":
-      if opt['beltrami']:
-        p = data.x[:, opt['num_feature']:]
-        x = data.x[:, :opt['num_feature']]
-        x = model.mx(x)
-        p = model.mp(p)
-        x = torch.cat([x, p], dim=1)
-      else:
-        x = model.m1(data.x)
-      if opt['use_mlp']:
-        x = x + model.m11(F.relu(x))
-        x = x + model.m12(F.relu(x))
-      ei = KNN(x, opt)
+        ei = KNN(model.forward_encoder(data.x), opt)
 
     elif opt['rewire_KNN_T'] == 'TN':
       ei = KNN(model.forward_ODE(data.x), opt)
+
+    else:
+        raise Exception("Need to set rewire_KNN_T")
 
     return ei
 
