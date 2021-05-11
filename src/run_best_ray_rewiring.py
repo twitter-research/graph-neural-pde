@@ -76,13 +76,12 @@ def run_best_params(opt):
 
   df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
 
-  csvFilePath = '../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S"))
-  appendDFToCSV_void(df, csvFilePath, sep=",")
-
-  # try:
-  #   df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
-  # except:
-  #   pass
+  try:
+    csvFilePath = '../ray_results/{}.csv'.format(name)  # , time.strftime("%Y%m%d-%H%M%S"))
+    appendDFToCSV_void(df, csvFilePath, sep=",")
+    # df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
+  except:
+    pass
 
   print(df[['accuracy', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
 
