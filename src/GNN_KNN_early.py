@@ -138,6 +138,7 @@ class GNNKNNEarly(BaseGNN):
       c_aux = torch.zeros(x.shape).to(self.device)
       x = torch.cat([x, c_aux], dim=1)
 
+    return x
 
   def forward_ODE(self, x):
     x = self.forward_encoder(x)
