@@ -92,9 +92,9 @@ def run_best_params(opt):
 
 
 def mainLoop(opt):
-  datas = ['Pubmed'] #['Cora', 'Citeseer', 'Photo']
-  folders = ['Pubmed_beltrami_2'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
-  indexes = [[0,1,2,3,4]] #,0,0]
+  datas = ['Pubmed', 'Pubmed'] #['Cora', 'Citeseer', 'Photo']
+  folders = ['Pubmed_beltrami_2', 'Pubmed_beltrami_2_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
+  indexes = [[0,1,2,3,4], [0,1,2,3,4]] #,0,0]
 
   for i, ds in enumerate(datas):
     for idx in indexes[i]:

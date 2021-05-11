@@ -318,23 +318,23 @@ def main(opt):
   # df.to_csv("../hyperopt_results/result_{}.csv".format(timestr))
 
 def mainLoop(opt):
-  opt['rewire_KNN'] = False
-  datas = ['Pubmed'] #['Citeseer', 'Photo']
-  folders =  ['Pubmed_beltrami_2'] #['Citeseer_beltrami_1', 'Photo_beltrami_1']
-  for i, ds in enumerate(datas):
-    print(f"Running Tuning for {ds}")
-    opt["dataset"] = ds
-    opt["name"] = folders[i]
-    main(opt)
-
-  # opt['rewire_KNN'] = True
-  # datas = ['Pubmed'] #'Cora', 'Citeseer', 'Photo']
-  # folders = ['Pubmed_beltrami_1_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
+  # opt['rewire_KNN'] = False
+  # datas = ['Pubmed'] #['Citeseer', 'Photo']
+  # folders =  ['Pubmed_beltrami_2'] #['Citeseer_beltrami_1', 'Photo_beltrami_1']
   # for i, ds in enumerate(datas):
   #   print(f"Running Tuning for {ds}")
   #   opt["dataset"] = ds
   #   opt["name"] = folders[i]
   #   main(opt)
+
+  opt['rewire_KNN'] = True
+  datas = ['Pubmed'] #'Cora', 'Citeseer', 'Photo']
+  folders = ['Pubmed_beltrami_2_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
+  for i, ds in enumerate(datas):
+    print(f"Running Tuning for {ds}")
+    opt["dataset"] = ds
+    opt["name"] = folders[i]
+    main(opt)
 
 
 
