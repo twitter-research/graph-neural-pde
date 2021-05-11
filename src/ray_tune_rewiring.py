@@ -18,6 +18,8 @@ from torch import nn
 from GNN_ICML20 import ICML_GNN, get_sym_adj
 from GNN_ICML20 import train as train_icml
 from GNN_KNN import GNN_KNN
+from GNN_KNN_early import GNNKNNEarly
+
 from graph_rewiring import apply_gdc, KNN, apply_KNN, apply_beltrami
 from graph_rewiring_ray import set_search_space, set_rewiring_space, set_cora_search_space, set_citeseer_search_space
 """
@@ -187,12 +189,18 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
   if opt['beltrami']:
     dataset.data = apply_beltrami(dataset.data, opt)
 
+  # if opt['rewire_KNN']:
+  #   if opt['rewire_KNN_T'] == 'TN': #can't do early stopping if rewiring on terminal value
+  #     opt["no_early"] = True
+  #     model = GNN(opt, dataset, device)
+  #   else:
+  #     model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
+  # else:
+  #   model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
+
+
   if opt['rewire_KNN']:
-    if opt['rewire_KNN_T'] == 'TN': #can't do early stopping if rewiring on terminal value
-      opt["no_early"] = True
-      model = GNN(opt, dataset, device)
-    else:
-      model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
+    model = GNN_KNN(opt, dataset, device) if opt["no_early"] else GNNKNNEarly(opt, dataset, device)
   else:
     model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
 
