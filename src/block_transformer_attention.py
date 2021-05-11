@@ -50,7 +50,7 @@ class AttODEblock(ODEblock):
         method=self.opt['method'],
         options={'step_size': self.opt['step_size']},
         adjoint_method=self.opt['adjoint_method'],
-        adjoint_options={'step_size': self.opt['adjoint_step_size'], 'norm': make_norm(state)},
+        adjoint_options={'step_size': self.opt['adjoint_step_size']},#, 'norm': make_norm(state)},
         atol=self.atol,
         rtol=self.rtol,
         adjoint_atol=self.atol_adjoint,
