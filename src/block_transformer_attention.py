@@ -1,7 +1,7 @@
 import torch
 from function_transformer_attention import SpGraphTransAttentionLayer
 from base_classes import ODEblock
-from utils import get_rw_adj
+from utils import get_rw_adj, make_norm
 
 
 class AttODEblock(ODEblock):
@@ -50,7 +50,7 @@ class AttODEblock(ODEblock):
         method=self.opt['method'],
         options={'step_size': self.opt['step_size']},
         adjoint_method=self.opt['adjoint_method'],
-        adjoint_options={'step_size': self.opt['adjoint_step_size']},
+        adjoint_options={'step_size': self.opt['adjoint_step_size'], 'norm': make_norm(state)},
         atol=self.atol,
         rtol=self.rtol,
         adjoint_atol=self.atol_adjoint,

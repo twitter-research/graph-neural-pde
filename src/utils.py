@@ -17,6 +17,21 @@ from torch_geometric.nn.conv.gcn_conv import gcn_norm
 class MaxNFEException(Exception): pass
 
 
+def rms_norm(tensor):
+  return tensor.pow(2).mean().sqrt()
+
+
+def make_norm(state):
+  state_size = state.numel()
+
+  def norm(aug_state):
+    y = aug_state[1:1 + state_size]
+    adj_y = aug_state[1 + state_size:1 + 2 * state_size]
+    return max(rms_norm(y), rms_norm(adj_y))
+
+  return norm
+
+
 def print_model_params(model):
   total_num_params = 0
   print(model)
@@ -144,10 +159,12 @@ from typing import Optional
 import torch
 from torch import Tensor
 from torch_scatter import scatter, segment_csr, gather_csr
+
+
 # https://twitter.com/jon_barron/status/1387167648669048833?s=12
 # @torch.jit.script
 def squareplus(src: Tensor, index: Optional[Tensor], ptr: Optional[Tensor] = None,
-            num_nodes: Optional[int] = None) -> Tensor:
+               num_nodes: Optional[int] = None) -> Tensor:
   r"""Computes a sparsely evaluated softmax.
     Given a value tensor :attr:`src`, this function first groups the values
     along the first dimension based on the indices specified in :attr:`index`,
@@ -168,12 +185,12 @@ def squareplus(src: Tensor, index: Optional[Tensor], ptr: Optional[Tensor] = Non
   out = (out + torch.sqrt(out ** 2 + 4)) / 2
 
   if ptr is not None:
-      out_sum = gather_csr(segment_csr(out, ptr, reduce='sum'), ptr)
+    out_sum = gather_csr(segment_csr(out, ptr, reduce='sum'), ptr)
   elif index is not None:
-      N = maybe_num_nodes(index, num_nodes)
-      out_sum = scatter(out, index, dim=0, dim_size=N, reduce='sum')[index]
+    N = maybe_num_nodes(index, num_nodes)
+    out_sum = scatter(out, index, dim=0, dim_size=N, reduce='sum')[index]
   else:
-      raise NotImplementedError
+    raise NotImplementedError
 
   return out / (out_sum + 1e-16)
 
@@ -202,10 +219,12 @@ class Meter(object):
   def get_value(self):
     return self.val
 
+
 class DummyDataset(object):
   def __init__(self, data, num_classes):
     self.data = data
     self.num_classes = num_classes
+
 
 class DummyData(object):
   def __init__(self, edge_index=None, edge_Attr=None, num_nodes=None):
