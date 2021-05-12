@@ -30,6 +30,13 @@ def get_best_params_dir(opt):
   best_params_dir = df.sort_values(opt['metric'], ascending=False)['logdir'].iloc[opt['index']]
   return best_params_dir
 
+def with_KNN(opt):
+  opt['rewire_KNN'] = True
+  opt['rewire_KNN_T'] = "T0"
+  opt['rewire_KNN_epoch'] = 20
+  opt['rewire_KNN_k'] = 64
+  opt['rewire_KNN_sym'] = False
+  return opt
 
 def run_best_params(opt):
   best_params_dir = get_best_params_dir(opt)
@@ -47,6 +54,9 @@ def run_best_params(opt):
   # handle adjoint
   if best_params['adjoint'] or opt['adjoint']:
     best_params_ret['adjoint'] = True
+
+  if opt["bestwithKNN"]:
+    best_params_ret = with_KNN(best_params_ret)
 
   print("Running with parameters {}".format(best_params_ret))
 
@@ -93,16 +103,26 @@ def run_best_params(opt):
 
 def mainLoop(opt):
   datas = ['Citeseer']#, 'Pubmed'] #['Cora', 'Citeseer', 'Photo']
-  folders = ['Citeseer_beltrami_1_KNN']#, 'Pubmed_beltrami_2_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
+  folders = ['Citeseer_beltrami_1']#, 'Pubmed_beltrami_2_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
+  names = ['Citeseer_beltrami_1']
   indexes = [[0,1,2,3,4]]#, [0,1,2,3,4]] #,0,0]
 
+  # for i, ds in enumerate(datas):
+  #   for idx in indexes[i]:
+  #     print(f"Running Best Params for {ds}")
+  #     opt["dataset"] = ds
+  #     opt["folder"] = folders[i]
+  #     opt["name"] = names[i]
+  #     opt["index"] = indexes[i][idx]
+
+  opt["bestwithKNN"] = True
   for i, ds in enumerate(datas):
     for idx in indexes[i]:
       print(f"Running Best Params for {ds}")
       opt["dataset"] = ds
       opt["folder"] = folders[i]
+      opt["name"] = names[i] + "_KNN"
       opt["index"] = indexes[i][idx]
-
       run_best_params(opt)
 
 if __name__ == '__main__':
