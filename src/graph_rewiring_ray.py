@@ -308,16 +308,16 @@ def set_citeseer_search_space(opt):
 
 def set_pubmed_search_space(opt):
 
-    opt["decay"] = tune.uniform(0.001, 0.1)
+    opt["decay"] = tune.loguniform(1e-5, 0.1)
     if opt['regularise']:
         opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
         opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
 
     opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
-    opt["lr"] = tune.loguniform(0.02, 0.1)
-    opt["input_dropout"] = 0.4  # tune.uniform(0.2, 0.5)
+    opt["lr"] = tune.uniform(0.01, 0.05)
+    opt["input_dropout"] = 0.5  # tune.uniform(0.2, 0.5)
     opt["dropout"] = tune.uniform(0, 0.5)
-    opt["time"] = tune.uniform(5.0, 20.0)
+    opt["time"] = tune.uniform(5.0, 25.0)
     opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
 
     if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
@@ -341,7 +341,7 @@ def set_pubmed_search_space(opt):
     opt['add_source'] = tune.choice([True, False])
     # opt['att_samp_pct'] = tune.uniform(0.3, 1)
     opt['batch_norm'] = tune.choice([True, False])
-    opt['use_mlp'] = tune.choice([True, False])
+    # opt['use_mlp'] = tune.choice([True, False])
 
     return opt
 
