@@ -396,6 +396,68 @@ def set_photo_search_space(opt):
   return opt
 
 
+def set_arxiv_search_space(opt):
+  opt["decay"] = 0 #tune.loguniform(1e-10, 1e-6)
+
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+
+  # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 9))
+  opt["hidden_dim"] = 128  # best choice with attention
+  # opt["hidden_dim"] = 256  # best choice without attention
+  opt["lr"] = tune.uniform(0.001, 0.05)
+  # opt['lr'] = 0.02
+  opt["input_dropout"] = tune.uniform(0., 0.6)
+  # opt["input_dropout"] = 0
+  opt["dropout"] = tune.uniform(0, 0.6)
+  # opt["dropout"] = 0
+  opt['step_size'] = tune.choice([0.25, 0.5, 1])
+  # opt['step_size'] = 1 #0.5
+  opt['adjoint_step_size'] = tune.choice([0.25, 0.5, 1])
+  # opt['adjoint_step_size'] = 1 #0.5
+  opt["time"] = tune.uniform(5.0, 20.0)
+  opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
+  # opt['optimizer'] = 'adam'
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+    # opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
+    opt["heads"] = 4
+    # opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
+    opt["attention_dim"] = 16 #32
+    # opt['attention_norm_idx'] = tune.choice([0, 1])
+    # opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+    #   [0, 1])
+    opt["self_loop_weight"] = 1
+    # opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+    opt["leaky_relu_slope"] = 0.2
+  else:
+    # opt["self_loop_weight"] = tune.uniform(0, 3)
+    opt["self_loop_weight"] = tune.choice([0, 1])
+  # opt['data_norm'] = tune.choice(['rw', 'gcn'])
+  # opt['add_source'] = tune.choice([True, False])
+  opt['add_source'] = True
+  # opt['att_samp_pct'] = 1 #tune.uniform(0.6, 1)
+  opt['batch_norm'] = tune.choice([True, False])
+  # opt['batch_norm'] = False #True
+
+  opt['use_labels'] = True
+  opt['label_rate'] = 0.5
+  # opt['label_rate'] = tune.uniform(0.05, 0.5)
+
+  # opt["method"] = tune.choice(["dopri5", "rk4"])
+  # opt["method"] = tune.choice(["midpoint", "rk4"])
+  # opt["tol_scale"] = tune.loguniform(10, 1e4)
+  opt["method"] = "rk4"
+
+  if opt["adjoint"]:
+    # opt["tol_scale_adjoint"] = tune.loguniform(10, 1e5)
+    # opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+    # opt["adjoint_method"] = tune.choice(["adaptive_heun", "rk4"])
+    opt["adjoint_method"] = "rk4"
+
+  return opt
+
+
 def set_search_space(opt):
     opt = set_rewiring_space(opt)
     if opt["dataset"] == "Cora":
