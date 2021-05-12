@@ -330,11 +330,11 @@ def set_pubmed_search_space(opt):
     else:
         opt["self_loop_weight"] = tune.uniform(0, 3)
 
-    opt["tol_scale"] = tune.loguniform(1, 1e4)
+    opt["tol_scale"] = tune.loguniform(1e2, 1e4) #(1, 1e4)
 
     if opt["adjoint"]:
-        opt["tol_scale_adjoint"] = tune.loguniform(1, 1e4)
-        opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])
+        opt["tol_scale_adjoint"] = tune.loguniform(1e2, 1e4) #(1, 1e4)
+        opt["adjoint_method"] = "dopri5" #tune.choice(["dopri5", "adaptive_heun"])
     else:
         raise Exception("Can't train on PubMed without the adjoint method.")
 
