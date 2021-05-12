@@ -22,6 +22,8 @@ def rms_norm(tensor):
 
 
 def make_norm(state):
+  if isinstance(state, tuple):
+    state = state[0]
   state_size = state.numel()
 
   def norm(aug_state):
