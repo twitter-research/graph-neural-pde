@@ -77,7 +77,7 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
       n_steps += 1
       train_acc, val_acc, test_acc = self.evaluate(self.rk_state)
       if val_acc > self.best_val:
-        self.set_accs(train_acc, val_acc, test_acc, next_t)
+        self.set_accs(train_acc, val_acc, test_acc, self.rk_state.t1)
     new_t = next_t
     return (new_t, _interp_evaluate(self.rk_state.interp_coeff, self.rk_state.t0, self.rk_state.t1, next_t))
 
@@ -165,7 +165,7 @@ class EarlyStopRK4(FixedGridODESolver):
       y1 = y0 + dy
       train_acc, val_acc, test_acc = self.evaluate(y1, t0, t1)
       if val_acc > self.best_val:
-        self.set_accs(train_acc, val_acc, test_acc, t0)
+        self.set_accs(train_acc, val_acc, test_acc, t1)
 
       while j < len(t) and t1 >= t[j]:
         solution[j] = self._linear_interp(t0, t1, y0, y1, t[j])
