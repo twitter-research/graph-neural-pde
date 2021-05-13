@@ -111,8 +111,8 @@ def mainLoop(opt):
   folders = ['beltrami_2','Citeseer_beltrami_1']#, 'Pubmed_beltrami_2_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
   names = ['Cora_beltrami_attdefaults_test','Citeseer_beltrami_attdefaults_test']
 
-  indexes = [[0,1,2], [0,1,2]] #,3,4]]#, [0,1,2,3,4]] #,0,0]
-  opt['bestwithAttTypes'] = ['cosine_sim']#, 'scaled_dot'] #[False]
+  indexes = [[3,4],[3,4]] #[[0,1,2], [0,1,2]] #,3,4]]#, [0,1,2,3,4]] #,0,0]
+  opt['bestwithAttTypes'] = ['cosine_sim', 'scaled_dot'] #[False]
 
   opt['bestwithKNN'] = False
 
