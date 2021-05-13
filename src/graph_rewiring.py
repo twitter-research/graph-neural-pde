@@ -375,6 +375,7 @@ class GDC(object):
         assert edge_weight.dim() == 1
 
       if self.self_loop_weight:
+        print("DIGL filling in self loops")
         edge_index, edge_weight = add_self_loops(
           edge_index, edge_weight, fill_value=self.self_loop_weight,
           num_nodes=N)
@@ -382,6 +383,7 @@ class GDC(object):
       edge_index, edge_weight = coalesce(edge_index, edge_weight, N, N)
 
       if self.exact:
+        print("DIGL diffusion matrix exact")
         edge_index, edge_weight = self.transition_matrix(
           edge_index, edge_weight, N, self.normalization_in)
         diff_mat = self.diffusion_matrix_exact(edge_index, edge_weight, N,
@@ -390,6 +392,7 @@ class GDC(object):
         # edge_index, edge_weight = self.sparsify_dense(
         #   diff_mat, **self.sparsification_kwargs)
       else:
+        print("DIGL diffusion matrix approx")
         edge_index, edge_weight = self.diffusion_matrix_approx(
           edge_index, edge_weight, N, self.normalization_in,
           **self.diffusion_kwargs)
