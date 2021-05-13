@@ -164,6 +164,7 @@ def apply_beltrami(data, opt):
     print("start beltrami")
     data.num_data_features=data.num_features
     pos_encoding = apply_gdc(data, opt, type="pos_encoding")
+    print("pre cat")
     data.x = torch.cat([data.x, pos_encoding], dim=1)
     print("end beltrami")
     return data
