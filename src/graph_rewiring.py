@@ -161,9 +161,11 @@ def apply_KNN(data, model, opt):
     return ei
 
 def apply_beltrami(data, opt):
+    print("start beltrami")
     data.num_data_features=data.num_features
     pos_encoding = apply_gdc(data, opt, type="pos_encoding")
     data.x = torch.cat([data.x, pos_encoding], dim=1)
+    print("end beltrami")
     return data
 
 #Editted PyGeo source code
@@ -402,7 +404,7 @@ class GDC(object):
       edge_index, edge_weight = coalesce(edge_index, edge_weight, N, N)
       edge_index, edge_weight = self.transition_matrix(
         edge_index, edge_weight, N, self.normalization_out)
-
+      print("end pos encoding function")
       return to_dense_adj(edge_index,
                    edge_attr=edge_weight).squeeze()
 
