@@ -38,6 +38,7 @@ def with_KNN(opt):
   opt['rewire_KNN_sym'] = False
   return opt
 
+
 def run_best_params(opt):
   best_params_dir = get_best_params_dir(opt)
   with open(best_params_dir + '/params.json') as f:
@@ -57,6 +58,10 @@ def run_best_params(opt):
 
   if opt["bestwithKNN"]:
     best_params_ret = with_KNN(best_params_ret)
+
+  if opt['bestwithAttType']:
+    best_params_ret['attention_type'] = opt['bestwithAttType']
+    best_params_ret['square_plus'] = False
 
   print("Running with parameters {}".format(best_params_ret))
 
@@ -102,27 +107,32 @@ def run_best_params(opt):
 
 
 def mainLoop(opt):
-  datas = ['Citeseer']#, 'Pubmed'] #['Cora', 'Citeseer', 'Photo']
-  folders = ['Citeseer_beltrami_1']#, 'Pubmed_beltrami_2_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
-  names = ['Citeseer_beltrami_1']
-  indexes = [[0,1,2,3,4]]#, [0,1,2,3,4]] #,0,0]
+  datas = ['Cora','Citeseer'] #, 'Pubmed'] #['Cora', 'Citeseer', 'Photo']
+  folders = ['beltrami_2','Citeseer_beltrami_1']#, 'Pubmed_beltrami_2_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
+  names = ['Cora_beltrami_attdefaults_test','Citeseer_beltrami_attdefaults_test']
 
-  # for i, ds in enumerate(datas):
-  #   for idx in indexes[i]:
-  #     print(f"Running Best Params for {ds}")
-  #     opt["dataset"] = ds
-  #     opt["folder"] = folders[i]
-  #     opt["name"] = names[i]
-  #     opt["index"] = indexes[i][idx]
+  indexes = [[0,1,2], [0,1,2]] #,3,4]]#, [0,1,2,3,4]] #,0,0]
+  opt['bestwithAttTypes'] = ['cosine_sim', 'scaled_dot'] #[False]
 
-  opt["bestwithKNN"] = True
+  opt['bestwithKNN'] = False
+
   for i, ds in enumerate(datas):
     for idx in indexes[i]:
-      print(f"Running Best Params for {ds}")
-      opt["dataset"] = ds
-      opt["folder"] = folders[i]
-      opt["name"] = names[i] + "_KNN"
-      opt["index"] = indexes[i][idx]
+      if opt['bestwithAttTypes']:
+        for att_type in opt['bestwithAttTypes']:
+          print(f"Running Best Params for {ds}")
+          opt["dataset"] = ds
+          opt["folder"] = folders[i]
+          opt["name"] = names[i] + "_KNN"
+          opt["index"] = indexes[i][idx]
+          opt['bestwithAttType'] = att_type
+      else:
+        print(f"Running Best Params for {ds}")
+        opt["dataset"] = ds
+        opt["folder"] = folders[i]
+        opt["name"] = names[i] + "_KNN"
+        opt["index"] = indexes[i][idx]
+
       run_best_params(opt)
 
 if __name__ == '__main__':
