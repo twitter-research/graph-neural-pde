@@ -123,14 +123,14 @@ def mainLoop(opt):
           print(f"Running Best Params for {ds}")
           opt["dataset"] = ds
           opt["folder"] = folders[i]
-          opt["name"] = names[i] + "_KNN"
+          opt["name"] = names[i] + "_KNN" if opt['bestwithKNN'] else ""
           opt["index"] = indexes[i][idx]
           opt['bestwithAttType'] = att_type
       else:
         print(f"Running Best Params for {ds}")
         opt["dataset"] = ds
         opt["folder"] = folders[i]
-        opt["name"] = names[i] + "_KNN"
+        opt["name"] = names[i] + "_KNN" if opt['bestwithKNN'] else ""
         opt["index"] = indexes[i][idx]
 
       run_best_params(opt)
