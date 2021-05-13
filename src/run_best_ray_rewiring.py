@@ -117,14 +117,14 @@ def mainLoop(opt):
   opt['bestwithKNN'] = False
 
   for i, ds in enumerate(datas):
-    for idx in indexes[i]:
+    for idx_i, idx in enumerate(indexes[i]):
       if opt['bestwithAttTypes']:
         for att_type in opt['bestwithAttTypes']:
           print(f"Running Best Params for {ds}")
           opt["dataset"] = ds
           opt["folder"] = folders[i]
           opt["name"] = f"{names[i]}{'_KNN' if opt['bestwithKNN'] else ''}"
-          opt["index"] = indexes[i][idx]
+          opt["index"] = indexes[i][idx_i]
           opt['bestwithAttType'] = att_type
           run_best_params(opt)
       else:
@@ -132,7 +132,7 @@ def mainLoop(opt):
         opt["dataset"] = ds
         opt["folder"] = folders[i]
         opt["name"] = f"{names[i]}{'_KNN' if opt['bestwithKNN'] else ''}"
-        opt["index"] = indexes[i][idx]
+        opt["index"] = indexes[i][idx_i]
         run_best_params(opt)
 
 
