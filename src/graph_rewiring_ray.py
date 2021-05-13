@@ -305,7 +305,7 @@ def set_citeseer_search_space(opt):
 
 
 def set_pubmed_search_space(opt):
-  opt["decay"] = tune.loguniform(1e-5, 0.1)
+  opt["decay"] = tune.loguniform(1e-5, 1e-2)
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
     opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
@@ -314,12 +314,12 @@ def set_pubmed_search_space(opt):
   opt["lr"] = tune.uniform(0.01, 0.05)
   opt["input_dropout"] = 0.5  # tune.uniform(0.2, 0.5)
   opt["dropout"] = tune.uniform(0, 0.5)
-  opt["time"] = tune.uniform(5.0, 25.0)
+  opt["time"] = tune.uniform(5.0, 30.0)
   opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
 
   if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 7))
     opt['attention_norm_idx'] = tune.choice([0, 1])
     # opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
     opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
@@ -327,11 +327,11 @@ def set_pubmed_search_space(opt):
   else:
     opt["self_loop_weight"] = tune.uniform(0, 3)
 
-  opt["tol_scale"] = tune.loguniform(1, 1e4)
+  opt["tol_scale"] = tune.loguniform(1, 1e5)
 
   if opt["adjoint"]:
-    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e4)
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])
+    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
   else:
     raise Exception("Can't train on PubMed without the adjoint method.")
 
