@@ -57,11 +57,14 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
     # datas.append(dataset.data)
 
+    print("Pre-beltrami")
     if opt['beltrami']:
       dataset.data = apply_beltrami(dataset.data, opt)
+    print("Post-beltrami")
 
     data = dataset.data.to(device)
     datas.append(data)
+    print("Post-beltrami to-device")
 
     if opt['baseline']:
       opt['num_feature'] = dataset.num_node_features
