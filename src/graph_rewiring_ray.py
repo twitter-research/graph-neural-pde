@@ -226,6 +226,7 @@ def set_rewiring_space(opt):
         opt['rewire_KNN_epoch'] = tune.choice([2,10,20,50])
         opt['rewire_KNN_k'] = tune.choice([16, 32, 64, 128, 256])
         opt['rewire_KNN_sym'] = tune.choice([True, False])
+
     return opt
 
 
@@ -397,6 +398,8 @@ def set_photo_search_space(opt):
 
 
 def set_arxiv_search_space(opt):
+  opt['exact'] = False
+  opt['use_lcc'] = False
   opt["decay"] = 0 #tune.loguniform(1e-10, 1e-6)
 
   if opt['regularise']:
