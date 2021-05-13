@@ -400,7 +400,11 @@ def set_photo_search_space(opt):
 def set_arxiv_search_space(opt):
   opt['exact'] = False
   opt['use_lcc'] = False
+  opt["adjoint"] = True
   opt["decay"] = 0 #tune.loguniform(1e-10, 1e-6)
+  # if opt['self_loop_weight'] > 0.0:
+  #   opt['exact'] = True #for GDC, need exact if selp loop weight >0
+
 
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
@@ -430,12 +434,12 @@ def set_arxiv_search_space(opt):
     # opt['attention_norm_idx'] = tune.choice([0, 1])
     # opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
     #   [0, 1])
-    opt["self_loop_weight"] = 1
+    # opt["self_loop_weight"] = 0.0 #1
     # opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
     opt["leaky_relu_slope"] = 0.2
   else:
     # opt["self_loop_weight"] = tune.uniform(0, 3)
-    opt["self_loop_weight"] = tune.choice([0, 1])
+    opt["self_loop_weight"] = 0.0 #tune.choice([0, 1])
   # opt['data_norm'] = tune.choice(['rw', 'gcn'])
   # opt['add_source'] = tune.choice([True, False])
   opt['add_source'] = True
