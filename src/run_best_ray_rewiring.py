@@ -112,7 +112,7 @@ def mainLoop(opt):
   names = ['Cora_beltrami_attdefaults_test','Citeseer_beltrami_attdefaults_test']
 
   indexes = [[0,1,2], [0,1,2]] #,3,4]]#, [0,1,2,3,4]] #,0,0]
-  opt['bestwithAttTypes'] = ['cosine_sim', 'scaled_dot'] #[False]
+  opt['bestwithAttTypes'] = ['cosine_sim']#, 'scaled_dot'] #[False]
 
   opt['bestwithKNN'] = False
 
@@ -126,14 +126,15 @@ def mainLoop(opt):
           opt["name"] = f"{names[i]}{'_KNN' if opt['bestwithKNN'] else ''}"
           opt["index"] = indexes[i][idx]
           opt['bestwithAttType'] = att_type
+          run_best_params(opt)
       else:
         print(f"Running Best Params for {ds}")
         opt["dataset"] = ds
         opt["folder"] = folders[i]
         opt["name"] = f"{names[i]}{'_KNN' if opt['bestwithKNN'] else ''}"
         opt["index"] = indexes[i][idx]
+        run_best_params(opt)
 
-      run_best_params(opt)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
