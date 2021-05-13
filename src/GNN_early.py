@@ -42,7 +42,7 @@ class GNNEarly(BaseGNN):
   def set_solver_data(self, data):
     self.odeblock.test_integrator.data = data
 
-  def forward(self, x):
+  def forward(self, x, pos_encoding):
     # Encode each node based on its feature.
     if self.opt['use_labels']:
       y = x[:, -self.num_classes:]
@@ -50,10 +50,8 @@ class GNNEarly(BaseGNN):
     # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
     # x = self.m1(x)
     if self.opt['beltrami']:
-      p = x[:, self.num_data_features:]
-      x = x[:, :self.num_data_features]
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-      p = F.dropout(p, self.opt['input_dropout'], training=self.training)
+      p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
       x = self.mx(x)
       p = self.mp(p)
       x = torch.cat([x, p], dim=1)

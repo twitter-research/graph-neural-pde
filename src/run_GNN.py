@@ -97,7 +97,7 @@ def get_label_masks(data, mask_rate=0.5):
   return train_label_idx, train_pred_idx
 
 
-def train(model, optimizer, data):
+def train(model, optimizer, data, pos_encoding):
   model.train()
   optimizer.zero_grad()
   feat = data.x
@@ -112,7 +112,8 @@ def train(model, optimizer, data):
     #
     # train_pred_idx = data.train_idx[mask]
     train_pred_idx = data.train_mask
-  out = model(feat)
+
+  out = model(feat, pos_encoding)
 
   if model.opt['dataset'] == 'ogbn-arxiv':
     lf = torch.nn.functional.nll_loss
@@ -139,12 +140,12 @@ def train(model, optimizer, data):
 
 
 @torch.no_grad()
-def test(model, data, opt=None):  # opt required for runtime polymorphism
+def test(model, data, pos_encoding, opt=None):  # opt required for runtime polymorphism
   model.eval()
   feat = data.x
   if model.opt['use_labels']:
     feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
-  logits, accs = model(feat), []
+  logits, accs = model(feat, pos_encoding), []
   for _, mask in data('train_mask', 'val_mask', 'test_mask'):
     pred = logits[mask].max(1)[1]
     acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
@@ -161,7 +162,7 @@ def print_model_params(model):
 
 
 @torch.no_grad()
-def test_OGB(model, data, opt):
+def test_OGB(model, data, pos_encoding, opt):
   if opt['dataset'] == 'ogbn-arxiv':
     name = 'ogbn-arxiv'
 
@@ -172,7 +173,7 @@ def test_OGB(model, data, opt):
   evaluator = Evaluator(name=name)
   model.eval()
 
-  out = model(feat).log_softmax(dim=-1)
+  out = model(feat, pos_encoding).log_softmax(dim=-1)
   y_pred = out.argmax(dim=-1, keepdim=True)
 
   train_acc = evaluator.eval({
@@ -200,17 +201,20 @@ def main(opt):
   dataset = get_dataset(opt, '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+  pos_encoding = None
   if opt['beltrami']:
-    dataset.data = apply_beltrami(dataset.data, opt).to(device)
+    pos_encoding = apply_beltrami(dataset.data, opt).to(device)
 
-  # model, data = GNN(opt, dataset, device).to(device), dataset.data.to(device)
   if opt['rewire_KNN']:
     model = GNN_KNN(opt, dataset, device).to(device)
   else:
     model = GNN(opt, dataset, device).to(device)
 
   data = dataset.data.to(device)
-  print(opt)
+
+  #TODO: bring pos_encoding to device too?
+  #if pos_encoding is not None:
+
   # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
   parameters = [p for p in model.parameters() if p.requires_grad]
   print_model_params(model)
@@ -221,10 +225,10 @@ def main(opt):
     start_time = time.time()
 
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
-      data.edge_index = apply_KNN(data, model, opt)
+      data.edge_index = apply_KNN(data, pos_encoding, model, opt)
 
-    loss = train(model, optimizer, data)
-    train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
+    loss = train(model, optimizer, data, pos_encoding)
+    train_acc, val_acc, tmp_test_acc = test_fn(model, data, pos_encoding, opt)
 
     if val_acc > best_val_acc:
       best_val_acc = val_acc
@@ -342,6 +346,7 @@ if __name__ == '__main__':
   parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
 
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
+  parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
   parser.add_argument('--pos_enc_dim', type=str, default="row", help="row, col")
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")

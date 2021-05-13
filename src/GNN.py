@@ -7,6 +7,7 @@ from model_configurations import set_block, set_function
 
 # Define the GNN model.
 class GNN(BaseGNN):
+
   def __init__(self, opt, dataset, device=torch.device('cpu')):
     super(GNN, self).__init__(opt, dataset, device)
     self.f = set_function(opt)
@@ -14,17 +15,16 @@ class GNN(BaseGNN):
     time_tensor = torch.tensor([0, self.T]).to(device)
     self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
 
-  def forward(self, x):
+  def forward(self, x, pos_encoding):
+
     # Encode each node based on its feature.
     if self.opt['use_labels']:
       y = x[:, -self.num_classes:]
       x = x[:, :-self.num_classes]
 
     if self.opt['beltrami']:
-      p = x[:, self.num_data_features:]
-      x = x[:, :self.num_data_features]
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-      p = F.dropout(p, self.opt['input_dropout'], training=self.training)
+      p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
       x = self.mx(x)
       p = self.mp(p)
       x = torch.cat([x, p], dim=1)

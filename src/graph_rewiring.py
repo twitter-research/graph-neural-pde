@@ -9,8 +9,9 @@ import torch_sparse
 from torch_geometric.transforms.two_hop import TwoHop
 from utils import get_rw_adj
 # from torch_geometric.transforms import GDC
-# from data import get_dataset
 from pykeops.torch import LazyTensor
+import os
+import pickle
 
 ### for custom GDC
 import torch
@@ -21,6 +22,8 @@ from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, \
     remove_self_loops, dense_to_sparse, to_undirected
 from torch_sparse import coalesce
 from torch_scatter import scatter_add
+
+POS_ENC_PATH = os.path.join("../data", "pos_encodings")
 
 def jit(**kwargs):
     def decorator(func):
@@ -145,29 +148,52 @@ def KNN(x, opt):
     return ei
 
 @torch.no_grad()
-def apply_KNN(data, model, opt):
+def apply_KNN(data, pos_encoding, model, opt):
     if opt['rewire_KNN_T'] == "raw":
         ei = KNN(data.x, opt)  # rewiring on raw features here
 
     elif opt['rewire_KNN_T'] == "T0":
-        ei = KNN(model.forward_encoder(data.x), opt)
+        ei = KNN(model.forward_encoder(data.x, pos_encoding), opt)
 
     elif opt['rewire_KNN_T'] == 'TN':
-      ei = KNN(model.forward_ODE(data.x), opt)
+      ei = KNN(model.forward_ODE(data.x, pos_encoding), opt)
 
     else:
         raise Exception("Need to set rewire_KNN_T")
 
     return ei
 
+#### THIS SHOULD BE OK
 def apply_beltrami(data, opt):
-    print("start beltrami")
-    data.num_data_features=data.num_features
-    pos_encoding = apply_gdc(data, opt, type="pos_encoding")
-    print("pre cat")
-    data.x = torch.cat([data.x, pos_encoding], dim=1)
-    print("end beltrami")
-    return data
+    # generate new positional encodings
+    # do encodings already exist on disk?
+    fname = os.path.join(POS_ENC_PATH, f"{opt['dataset']}_{opt['pos_enc_type']}.pkl")
+    print(f"[i] Looking for positional encodings in {fname}...")
+
+    # - if so, just load them
+    if os.path.exists(fname):
+        print("    Found them! Loading cached version")
+        with open(fname, "rb") as f:
+            pos_encoding = pickle.load(f)
+
+    # - otherwise, calculate...
+    else:
+        print("    Encodings not found! Calculating and caching them")
+        # choose different functions for different positional encodings
+        if opt['pos_enc_type'] == "GDC":
+            pos_encoding = apply_gdc(data, opt, type="pos_encoding")
+        else:
+            print(f"[x] The positional encoding type you specified ({opt['pos_enc_type']}) does not exist")
+            quit()
+        # - ... and store them on disk
+        if not os.path.exists(POS_ENC_PATH):
+            os.mkdir(POS_ENC_PATH)
+        with open(fname, "wb") as f:
+            pickle.dump(pos_encoding, f)
+
+    return pos_encoding
+    #data.x = torch.cat([data.x, pos_encoding], dim=1)
+    #return data
 
 #Editted PyGeo source code
 class GDC(object):
@@ -378,7 +404,6 @@ class GDC(object):
         assert edge_weight.dim() == 1
 
       if self.self_loop_weight:
-        print("DIGL filling in self loops")
         edge_index, edge_weight = add_self_loops(
           edge_index, edge_weight, fill_value=self.self_loop_weight,
           num_nodes=N)
@@ -386,7 +411,6 @@ class GDC(object):
       edge_index, edge_weight = coalesce(edge_index, edge_weight, N, N)
 
       if self.exact:
-        print("DIGL diffusion matrix exact")
         edge_index, edge_weight = self.transition_matrix(
           edge_index, edge_weight, N, self.normalization_in)
         diff_mat = self.diffusion_matrix_exact(edge_index, edge_weight, N,
@@ -395,7 +419,6 @@ class GDC(object):
         # edge_index, edge_weight = self.sparsify_dense(
         #   diff_mat, **self.sparsification_kwargs)
       else:
-        print("DIGL diffusion matrix approx")
         edge_index, edge_weight = self.diffusion_matrix_approx(
           edge_index, edge_weight, N, self.normalization_in,
           **self.diffusion_kwargs)
@@ -405,7 +428,7 @@ class GDC(object):
       edge_index, edge_weight = coalesce(edge_index, edge_weight, N, N)
       edge_index, edge_weight = self.transition_matrix(
         edge_index, edge_weight, N, self.normalization_out)
-      print("end pos encoding function")
+
       return to_dense_adj(edge_index,
                    edge_attr=edge_weight).squeeze()
 

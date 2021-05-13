@@ -57,14 +57,13 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
     # datas.append(dataset.data)
 
-    print("Pre-beltrami-rand")
+    pos_encoding = None
     if opt['beltrami']:
-      dataset.data = apply_beltrami(dataset.data, opt)
-    print("Post-beltrami-rand")
+      pos_encoding = apply_beltrami(dataset.data, opt).to(device)
 
     data = dataset.data.to(device)
     datas.append(data)
-    print("Post-beltrami to-device-rand")
+
 
     if opt['baseline']:
       opt['num_feature'] = dataset.num_node_features
@@ -101,7 +100,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
 
   for epoch in range(1, opt["epoch"]):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
-      KNN_ei = [apply_KNN(data, model, opt) for model, data in zip(models, datas)]
+      KNN_ei = [apply_KNN(data, pos_encoding, model, opt) for model, data in zip(models, datas)]
       for i, data in enumerate(datas):
         data.edge_index = KNN_ei[i]
 
@@ -120,17 +119,15 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
-  print("Pre-beltrami")
+  pos_encoding = None
   if opt['beltrami']:
-    dataset.data = apply_beltrami(dataset.data, opt)
-  print("Post-beltrami")
+    pos_encoding = apply_beltrami(dataset.data, opt).to(device)
 
   models = []
   optimizers = []
 
   dataset.data = dataset.data.to(device)
   datas = [dataset.data for i in range(opt["num_init"])]
-  print("Post-beltrami to-device")
 
   for split in range(opt["num_init"]):
     if opt['baseline']:
@@ -169,7 +166,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
 
   for epoch in range(1, opt["epoch"]):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
-      data.edge_index = apply_KNN(data, model, opt)
+      data.edge_index = apply_KNN(data, pos_encoding, model, opt)
 
     loss = np.mean([train_this(model, optimizer, data) for model, optimizer in zip(models, optimizers)])
     train_accs, val_accs, tmp_test_accs = average_test(models, datas)
@@ -192,8 +189,9 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
       dataset.data,
       num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
+  pos_encoding = None
   if opt['beltrami']:
-    dataset.data = apply_beltrami(dataset.data, opt)
+    pos_encoding = apply_beltrami(dataset.data, opt).to(device)
 
   # if opt['rewire_KNN']:
   #   if opt['rewire_KNN_T'] == 'TN': #can't do early stopping if rewiring on terminal value
@@ -227,7 +225,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
   best_time = best_epoch = train_acc = val_acc = test_acc = 0
   for epoch in range(1, opt["epoch"]):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
-      data.edge_index = apply_KNN(data, model, opt)
+      data.edge_index = apply_KNN(data, pos_encoding, model, opt)
 
     loss = train(model, optimizer, data)
 
