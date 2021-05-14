@@ -139,6 +139,48 @@ def train(model, optimizer, data, pos_encoding):
   return loss.item()
 
 
+def train_OGB(model, mp, optimizer, data, pos_encoding):
+  model.train()
+  optimizer.zero_grad()
+  feat = data.x
+  if model.opt['use_labels']:
+    train_label_idx, train_pred_idx = get_label_masks(data, model.opt['label_rate'])
+
+    feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
+  else:
+    # todo in the DGL code from OGB, they seem to apply an additional mask to the training data - currently commented
+    # mask_rate = 0.5
+    # mask = torch.rand(data.train_index.shape) < mask_rate
+    #
+    # train_pred_idx = data.train_idx[mask]
+    train_pred_idx = data.train_mask
+
+  pos_encoding = mp(pos_encoding).to(model.device)
+  out = model(feat, pos_encoding)
+
+  if model.opt['dataset'] == 'ogbn-arxiv':
+    lf = torch.nn.functional.nll_loss
+    loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
+  else:
+    lf = torch.nn.CrossEntropyLoss()
+    loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
+  if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
+    reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
+    regularization_coeffs = model.regularization_coeffs
+
+    reg_loss = sum(
+      reg_state * coeff for reg_state, coeff in zip(reg_states, regularization_coeffs) if coeff != 0
+    )
+    loss = loss + reg_loss
+
+  model.fm.update(model.getNFE())
+  model.resetNFE()
+  loss.backward()
+  optimizer.step()
+  model.bm.update(model.getNFE())
+  model.resetNFE()
+  return loss.item()
+
 @torch.no_grad()
 def test(model, data, pos_encoding, opt=None):  # opt required for runtime polymorphism
   model.eval()
@@ -206,7 +248,6 @@ def main(opt):
     if opt['dataset'] == 'ogbn-arxiv':
       pos_encoding = apply_beltrami(dataset.data, opt)
       mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
-      pos_encoding = mp(pos_encoding).to(device)
     else:
       pos_encoding = apply_beltrami(dataset.data, opt).to(device)
 
@@ -227,13 +268,18 @@ def main(opt):
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
   best_val_acc = test_acc = train_acc = best_epoch = 0
   test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
 
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
       data.edge_index = apply_KNN(data, pos_encoding, model, opt)
 
-    loss = train(model, optimizer, data, pos_encoding)
+    if opt['dataset'] == 'ogbn-arxiv':
+      loss = train_OGB(model, optimizer, data, pos_encoding, mp)
+    else:
+      loss = train(model, optimizer, data, pos_encoding)
+
     train_acc, val_acc, tmp_test_acc = test_fn(model, data, pos_encoding, opt)
 
     if val_acc > best_val_acc:
