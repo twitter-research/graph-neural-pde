@@ -206,7 +206,7 @@ def main(opt):
     if opt['dataset'] == 'ogbn-arxiv':
       pos_encoding = apply_beltrami(dataset.data, opt)
       mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
-      pos_encoding = MP(pos_encoding).to(device)
+      pos_encoding = mp(pos_encoding).to(device)
     else:
       pos_encoding = apply_beltrami(dataset.data, opt).to(device)
 
