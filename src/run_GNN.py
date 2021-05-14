@@ -278,6 +278,8 @@ def main(opt):
       ei = apply_KNN(data, pos_encoding, model, opt)
       model.odeblock.odefunc.edge_index = ei
       data.edge_index = ei
+      z = model.forward_encoder(data.x, pos_encoding)
+      model.odeblock.attention_weights = model.odeblock.get_attention_weights(z)
 
     if opt['dataset'] == 'ogbn-arxiv':
       loss = train_OGB(model, mp, optimizer, data, pos_encoding)
