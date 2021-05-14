@@ -187,7 +187,7 @@ def apply_beltrami(data, opt):
             quit()
         # - ... and store them on disk
         if not os.path.exists(POS_ENC_PATH):
-            os.mkdirs(POS_ENC_PATH)
+            os.makedirs(POS_ENC_PATH)
         with open(fname, "wb") as f:
             pickle.dump(pos_encoding, f)
 
