@@ -696,8 +696,9 @@ if __name__ == "__main__":
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random splits >= 0. 0 for planetoid split")
   parser.add_argument("--num_init", type=int, default=1, help="Number of random initializations >= 0")
 
-  parser.add_argument("--max_nfe", type=int, default=300, help="Maximum number of function evaluations allowed.")
-  parser.add_argument('--metric', type=str, default='accuracy', help='metric to sort the hyperparameter tuning runs on')
+  parser.add_argument("--max_nfe", type=int, default=300, help="Maximum number of function evaluations allowed in an epoch.")
+  parser.add_argument('--metric', type=str, default='accuracy',
+                      help='metric to sort the hyperparameter tuning runs on')
   # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
   parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")

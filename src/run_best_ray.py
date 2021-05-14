@@ -89,7 +89,7 @@ if __name__ == '__main__':
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random slpits >= 0. 0 for planetoid split")
   parser.add_argument("--adjoint", dest='adjoint', action='store_true',
                       help="use the adjoint ODE method to reduce memory footprint")
-  parser.add_argument("--max_nfe", type=int, default=5000, help="Maximum number of function evaluations allowed.")
+  parser.add_argument("--max_nfe", type=int, default=5000, help="Maximum number of function evaluations allowed in an epcoh.")
   parser.add_argument("--no_early", action="store_true",
                       help="Whether or not to use early stopping of the ODE integrator when testing.")
 
