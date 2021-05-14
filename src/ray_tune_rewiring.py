@@ -124,7 +124,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, mps, optimizers, datas)])
       train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas)
     else:
-      loss = np.mean([train(model, optimizer, data) for model, optimizer, data in zip(models, optimizers, datas)])
+      loss = np.mean([train(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])
       train_accs, val_accs, tmp_test_accs = average_test(models, datas)
 
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
@@ -198,7 +198,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, mps, optimizers, datas)])
       train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas)
     else:
-      loss = np.mean([train(model, optimizer, data) for model, optimizer, data in zip(models, optimizers, datas)])
+      loss = np.mean([train(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])
       train_accs, val_accs, tmp_test_accs = average_test(models, datas)
 
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
@@ -262,7 +262,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
       data.edge_index = apply_KNN(data, pos_encoding, model, opt)
 
-    loss = train(model, optimizer, data)
+    loss = train(model, optimizer, data, pos_encoding)
 
     if opt["no_early"]:
       tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)

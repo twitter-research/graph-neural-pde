@@ -83,11 +83,12 @@ class GNN_KNN(BaseGNN):
     if self.opt['use_labels']:
       y = x[:, -self.num_classes:]
       x = x[:, :-self.num_classes]
-      # if self.opt['beltrami']:
-      #   # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-      #   # p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
-      #   x = self.mx(x)
-      #   p = self.mp(pos_encoding)
+
+    if self.opt['beltrami']:
+    #   # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
+    #   # p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
+    #   x = self.mx(x)
+    #   p = self.mp(pos_encoding)
 
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
       x = self.mx(x)

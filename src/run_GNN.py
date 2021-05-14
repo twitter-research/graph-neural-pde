@@ -275,7 +275,9 @@ def main(opt):
     start_time = time.time()
 
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
-      data.edge_index = apply_KNN(data, pos_encoding, model, opt)
+      ei = apply_KNN(data, pos_encoding, model, opt)
+      model.odeblock.odefunc.edge_index = ei
+      data.edge_index = ei
 
     if opt['dataset'] == 'ogbn-arxiv':
       loss = train_OGB(model, mp, optimizer, data, pos_encoding)
