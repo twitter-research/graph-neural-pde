@@ -204,7 +204,7 @@ def print_model_params(model):
 
 
 @torch.no_grad()
-def test_OGB(model, data, pos_encoding, opt):
+def test_OGB(model, mp, data, pos_encoding, opt):
   if opt['dataset'] == 'ogbn-arxiv':
     name = 'ogbn-arxiv'
 
@@ -214,6 +214,8 @@ def test_OGB(model, data, pos_encoding, opt):
 
   evaluator = Evaluator(name=name)
   model.eval()
+  mp.eval()
+  pos_encoding = mp(pos_encoding).to(model.device)
 
   out = model(feat, pos_encoding).log_softmax(dim=-1)
   y_pred = out.argmax(dim=-1, keepdim=True)
@@ -267,7 +269,7 @@ def main(opt):
   print_model_params(model)
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
   best_val_acc = test_acc = train_acc = best_epoch = 0
-  test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+  # test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
 
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
@@ -277,10 +279,10 @@ def main(opt):
 
     if opt['dataset'] == 'ogbn-arxiv':
       loss = train_OGB(model, mp, optimizer, data, pos_encoding)
+      train_acc, val_acc, tmp_test_acc = test_OGB(model, mp, data, pos_encoding, opt)
     else:
       loss = train(model, optimizer, data, pos_encoding)
-
-    train_acc, val_acc, tmp_test_acc = test_fn(model, data, pos_encoding, opt)
+      train_acc, val_acc, tmp_test_acc = test(model, data, pos_encoding, opt)
 
     if val_acc > best_val_acc:
       best_val_acc = val_acc
