@@ -22,11 +22,22 @@ class GNN(BaseGNN):
       y = x[:, -self.num_classes:]
       x = x[:, :-self.num_classes]
 
+    # if self.opt['beltrami']:
+    #   # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
+    #   # p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
+    #   x = self.mx(x)
+    #   p = self.mp(pos_encoding)
+
     if self.opt['beltrami']:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-      p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
       x = self.mx(x)
-      p = self.mp(p)
+
+      if self.opt['dataset'] == 'ogbn-arxiv':
+        p = pos_encoding
+      else:
+        p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
+        p = self.mp(p)
+
       x = torch.cat([x, p], dim=1)
     else:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
@@ -77,3 +88,16 @@ class GNN(BaseGNN):
     # Decode each node embedding to get node label.
     z = self.m2(z)
     return z
+
+class MP(torch.nn.Module):
+  def __init__(self, opt, pos_enc_dim, device=torch.device('cpu')):
+    super(MP, self).__init__()
+    self.fc = nn.Linear(pos_enc_dim, opt['pos_enc_hidden_dim'])
+    # self.relu = torch.nn.ReLU()  # instead of Heaviside step fn
+
+  def forward(self, pos_encoding):
+
+    p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
+    p = self.fc(p)
+    # output = self.relu(x)  # instead of Heaviside step fn
+    return p

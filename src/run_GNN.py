@@ -2,7 +2,7 @@ import argparse
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
 import torch.nn.functional as F
-from GNN import GNN
+from GNN import GNN, MP
 from GNN_KNN import GNN_KNN
 import time
 from data import get_dataset
@@ -203,7 +203,13 @@ def main(opt):
 
   pos_encoding = None
   if opt['beltrami']:
-    pos_encoding = apply_beltrami(dataset.data, opt).to(device)
+    if opt['dataset'] == 'ogbn-arxiv':
+      pos_encoding = apply_beltrami(dataset.data, opt)
+      mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
+      pos_encoding = MP(pos_encoding).to(device)
+    else:
+      pos_encoding = apply_beltrami(dataset.data, opt).to(device)
+
 
   if opt['rewire_KNN']:
     model = GNN_KNN(opt, dataset, device).to(device)
