@@ -252,7 +252,7 @@ def main(opt):
       mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
     else:
       pos_encoding = apply_beltrami(dataset.data, opt).to(device)
-
+      opt['pos_enc_dim'] = pos_encoding.shape[1]
 
   if opt['rewire_KNN']:
     model = GNN_KNN(opt, dataset, device).to(device)

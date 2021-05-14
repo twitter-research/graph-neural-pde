@@ -108,7 +108,7 @@ class BaseGNN(MessagePassing):
 
     if opt['beltrami']:
       self.mx = nn.Linear(self.num_features, opt['feat_hidden_dim'])
-      self.mp = nn.Linear(dataset.data.num_nodes, opt['pos_enc_hidden_dim'])
+      self.mp = nn.Linear(opt['pos_enc_dim'], opt['pos_enc_hidden_dim'])
       opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
     else:
       self.m1 = nn.Linear(self.num_features, opt['hidden_dim'])

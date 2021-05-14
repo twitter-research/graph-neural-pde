@@ -52,7 +52,7 @@ def average_test_OGB(models, mps, datas):
   return train_accs, val_accs, tmp_test_accs
 
 
-def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
+def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=None):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   # dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
@@ -65,21 +65,12 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
     dataset = get_dataset(opt, data_dir, opt['not_lcc'])
     dataset.data = set_train_val_test_split(
       np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
-    # datas.append(dataset.data)
 
-    pos_encoding = None
-    if opt['beltrami']:
-      if opt['dataset'] == 'ogbn-arxiv':
-        pos_encoding = apply_beltrami(dataset.data, opt)
-        mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
-        mps.append(mp)
-      else:
-        pos_encoding = apply_beltrami(dataset.data, opt).to(device)
-        opt['pos_enc_dim'] = pos_encoding.shape[1]
+    mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
+    mps.append(mp)
 
     data = dataset.data.to(device)
     datas.append(data)
-
 
     if opt['baseline']:
       opt['num_feature'] = dataset.num_node_features
@@ -121,12 +112,8 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       for i, data in enumerate(datas):
         data.edge_index = KNN_ei[i]
 
-    if opt['dataset'] == 'ogbn-arxiv':
-      loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, mps, optimizers, datas)])
-      train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas)
-    else:
-      loss = np.mean([train(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])
-      train_accs, val_accs, tmp_test_accs = average_test(models, datas)
+    loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, mps, optimizers, datas)])
+    train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas)
 
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       best = np.argmax(val_accs)
@@ -137,7 +124,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
                 backward_nfe=model.bm.sum)
 
 
-def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
+def train_ray(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=None):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
@@ -145,15 +132,8 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
   mps = []
   optimizers = []
 
-  pos_encoding = None
-  if opt['beltrami']:
-    if opt['dataset'] == 'ogbn-arxiv':
-      pos_encoding = apply_beltrami(dataset.data, opt)
-      mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
-      mps.append(mp)
-    else:
-      pos_encoding = apply_beltrami(dataset.data, opt).to(device)
-      opt['pos_enc_dim'] = pos_encoding.shape[1]
+  mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
+  mps.append(mp)
 
   dataset.data = dataset.data.to(device)
   datas = [dataset.data for i in range(opt["num_init"])]
@@ -196,12 +176,8 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
       data.edge_index = apply_KNN(data, pos_encoding, model, opt)
 
-    if opt['dataset'] == 'ogbn-arxiv':
-      loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, mps, optimizers, datas)])
-      train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas)
-    else:
-      loss = np.mean([train(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])
-      train_accs, val_accs, tmp_test_accs = average_test(models, datas)
+    loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, mps, optimizers, datas)])
+    train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas)
 
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       best = np.argmax(val_accs)
@@ -212,7 +188,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
                 backward_nfe=model.bm.sum)
 
 
-def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
+def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=None):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
@@ -222,24 +198,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
       dataset.data,
       num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
-  pos_encoding = None
-  if opt['beltrami']:
-    if opt['dataset'] == 'ogbn-arxiv':
-      pos_encoding = apply_beltrami(dataset.data, opt)
-      mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
-    else:
-      pos_encoding = apply_beltrami(dataset.data, opt).to(device)
-      opt['pos_enc_dim'] = pos_encoding.shape[1]
-
-  # if opt['rewire_KNN']:
-  #   if opt['rewire_KNN_T'] == 'TN': #can't do early stopping if rewiring on terminal value
-  #     opt["no_early"] = True
-  #     model = GNN(opt, dataset, device)
-  #   else:
-  #     model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
-  # else:
-  #   model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
-
+  mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
 
   if opt['rewire_KNN']:
     model = GNN_KNN(opt, dataset, device) if opt["no_early"] else GNNKNNEarly(opt, dataset, device)
@@ -265,10 +224,10 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
       data.edge_index = apply_KNN(data, pos_encoding, model, opt)
 
-    loss = train(model, optimizer, data, pos_encoding)
+    loss = train_OGB(model, mp, optimizer, data, pos_encoding)
 
     if opt["no_early"]:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, mp, data, opt)
       best_time = opt['time']
       if tmp_val_acc > val_acc:
         best_epoch = epoch
@@ -276,7 +235,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
         val_acc = tmp_val_acc
         test_acc = tmp_test_acc
     else:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, mp, data, opt)
       if tmp_val_acc > val_acc:
         best_epoch = epoch
         train_acc = tmp_train_acc
@@ -318,8 +277,11 @@ def main(opt):
 
   train_fn = train_ray if opt["num_splits"] == 0 else train_ray_rand
 
-  result = tune.run(
-    partial(train_fn, data_dir=data_dir),
+  dataset = get_dataset(opt, data_dir, opt['not_lcc'])
+  pos_encoding = apply_beltrami(dataset.data, opt)
+
+  result = tune.run(tune.with_parameters(
+    partial(train_fn, data_dir=data_dir), pos_encoding=pos_encoding),
     name=opt["name"],
     resources_per_trial={"cpu": opt["cpus"], "gpu": opt["gpus"]},
     search_alg=search_alg,
@@ -377,7 +339,6 @@ def mainLoop(opt):
   #   opt["dataset"] = ds
   #   opt["name"] = folders[i]
   #   main(opt)
-
 
 
 if __name__ == "__main__":
