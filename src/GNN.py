@@ -92,7 +92,8 @@ class GNN(BaseGNN):
 class MP(torch.nn.Module):
   def __init__(self, opt, pos_enc_dim, device=torch.device('cpu')):
     super(MP, self).__init__()
-    self.fc = nn.Linear(pos_enc_dim, opt['pos_enc_hidden_dim'])
+    self.opt = opt
+    self.fc = nn.Linear(pos_enc_dim, self.opt['pos_enc_hidden_dim'])
     # self.relu = torch.nn.ReLU()  # instead of Heaviside step fn
 
   def forward(self, pos_encoding):
