@@ -170,7 +170,6 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
         model = GNN(opt, dataset, device).to(device)
 
       data = dataset.data.to(device)
-      train_this = train
 
     models.append(model)
 
