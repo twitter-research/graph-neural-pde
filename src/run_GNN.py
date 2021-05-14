@@ -276,7 +276,7 @@ def main(opt):
       data.edge_index = apply_KNN(data, pos_encoding, model, opt)
 
     if opt['dataset'] == 'ogbn-arxiv':
-      loss = train_OGB(model, optimizer, data, pos_encoding, mp)
+      loss = train_OGB(model, mp, optimizer, data, pos_encoding)
     else:
       loss = train(model, optimizer, data, pos_encoding)
 
