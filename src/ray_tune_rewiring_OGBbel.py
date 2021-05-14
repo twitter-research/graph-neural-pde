@@ -280,7 +280,9 @@ def main(opt):
   train_fn = train_ray if opt["num_splits"] == 0 else train_ray_rand
 
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
+  print("getting pos encodings to broadcast")
   pos_encoding = apply_beltrami(dataset.data, opt)
+  print("got pos encodings to broadcast")
 
   result = tune.run(tune.with_parameters(
     partial(train_fn, data_dir=data_dir), pos_encoding=pos_encoding),
