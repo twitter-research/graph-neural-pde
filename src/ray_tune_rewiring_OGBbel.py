@@ -220,7 +220,6 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=Non
     model.load_state_dict(model_state)
     optimizer.load_state_dict(optimizer_state)
 
-  this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
   best_time = best_epoch = train_acc = val_acc = test_acc = 0
   for epoch in range(1, opt["epoch"]):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
@@ -229,7 +228,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=Non
     loss = train_OGB(model, mp, optimizer, data, pos_encoding)
 
     if opt["no_early"]:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, mp, data, opt)
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = test_OGB(model, mp, data, opt)
       best_time = opt['time']
       if tmp_val_acc > val_acc:
         best_epoch = epoch
@@ -237,7 +236,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=Non
         val_acc = tmp_val_acc
         test_acc = tmp_test_acc
     else:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, mp, data, opt)
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = test_OGB(model, mp, data, opt)
       if tmp_val_acc > val_acc:
         best_epoch = epoch
         train_acc = tmp_train_acc
@@ -326,6 +325,7 @@ def main(opt):
   # df.to_csv("../hyperopt_results/result_{}.csv".format(timestr))
 
 def mainLoop(opt):
+  opt['cpus'] = 4
   opt['rewire_KNN'] = False
   datas = ['ogbn-arxiv'] #['Citeseer', 'Photo']
   folders =  ['ogbn-arxiv-1'] #['Citeseer_beltrami_1', 'Photo_beltrami_1']

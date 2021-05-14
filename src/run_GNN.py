@@ -245,14 +245,14 @@ def main(opt):
   dataset = get_dataset(opt, '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-  pos_encoding = None
-  if opt['beltrami']:
-    if opt['dataset'] == 'ogbn-arxiv':
-      pos_encoding = apply_beltrami(dataset.data, opt)
-      mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
-    else:
-      pos_encoding = apply_beltrami(dataset.data, opt).to(device)
-      opt['pos_enc_dim'] = pos_encoding.shape[1]
+  if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
+    pos_encoding = apply_beltrami(dataset.data, opt)
+    mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
+  elif opt['beltrami']:
+    pos_encoding = apply_beltrami(dataset.data, opt).to(device)
+    opt['pos_enc_dim'] = pos_encoding.shape[1]
+  else:
+    pos_encoding = None
 
   if opt['rewire_KNN']:
     model = GNN_KNN(opt, dataset, device).to(device)
@@ -260,9 +260,6 @@ def main(opt):
     model = GNN(opt, dataset, device).to(device)
 
   data = dataset.data.to(device)
-
-  #TODO: bring pos_encoding to device too?
-  #if pos_encoding is not None:
 
   # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
   parameters = [p for p in model.parameters() if p.requires_grad]
@@ -276,12 +273,12 @@ def main(opt):
 
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
       ei = apply_KNN(data, pos_encoding, model, opt)
-      model.odeblock.odefunc.edge_index = ei
       data.edge_index = ei
+      model.odeblock.odefunc.edge_index = ei
       z = model.forward_encoder(data.x, pos_encoding)
       model.odeblock.attention_weights = model.odeblock.get_attention_weights(z)
 
-    if opt['dataset'] == 'ogbn-arxiv':
+    if opt['dataset'] == 'ogbn-arxiv': #this is a proxy for 'external encoder'
       loss = train_OGB(model, mp, optimizer, data, pos_encoding)
       train_acc, val_acc, tmp_test_acc = test_OGB(model, mp, data, pos_encoding, opt)
     else:

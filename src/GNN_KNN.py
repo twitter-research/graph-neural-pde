@@ -23,9 +23,12 @@ class GNN_KNN(BaseGNN):
 
     if self.opt['beltrami']:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-      p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
       x = self.mx(x)
-      p = self.mp(p)
+      if self.opt['dataset'] == 'ogbn-arxiv':
+        p = pos_encoding
+      else:
+        p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
+        p = self.mp(p)
       x = torch.cat([x, p], dim=1)
     else:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
@@ -85,19 +88,13 @@ class GNN_KNN(BaseGNN):
       x = x[:, :-self.num_classes]
 
     if self.opt['beltrami']:
-    #   # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-    #   # p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
-    #   x = self.mx(x)
-    #   p = self.mp(pos_encoding)
-
-      x = F.dropout(x, self.opt['input_dropout'], training=self.training)
+      # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
       x = self.mx(x)
       if self.opt['dataset'] == 'ogbn-arxiv':
         p = pos_encoding
       else:
-        p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
-        p = self.mp(p)
-
+        # p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
+        p = self.mp(pos_encoding)
       x = torch.cat([x, p], dim=1)
     else:
       # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
