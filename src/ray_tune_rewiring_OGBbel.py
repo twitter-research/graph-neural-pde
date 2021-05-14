@@ -53,6 +53,7 @@ def average_test_OGB(models, mps, datas):
 
 
 def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=None):
+  print("hit train_ray_rand")
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   # dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
@@ -125,6 +126,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=No
 
 
 def train_ray(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=None):
+  print("hit train_ray")
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
