@@ -41,8 +41,8 @@ def average_test(models, datas, pos_encoding):
   return train_accs, val_accs, tmp_test_accs
 
 
-def average_test_OGB(models, mps, datas):
-  results = [test_OGB(model, mp, data, opt) for model, mp, data in zip(models, mps, datas)]
+def average_test_OGB(models, mps, datas, pos_encoding):
+  results = [test_OGB(model, mp, data, pos_encoding, opt) for model, mp, data in zip(models, mps, datas)]
   train_accs, val_accs, tmp_test_accs = [], [], []
 
   for train_acc, val_acc, test_acc in results:
@@ -122,7 +122,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
     if opt['dataset'] == 'ogbn-arxiv':
       loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in
                       zip(models, mps, optimizers, datas)])
-      train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas)
+      train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas, pos_encoding)
     else:
       loss = np.mean(
         [train_this(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])
@@ -200,7 +200,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
     if opt['dataset'] == 'ogbn-arxiv':
       loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in
                       zip(models, mps, optimizers, datas)])
-      train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas)
+      train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas, pos_encoding)
     else:
       loss = np.mean(
         [train_this(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])

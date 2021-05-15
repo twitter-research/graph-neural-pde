@@ -206,7 +206,7 @@ def print_model_params(model):
 
 
 @torch.no_grad()
-def test_OGB(model, mp, data, pos_encoding, opt):
+def test_OGB(model, mp, data, pos_encoding=None, opt=None):
   if opt['dataset'] == 'ogbn-arxiv':
     name = 'ogbn-arxiv'
 
