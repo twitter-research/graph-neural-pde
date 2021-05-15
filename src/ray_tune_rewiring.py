@@ -8,12 +8,12 @@ import torch
 import torch.nn.functional as F
 from data import get_dataset, set_train_val_test_split
 from GNN_early import GNNEarly
-from GNN import GNN
+from GNN import GNN, MP
 from ray import tune
 from ray.tune import CLIReporter
 from ray.tune.schedulers import ASHAScheduler
 from ray.tune.suggest.ax import AxSearch
-from run_GNN import get_optimizer, test, test_OGB, train
+from run_GNN import get_optimizer, test, test_OGB, train, train_OGB
 from torch import nn
 from GNN_ICML20 import ICML_GNN, get_sym_adj
 from GNN_ICML20 import train as train_icml
@@ -29,10 +29,19 @@ python3 ray_tune.py --dataset ogbn-arxiv --lr 0.005 --add_source --function tran
 
 
 def average_test(models, datas):
-  if opt['dataset'] == 'ogbn-arxiv':
-    results = [test_OGB(model, data, opt) for model, data in zip(models, datas)]
-  else:
-    results = [test(model, data) for model, data in zip(models, datas)]
+  results = [test(model, data) for model, data in zip(models, datas)]
+  train_accs, val_accs, tmp_test_accs = [], [], []
+
+  for train_acc, val_acc, test_acc in results:
+    train_accs.append(train_acc)
+    val_accs.append(val_acc)
+    tmp_test_accs.append(test_acc)
+
+  return train_accs, val_accs, tmp_test_accs
+
+
+def average_test_OGB(models, mps, datas):
+  results = [test_OGB(model, mp, data, opt) for model, mp, data in zip(models, mps, datas)]
   train_accs, val_accs, tmp_test_accs = [], [], []
 
   for train_acc, val_acc, test_acc in results:
@@ -48,6 +57,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
   # dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
   models = []
+  mps = []
   datas = []
   optimizers = []
 
@@ -57,8 +67,14 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
     # datas.append(dataset.data)
 
-    if opt['beltrami']:
-      dataset.data = apply_beltrami(dataset.data, opt)
+    if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
+      pos_encoding = apply_beltrami(dataset.data, opt)
+      mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
+    elif opt['beltrami']:
+      pos_encoding = apply_beltrami(dataset.data, opt).to(device)
+      opt['pos_enc_dim'] = pos_encoding.shape[1]
+    else:
+      pos_encoding = None
 
     data = dataset.data.to(device)
     datas.append(data)
@@ -448,6 +464,7 @@ if __name__ == "__main__":
                       help='perform DIGL using precalcualted GRAND attention')
 
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
+  parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
   parser.add_argument('--pos_enc_hidden_dim', type=int, default=32, help="dimension of position in beltrami")

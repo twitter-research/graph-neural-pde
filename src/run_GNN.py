@@ -2,7 +2,7 @@ import argparse
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
 import torch.nn.functional as F
-from GNN import GNN
+from GNN import GNN, MP
 from GNN_KNN import GNN_KNN
 import time
 from data import get_dataset
@@ -200,17 +200,22 @@ def main(opt):
   dataset = get_dataset(opt, '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-  if opt['beltrami']:
-    dataset.data = apply_beltrami(dataset.data, opt).to(device)
+  if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
+    pos_encoding = apply_beltrami(dataset.data, opt)
+    mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
+  elif opt['beltrami']:
+    pos_encoding = apply_beltrami(dataset.data, opt).to(device)
+    opt['pos_enc_dim'] = pos_encoding.shape[1]
+  else:
+    pos_encoding = None
 
-  # model, data = GNN(opt, dataset, device).to(device), dataset.data.to(device)
   if opt['rewire_KNN']:
     model = GNN_KNN(opt, dataset, device).to(device)
   else:
     model = GNN(opt, dataset, device).to(device)
 
   data = dataset.data.to(device)
-  print(opt)
+
   # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
   parameters = [p for p in model.parameters() if p.requires_grad]
   print_model_params(model)
@@ -342,6 +347,7 @@ if __name__ == '__main__':
   parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
 
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
+  parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
   parser.add_argument('--pos_enc_dim', type=str, default="row", help="row, col")
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")

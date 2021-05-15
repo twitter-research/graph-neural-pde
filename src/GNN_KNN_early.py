@@ -42,20 +42,20 @@ class GNNKNNEarly(BaseGNN):
   def set_solver_data(self, data):
     self.odeblock.test_integrator.data = data
 
-  def forward(self, x):
+  def forward(self, x, pos_encoding):
     # Encode each node based on its feature.
     if self.opt['use_labels']:
       y = x[:, -self.num_classes:]
       x = x[:, :-self.num_classes]
-    # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-    # x = self.m1(x)
+
     if self.opt['beltrami']:
-      p = x[:, self.num_data_features:]
-      x = x[:, :self.num_data_features]
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-      p = F.dropout(p, self.opt['input_dropout'], training=self.training)
       x = self.mx(x)
-      p = self.mp(p)
+      if self.opt['dataset'] == 'ogbn-arxiv':
+        p = pos_encoding
+      else:
+        p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
+        p = self.mp(p)
       x = torch.cat([x, p], dim=1)
     else:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
@@ -103,18 +103,16 @@ class GNNKNNEarly(BaseGNN):
     return z
 
 
-  def forward_encoder(self, x):
+  def forward_encoder(self, x, pos_encoding):
     if self.opt['use_labels']:
       y = x[:, -self.num_classes:]
       x = x[:, :-self.num_classes]
 
     if self.opt['beltrami']:
-      p = x[:, self.num_data_features:]
-      x = x[:, :self.num_data_features]
       # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-      # p = F.dropout(p, self.opt['input_dropout'], training=self.training)
+      # p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
       x = self.mx(x)
-      p = self.mp(p)
+      p = self.mp(pos_encoding)
       x = torch.cat([x, p], dim=1)
     else:
       # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
@@ -140,8 +138,8 @@ class GNNKNNEarly(BaseGNN):
 
     return x
 
-  def forward_ODE(self, x):
-    x = self.forward_encoder(x)
+  def forward_ODE(self, x, pos_encoding):
+    x = self.forward_encoder(x, pos_encoding)
 
     self.odeblock.set_x0(x)
 

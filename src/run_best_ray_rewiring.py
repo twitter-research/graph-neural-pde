@@ -1,6 +1,8 @@
 import argparse
 from ray.tune import Analysis
 import json
+import os
+import pandas as pd
 import numpy as np
 from utils import get_sem, mean_confidence_interval
 from ray_tune_rewiring import train_ray_int
@@ -10,11 +12,31 @@ import os, time
 from ray.tune import CLIReporter
 
 
+def appendDFToCSV_void(df, csvFilePath, sep=","):
+  import os
+  if not os.path.isfile(csvFilePath):
+    df.to_csv(csvFilePath, mode='a', index=False, sep=sep)
+  elif len(df.columns) != len(pd.read_csv(csvFilePath, nrows=1, sep=sep).columns):
+    raise Exception("Columns do not match!! Dataframe has " + str(len(df.columns)) + " columns. CSV file has " + str(
+      len(pd.read_csv(csvFilePath, nrows=1, sep=sep).columns)) + " columns.")
+  elif not (df.columns == pd.read_csv(csvFilePath, nrows=1, sep=sep).columns).all():
+    raise Exception("Columns and column order of dataframe and csv file do not match!!")
+  else:
+    df.to_csv(csvFilePath, mode='a', index=False, sep=sep, header=False)
+
 def get_best_params_dir(opt):
   analysis = Analysis("../ray_tune/{}".format(opt['folder']))
   df = analysis.dataframe(metric=opt['metric'], mode='max')
   best_params_dir = df.sort_values(opt['metric'], ascending=False)['logdir'].iloc[opt['index']]
   return best_params_dir
+
+def with_KNN(opt):
+  opt['rewire_KNN'] = True
+  opt['rewire_KNN_T'] = "T0"
+  opt['rewire_KNN_epoch'] = 20
+  opt['rewire_KNN_k'] = 64
+  opt['rewire_KNN_sym'] = False
+  return opt
 
 
 def run_best_params(opt):
@@ -33,6 +55,13 @@ def run_best_params(opt):
   # handle adjoint
   if best_params['adjoint'] or opt['adjoint']:
     best_params_ret['adjoint'] = True
+
+  if opt["bestwithKNN"]:
+    best_params_ret = with_KNN(best_params_ret)
+
+  if opt['bestwithAttType']:
+    best_params_ret['attention_type'] = opt['bestwithAttType']
+    best_params_ret['square_plus'] = False
 
   print("Running with parameters {}".format(best_params_ret))
 
@@ -61,8 +90,11 @@ def run_best_params(opt):
     raise_on_failed_trial=False)
 
   df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
+
   try:
-    df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
+    csvFilePath = '../ray_results/{}.csv'.format(name)  # , time.strftime("%Y%m%d-%H%M%S"))
+    appendDFToCSV_void(df, csvFilePath, sep=",")
+    # df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
   except:
     pass
 
