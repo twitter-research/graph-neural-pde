@@ -61,7 +61,7 @@ def main(opt):
   W = model.fit_transform(pos_encodings)
   # H = model.components_
   end_time = time.time()
-  print(f"compression to {dim} dim complete in {(end_time-start_time)} seconds")
+  print(f"compression to {dim} dim complete in {(end_time - start_time)} seconds")
 
   out_path = f"{opt['out_dir']}/compressed_pos_encodings_{dim}_{type}.pkl"
   with opt(out_path, 'wb') as f:
@@ -91,9 +91,18 @@ if __name__ == '__main__':
   parser.add_argument(
     "--out_dir", type=str, default="../data", help="path to save compressed encoding"
   )
-  parser.add_argument(
-    "--pos_enc_type", type=str, default="GDC", help="type of encoding to make only GDC currently implemented"
-  )
+  parser.add_argument("--self_loop_weight", type=int, default=1)
+  parser.add_argument("--pos_enc_type", type=str, default="GDC",
+                      help="type of encoding to make only GDC currently implemented")
+  parser.add_argument('--gdc_method', type=str, default='ppr', help="ppr, heat, coeff")
+  parser.add_argument('--gdc_sparsification', type=str, default='topk', help="threshold, topk")
+  parser.add_argument('--gdc_k', type=int, default=64, help="number of neighbours to sparsify to when using topk")
+  parser.add_argument('--gdc_threshold', type=float, default=0.0001,
+                      help="above this edge weight, keep edges when using threshold")
+  parser.add_argument('--gdc_avg_degree', type=int, default=64,
+                      help="if gdc_threshold is not given can be calculated by specifying avg degree")
+  parser.add_argument('--ppr_alpha', type=float, default=0.05, help="teleport probability")
+  parser.add_argument('--heat_time', type=float, default=3., help="time to run gdc heat kernal diffusion for")
   parser.add_argument(
     "--dataset", type=str, default="ogbn-arxiv", help="type of encoding to make only GDC currently implemented"
   )
