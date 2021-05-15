@@ -91,7 +91,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
         model = GNN_KNN(opt, dataset, device).to(device)
       else:
         model = GNN(opt, dataset, device).to(device)
-      # train_this = train
+      train_this = train
 
     model = model.to(device)
     models.append(model)
@@ -126,7 +126,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, mps, optimizers, datas)])
       train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas)
     else:
-      loss = np.mean([train(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])
+      loss = np.mean([train_this(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])
       train_accs, val_accs, tmp_test_accs = average_test(models, datas)
 
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
@@ -170,6 +170,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
         model = GNN_KNN(opt, dataset, device).to(device)
       else:
         model = GNN(opt, dataset, device).to(device)
+      train_this = train
 
       data = dataset.data.to(device)
 
@@ -204,7 +205,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, mps, optimizers, datas)])
       train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas)
     else:
-      loss = np.mean([train(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])
+      loss = np.mean([train_this(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])
       train_accs, val_accs, tmp_test_accs = average_test(models, datas)
 
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:

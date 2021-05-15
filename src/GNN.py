@@ -7,7 +7,6 @@ from model_configurations import set_block, set_function
 
 # Define the GNN model.
 class GNN(BaseGNN):
-
   def __init__(self, opt, dataset, device=torch.device('cpu')):
     super(GNN, self).__init__(opt, dataset, device)
     self.f = set_function(opt)

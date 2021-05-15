@@ -97,7 +97,7 @@ def get_label_masks(data, mask_rate=0.5):
   return train_label_idx, train_pred_idx
 
 
-def train(model, optimizer, data, pos_encoding):
+def train(model, optimizer, data, pos_encoding=None):
   model.train()
   optimizer.zero_grad()
   feat = data.x
@@ -139,7 +139,7 @@ def train(model, optimizer, data, pos_encoding):
   return loss.item()
 
 
-def train_OGB(model, mp, optimizer, data, pos_encoding):
+def train_OGB(model, mp, optimizer, data, pos_encoding=None):
   model.train()
   optimizer.zero_grad()
   feat = data.x
@@ -182,7 +182,7 @@ def train_OGB(model, mp, optimizer, data, pos_encoding):
   return loss.item()
 
 @torch.no_grad()
-def test(model, data, pos_encoding, opt=None):  # opt required for runtime polymorphism
+def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
   model.eval()
   feat = data.x
   if model.opt['use_labels']:
