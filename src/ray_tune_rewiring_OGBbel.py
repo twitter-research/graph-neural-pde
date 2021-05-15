@@ -111,7 +111,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=No
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
       KNN_ei = [apply_KNN(data, pos_encoding, model, opt) for model, data in zip(models, datas)]
       for i, data in enumerate(datas):
-        data.edge_index = KNN_ei[i]
+        models[i].odeblock.odefunc.edge_index = KNN_ei[i]
 
     loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in
                     zip(models, mps, optimizers, datas)])
@@ -177,7 +177,8 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=None):
 
   for epoch in range(1, opt["epoch"]):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
-      data.edge_index = apply_KNN(data, pos_encoding, model, opt)
+      ei = apply_KNN(data, pos_encoding, model, opt)
+      model.odeblock.odefunc.edge_index = ei
 
     loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in
                     zip(models, mps, optimizers, datas)])
@@ -224,7 +225,8 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=Non
   best_time = best_epoch = train_acc = val_acc = test_acc = 0
   for epoch in range(1, opt["epoch"]):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
-      data.edge_index = apply_KNN(data, pos_encoding, model, opt)
+      ei = apply_KNN(data, pos_encoding, model, opt)
+      model.odeblock.odefunc.edge_index = ei
 
     loss = train_OGB(model, mp, optimizer, data, pos_encoding)
 

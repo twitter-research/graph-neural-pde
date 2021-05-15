@@ -115,13 +115,9 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
 
   for epoch in range(1, opt["epoch"]):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
-      KNN_ei_ew = [(apply_KNN(data, pos_encoding, model, opt),
-                    model.odeblock.get_attention_weights(model.forward_encoder(data.x, pos_encoding)))
-                   for model, data in zip(models, datas)]
+      KNN_ei = [apply_KNN(data, pos_encoding, model, opt) for model, data in zip(models, datas)]
       for i, data in enumerate(datas):
-        datas[i].edge_index = KNN_ei_ew[i][0]
-        models[i].odeblock.odefunc.edge_index = KNN_ei_ew[i][0]
-        models[i].odeblock.attention_weights = KNN_ei_ew[i][1]
+        models[i].odeblock.odefunc.edge_index = KNN_ei[i]
 
     if opt['dataset'] == 'ogbn-arxiv':
       loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in
@@ -199,10 +195,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
   for epoch in range(1, opt["epoch"]):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
       ei = apply_KNN(data, pos_encoding, model, opt)
-      data.edge_index = ei
       model.odeblock.odefunc.edge_index = ei
-      z = model.forward_encoder(data.x, pos_encoding)
-      model.odeblock.attention_weights = model.odeblock.get_attention_weights(z)
 
     if opt['dataset'] == 'ogbn-arxiv':
       loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in
@@ -263,10 +256,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
   for epoch in range(1, opt["epoch"]):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
       ei = apply_KNN(data, pos_encoding, model, opt)
-      data.edge_index = ei
       model.odeblock.odefunc.edge_index = ei
-      z = model.forward_encoder(data.x, pos_encoding)
-      model.odeblock.attention_weights = model.odeblock.get_attention_weights(z)
 
     loss = train(model, optimizer, data, pos_encoding)
 

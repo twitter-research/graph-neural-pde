@@ -275,10 +275,7 @@ def main(opt):
 
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
       ei = apply_KNN(data, pos_encoding, model, opt)
-      data.edge_index = ei
       model.odeblock.odefunc.edge_index = ei
-      z = model.forward_encoder(data.x, pos_encoding)
-      model.odeblock.attention_weights = model.odeblock.get_attention_weights(z)
 
     if opt['dataset'] == 'ogbn-arxiv':  # this is a proxy for 'external encoder'
       loss = train_OGB(model, mp, optimizer, data, pos_encoding)
