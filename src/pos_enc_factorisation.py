@@ -85,6 +85,9 @@ if __name__ == '__main__':
     "--data_path", type=str, default=".", help="path to the positional encoding"
   )
   parser.add_argument(
+    "--pos_enc_dim", type=str, default="row", help=""
+  )
+  parser.add_argument(
     "--out_dir", type=str, default="../data", help="path to save compressed encoding"
   )
   parser.add_argument("--self_loop_weight", type=int, default=1)
