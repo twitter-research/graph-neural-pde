@@ -81,6 +81,11 @@ if __name__ == '__main__':
     help="Whether to run with best params for cora. Overrides the choice of dataset",
   )
   parser.add_argument(
+    "--rewiring",
+    action="store_true",
+    help="Whether to rewire the dataset with GDC",
+  )
+  parser.add_argument(
     "--data_path", type=str, default=".", help="path to the positional encoding"
   )
   parser.add_argument(
