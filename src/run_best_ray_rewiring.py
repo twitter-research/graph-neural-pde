@@ -127,6 +127,10 @@ if __name__ == '__main__':
   parser.add_argument('--metric', type=str, default='accuracy', help='metric to sort the hyperparameter tuning runs on')
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilise ODE learning')
+  parser.add_argument('--run_with_KNN', action='store_true',
+                      help='run parameters discovered without KNN, but now using KNN')
+  parser.add_argument('--change_att_sim_type', action='store_true',
+                      help='run parameters discovered with attention different attention similarity ')
   parser.add_argument('--reps', type=int, default=1, help='the number of random weight initialisations to use')
   parser.add_argument('--name', type=str, default=None)
   parser.add_argument('--gpus', type=float, default=0, help='number of gpus per trial. Can be fractional')
