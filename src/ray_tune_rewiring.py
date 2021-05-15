@@ -114,12 +114,21 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
 
   for epoch in range(1, opt["epoch"]):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
-      KNN_ei = [apply_KNN(data, model, opt) for model, data in zip(models, datas)]
+      KNN_ei_ew = [(apply_KNN(data, pos_encoding, model, opt),
+                     model.odeblock.get_attention_weights(model.forward_encoder(data.x, pos_encoding)))
+                    for model, data in zip(models, datas)]
       for i, data in enumerate(datas):
-        data.edge_index = KNN_ei[i]
+        datas[i].edge_index = KNN_ei_ew[i][0]
+        models[i].odeblock.odefunc.edge_index = KNN_ei_ew[i][0]
+        models[i].odeblock.attention_weights = KNN_ei_ew[i][1]
 
-    loss = np.mean([train_this(model, optimizer, data) for model, optimizer, data in zip(models, optimizers, datas)])
-    train_accs, val_accs, tmp_test_accs = average_test(models, datas)
+    if opt['dataset'] == 'ogbn-arxiv':
+      loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, mps, optimizers, datas)])
+      train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas)
+    else:
+      loss = np.mean([train_this(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])
+      train_accs, val_accs, tmp_test_accs = average_test(models, datas)
+
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       best = np.argmax(val_accs)
       path = os.path.join(checkpoint_dir, "checkpoint")
@@ -137,7 +146,17 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
     dataset.data = apply_beltrami(dataset.data, opt)
 
   models = []
+  mps = []
   optimizers = []
+
+  if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
+    pos_encoding = apply_beltrami(dataset.data, opt)
+    mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
+  elif opt['beltrami']:
+    pos_encoding = apply_beltrami(dataset.data, opt).to(device)
+    opt['pos_enc_dim'] = pos_encoding.shape[1]
+  else:
+    pos_encoding = None
 
   dataset.data = dataset.data.to(device)
   datas = [dataset.data for i in range(opt["num_init"])]
@@ -154,9 +173,9 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
         model = GNN_KNN(opt, dataset, device).to(device)
       else:
         model = GNN(opt, dataset, device).to(device)
+      train_this = train
 
       data = dataset.data.to(device)
-      train_this = train
 
     models.append(model)
 
@@ -179,7 +198,11 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
 
   for epoch in range(1, opt["epoch"]):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
-      data.edge_index = apply_KNN(data, model, opt)
+      ei = apply_KNN(data, pos_encoding, model, opt)
+      data.edge_index = ei
+      model.odeblock.odefunc.edge_index = ei
+      z = model.forward_encoder(data.x, pos_encoding)
+      model.odeblock.attention_weights = model.odeblock.get_attention_weights(z)
 
     loss = np.mean([train_this(model, optimizer, data) for model, optimizer in zip(models, optimizers)])
     train_accs, val_accs, tmp_test_accs = average_test(models, datas)
@@ -202,17 +225,14 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
       dataset.data,
       num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
-  if opt['beltrami']:
-    dataset.data = apply_beltrami(dataset.data, opt)
-
-  # if opt['rewire_KNN']:
-  #   if opt['rewire_KNN_T'] == 'TN': #can't do early stopping if rewiring on terminal value
-  #     opt["no_early"] = True
-  #     model = GNN(opt, dataset, device)
-  #   else:
-  #     model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
-  # else:
-  #   model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
+  if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
+    pos_encoding = apply_beltrami(dataset.data, opt)
+    mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
+  elif opt['beltrami']:
+    pos_encoding = apply_beltrami(dataset.data, opt).to(device)
+    opt['pos_enc_dim'] = pos_encoding.shape[1]
+  else:
+    pos_encoding = None
 
 
   if opt['rewire_KNN']:
