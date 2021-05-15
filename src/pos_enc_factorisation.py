@@ -57,6 +57,7 @@ def main(opt):
   pos_encodings = find_or_make_encodings(opt)
 
   # - if so, just load them
+  print(f"positional encodings retrieved. Starting matrix factorisation")
 
   W = model.fit_transform(pos_encodings)
   # H = model.components_
