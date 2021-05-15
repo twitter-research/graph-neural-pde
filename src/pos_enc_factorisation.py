@@ -50,7 +50,7 @@ def main(opt):
   start_time = time.time()
   dim = opt['embedding_dim']
   type = opt['pos_enc_type']
-  model = NMF(n_components=dim, init='random', random_state=0, max_iter=opt['max_iter'])
+  model = NMF(n_components=dim, init='random', random_state=0, max_iter=opt['max_iter'], verbose=1)
   fname = os.path.join(POS_ENC_PATH, f"{opt['dataset']}_{opt['pos_enc_type']}.pkl")
   print(f"[i] Looking for positional encodings in {fname}...")
 
