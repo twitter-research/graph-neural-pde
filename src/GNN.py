@@ -80,6 +80,7 @@ class GNN(BaseGNN):
     z = self.m2(z)
     return z
 
+
 class MP(torch.nn.Module):
   def __init__(self, opt, pos_enc_dim, device=torch.device('cpu')):
     super(MP, self).__init__()
@@ -88,7 +89,6 @@ class MP(torch.nn.Module):
     # self.relu = torch.nn.ReLU()  # instead of Heaviside step fn
 
   def forward(self, pos_encoding):
-
     p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
     p = self.fc(p)
     # output = self.relu(x)  # instead of Heaviside step fn

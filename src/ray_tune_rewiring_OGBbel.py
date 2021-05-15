@@ -22,6 +22,7 @@ from GNN_KNN_early import GNNKNNEarly
 
 from graph_rewiring import apply_gdc, KNN, apply_KNN, apply_beltrami
 from graph_rewiring_ray import set_search_space, set_rewiring_space, set_cora_search_space, set_citeseer_search_space
+
 """
 python3 ray_tune.py --dataset ogbn-arxiv --lr 0.005 --add_source --function transformer --attention_dim 16 --hidden_dim 128 --heads 4 --input_dropout 0 --decay 0 --adjoint --adjoint_method rk4 --method rk4 --time 5.08 --epoch 500 --num_samples 1 --name ogbn-arxiv-test --gpus 1 --grace_period 50 
 
@@ -90,7 +91,6 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=No
     model = model.to(device)
     models.append(model)
 
-
     if torch.cuda.device_count() > 1:
       model = nn.DataParallel(model)
 
@@ -108,12 +108,13 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=No
       optimizer.load_state_dict(optimizer_state)
 
   for epoch in range(1, opt["epoch"]):
-    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
+    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
       KNN_ei = [apply_KNN(data, pos_encoding, model, opt) for model, data in zip(models, datas)]
       for i, data in enumerate(datas):
         data.edge_index = KNN_ei[i]
 
-    loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, mps, optimizers, datas)])
+    loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in
+                    zip(models, mps, optimizers, datas)])
     train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas)
 
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
@@ -175,10 +176,11 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=None):
       optimizer.load_state_dict(optimizer_state)
 
   for epoch in range(1, opt["epoch"]):
-    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
+    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
       data.edge_index = apply_KNN(data, pos_encoding, model, opt)
 
-    loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, mps, optimizers, datas)])
+    loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in
+                    zip(models, mps, optimizers, datas)])
     train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas)
 
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
@@ -207,7 +209,6 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=Non
   else:
     model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
 
-
   if torch.cuda.device_count() > 1:
     model = nn.DataParallel(model)
   model, data = model.to(device), dataset.data.to(device)
@@ -222,7 +223,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data", pos_encoding=Non
 
   best_time = best_epoch = train_acc = val_acc = test_acc = 0
   for epoch in range(1, opt["epoch"]):
-    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
+    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
       data.edge_index = apply_KNN(data, pos_encoding, model, opt)
 
     loss = train_OGB(model, mp, optimizer, data, pos_encoding)
@@ -324,11 +325,12 @@ def main(opt):
   # timestr = time.strftime("%Y%m%d-%H%M%S")
   # df.to_csv("../hyperopt_results/result_{}.csv".format(timestr))
 
+
 def mainLoop(opt):
   opt['cpus'] = 4
   opt['rewire_KNN'] = False
-  datas = ['ogbn-arxiv'] #['Citeseer', 'Photo']
-  folders =  ['ogbn-arxiv-1'] #['Citeseer_beltrami_1', 'Photo_beltrami_1']
+  datas = ['ogbn-arxiv']  # ['Citeseer', 'Photo']
+  folders = ['ogbn-arxiv-1']  # ['Citeseer_beltrami_1', 'Photo_beltrami_1']
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
     opt["dataset"] = ds
@@ -496,4 +498,3 @@ if __name__ == "__main__":
   opt = vars(args)
   # main(opt)
   mainLoop(opt)
-

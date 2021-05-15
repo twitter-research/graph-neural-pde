@@ -9,6 +9,7 @@ from data import get_dataset
 from ogb.nodeproppred import Evaluator
 from graph_rewiring import apply_gdc, KNN, apply_KNN, apply_beltrami
 
+
 def get_cora_opt(opt):
   opt['dataset'] = 'Cora'
   opt['data'] = 'Planetoid'
@@ -20,7 +21,7 @@ def get_cora_opt(opt):
   opt['decay'] = 5e-4
   opt['self_loop_weight'] = 0.555
   if opt['self_loop_weight'] > 0.0:
-    opt['exact'] = True #for GDC, need exact if selp loop weight >0
+    opt['exact'] = True  # for GDC, need exact if selp loop weight >0
   opt['alpha'] = 0.918
   opt['time'] = 12.1
   opt['num_feature'] = 1433
@@ -181,6 +182,7 @@ def train_OGB(model, mp, optimizer, data, pos_encoding=None):
   model.resetNFE()
   return loss.item()
 
+
 @torch.no_grad()
 def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
   model.eval()
@@ -271,14 +273,14 @@ def main(opt):
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
 
-    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
+    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
       ei = apply_KNN(data, pos_encoding, model, opt)
       data.edge_index = ei
       model.odeblock.odefunc.edge_index = ei
       z = model.forward_encoder(data.x, pos_encoding)
       model.odeblock.attention_weights = model.odeblock.get_attention_weights(z)
 
-    if opt['dataset'] == 'ogbn-arxiv': #this is a proxy for 'external encoder'
+    if opt['dataset'] == 'ogbn-arxiv':  # this is a proxy for 'external encoder'
       loss = train_OGB(model, mp, optimizer, data, pos_encoding)
       train_acc, val_acc, tmp_test_acc = test_OGB(model, mp, data, pos_encoding, opt)
     else:
@@ -308,10 +310,12 @@ if __name__ == '__main__':
                       help='rw for random walk, gcn for symmetric gcn norm')
   parser.add_argument('--self_loop_weight', type=float, default=1.0, help='Weight of self-loops.')
   parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
-  parser.add_argument('--label_rate', type=float, default=0.5, help='% of training labels to use when --use_labels is set.')
+  parser.add_argument('--label_rate', type=float, default=0.5,
+                      help='% of training labels to use when --use_labels is set.')
   # GNN args
   parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
-  parser.add_argument('--fc_out', dest='fc_out', action='store_true', help='Add a fully connected layer to the decoder.')
+  parser.add_argument('--fc_out', dest='fc_out', action='store_true',
+                      help='Add a fully connected layer to the decoder.')
   parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')
   parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
   parser.add_argument("--batch_norm", dest='batch_norm', action='store_true', help='search over reg params')

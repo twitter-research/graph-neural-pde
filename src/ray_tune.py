@@ -450,7 +450,7 @@ def set_photo_search_space(opt):
 
 
 def set_arxiv_search_space(opt):
-  opt["decay"] = 0 #tune.loguniform(1e-10, 1e-6)
+  opt["decay"] = 0  # tune.loguniform(1e-10, 1e-6)
   # # opt["decay"] = 0
   # if opt['regularise']:
   #   opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
