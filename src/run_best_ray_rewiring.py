@@ -56,11 +56,11 @@ def run_best_params(opt):
   if best_params['adjoint'] or opt['adjoint']:
     best_params_ret['adjoint'] = True
 
-  if opt["bestwithKNN"]:
+  if opt["run_with_KNN"]:
     best_params_ret = with_KNN(best_params_ret)
 
-  if opt['bestwithAttType']:
-    best_params_ret['attention_type'] = opt['bestwithAttType']
+  if opt['change_att_sim_type']:
+    best_params_ret['attention_type'] = opt['att_sim_type']
     best_params_ret['square_plus'] = False
 
   print("Running with parameters {}".format(best_params_ret))
