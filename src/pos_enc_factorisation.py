@@ -9,6 +9,7 @@ import pickle
 from sklearn.decomposition import NMF
 from graph_rewiring import apply_gdc
 from data import get_dataset
+import time
 
 POS_ENC_PATH = os.path.join("../data", "pos_encodings")
 
@@ -46,6 +47,7 @@ def find_or_make_encodings(opt):
 
 
 def main(opt):
+  start_time = time.time()
   dim = opt['embedding_dim']
   type = opt['opt_pos_enc_type']
   model = NMF(n_components=dim, init='random', random_state=0, max_iter=opt['max_iter'])
@@ -58,6 +60,8 @@ def main(opt):
 
   W = model.fit_transform(pos_encodings)
   # H = model.components_
+  end_time = time.time()
+  print(f"compression to {dim} dim complete in {(end_time-start_time)} seconds")
 
   out_path = f"{opt['out_dir']}/compressed_pos_encodings_{dim}_{type}.pkl"
   with opt(out_path, 'wb') as f:
