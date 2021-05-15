@@ -56,11 +56,11 @@ def run_best_params(opt):
   if best_params['adjoint'] or opt['adjoint']:
     best_params_ret['adjoint'] = True
 
-  if opt["bestwithKNN"]:
+  if opt["run_with_KNN"]:
     best_params_ret = with_KNN(best_params_ret)
 
-  if opt['bestwithAttType']:
-    best_params_ret['attention_type'] = opt['bestwithAttType']
+  if opt['change_att_sim_type']:
+    best_params_ret['attention_type'] = opt['att_sim_type']
     best_params_ret['square_plus'] = False
 
   print("Running with parameters {}".format(best_params_ret))
@@ -112,20 +112,22 @@ def mainLoop(opt):
   names = ['Cora_beltrami_attdefaults_test','Citeseer_beltrami_attdefaults_test']
 
   indexes = [[3,4],[3,4]] #[[0,1,2], [0,1,2]] #,3,4]]#, [0,1,2,3,4]] #,0,0]
-  opt['bestwithAttTypes'] = ['cosine_sim', 'scaled_dot'] #[False]
 
-  opt['bestwithKNN'] = False
+  opt['run_with_KNN'] = False
+
+  opt['change_att_sim_type'] = False
+  opt['bestwithAttTypes'] = ['cosine_sim', 'scaled_dot'] #[False]
 
   for i, ds in enumerate(datas):
     for idx_i, idx in enumerate(indexes[i]):
-      if opt['bestwithAttTypes']:
+      if opt['change_att_sim_type']:
         for att_type in opt['bestwithAttTypes']:
           print(f"Running Best Params for {ds}")
           opt["dataset"] = ds
           opt["folder"] = folders[i]
           opt["name"] = f"{names[i]}{'_KNN' if opt['bestwithKNN'] else ''}"
           opt["index"] = indexes[i][idx_i]
-          opt['bestwithAttType'] = att_type
+          opt['att_sim_type'] = att_type
           run_best_params(opt)
       else:
         print(f"Running Best Params for {ds}")
