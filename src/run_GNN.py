@@ -9,6 +9,7 @@ from data import get_dataset
 from ogb.nodeproppred import Evaluator
 from graph_rewiring import apply_gdc, KNN, apply_KNN, apply_beltrami
 
+
 def get_cora_opt(opt):
   opt['dataset'] = 'Cora'
   opt['data'] = 'Planetoid'
@@ -20,7 +21,7 @@ def get_cora_opt(opt):
   opt['decay'] = 5e-4
   opt['self_loop_weight'] = 0.555
   if opt['self_loop_weight'] > 0.0:
-    opt['exact'] = True #for GDC, need exact if selp loop weight >0
+    opt['exact'] = True  # for GDC, need exact if selp loop weight >0
   opt['alpha'] = 0.918
   opt['time'] = 12.1
   opt['num_feature'] = 1433
@@ -97,7 +98,7 @@ def get_label_masks(data, mask_rate=0.5):
   return train_label_idx, train_pred_idx
 
 
-def train(model, optimizer, data):
+def train(model, optimizer, data, pos_encoding=None):
   model.train()
   optimizer.zero_grad()
   feat = data.x
@@ -112,7 +113,51 @@ def train(model, optimizer, data):
     #
     # train_pred_idx = data.train_idx[mask]
     train_pred_idx = data.train_mask
-  out = model(feat)
+
+  out = model(feat, pos_encoding)
+
+  if model.opt['dataset'] == 'ogbn-arxiv':
+    lf = torch.nn.functional.nll_loss
+    loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
+  else:
+    lf = torch.nn.CrossEntropyLoss()
+    loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
+  if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
+    reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
+    regularization_coeffs = model.regularization_coeffs
+
+    reg_loss = sum(
+      reg_state * coeff for reg_state, coeff in zip(reg_states, regularization_coeffs) if coeff != 0
+    )
+    loss = loss + reg_loss
+
+  model.fm.update(model.getNFE())
+  model.resetNFE()
+  loss.backward()
+  optimizer.step()
+  model.bm.update(model.getNFE())
+  model.resetNFE()
+  return loss.item()
+
+
+def train_OGB(model, mp, optimizer, data, pos_encoding=None):
+  model.train()
+  optimizer.zero_grad()
+  feat = data.x
+  if model.opt['use_labels']:
+    train_label_idx, train_pred_idx = get_label_masks(data, model.opt['label_rate'])
+
+    feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
+  else:
+    # todo in the DGL code from OGB, they seem to apply an additional mask to the training data - currently commented
+    # mask_rate = 0.5
+    # mask = torch.rand(data.train_index.shape) < mask_rate
+    #
+    # train_pred_idx = data.train_idx[mask]
+    train_pred_idx = data.train_mask
+
+  pos_encoding = mp(pos_encoding).to(model.device)
+  out = model(feat, pos_encoding)
 
   if model.opt['dataset'] == 'ogbn-arxiv':
     lf = torch.nn.functional.nll_loss
@@ -139,12 +184,12 @@ def train(model, optimizer, data):
 
 
 @torch.no_grad()
-def test(model, data, opt=None):  # opt required for runtime polymorphism
+def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
   model.eval()
   feat = data.x
   if model.opt['use_labels']:
     feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
-  logits, accs = model(feat), []
+  logits, accs = model(feat, pos_encoding), []
   for _, mask in data('train_mask', 'val_mask', 'test_mask'):
     pred = logits[mask].max(1)[1]
     acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
@@ -161,7 +206,7 @@ def print_model_params(model):
 
 
 @torch.no_grad()
-def test_OGB(model, data, opt):
+def test_OGB(model, mp, data, pos_encoding, opt):
   if opt['dataset'] == 'ogbn-arxiv':
     name = 'ogbn-arxiv'
 
@@ -171,8 +216,10 @@ def test_OGB(model, data, opt):
 
   evaluator = Evaluator(name=name)
   model.eval()
+  mp.eval()
+  pos_encoding = mp(pos_encoding).to(model.device)
 
-  out = model(feat).log_softmax(dim=-1)
+  out = model(feat, pos_encoding).log_softmax(dim=-1)
   y_pred = out.argmax(dim=-1, keepdim=True)
 
   train_acc = evaluator.eval({
@@ -221,15 +268,21 @@ def main(opt):
   print_model_params(model)
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
   best_val_acc = test_acc = train_acc = best_epoch = 0
-  test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+  # test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
 
-    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch']==0 and epoch != 0:
-      data.edge_index = apply_KNN(data, model, opt)
+    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
+      ei = apply_KNN(data, pos_encoding, model, opt)
+      model.odeblock.odefunc.edge_index = ei
 
-    loss = train(model, optimizer, data)
-    train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
+    if opt['dataset'] == 'ogbn-arxiv':  # this is a proxy for 'external encoder'
+      loss = train_OGB(model, mp, optimizer, data, pos_encoding)
+      train_acc, val_acc, tmp_test_acc = test_OGB(model, mp, data, pos_encoding, opt)
+    else:
+      loss = train(model, optimizer, data, pos_encoding)
+      train_acc, val_acc, tmp_test_acc = test(model, data, pos_encoding, opt)
 
     if val_acc > best_val_acc:
       best_val_acc = val_acc
@@ -254,10 +307,12 @@ if __name__ == '__main__':
                       help='rw for random walk, gcn for symmetric gcn norm')
   parser.add_argument('--self_loop_weight', type=float, default=1.0, help='Weight of self-loops.')
   parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
-  parser.add_argument('--label_rate', type=float, default=0.5, help='% of training labels to use when --use_labels is set.')
+  parser.add_argument('--label_rate', type=float, default=0.5,
+                      help='% of training labels to use when --use_labels is set.')
   # GNN args
   parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
-  parser.add_argument('--fc_out', dest='fc_out', action='store_true', help='Add a fully connected layer to the decoder.')
+  parser.add_argument('--fc_out', dest='fc_out', action='store_true',
+                      help='Add a fully connected layer to the decoder.')
   parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')
   parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
   parser.add_argument("--batch_norm", dest='batch_norm', action='store_true', help='search over reg params')

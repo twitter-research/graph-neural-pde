@@ -5,6 +5,7 @@ from base_classes import BaseGNN
 from model_configurations import set_block, set_function
 from graph_rewiring import KNN
 
+
 # Define the GNN model.
 class GNN_KNN(BaseGNN):
   def __init__(self, opt, dataset, device=torch.device('cpu')):
@@ -13,7 +14,6 @@ class GNN_KNN(BaseGNN):
     block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
     self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
-
 
   def forward(self, x, pos_encoding):
     # Encode each node based on its feature.
@@ -80,7 +80,6 @@ class GNN_KNN(BaseGNN):
     z = self.m2(z)
     return z
 
-
   def forward_encoder(self, x, pos_encoding):
     # Encode each node based on its feature.
     if self.opt['use_labels']:
@@ -122,7 +121,6 @@ class GNN_KNN(BaseGNN):
       x = torch.cat([x, c_aux], dim=1)
 
     return x
-
 
   def forward_ODE(self, x, pos_encoding):
     x = self.forward_encoder(x, pos_encoding)

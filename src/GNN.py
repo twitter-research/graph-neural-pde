@@ -80,6 +80,7 @@ class GNN(BaseGNN):
     z = self.m2(z)
     return z
 
+
 class MP(torch.nn.Module):
   def __init__(self, opt, pos_enc_dim, device=torch.device('cpu')):
     super(MP, self).__init__()

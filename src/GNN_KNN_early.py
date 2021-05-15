@@ -80,8 +80,8 @@ class GNNKNNEarly(BaseGNN):
     self.odeblock.set_x0(x)
     self.set_solver_m2()
 
-    if self.training  and self.odeblock.nreg > 0:
-      z, self.reg_states  = self.odeblock(x)
+    if self.training and self.odeblock.nreg > 0:
+      z, self.reg_states = self.odeblock(x)
     else:
       z = self.odeblock(x)
 
@@ -101,7 +101,6 @@ class GNNKNNEarly(BaseGNN):
     # Decode each node embedding to get node label.
     z = self.m2(z)
     return z
-
 
   def forward_encoder(self, x, pos_encoding):
     if self.opt['use_labels']:
@@ -152,6 +151,7 @@ class GNNKNNEarly(BaseGNN):
       z = torch.split(z, x.shape[1] // 2, dim=1)[0]
 
     return z
+
 
 def main(opt):
   dataset = get_dataset(opt, '../data', False)
@@ -213,22 +213,26 @@ if __name__ == '__main__':
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilist ODE learning')
   parser.add_argument('--alpha_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) alpha')
-  parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true', help='apply sigmoid before multiplying by alpha')
+  parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true',
+                      help='apply sigmoid before multiplying by alpha')
   parser.add_argument('--beta_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) beta')
   parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention, SDE')
   parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
   # ODE args
   parser.add_argument('--method', type=str, default='dopri5',
                       help="set the numerical solver: dopri5, euler, rk4, midpoint")
-  parser.add_argument('--step_size', type=float, default=1, help='fixed step size when using fixed step solvers e.g. rk4')
+  parser.add_argument('--step_size', type=float, default=1,
+                      help='fixed step size when using fixed step solvers e.g. rk4')
   parser.add_argument('--max_iters', type=int, default=100,
                       help='fixed step size when using fixed step solvers e.g. rk4')
   parser.add_argument(
     "--adjoint_method", type=str, default="adaptive_heun",
     help="set the numerical solver for the backward pass: dopri5, euler, rk4, midpoint"
   )
-  parser.add_argument('--adjoint', dest='adjoint', action='store_true', help='use the adjoint ODE method to reduce memory footprint')
-  parser.add_argument('--adjoint_step_size', type=float, default=1, help='fixed step size when using fixed step adjoint solvers e.g. rk4')
+  parser.add_argument('--adjoint', dest='adjoint', action='store_true',
+                      help='use the adjoint ODE method to reduce memory footprint')
+  parser.add_argument('--adjoint_step_size', type=float, default=1,
+                      help='fixed step size when using fixed step adjoint solvers e.g. rk4')
   parser.add_argument('--tol_scale', type=float, default=1., help='multiplier for atol and rtol')
   parser.add_argument("--tol_scale_adjoint", type=float, default=1.0,
                       help="multiplier for adjoint_atol and adjoint_rtol")
@@ -249,8 +253,10 @@ if __name__ == '__main__':
                       help='the size to project x to before calculating att scores')
   parser.add_argument('--mix_features', dest='mix_features', action='store_true',
                       help='apply a feature transformation xW to the ODE')
-  parser.add_argument("--max_nfe", type=int, default=1000, help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
-  parser.add_argument('--reweight_attention', dest='reweight_attention', action='store_true', help="multiply attention scores by edge weights before softmax")
+  parser.add_argument("--max_nfe", type=int, default=1000,
+                      help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
+  parser.add_argument('--reweight_attention', dest='reweight_attention', action='store_true',
+                      help="multiply attention scores by edge weights before softmax")
   # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
   parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")
@@ -263,7 +269,8 @@ if __name__ == '__main__':
   parser.add_argument('--gdc_method', type=str, default='ppr', help="ppr, heat, coeff")
   parser.add_argument('--gdc_sparsification', type=str, default='topk', help="threshold, topk")
   parser.add_argument('--gdc_k', type=int, default=64, help="number of neighbours to sparsify to when using topk")
-  parser.add_argument('--gdc_threshold', type=float, default=0.0001, help="obove this edge weight, keep edges when using threshold")
+  parser.add_argument('--gdc_threshold', type=float, default=0.0001,
+                      help="obove this edge weight, keep edges when using threshold")
   parser.add_argument('--gdc_avg_degree', type=int, default=64,
                       help="if gdc_threshold is not given can be calculated by specifying avg degree")
   parser.add_argument('--ppr_alpha', type=float, default=0.05, help="teleport probability")
