@@ -29,8 +29,8 @@ python3 ray_tune.py --dataset ogbn-arxiv --lr 0.005 --add_source --function tran
 """
 
 
-def average_test(models, datas):
-  results = [test(model, data) for model, data in zip(models, datas)]
+def average_test(models, datas, pos_encoding):
+  results = [test(model, data, pos_encoding) for model, data in zip(models, datas)]
   train_accs, val_accs, tmp_test_accs = [], [], []
 
   for train_acc, val_acc, test_acc in results:
@@ -126,7 +126,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
     else:
       loss = np.mean(
         [train_this(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])
-      train_accs, val_accs, tmp_test_accs = average_test(models, datas)
+      train_accs, val_accs, tmp_test_accs = average_test(models, datas, pos_encoding)
 
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       best = np.argmax(val_accs)
@@ -204,7 +204,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
     else:
       loss = np.mean(
         [train_this(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])
-      train_accs, val_accs, tmp_test_accs = average_test(models, datas)
+      train_accs, val_accs, tmp_test_accs = average_test(models, datas, pos_encoding)
 
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       best = np.argmax(val_accs)
@@ -261,7 +261,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
     loss = train(model, optimizer, data, pos_encoding)
 
     if opt["no_early"]:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
       best_time = opt['time']
       if tmp_val_acc > val_acc:
         best_epoch = epoch
@@ -269,7 +269,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
         val_acc = tmp_val_acc
         test_acc = tmp_test_acc
     else:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
       if tmp_val_acc > val_acc:
         best_epoch = epoch
         train_acc = tmp_train_acc
