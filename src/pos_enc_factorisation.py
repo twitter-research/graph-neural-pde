@@ -49,7 +49,7 @@ def find_or_make_encodings(opt):
 def main(opt):
   start_time = time.time()
   dim = opt['embedding_dim']
-  type = opt['opt_pos_enc_type']
+  type = opt['pos_enc_type']
   model = NMF(n_components=dim, init='random', random_state=0, max_iter=opt['max_iter'])
   fname = os.path.join(POS_ENC_PATH, f"{opt['dataset']}_{opt['pos_enc_type']}.pkl")
   print(f"[i] Looking for positional encodings in {fname}...")
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     "--data_path", type=str, default=".", help="path to the positional encoding"
   )
   parser.add_argument(
-    "--out_dir", type=str, default=".", help="path to save compressed encoding"
+    "--out_dir", type=str, default="../data", help="path to save compressed encoding"
   )
   parser.add_argument(
     "--pos_enc_type", type=str, default="GDC", help="type of encoding to make only GDC currently implemented"
