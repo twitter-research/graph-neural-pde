@@ -3,6 +3,7 @@ from torch import nn
 import torch_sparse
 
 from base_classes import ODEFunc
+from utils import MaxNFEException
 
 
 # Define the ODE function.
@@ -35,6 +36,8 @@ class LaplacianODEFunc(ODEFunc):
     return ax
 
   def forward(self, t, x):  # the t param is needed by the ODE solver.
+    if self.nfe > self.opt["max_nfe"]:
+      raise MaxNFEException
     self.nfe += 1
     ax = self.sparse_multiply(x)
     if not self.opt['no_alpha_sigmoid']:
