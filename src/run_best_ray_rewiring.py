@@ -112,11 +112,8 @@ def mainLoop(opt):
   datas = ['Cora','Citeseer'] #, 'Pubmed'] #['Cora', 'Citeseer', 'Photo']
   folders = ['beltrami_2','Citeseer_beltrami_1']#, 'Pubmed_beltrami_2_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
   names = ['Cora_beltrami_attdefaults_test','Citeseer_beltrami_attdefaults_test']
-
   indexes = [[3,4],[3,4]] #[[0,1,2], [0,1,2]] #,3,4]]#, [0,1,2,3,4]] #,0,0]
-
   opt['run_with_KNN'] = False
-
   opt['change_att_sim_type'] = False
   opt['bestwithAttTypes'] = ['cosine_sim', 'scaled_dot'] #[False]
 
@@ -150,6 +147,7 @@ def KNN_abalation(opt):
   KNN_sysms = [True, False]
   opt['rewire_KNN'] = True
   opt['reps'] = 16
+  opt['epoch'] = 100
   for i, ds in enumerate(datas):
     print(f"Running Best Params for {ds}")
     opt["dataset"] = ds
