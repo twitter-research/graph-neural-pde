@@ -85,9 +85,9 @@ def apply_gdc(data, opt, type="combined"):
     data = gdc.sparsify(data)
 
   elif type == 'pos_encoding':
-    if opt['pos_enc_dim'] == "row":  # encode row of S_hat
+    if opt['pos_enc_orientation'] == "row":  # encode row of S_hat
       return gdc.position_encoding(data)
-    elif opt['pos_enc_dim'] == "col":  # encode col of S_hat
+    elif opt['pos_enc_orientation'] == "col":  # encode col of S_hat
       return gdc.position_encoding(data).T
 
   print('following rewiring data contains {} edges and {} nodes'.format(data.num_edges, data.num_nodes))
