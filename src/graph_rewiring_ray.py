@@ -217,7 +217,7 @@ def set_rewiring_space(opt):
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
                         if spec.config.beltrami else tune.choice([32, 64, 128]))
     # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
-    opt['pos_enc_dim'] = tune.choice(["row", "col"])
+    opt['pos_enc_orientation'] = tune.choice(["row", "col"])
     opt['square_plus'] = tune.choice([True, False])
 
     # opt['rewire_KNN'] = tune.choice([True, False])
