@@ -139,6 +139,88 @@ def mainLoop(opt):
         opt["index"] = indexes[i][idx_i]
         run_best_params(opt)
 
+def KNN_abalation(opt):
+  datas = ['Cora','Citeseer']
+  folders = ['beltrami_2','Citeseer_beltrami_1']
+  names = ['Cora_beltrami_ablation','Citeseer_beltrami_ablation']
+  indexes = [[0],[0]]
+  ks = [4,8,16,32,64,128]
+  KNN_epochs = [2,5,10,25,50]
+  TS = ['T0','TN']
+  KNN_sysms = [True, False]
+  opt['rewire_KNN'] = True
+  opt['reps'] = 16
+  for i, ds in enumerate(datas):
+    print(f"Running Best Params for {ds}")
+    opt["dataset"] = ds
+    opt["folder"] = folders[i]
+    opt["name"] = f"{names[i]}"
+
+    best_params_dir = get_best_params_dir(opt)
+    with open(best_params_dir + '/params.json') as f:
+      best_params = json.loads(f.read())
+    best_params_ret = {**best_params, **opt} # allow params specified at the cmd line to override
+    try:
+      best_params_ret['mix_features']
+    except KeyError:
+      best_params_ret['mix_features'] = False
+
+    for idx_i, idx in enumerate(indexes[i]):
+      best_params_ret['pos_enc_orientation'] = best_params_ret['pos_enc_dim']
+      best_params_ret["index"] = indexes[i][idx_i]
+      for k in ks:
+        best_params_ret['rewire_KNN_k'] = k
+        for KNN_epoch in KNN_epochs:
+          best_params_ret['rewire_KNN_epoch'] = KNN_epoch
+          for t in TS:
+            best_params_ret['rewire_KNN_T'] = t
+            for tf_sym in KNN_sysms:
+              best_params_ret['rewire_KNN_sym'] = tf_sym
+
+              print("Running with parameters {}".format(best_params_ret))
+
+              data_dir = os.path.abspath("../data")
+              reporter = CLIReporter(
+                metric_columns=["accuracy", "loss", "test_acc", "train_acc", "best_time", "best_epoch",
+                                "training_iteration", "forward_nfe", "backward_nfe"])
+
+              if opt['name'] is None:
+                name = opt['folder'] + '_test'
+              else:
+                name = opt['name']
+
+              result = tune.run(
+                partial(train_ray_int, data_dir=data_dir),
+                name=name,
+                resources_per_trial={"cpu": opt['cpus'], "gpu": opt['gpus']},
+                search_alg=None,
+                keep_checkpoints_num=3,
+                checkpoint_score_attr='accuracy',
+                config=best_params_ret,
+                num_samples=opt['reps'] if opt["num_splits"] == 0 else opt["num_splits"] * opt["reps"],
+                scheduler=None,
+                max_failures=1,  # early stop solver can't recover from failure as it doesn't own m2.
+                local_dir='../ray_tune',
+                progress_reporter=reporter,
+                raise_on_failed_trial=False)
+
+              df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
+
+              try:
+                csvFilePath = '../ray_results/{}.csv'.format(name)  # , time.strftime("%Y%m%d-%H%M%S"))
+                appendDFToCSV_void(df, csvFilePath, sep=",")
+                # df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
+              except:
+                pass
+
+              print(df[['accuracy', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
+
+              test_accs = df['test_acc'].values
+              print("test accuracy {}".format(test_accs))
+              log = "mean test {:04f}, test std {:04f}, test sem {:04f}, test 95% conf {:04f}"
+              print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs),
+                               mean_confidence_interval(test_accs)))
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -170,5 +252,6 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   opt = vars(args)
-  run_best_params(opt)
+  # run_best_params(opt)
   # mainLoop(opt)
+  KNN_abalation(opt)
