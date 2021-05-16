@@ -10,6 +10,9 @@ from sklearn.decomposition import NMF
 from graph_rewiring import apply_gdc
 from data import get_dataset
 import time
+from libmf import mf
+from scipy import sparse
+
 
 POS_ENC_PATH = os.path.join("../data", "pos_encodings")
 
@@ -45,16 +48,24 @@ def find_or_make_encodings(opt):
 
   return pos_encoding
 
+def run_libmf():
+  pos_encodings = sparse.random(10,10)
+  engine = mf.MF(k=2, nr_threads=8)
+  engine.fit(pos_encodings)
+  embedding = engine.q_factors()
+  return embedding
 
 def main(opt):
   start_time = time.time()
   dim = opt['embedding_dim']
   type = opt['pos_enc_type']
-  model = NMF(n_components=dim, init='random', random_state=0, max_iter=opt['max_iter'], verbose=1)
+  model = NMF(n_components=dim, init='random', random_state=0, max_iter=opt['max_iter'], verbose=1, tol=opt['tol'])
   fname = os.path.join(POS_ENC_PATH, f"{opt['dataset']}_{opt['pos_enc_type']}.pkl")
   print(f"[i] Looking for positional encodings in {fname}...")
 
   pos_encodings = find_or_make_encodings(opt)
+
+
 
   # - if so, just load them
   print(f"positional encodings retrieved after {time.time()-start_time} seconds. Starting matrix factorisation")
@@ -110,8 +121,12 @@ if __name__ == '__main__':
     "--embedding_dim", type=int, default=1000, help="dimension of compressed encoding"
   )
   parser.add_argument(
-    "--max_iter", type=int, default=1000, help="number of training iterations"
+    "--max_iter", type=int, default=100, help="number of training iterations"
+  )
+  parser.add_argument(
+    "--tol", type=float, default=0.002, help="number of training iterations"
   )
   args = parser.parse_args()
   opt = vars(args)
+  # run_libmf()
   main(opt)
