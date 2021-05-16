@@ -156,6 +156,13 @@ if __name__ == '__main__':
   parser.add_argument("--max_nfe", type=int, default=5000, help="Maximum number of function evaluations allowed.")
   parser.add_argument("--no_early", action="store_true",
                       help="Whether or not to use early stopping of the ODE integrator when testing.")
+  parser.add_argument("--run_with_KNN", action="store_true", help="run_with_KNN")
+  parser.add_argument("--change_att_sim_type", action="store_true", help="change_att_sim_type")
+
+  parser.add_argument("--no_early", action="store_true",
+                      help="Whether or not to use early stopping of the ODE integrator when testing.")
+
+
 
   parser.add_argument('--earlystopxT', type=float, default=3, help='multiplier for T used to evaluate best model')
 
