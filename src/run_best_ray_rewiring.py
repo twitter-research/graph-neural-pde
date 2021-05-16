@@ -146,8 +146,14 @@ if __name__ == '__main__':
   parser.add_argument('--metric', type=str, default='accuracy', help='metric to sort the hyperparameter tuning runs on')
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilise ODE learning')
+  parser.add_argument('--run_with_KNN', action='store_true',
+                      help='run parameters discovered without KNN, but now using KNN')
+  parser.add_argument('--change_att_sim_type', action='store_true',
+                      help='run parameters discovered with attention different attention similarity ')
   parser.add_argument('--reps', type=int, default=1, help='the number of random weight initialisations to use')
   parser.add_argument('--name', type=str, default=None)
+  #todo if we add new pos_enc_types this will break
+  parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
   parser.add_argument('--gpus', type=float, default=0, help='number of gpus per trial. Can be fractional')
   parser.add_argument('--cpus', type=float, default=1, help='number of cpus per trial. Can be fractional')
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random slpits >= 0. 0 for planetoid split")
@@ -156,8 +162,6 @@ if __name__ == '__main__':
   parser.add_argument("--max_nfe", type=int, default=5000, help="Maximum number of function evaluations allowed.")
   parser.add_argument("--no_early", action="store_true",
                       help="Whether or not to use early stopping of the ODE integrator when testing.")
-  parser.add_argument("--run_with_KNN", action="store_true", help="run_with_KNN")
-  parser.add_argument("--change_att_sim_type", action="store_true", help="change_att_sim_type")
 
   parser.add_argument('--earlystopxT', type=float, default=3, help='multiplier for T used to evaluate best model')
 
