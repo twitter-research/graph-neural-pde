@@ -157,14 +157,26 @@ def KNN(x, opt):
 
 @torch.no_grad()
 def apply_KNN(data, pos_encoding, model, opt):
+
   if opt['rewire_KNN_T'] == "raw":
     ei = KNN(data.x, opt)  # rewiring on raw features here
 
   elif opt['rewire_KNN_T'] == "T0":
-    ei = KNN(model.forward_encoder(data.x, pos_encoding), opt)
+    z0 = model.forward_encoder(data.x, pos_encoding)
+    if model.opt['use_labels']:
+      y = z0[:, -model.num_classes:]
+      z0 = z0[:, :-model.num_classes]
+    p0 = z0[model.num_features, :].contiguous()
+    ei = KNN(p0, opt)
 
   elif opt['rewire_KNN_T'] == 'TN':
-    ei = KNN(model.forward_ODE(data.x, pos_encoding), opt)
+    zT = model.forward_ODE(data.x, pos_encoding)
+    if model.opt['use_labels']:
+      y = zT[:, -model.num_classes:]
+      zT = zT[:, :-model.num_classes]
+    pT = zT[:, -model.opt['pos_enc_hidden_dim']:].contiguous()
+
+    ei = KNN(pT, opt)
 
   else:
     raise Exception("Need to set rewire_KNN_T")
