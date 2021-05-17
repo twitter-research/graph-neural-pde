@@ -141,12 +141,12 @@ def KNN_abalation(opt):
   folders = ['beltrami_2','Citeseer_beltrami_1']
   names = ['Cora_beltrami_ablation','Citeseer_beltrami_ablation']
   indexes = [[0],[0]]
-  ks = [4,8,16,32,64,128]
+  ks = [4,8,16,32,64]
   KNN_epochs = [2,5,10,25,50]
   TS = ['T0','TN']
   KNN_sysms = [True, False]
   opt['rewire_KNN'] = True
-  opt['reps'] = 16
+  opt['reps'] = 4 #16
   opt['epoch'] = 100
   for i, ds in enumerate(datas):
     print(f"Running Best Params for {ds}")
