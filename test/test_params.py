@@ -10,4 +10,5 @@ OPT = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'heads
                 'total_deriv': None, 'directional_penalty': None, 'step_size': 1, 'beltrami': False, 'use_mlp': False,
        'use_labels': False, 'fc_out': False, 'attention_type': "scaled_dot", 'batch_norm': False, 'square_plus': False,
        'feat_hidden_dim': 16, 'pos_enc_hidden_dim': 8, 'gdc_method': 'ppr', 'gdc_sparsification': 'topk', 'gdc_k': 4,
-       'gdc_threshold': 1e-5, 'ppr_alpha': 0.05, 'exact': True, 'pos_enc_orientation': 'row', 'pos_enc_type': 'GDC'}
+       'gdc_threshold': 1e-5, 'ppr_alpha': 0.05, 'exact': True, 'pos_enc_orientation': 'row', 'pos_enc_type': 'GDC',
+       'max_nfe': 1000}
