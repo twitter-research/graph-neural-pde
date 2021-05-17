@@ -1,3 +1,4 @@
+import torchdiffeq
 from torchdiffeq._impl.dopri5 import _DORMAND_PRINCE_SHAMPINE_TABLEAU, DPS_C_MID
 from torchdiffeq._impl.solvers import FixedGridODESolver
 import torch
@@ -76,7 +77,7 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
       n_steps += 1
       train_acc, val_acc, test_acc = self.evaluate(self.rk_state)
       if val_acc > self.best_val:
-        self.set_accs(train_acc, val_acc, test_acc, next_t)
+        self.set_accs(train_acc, val_acc, test_acc, self.rk_state.t1)
     new_t = next_t
     return (new_t, _interp_evaluate(self.rk_state.interp_coeff, self.rk_state.t0, self.rk_state.t1, next_t))
 
@@ -164,7 +165,7 @@ class EarlyStopRK4(FixedGridODESolver):
       y1 = y0 + dy
       train_acc, val_acc, test_acc = self.evaluate(y1, t0, t1)
       if val_acc > self.best_val:
-        self.set_accs(train_acc, val_acc, test_acc, t0)
+        self.set_accs(train_acc, val_acc, test_acc, t1)
 
       while j < len(t) and t1 >= t[j]:
         solution[j] = self._linear_interp(t0, t1, y0, y1, t[j])
@@ -274,8 +275,12 @@ class EarlyStopInt(torch.nn.Module):
     """
     method = self.opt['method']
     assert method in ['rk4', 'dopri5'], "Only dopri5 and rk4 implemented with early stopping"
-    shapes, func, y0, t, rtol, atol, method, options = _check_inputs(func, y0, self.t, rtol, atol, method, options,
-                                                                     SOLVERS)
+    event_fn = None
+    ver = torchdiffeq.__version__
+    if int(ver[0]+ver[2]+ver[4]) >= 21: #0.2.1 change of signiture *around* this release
+      shapes, func, y0, t, rtol, atol, method, options, event_fn, t_is_reversed = _check_inputs(func, y0, self.t, rtol, atol, method, options, event_fn, SOLVERS)
+    else:
+      shapes, func, y0, t, rtol, atol, method, options = _check_inputs(func, y0, self.t, rtol, atol, method, options, SOLVERS)
 
     self.solver = SOLVERS[method](func, y0, rtol=rtol, atol=atol, opt=self.opt, **options)
     if self.solver.data is None:

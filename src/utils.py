@@ -17,6 +17,23 @@ from torch_geometric.nn.conv.gcn_conv import gcn_norm
 class MaxNFEException(Exception): pass
 
 
+def rms_norm(tensor):
+  return tensor.pow(2).mean().sqrt()
+
+
+def make_norm(state):
+  if isinstance(state, tuple):
+    state = state[0]
+  state_size = state.numel()
+
+  def norm(aug_state):
+    y = aug_state[1:1 + state_size]
+    adj_y = aug_state[1 + state_size:1 + 2 * state_size]
+    return max(rms_norm(y), rms_norm(adj_y))
+
+  return norm
+
+
 def print_model_params(model):
   total_num_params = 0
   print(model)
@@ -140,6 +157,46 @@ def get_sem(vec):
   return retval
 
 
+from typing import Optional
+import torch
+from torch import Tensor
+from torch_scatter import scatter, segment_csr, gather_csr
+
+
+# https://twitter.com/jon_barron/status/1387167648669048833?s=12
+# @torch.jit.script
+def squareplus(src: Tensor, index: Optional[Tensor], ptr: Optional[Tensor] = None,
+               num_nodes: Optional[int] = None) -> Tensor:
+  r"""Computes a sparsely evaluated softmax.
+    Given a value tensor :attr:`src`, this function first groups the values
+    along the first dimension based on the indices specified in :attr:`index`,
+    and then proceeds to compute the softmax individually for each group.
+
+    Args:
+        src (Tensor): The source tensor.
+        index (LongTensor): The indices of elements for applying the softmax.
+        ptr (LongTensor, optional): If given, computes the softmax based on
+            sorted inputs in CSR representation. (default: :obj:`None`)
+        num_nodes (int, optional): The number of nodes, *i.e.*
+            :obj:`max_val + 1` of :attr:`index`. (default: :obj:`None`)
+
+    :rtype: :class:`Tensor`
+    """
+  out = src - src.max()
+  # out = out.exp()
+  out = (out + torch.sqrt(out ** 2 + 4)) / 2
+
+  if ptr is not None:
+    out_sum = gather_csr(segment_csr(out, ptr, reduce='sum'), ptr)
+  elif index is not None:
+    N = maybe_num_nodes(index, num_nodes)
+    out_sum = scatter(out, index, dim=0, dim_size=N, reduce='sum')[index]
+  else:
+    raise NotImplementedError
+
+  return out / (out_sum + 1e-16)
+
+
 # Counter of forward and backward passes.
 class Meter(object):
 
@@ -163,3 +220,16 @@ class Meter(object):
 
   def get_value(self):
     return self.val
+
+
+class DummyDataset(object):
+  def __init__(self, data, num_classes):
+    self.data = data
+    self.num_classes = num_classes
+
+
+class DummyData(object):
+  def __init__(self, edge_index=None, edge_Attr=None, num_nodes=None):
+    self.edge_index = edge_index
+    self.edge_attr = edge_Attr
+    self.num_nodes = num_nodes

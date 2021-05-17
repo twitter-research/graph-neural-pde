@@ -1,20 +1,42 @@
 import argparse
 from ray.tune import Analysis
 import json
+import os
+import pandas as pd
 import numpy as np
 from utils import get_sem, mean_confidence_interval
-from ray_tune import train_ray_int
+from ray_tune_rewiring import train_ray_int
 from ray import tune
 from functools import partial
 import os, time
 from ray.tune import CLIReporter
 
 
+def appendDFToCSV_void(df, csvFilePath, sep=","):
+  import os
+  if not os.path.isfile(csvFilePath):
+    df.to_csv(csvFilePath, mode='a', index=False, sep=sep)
+  elif len(df.columns) != len(pd.read_csv(csvFilePath, nrows=1, sep=sep).columns):
+    raise Exception("Columns do not match!! Dataframe has " + str(len(df.columns)) + " columns. CSV file has " + str(
+      len(pd.read_csv(csvFilePath, nrows=1, sep=sep).columns)) + " columns.")
+  elif not (df.columns == pd.read_csv(csvFilePath, nrows=1, sep=sep).columns).all():
+    raise Exception("Columns and column order of dataframe and csv file do not match!!")
+  else:
+    df.to_csv(csvFilePath, mode='a', index=False, sep=sep, header=False)
+
 def get_best_params_dir(opt):
   analysis = Analysis("../ray_tune/{}".format(opt['folder']))
   df = analysis.dataframe(metric=opt['metric'], mode='max')
   best_params_dir = df.sort_values(opt['metric'], ascending=False)['logdir'].iloc[opt['index']]
   return best_params_dir
+
+def with_KNN(opt):
+  opt['rewire_KNN'] = True
+  opt['rewire_KNN_T'] = "T0"
+  opt['rewire_KNN_epoch'] = 20
+  opt['rewire_KNN_k'] = 64
+  opt['rewire_KNN_sym'] = False
+  return opt
 
 
 def run_best_params(opt):
@@ -33,6 +55,13 @@ def run_best_params(opt):
   # handle adjoint
   if best_params['adjoint'] or opt['adjoint']:
     best_params_ret['adjoint'] = True
+
+  if opt["run_with_KNN"]:
+    best_params_ret = with_KNN(best_params_ret)
+
+  if opt['change_att_sim_type']:
+    best_params_ret['attention_type'] = opt['att_sim_type']
+    best_params_ret['square_plus'] = False
 
   print("Running with parameters {}".format(best_params_ret))
 
@@ -61,8 +90,11 @@ def run_best_params(opt):
     raise_on_failed_trial=False)
 
   df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
+
   try:
-    df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
+    csvFilePath = '../ray_results/{}.csv'.format(name)  # , time.strftime("%Y%m%d-%H%M%S"))
+    appendDFToCSV_void(df, csvFilePath, sep=",")
+    # df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
   except:
     pass
 
@@ -74,6 +106,19 @@ def run_best_params(opt):
   print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs), mean_confidence_interval(test_accs)))
 
 
+def mainLoop(opt):
+  datas = ['Photo'] #['Cora', 'Citeseer', 'Photo']
+  folders = ['Photo_beltrami_1'] #['Cora_beltrami_1', 'Citeseer_beltrami_1', 'Photo_beltrami_1']
+  indexes = [0]#,0,0]
+
+  for i, ds in enumerate(datas):
+    print(f"Running Best Params for {ds}")
+    opt["dataset"] = ds
+    opt["folder"] = folders[i]
+    opt["index"] = indexes[i]
+
+    run_best_params(opt)
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')
@@ -82,14 +127,20 @@ if __name__ == '__main__':
   parser.add_argument('--metric', type=str, default='accuracy', help='metric to sort the hyperparameter tuning runs on')
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilise ODE learning')
+  parser.add_argument('--run_with_KNN', action='store_true',
+                      help='run parameters discovered without KNN, but now using KNN')
+  parser.add_argument('--change_att_sim_type', action='store_true',
+                      help='run parameters discovered with attention different attention similarity ')
   parser.add_argument('--reps', type=int, default=1, help='the number of random weight initialisations to use')
   parser.add_argument('--name', type=str, default=None)
+  #todo if we add new pos_enc_types this will break
+  parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
   parser.add_argument('--gpus', type=float, default=0, help='number of gpus per trial. Can be fractional')
   parser.add_argument('--cpus', type=float, default=1, help='number of cpus per trial. Can be fractional')
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random slpits >= 0. 0 for planetoid split")
   parser.add_argument("--adjoint", dest='adjoint', action='store_true',
                       help="use the adjoint ODE method to reduce memory footprint")
-  parser.add_argument("--max_nfe", type=int, default=5000, help="Maximum number of function evaluations allowed in an epcoh.")
+  parser.add_argument("--max_nfe", type=int, default=5000, help="Maximum number of function evaluations allowed.")
   parser.add_argument("--no_early", action="store_true",
                       help="Whether or not to use early stopping of the ODE integrator when testing.")
 
@@ -99,3 +150,4 @@ if __name__ == '__main__':
 
   opt = vars(args)
   run_best_params(opt)
+  # mainLoop(opt)

@@ -14,6 +14,7 @@ from torch_geometric.utils.convert import to_scipy_sparse_matrix
 from ray.tune.utils import diagnose_serialization
 from functools import partial
 import os
+from test_params import OPT
 
 
 class ICMLGNNTests(unittest.TestCase):
@@ -29,7 +30,8 @@ class ICMLGNNTests(unittest.TestCase):
 
   def test_fill_norm(self):
     opt = {'dataset': 'Cora', 'improved': False, 'self_loop_weight': 1., 'rewiring': None, 'no_alpha_sigmoid': False,
-           'reweight_attention': False, 'kinetic_energy': None, 'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None}
+           'reweight_attention': False, 'kinetic_energy': None, 'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None, 'beltrami': False}
+    opt = {**OPT, **opt}
     dataset = get_dataset(opt, '../data', False)
     data = dataset.data
     edge_index1, edge_weight1 = gcn_norm(data.edge_index, data.edge_attr, data.num_nodes,

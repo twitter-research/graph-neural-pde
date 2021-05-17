@@ -132,6 +132,37 @@ def remap_edges(edges: list, mapper: dict) -> list:
   return [row, col]
 
 
+def set_train_val_test_split_fixedSeed(
+        seed: int,
+        data: Data,
+        num_development: int = 1500,
+        num_per_class: int = 20,
+        development_seed = 1684992425) -> Data:
+  rnd_state = np.random.RandomState(seed)
+  num_nodes = data.y.shape[0]
+  development_idx = rnd_state.choice(num_nodes, num_development, replace=False)
+  test_idx = [i for i in np.arange(num_nodes) if i not in development_idx]
+
+  train_idx = []
+  rnd_state = np.random.RandomState(seed)
+  for c in range(data.y.max() + 1):
+    class_idx = development_idx[np.where(data.y[development_idx].cpu() == c)[0]]
+    train_idx.extend(rnd_state.choice(class_idx, num_per_class, replace=False))
+
+  val_idx = [i for i in development_idx if i not in train_idx]
+
+  def get_mask(idx):
+    mask = torch.zeros(num_nodes, dtype=torch.bool)
+    mask[idx] = 1
+    return mask
+
+  data.train_mask = get_mask(train_idx)
+  data.val_mask = get_mask(val_idx)
+  data.test_mask = get_mask(test_idx)
+
+  return data
+
+
 def set_train_val_test_split(
         seed: int,
         data: Data,
