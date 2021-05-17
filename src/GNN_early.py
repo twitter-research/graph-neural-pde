@@ -42,7 +42,7 @@ class GNNEarly(BaseGNN):
   def set_solver_data(self, data):
     self.odeblock.test_integrator.data = data
 
-  def forward(self, x, pos_encoding):
+  def forward(self, x, pos_encoding=None):
     # Encode each node based on its feature.
     if self.opt['use_labels']:
       y = x[:, -self.num_classes:]
