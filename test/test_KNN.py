@@ -35,15 +35,15 @@ class KNNTests(unittest.TestCase):
 
 
   def test_gnn(self):
+    pos_encoding = apply_beltrami(self.dataset.data, self.opt)
+    self.assertTrue(pos_encoding.shape == torch.Size([self.dataset.data.num_nodes, self.dataset.data.num_nodes]))
+    self.opt['pos_enc_dim'] = pos_encoding.shape[1]
     gnn = GNN_KNN(self.opt, self.dataset, device=self.device)
     gnn.train()
-    pos_encoding = apply_beltrami(self.dataset.data, self.opt)
     out = gnn(self.dataset.data.x, pos_encoding)
-    print(out.shape)
-    print(torch.Size([self.dataset.data.num_nodes, self.dataset.num_classes]))
     self.assertTrue(out.shape == torch.Size([self.dataset.data.num_nodes, self.dataset.num_classes]))
     gnn.eval()
-    out = gnn(self.dataset.data.x)
+    out = gnn(self.dataset.data.x, pos_encoding)
     self.assertTrue(out.shape == torch.Size([self.dataset.data.num_nodes, self.dataset.num_classes]))
 
 if __name__ == '__main__':
