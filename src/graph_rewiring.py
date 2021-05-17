@@ -175,7 +175,6 @@ def apply_KNN(data, pos_encoding, model, opt):
       y = zT[:, -model.num_classes:]
       zT = zT[:, :-model.num_classes]
     pT = zT[:, -model.opt['pos_enc_hidden_dim']:].contiguous()
-
     ei = KNN(pT, opt)
 
   else:
