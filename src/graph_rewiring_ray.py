@@ -205,7 +205,7 @@ def set_rewiring_space(opt):
     # experiment args
     opt['block'] = 'attention'
     opt['function'] = 'laplacian'
-    opt['use_lcc'] = True
+    # opt['use_lcc'] = True <- this is actually opt['not_lcc'] = False but is default for all except arxiv
 
     opt['beltrami'] = True  # tune.choice([True, False])
     bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
@@ -399,7 +399,8 @@ def set_photo_search_space(opt):
 
 def set_arxiv_search_space(opt):
   opt['exact'] = False
-  opt['use_lcc'] = False
+  # opt['use_lcc'] = False <-this is not a flag technically
+  opt['not_lcc'] = True
   opt["adjoint"] = True
   opt["decay"] = 0 #tune.loguniform(1e-10, 1e-6)
   # if opt['self_loop_weight'] > 0.0:
