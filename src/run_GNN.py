@@ -245,7 +245,8 @@ def main(opt):
   except KeyError:
     pass  # not always present when called as lib
   dataset = get_dataset(opt, '../data', False)
-  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+  #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+  device = f"cuda:{opt['gpu']}" if torch.cuda.is_available() else 'cpu'
 
   if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
     pos_encoding = apply_beltrami(dataset.data, opt)
@@ -402,7 +403,7 @@ if __name__ == '__main__':
   parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
 
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
-  parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
+  parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (GDC, DW64, DW128, DW256)')
   parser.add_argument('--pos_enc_orientation', type=str, default="row", help="row, col")
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
@@ -416,6 +417,8 @@ if __name__ == '__main__':
   parser.add_argument('--KNN_online_reps', type=int, default=4, help="how many online KNN its")
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
+  parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")
+  parser.add_argument('--pos_enc_csv', action='store_true', help="Generate pos encoding as a sparse CSV")
 
   args = parser.parse_args()
 
