@@ -166,7 +166,7 @@ def apply_KNN(data, pos_encoding, model, opt):
     if model.opt['use_labels']:
       y = z0[:, -model.num_classes:]
       z0 = z0[:, :-model.num_classes]
-    p0 = z0[model.num_features, :].contiguous()
+    p0 = z0[:, -model.opt['pos_enc_hidden_dim']:].contiguous()
     ei = KNN(p0, opt)
 
   elif opt['rewire_KNN_T'] == 'TN':
