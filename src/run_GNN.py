@@ -388,6 +388,7 @@ if __name__ == '__main__':
                       help="if gdc_threshold is not given can be calculated by specifying avg degree")
   parser.add_argument('--ppr_alpha', type=float, default=0.05, help="teleport probability")
   parser.add_argument('--heat_time', type=float, default=3., help="time to run gdc heat kernal diffusion for")
+  parser.add_argument("--not_lcc", action="store_false", help="don't use the largest connected component")
   parser.add_argument('--att_samp_pct', type=float, default=1,
                       help="float in [0,1). The percentage of edges to retain based on attention scores")
   parser.add_argument('--use_flux', dest='use_flux', action='store_true',
