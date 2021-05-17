@@ -400,7 +400,7 @@ def set_photo_search_space(opt):
 def set_arxiv_search_space(opt):
   opt['exact'] = False
   # opt['use_lcc'] = False <-this is not a flag technically
-  opt['not_lcc'] = True
+  opt['not_lcc'] = False #<-this is correct as it usually defaults to True (via not calling store_false)
   opt["adjoint"] = True
   opt["decay"] = 0 #tune.loguniform(1e-10, 1e-6)
   # if opt['self_loop_weight'] > 0.0:
