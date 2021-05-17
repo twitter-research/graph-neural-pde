@@ -146,7 +146,7 @@ def KNN_abalation(opt):
   TS = ['T0','TN']
   KNN_sysms = [True, False]
   opt['rewire_KNN'] = True
-  opt['reps'] = 4 #16
+  opt['reps'] = 8 #16
   opt['epoch'] = 100
   for i, ds in enumerate(datas):
     print(f"Running Best Params for {ds}")
