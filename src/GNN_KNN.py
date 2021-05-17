@@ -29,6 +29,8 @@ class GNN_KNN(BaseGNN):
       else:
         p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
         p = self.mp(p)
+      print(f"x.shape {x.shape}")
+      print(f"p.shape {p.shape}")
       x = torch.cat([x, p], dim=1)
     else:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
