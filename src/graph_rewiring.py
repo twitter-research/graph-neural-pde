@@ -172,10 +172,12 @@ def apply_KNN(data, pos_encoding, model, opt):
   return ei
 
 
-def apply_beltrami(data, opt):
+#### THIS SHOULD BE OK
+def apply_beltrami(data, opt, data_dir='../data'):
+  pos_enc_dir = os.path.join(f"{data_dir}", "pos_encodings")
   # generate new positional encodings
   # do encodings already exist on disk?
-  fname = os.path.join(POS_ENC_PATH, f"{opt['dataset']}_{opt['pos_enc_type']}.pkl")
+  fname = os.path.join(pos_enc_dir, f"{opt['dataset']}_{opt['pos_enc_type']}.pkl")
   print(f"[i] Looking for positional encodings in {fname}...")
 
   # - if so, just load them
