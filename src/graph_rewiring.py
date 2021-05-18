@@ -150,7 +150,7 @@ def KNN(x, opt):
   ei = torch.cat([LS, indKNN.view(1, -1)], dim=0)
 
   if opt['rewire_KNN_sym']:
-    ei, _ = to_undirected(ei)
+    ei = to_undirected(ei)
 
   return ei
 

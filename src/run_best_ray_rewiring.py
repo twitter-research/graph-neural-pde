@@ -148,6 +148,7 @@ def KNN_abalation(opt):
   opt['rewire_KNN'] = True
   opt['reps'] = 4 #8 #16
   opt['epoch'] = 100
+
   for i, ds in enumerate(datas):
     print(f"Running Best Params for {ds}")
     opt["dataset"] = ds
@@ -162,6 +163,8 @@ def KNN_abalation(opt):
       best_params_ret['mix_features']
     except KeyError:
       best_params_ret['mix_features'] = False
+
+    best_params_ret['feat_hidden_dim'] = 64  #<----override default
 
     for idx_i, idx in enumerate(indexes[i]):
       best_params_ret['pos_enc_orientation'] = best_params_ret['pos_enc_dim']
