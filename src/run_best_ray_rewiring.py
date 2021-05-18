@@ -228,12 +228,12 @@ def set_pos_enc_space(opt):
   opt['epoch'] = 100
   opt['num_init'] = 4
 
-  opt['rewire_KNN_k'] = tune.grid_search([4, 8, 16, 32, 64])
-  opt['rewire_KNN_epoch'] = tune.grid_search([2, 5, 10, 25, 50])
-  opt['rewire_KNN_T'] = tune.grid_search(['T0', 'TN'])
-  opt['rewire_KNN_sym'] = tune.grid_search([True, False])
+  opt['rewire_KNN_k'] = tune.choice([4, 8, 16, 32, 64])
+  opt['rewire_KNN_epoch'] = tune.choice([2, 5, 10, 25, 50])
+  opt['rewire_KNN_T'] = tune.choice(['T0', 'TN'])
+  opt['rewire_KNN_sym'] = tune.choice([True, False])
 
-  opt['rewiring'] = tune.grid_search([True, False])
+  opt['rewiring'] = tune.choice([True, False])
   opt['exact'] = True
   opt['reweight_attention'] = True
   opt['feat_hidden_dim'] = 64  # <----override default
