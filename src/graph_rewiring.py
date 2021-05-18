@@ -185,7 +185,7 @@ def apply_beltrami(data, opt, data_dir='../data'):
     print("    Found them! Loading cached version")
     with open(fname, "rb") as f:
       # pos_encoding = pickle.load(f)
-      pos_encoding = torch.load(f)
+      pos_encoding = pickle.load(f)
     if opt['pos_enc_type'].startswith("DW"):
       pos_encoding = pos_encoding['data']
 
