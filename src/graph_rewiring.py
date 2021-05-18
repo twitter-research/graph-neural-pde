@@ -172,7 +172,6 @@ def apply_KNN(data, pos_encoding, model, opt):
   return ei
 
 
-#### THIS SHOULD BE OK
 def apply_beltrami(data, opt):
   # generate new positional encodings
   # do encodings already exist on disk?
@@ -199,6 +198,12 @@ def apply_beltrami(data, opt):
     # - ... and store them on disk
     if not os.path.exists(POS_ENC_PATH):
       os.makedirs(POS_ENC_PATH)
+
+    if opt['pos_enc_csv']:
+      sp = pos_encoding.to_sparse()
+      table_mat = np.concatenate([sp.indices(), np.atleast_2d(sp.values())], axis=0).T
+      np.savetxt(f"{fname[:-4]}.csv", table_mat, delimiter=",")
+
     with open(fname, "wb") as f:
       pickle.dump(pos_encoding, f)
 
