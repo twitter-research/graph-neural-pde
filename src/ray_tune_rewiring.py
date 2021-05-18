@@ -329,7 +329,7 @@ def main(opt):
 
 
 def mainLoop(opt):
-  opt['rewire_KNN'] = False
+  opt['rewire_KNN'] = False #True
   datas = ['ogbn-arxiv']  # ['Citeseer', 'Photo']
   folders = ['ogbn-arxiv-1']  # ['Citeseer_beltrami_1', 'Photo_beltrami_1']
   for i, ds in enumerate(datas):
@@ -337,15 +337,6 @@ def mainLoop(opt):
     opt["dataset"] = ds
     opt["name"] = folders[i]
     main(opt)
-
-  # opt['rewire_KNN'] = True
-  # datas = ['Pubmed'] #'Cora', 'Citeseer', 'Photo']
-  # folders = ['Pubmed_beltrami_2_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
-  # for i, ds in enumerate(datas):
-  #   print(f"Running Tuning for {ds}")
-  #   opt["dataset"] = ds
-  #   opt["name"] = folders[i]
-  #   main(opt)
 
 
 if __name__ == "__main__":
@@ -498,4 +489,5 @@ if __name__ == "__main__":
   args = parser.parse_args()
   opt = vars(args)
   # main(opt)
-  mainLoop(opt)
+  # mainLoop(opt)
+  KNN_abalation(opt)

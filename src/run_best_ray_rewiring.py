@@ -5,7 +5,7 @@ import os
 import pandas as pd
 import numpy as np
 from utils import get_sem, mean_confidence_interval
-from ray_tune_rewiring import train_ray_int
+from ray_tune_rewiring import train_ray_int, main as main_ray
 from ray import tune
 from functools import partial
 import os, time
@@ -223,6 +223,45 @@ def KNN_abalation(opt):
                                mean_confidence_interval(test_accs)))
 
 
+def set_pos_enc_space(opt):
+  opt['rewire_KNN'] = True
+  opt['epoch'] = 100
+  opt['num_init'] = 4
+
+  opt['rewire_KNN_k'] = tune.grid_search([4, 8, 16, 32, 64])
+  opt['rewire_KNN_epoch'] = tune.grid_search([2, 5, 10, 25, 50])
+  opt['rewire_KNN_T'] = tune.grid_search(['T0', 'TN'])
+  opt['rewire_KNN_sym'] = tune.grid_search([True, False])
+
+  opt['rewiring'] = tune.grid_search([True, False])
+  opt['exact'] = True
+  opt['reweight_attention'] = True
+  opt['feat_hidden_dim'] = 64  # <----override default
+
+  return opt
+
+
+def KNN_abalation_grid(opt):
+  opt["dataset"] = 'Cora'
+  opt["folder"] = 'beltrami_2'
+  opt["name"] = 'Cora_beltrami_KNN_ablation_grid'
+  opt['index'] = 0
+
+  best_params_dir = get_best_params_dir(opt)
+  with open(best_params_dir + '/params.json') as f:
+    best_params = json.loads(f.read())
+  best_params_ret = {**best_params, **opt}  # allow params specified at the cmd line to override
+  try:
+    best_params_ret['mix_features']
+  except KeyError:
+    best_params_ret['mix_features'] = False
+
+  best_params_ret['pos_enc_orientation'] = best_params_ret['pos_enc_dim']
+
+  best_params_ret = set_pos_enc_space(best_params_ret)
+  main_ray(best_params_ret)
+
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')
@@ -255,4 +294,5 @@ if __name__ == '__main__':
   opt = vars(args)
   # run_best_params(opt)
   # mainLoop(opt)
-  KNN_abalation(opt)
+  # KNN_abalation(opt)
+  KNN_abalation_grid(opt)
