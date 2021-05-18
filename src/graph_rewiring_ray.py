@@ -687,6 +687,7 @@ if __name__ == "__main__":
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
   parser.add_argument('--max_epochs', type=int, default=1000, help="max epochs to train before patience")
   parser.add_argument('--patience', type=int, default=100, help="amount of patience for non improving val acc")
+  parser.add_argument('--pos_enc_csv', action='store_true', help="Generate pos encoding as a sparse CSV")
 
   args = parser.parse_args()
   opt = vars(args)

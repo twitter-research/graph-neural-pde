@@ -244,7 +244,7 @@ def main(opt):
       opt = get_cora_opt(opt)
   except KeyError:
     pass  # not always present when called as lib
-  dataset = get_dataset(opt, '../data', False)
+  dataset = get_dataset(opt, '../data', opt['not_lcc'])
   #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   device = f"cuda:{opt['gpu']}" if torch.cuda.is_available() else 'cpu'
 
@@ -379,6 +379,7 @@ if __name__ == '__main__':
   parser.add_argument('--directional_penalty', type=float, default=None, help="int_t ||(df/dx)^T f||^2")
 
   # rewiring args
+  parser.add_argument("--not_lcc", action="store_false", help="don't use the largest connected component")
   parser.add_argument('--rewiring', type=str, default=None, help="two_hop, gdc")
   parser.add_argument('--gdc_method', type=str, default='ppr', help="ppr, heat, coeff")
   parser.add_argument('--gdc_sparsification', type=str, default='topk', help="threshold, topk")
