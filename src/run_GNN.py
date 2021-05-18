@@ -248,10 +248,16 @@ def main(opt):
   #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   device = f"cuda:{opt['gpu']}" if torch.cuda.is_available() else 'cpu'
 
-  if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
-    pos_encoding = apply_beltrami(dataset.data, opt)
-    mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
-  elif opt['beltrami']:
+  # if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
+  #   pos_encoding = apply_beltrami(dataset.data, opt)
+  #   mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
+  # elif opt['beltrami']:
+  #   pos_encoding = apply_beltrami(dataset.data, opt).to(device)
+  #   opt['pos_enc_dim'] = pos_encoding.shape[1]
+  # else:
+  #   pos_encoding = None
+
+  if opt['beltrami']:
     pos_encoding = apply_beltrami(dataset.data, opt).to(device)
     opt['pos_enc_dim'] = pos_encoding.shape[1]
   else:
