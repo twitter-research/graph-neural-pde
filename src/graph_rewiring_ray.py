@@ -254,7 +254,7 @@ def set_cora_search_space(opt):
 
     # if opt['self_loop_weight'] > 0.0:
     #     opt['exact'] = True  # for GDC, need exact if selp loop weight >0
-    opt['exact'] = tune.sample_from(lambda spec: True if spec.config.self_loop_weight > 0.0 else False)
+    # opt['exact'] = tune.sample_from(lambda spec: True if spec.config.self_loop_weight > 0.0 else False)
 
     opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
     if opt["adjoint"]:
