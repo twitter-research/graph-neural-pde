@@ -197,7 +197,7 @@ def set_rewiring_space(opt):
     opt['exact'] = True
     opt['gdc_threshold'] = 0.01
     opt['ppr_alpha'] = 0.05 # tune.uniform(0.01, 0.2)
-    ks = [4, 8, 16, 32, 64]
+    ks = [4, 8, 16, 32, 64, 128]
     opt['gdc_k'] = tune.choice(ks)
 
 
@@ -211,8 +211,8 @@ def set_rewiring_space(opt):
     non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
     opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
     # opt['attention_type'] = "scaled_dot"
-    opt['feat_hidden_dim'] = tune.choice([32, 64])
-    opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
+    opt['feat_hidden_dim'] = tune.choice([16, 32, 64, 128])
+    opt['pos_enc_hidden_dim'] = tune.choice([16, 32, 64])
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
                         if spec.config.beltrami else tune.choice([32, 64, 128]))
     # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
