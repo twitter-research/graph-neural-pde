@@ -73,7 +73,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
     #   pos_encoding = apply_beltrami(dataset.data, opt)
     #   mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
     if opt['beltrami']:
-      pos_encoding = apply_beltrami(dataset.data, opt).to(device)
+      pos_encoding = apply_beltrami(dataset.data, opt, data_dir).to(device)
       opt['pos_enc_dim'] = pos_encoding.shape[1]
     else:
       pos_encoding = None
@@ -150,7 +150,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
   #   pos_encoding = apply_beltrami(dataset.data, opt)
   #   mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
   if opt['beltrami']:
-    pos_encoding = apply_beltrami(dataset.data, opt).to(device)
+    pos_encoding = apply_beltrami(dataset.data, opt, data_dir).to(device)
     opt['pos_enc_dim'] = pos_encoding.shape[1]
   else:
     pos_encoding = None
