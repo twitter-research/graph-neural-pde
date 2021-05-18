@@ -245,8 +245,8 @@ def main(opt):
   except KeyError:
     pass  # not always present when called as lib
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
-  #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  device = f"cuda:{opt['gpu']}" if torch.cuda.is_available() else 'cpu'
+  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+  # device = f"cuda:{opt['gpu']}" if torch.cuda.is_available() else 'cpu'
 
   # if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
   #   pos_encoding = apply_beltrami(dataset.data, opt)
