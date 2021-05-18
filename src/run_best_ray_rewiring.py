@@ -234,6 +234,7 @@ def set_pos_enc_space(opt):
   # opt['rewire_KNN'] = True
   opt['epoch'] = 100
   opt['num_init'] = 4
+  opt['gpus'] = 1
 
   opt['rewire_KNN_k'] = tune.choice([4, 8, 16, 32, 64])
   opt['rewire_KNN_epoch'] = tune.choice([2, 5, 10, 25, 50])

@@ -194,10 +194,12 @@ def set_rewiring_space(opt):
     opt['reweight_attention'] = tune.sample_from(lambda spec: True if spec.config.rewiring else False) #tune.choice([True, False])
     opt['make_symm'] = tune.choice([True, False])
     opt['gdc_sparsification'] = 'topk'  # 'threshold'
+    opt['exact'] = True
     opt['gdc_threshold'] = 0.01
     opt['ppr_alpha'] = 0.05 # tune.uniform(0.01, 0.2)
     ks = [4, 8, 16, 32, 64]
     opt['gdc_k'] = tune.choice(ks)
+
 
     # experiment args
     opt['block'] = 'attention'
