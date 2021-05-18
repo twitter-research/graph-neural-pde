@@ -56,7 +56,7 @@ def average_test(models, datas, pos_encoding, opt):
 
 def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  # dataset = get_dataset(opt, data_dir, opt['not_lcc'])
+  dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
   models = []
   mps = []
@@ -64,7 +64,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
   optimizers = []
 
   for split in range(opt["num_splits"]):
-    dataset = get_dataset(opt, data_dir, opt['not_lcc'])
+    # dataset = get_dataset(opt, data_dir, opt['not_lcc'])
     dataset.data = set_train_val_test_split(
       np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
     # datas.append(dataset.data)
