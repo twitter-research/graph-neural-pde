@@ -224,7 +224,14 @@ def KNN_abalation(opt):
 
 
 def set_pos_enc_space(opt):
-  opt['rewire_KNN'] = True
+  opt['rewiring'] = False #tune.choice([True, False])
+  opt['exact'] = True
+  opt['reweight_attention'] = True
+  opt['feat_hidden_dim'] = 64  # <----override default
+
+  opt['rewire_KNN'] = tune.sample_from(lambda spec: False if spec.config.rewiring else True)
+
+  # opt['rewire_KNN'] = True
   opt['epoch'] = 100
   opt['num_init'] = 4
 
@@ -232,11 +239,6 @@ def set_pos_enc_space(opt):
   opt['rewire_KNN_epoch'] = tune.choice([2, 5, 10, 25, 50])
   opt['rewire_KNN_T'] = tune.choice(['T0', 'TN'])
   opt['rewire_KNN_sym'] = tune.choice([True, False])
-
-  opt['rewiring'] = tune.choice([True, False])
-  opt['exact'] = True
-  opt['reweight_attention'] = True
-  opt['feat_hidden_dim'] = 64  # <----override default
 
   return opt
 
