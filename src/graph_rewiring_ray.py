@@ -196,7 +196,7 @@ def set_rewiring_space(opt):
     opt['gdc_sparsification'] = 'topk'  # 'threshold'
     opt['gdc_threshold'] = 0.01
     opt['ppr_alpha'] = 0.05 # tune.uniform(0.01, 0.2)
-    ks = [4, 8, 16, 32, 64, 128, 256]
+    ks = [4, 8, 16, 32, 64]
     opt['gdc_k'] = tune.choice(ks)
 
     # experiment args
