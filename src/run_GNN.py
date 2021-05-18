@@ -206,7 +206,7 @@ def print_model_params(model):
 
 
 @torch.no_grad()
-def test_OGB(model, mp, data, pos_encoding, opt):
+def test_OGB(model, data, pos_encoding, opt):
   if opt['dataset'] == 'ogbn-arxiv':
     name = 'ogbn-arxiv'
 
@@ -216,8 +216,8 @@ def test_OGB(model, mp, data, pos_encoding, opt):
 
   evaluator = Evaluator(name=name)
   model.eval()
-  mp.eval()
-  pos_encoding = mp(pos_encoding).to(model.device)
+  # mp.eval()
+  # pos_encoding = mp(pos_encoding).to(model.device)
 
   out = model(feat, pos_encoding).log_softmax(dim=-1)
   y_pred = out.argmax(dim=-1, keepdim=True)
@@ -283,13 +283,14 @@ def main(opt):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
       ei = apply_KNN(data, pos_encoding, model, opt)
       model.odeblock.odefunc.edge_index = ei
-
-    if opt['dataset'] == 'ogbn-arxiv':  # this is a proxy for 'external encoder'
-      loss = train_OGB(model, mp, optimizer, data, pos_encoding)
-      train_acc, val_acc, tmp_test_acc = test_OGB(model, mp, data, pos_encoding, opt)
-    else:
-      loss = train(model, optimizer, data, pos_encoding)
-      train_acc, val_acc, tmp_test_acc = test(model, data, pos_encoding, opt)
+    #
+    # if opt['dataset'] == 'ogbn-arxiv':  # this is a proxy for 'external encoder'
+    #   loss = train_OGB(model, mp, optimizer, data, pos_encoding)
+    #   train_acc, val_acc, tmp_test_acc = test_OGB(model, mp, data, pos_encoding, opt)
+    # else:
+    this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+    loss = train(model, optimizer, data, pos_encoding)
+    train_acc, val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
 
     if val_acc > best_val_acc:
       best_val_acc = val_acc
