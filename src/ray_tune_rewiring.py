@@ -205,7 +205,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
     # else:
     loss = np.mean(
       [train_this(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])
-    train_accs, val_accs, tmp_test_accs = average_test(models, datas, pos_encoding)
+    train_accs, val_accs, tmp_test_accs = average_test(models, datas, pos_encoding, opt)
 
     with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
       best = np.argmax(val_accs)
