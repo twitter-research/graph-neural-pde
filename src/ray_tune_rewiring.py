@@ -88,7 +88,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       train_this = train_icml
     else:
       # model = GNN(opt, dataset, device)
-      if opt['rewire_KNN']:
+      if opt['rewire_KNN'] or opt['edge_sampling']:
         model = GNN_KNN(opt, dataset, device).to(device)
       else:
         model = GNN(opt, dataset, device).to(device)
@@ -167,7 +167,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
       train_this = train_icml
     else:
-      if opt['rewire_KNN']:
+      if opt['rewire_KNN'] or opt['edge_sampling']:
         model = GNN_KNN(opt, dataset, device).to(device)
       else:
         model = GNN(opt, dataset, device).to(device)
@@ -239,7 +239,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
   else:
     pos_encoding = None
 
-  if opt['rewire_KNN']:
+  if opt['rewire_KNN'] or opt['edge_sampling']:
     model = GNN_KNN(opt, dataset, device) if opt["no_early"] else GNNKNNEarly(opt, dataset, device)
   else:
     model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
