@@ -191,7 +191,7 @@ def apply_edge_sampling(data, pos_encoding, model, opt):
   num_nodes = data.num_nodes
   M = int(data.num_nodes * opt['edge_sampling_add'])
   new_edges = np.random.choice(num_nodes, size=(2, M), replace=True, p=None)
-  new_edges = torch.tensor(new_edges)
+  new_edges = torch.tensor(new_edges, device=model.device)
   cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges], dim=1)
   new_edges = torch.unique(cat, sorted=False, return_inverse=False,
                             return_counts=False, dim=1)
