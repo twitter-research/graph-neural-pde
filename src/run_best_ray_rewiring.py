@@ -270,8 +270,9 @@ def KNN_abalation_grid(opt):
 
 def run_top5():
   opt['name'] = 'Cora_top5'
-  opt['edge_sampling'] = False
+
   for best_params_ret in top5:
+    best_params_ret['edge_sampling'] = False
     print("Running with parameters {}".format(best_params_ret))
 
     data_dir = os.path.abspath("../data")
