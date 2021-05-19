@@ -270,8 +270,15 @@ def KNN_abalation_grid(opt):
 
 def run_top5(opt):
   opt['name'] = 'Cora_top5'
-  opt['reps'] = 8
+  # opt['reps'] = 8
   opt['edge_sampling'] = False
+  opt['max_nfe'] = 2000
+  opt['epoch'] = 1000
+  opt['num_splits'] = 8
+  opt['gpus'] = 1
+  opt['earlystopxT'] = 5
+  opt['metric'] = 'test_acc'
+
   for idx, best_params in enumerate(top5):
     opt['index'] = idx
     best_params_ret = {**best_params, **opt}
