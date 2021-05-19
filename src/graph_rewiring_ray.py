@@ -188,17 +188,19 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
 
 def set_rewiring_space(opt):
     # DIGL args
-    opt['rewiring'] = 'gdc'  # tune.choice(['gdc', None])
-    opt['attention_rewiring'] = False #tune.choice([True, False])
-    opt['reweight_attention'] = tune.sample_from(lambda spec: tune.choice([True, False])
-                                if spec.config.rewiring else False) #tune.choice([True, False])
-    opt['make_symm'] = tune.choice([True, False]) #this is DIGL (A+A.T)/2 with weights aswell
-    opt['gdc_sparsification'] = 'topk'  # 'threshold'
-    opt['exact'] = True
-    opt['gdc_threshold'] = 0.01
-    opt['ppr_alpha'] = 0.05 # tune.uniform(0.01, 0.2)
-    ks = [16, 32, 64, 128]
-    opt['gdc_k'] = tune.choice(ks)
+    opt['rewiring'] = None #'gdc'  # tune.choice(['gdc', None])
+
+    if opt['rewiring']:
+      opt['attention_rewiring'] = False #tune.choice([True, False])
+      opt['reweight_attention'] = tune.sample_from(lambda spec: tune.choice([True, False])
+                                  if spec.config.rewiring else False) #tune.choice([True, False])
+      opt['make_symm'] = tune.choice([True, False]) #this is DIGL (A+A.T)/2 with weights aswell
+      opt['gdc_sparsification'] = 'topk'  # 'threshold'
+      opt['exact'] = True
+      opt['gdc_threshold'] = 0.01
+      opt['ppr_alpha'] = 0.05 # tune.uniform(0.01, 0.2)
+      ks = [16, 32, 64, 128]
+      opt['gdc_k'] = tune.choice(ks)
 
     # experiment args
     opt['block'] = 'attention'
