@@ -10,7 +10,7 @@ from ray import tune
 from functools import partial
 import os, time
 from ray.tune import CLIReporter
-
+from run_best_ray_rewiring_top5 import top5
 
 def appendDFToCSV_void(df, csvFilePath, sep=","):
   import os
@@ -268,6 +268,54 @@ def KNN_abalation_grid(opt):
   main_ray(best_params_ret)
 
 
+def run_top5():
+  opt['name'] = 'Cora_top5'
+  for best_params_ret in top5:
+    print("Running with parameters {}".format(best_params_ret))
+
+    data_dir = os.path.abspath("../data")
+    reporter = CLIReporter(
+      metric_columns=["accuracy", "loss", "test_acc", "train_acc", "best_time", "best_epoch",
+                      "training_iteration", "forward_nfe", "backward_nfe"])
+
+    if opt['name'] is None:
+      name = opt['folder'] + '_test'
+    else:
+      name = opt['name']
+
+    result = tune.run(
+      partial(train_ray_int, data_dir=data_dir),
+      name=name,
+      resources_per_trial={"cpu": opt['cpus'], "gpu": opt['gpus']},
+      search_alg=None,
+      keep_checkpoints_num=3,
+      checkpoint_score_attr='accuracy',
+      config=best_params_ret,
+      num_samples=opt['reps'] if opt["num_splits"] == 0 else opt["num_splits"] * opt["reps"],
+      scheduler=None,
+      max_failures=1,  # early stop solver can't recover from failure as it doesn't own m2.
+      local_dir='../ray_tune',
+      progress_reporter=reporter,
+      raise_on_failed_trial=False)
+
+    df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
+
+    try:
+      csvFilePath = '../ray_results/{}.csv'.format(name)  # , time.strftime("%Y%m%d-%H%M%S"))
+      appendDFToCSV_void(df, csvFilePath, sep=",")
+      # df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
+    except:
+      pass
+
+    print(df[['accuracy', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
+
+    test_accs = df['test_acc'].values
+    print("test accuracy {}".format(test_accs))
+    log = "mean test {:04f}, test std {:04f}, test sem {:04f}, test 95% conf {:04f}"
+    print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs),
+                     mean_confidence_interval(test_accs)))
+
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')
@@ -298,7 +346,8 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   opt = vars(args)
-  run_best_params(opt)
+  # run_best_params(opt)
   # mainLoop(opt)
   # KNN_abalation(opt)
   # KNN_abalation_grid(opt)
+  run_top5()
