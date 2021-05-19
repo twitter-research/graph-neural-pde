@@ -268,11 +268,33 @@ def KNN_abalation_grid(opt):
   main_ray(best_params_ret)
 
 
-def run_top5():
+def run_top5(opt):
   opt['name'] = 'Cora_top5'
+  opt['edge_sampling'] = False
+  for best_params in top5:
+    best_params_ret = {**best_params, **opt}
+    try:
+      best_params_ret['mix_features']
+    except KeyError:
+      best_params_ret['mix_features'] = False
+    # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
+    best_params_ret['epoch'] = opt['epoch']
+    best_params_ret['max_nfe'] = opt['max_nfe']
+    # handle adjoint
+    if best_params['adjoint'] or opt['adjoint']:
+      best_params_ret['adjoint'] = True
 
-  for best_params_ret in top5:
-    best_params_ret['edge_sampling'] = False
+    if opt["run_with_KNN"]:
+      best_params_ret = with_KNN(best_params_ret)
+
+    if opt['change_att_sim_type']:
+      best_params_ret['attention_type'] = opt['att_sim_type']
+      best_params_ret['square_plus'] = False
+
+    try:
+      best_params_ret['pos_enc_orientation'] = best_params_ret['pos_enc_dim']
+    except:
+      pass
     print("Running with parameters {}".format(best_params_ret))
 
     data_dir = os.path.abspath("../data")
