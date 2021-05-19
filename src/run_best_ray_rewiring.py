@@ -49,6 +49,10 @@ def run_best_params(opt):
     best_params_ret['mix_features']
   except KeyError:
     best_params_ret['mix_features'] = False
+  try:
+    best_params_ret['pos_enc_csv']
+  except KeyError:
+    best_params_ret['pos_enc_csv'] = False
   # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
   best_params_ret['epoch'] = opt['epoch']
   best_params_ret['max_nfe'] = opt['max_nfe']

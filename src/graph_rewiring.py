@@ -23,7 +23,6 @@ from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, \
 from torch_sparse import coalesce
 from torch_scatter import scatter_add
 
-POS_ENC_PATH = os.path.join("../data", "pos_encodings")
 
 
 def jit(**kwargs):
@@ -199,6 +198,7 @@ def apply_beltrami(data, opt, data_dir='../data'):
       print(f"[x] The positional encoding type you specified ({opt['pos_enc_type']}) does not exist")
       quit()
     # - ... and store them on disk
+    POS_ENC_PATH = os.path.join(data_dir, "pos_encodings")
     if not os.path.exists(POS_ENC_PATH):
       os.makedirs(POS_ENC_PATH)
 
