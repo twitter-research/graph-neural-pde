@@ -206,7 +206,7 @@ def print_model_params(model):
 
 
 @torch.no_grad()
-def test_OGB(model, mp, data, pos_encoding, opt):
+def test_OGB(model, data, pos_encoding, opt):
   if opt['dataset'] == 'ogbn-arxiv':
     name = 'ogbn-arxiv'
 
@@ -216,8 +216,8 @@ def test_OGB(model, mp, data, pos_encoding, opt):
 
   evaluator = Evaluator(name=name)
   model.eval()
-  mp.eval()
-  pos_encoding = mp(pos_encoding).to(model.device)
+  # mp.eval()
+  # pos_encoding = mp(pos_encoding).to(model.device)
 
   out = model(feat, pos_encoding).log_softmax(dim=-1)
   y_pred = out.argmax(dim=-1, keepdim=True)
@@ -245,13 +245,19 @@ def main(opt):
   except KeyError:
     pass  # not always present when called as lib
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
-  #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  device = f"cuda:{opt['gpu']}" if torch.cuda.is_available() else 'cpu'
+  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+  # device = f"cuda:{opt['gpu']}" if torch.cuda.is_available() else 'cpu'
 
-  if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
-    pos_encoding = apply_beltrami(dataset.data, opt)
-    mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
-  elif opt['beltrami']:
+  # if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
+  #   pos_encoding = apply_beltrami(dataset.data, opt)
+  #   mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
+  # elif opt['beltrami']:
+  #   pos_encoding = apply_beltrami(dataset.data, opt).to(device)
+  #   opt['pos_enc_dim'] = pos_encoding.shape[1]
+  # else:
+  #   pos_encoding = None
+
+  if opt['beltrami']:
     pos_encoding = apply_beltrami(dataset.data, opt).to(device)
     opt['pos_enc_dim'] = pos_encoding.shape[1]
   else:
@@ -277,13 +283,14 @@ def main(opt):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
       ei = apply_KNN(data, pos_encoding, model, opt)
       model.odeblock.odefunc.edge_index = ei
-
-    if opt['dataset'] == 'ogbn-arxiv':  # this is a proxy for 'external encoder'
-      loss = train_OGB(model, mp, optimizer, data, pos_encoding)
-      train_acc, val_acc, tmp_test_acc = test_OGB(model, mp, data, pos_encoding, opt)
-    else:
-      loss = train(model, optimizer, data, pos_encoding)
-      train_acc, val_acc, tmp_test_acc = test(model, data, pos_encoding, opt)
+    #
+    # if opt['dataset'] == 'ogbn-arxiv':  # this is a proxy for 'external encoder'
+    #   loss = train_OGB(model, mp, optimizer, data, pos_encoding)
+    #   train_acc, val_acc, tmp_test_acc = test_OGB(model, mp, data, pos_encoding, opt)
+    # else:
+    this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+    loss = train(model, optimizer, data, pos_encoding)
+    train_acc, val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
 
     if val_acc > best_val_acc:
       best_val_acc = val_acc
@@ -404,7 +411,7 @@ if __name__ == '__main__':
   parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
 
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
-  parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (GDC, DW64, DW128, DW256)')
+  parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
   parser.add_argument('--pos_enc_orientation', type=str, default="row", help="row, col")
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")

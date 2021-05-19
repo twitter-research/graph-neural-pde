@@ -23,7 +23,6 @@ from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, \
 from torch_sparse import coalesce
 from torch_scatter import scatter_add
 
-POS_ENC_PATH = os.path.join("../data", "pos_encodings")
 
 
 def jit(**kwargs):
@@ -172,16 +171,19 @@ def apply_KNN(data, pos_encoding, model, opt):
   return ei
 
 
-def apply_beltrami(data, opt):
+#### THIS SHOULD BE OK
+def apply_beltrami(data, opt, data_dir='../data'):
+  pos_enc_dir = os.path.join(f"{data_dir}", "pos_encodings")
   # generate new positional encodings
   # do encodings already exist on disk?
-  fname = os.path.join(POS_ENC_PATH, f"{opt['dataset']}_{opt['pos_enc_type']}.pkl")
+  fname = os.path.join(pos_enc_dir, f"{opt['dataset']}_{opt['pos_enc_type']}.pkl")
   print(f"[i] Looking for positional encodings in {fname}...")
 
   # - if so, just load them
   if os.path.exists(fname):
     print("    Found them! Loading cached version")
     with open(fname, "rb") as f:
+      # pos_encoding = pickle.load(f)
       pos_encoding = pickle.load(f)
     if opt['pos_enc_type'].startswith("DW"):
       pos_encoding = pos_encoding['data']
@@ -196,6 +198,7 @@ def apply_beltrami(data, opt):
       print(f"[x] The positional encoding type you specified ({opt['pos_enc_type']}) does not exist")
       quit()
     # - ... and store them on disk
+    POS_ENC_PATH = os.path.join(data_dir, "pos_encodings")
     if not os.path.exists(POS_ENC_PATH):
       os.makedirs(POS_ENC_PATH)
 

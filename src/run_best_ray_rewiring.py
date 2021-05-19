@@ -49,6 +49,14 @@ def run_best_params(opt):
     best_params_ret['mix_features']
   except KeyError:
     best_params_ret['mix_features'] = False
+  try:
+    best_params_ret['pos_enc_csv']
+  except KeyError:
+    best_params_ret['pos_enc_csv'] = False
+  try:
+    best_params_ret['pos_enc_type']
+  except KeyError:
+    best_params_ret['pos_enc_type'] = 'GDC'
   # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
   best_params_ret['epoch'] = opt['epoch']
   best_params_ret['max_nfe'] = opt['max_nfe']
@@ -133,8 +141,6 @@ if __name__ == '__main__':
                       help='run parameters discovered with attention different attention similarity ')
   parser.add_argument('--reps', type=int, default=1, help='the number of random weight initialisations to use')
   parser.add_argument('--name', type=str, default=None)
-  #todo if we add new pos_enc_types this will break
-  parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
   parser.add_argument('--gpus', type=float, default=0, help='number of gpus per trial. Can be fractional')
   parser.add_argument('--cpus', type=float, default=1, help='number of cpus per trial. Can be fractional')
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random slpits >= 0. 0 for planetoid split")

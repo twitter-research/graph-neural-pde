@@ -51,11 +51,11 @@ class GNNEarly(BaseGNN):
     if self.opt['beltrami']:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
       x = self.mx(x)
-      if self.opt['dataset'] == 'ogbn-arxiv':
-        p = pos_encoding
-      else:
-        p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
-        p = self.mp(p)
+      # if self.opt['dataset'] == 'ogbn-arxiv':
+      #   p = pos_encoding
+      # else:
+      p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
+      p = self.mp(p)
       x = torch.cat([x, p], dim=1)
     else:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
