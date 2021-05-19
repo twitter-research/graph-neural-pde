@@ -215,7 +215,7 @@ def set_rewiring_space(opt):
   opt['feat_hidden_dim'] = tune.choice([32, 64])
   opt['pos_enc_type'] = tune.choice(['DW64', 'DW128', 'DW256'])
   if opt['dataset'] == 'ogbn-arxiv':
-    opt['pos_enc_hidden_dim'] = tune.choice([16, 32, 64])
+    opt['pos_enc_hidden_dim'] = tune.choice([32, 64, 128])
   else:
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
 
@@ -502,7 +502,7 @@ def set_arxiv_search_space(opt):
   # opt["hidden_dim"] = 128
   # opt["hidden_dim"] = 200  # best choice with attention
   # opt["hidden_dim"] = 256  # best choice without attention
-  opt["lr"] = tune.uniform(0.01, 0.02)
+  opt["lr"] = tune.uniform(0.005, 0.02)
   # opt['lr'] = 0.02
   # opt["input_dropout"] = tune.uniform(0., 0.2)
   opt["input_dropout"] = 0
@@ -546,12 +546,12 @@ def set_arxiv_search_space(opt):
     opt["adjoint_method"] = tune.choice(['dopri5', 'rk4', 'adaptive_heun'])
     opt['adjoint_step_size'] = 0.2
     if opt["adjoint_method"] == 'dopri5' or 'adaptive_heun':
-      opt["tol_scale_adjoint"] = tune.loguniform(1e2, 1e5)
+      opt["tol_scale_adjoint"] = tune.loguniform(1e2, 1e6)
     else:
       opt['adjoint_step_size'] = tune.choice([0.5, 1])
 
   if opt["method"] == 'dopri5':
-    opt["tol_scale"] = tune.loguniform(1e2, 1e5)
+    opt["tol_scale"] = tune.loguniform(1e2, 1e6)
   else:
     opt['step_size'] = tune.choice([0.2, 0.5, 1])
 
