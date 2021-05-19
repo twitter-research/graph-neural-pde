@@ -549,7 +549,7 @@ def set_arxiv_search_space(opt):
   if opt["adjoint"]:
     # opt["tol_scale_adjoint"] = tune.loguniform(1000, 1e5)
     # opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
-    opt["adjoint_method"] = ["rk4", "dopri5"]
+    opt["adjoint_method"] = tune.choice(['dopri5', 'rk4'])
     opt['adjoint_step_size'] = 0.2
   # opt["time"] = tune.choice([1,2,3,4,5,6,7,8,9,10])
   opt['time'] = tune.uniform(2, 8)
