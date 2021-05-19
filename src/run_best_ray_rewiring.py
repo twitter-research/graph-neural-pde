@@ -147,6 +147,7 @@ def mainLoop(opt):
         opt["index"] = indexes[i][idx_i]
         run_best_params(opt)
 
+  run_top5(opt)
 
 
 
@@ -296,7 +297,7 @@ def run_top5(opt):
   opt['metric'] = 'test_acc'
 
   for idx, best_params in enumerate(top5):
-    opt['index'] = idx
+    opt['index'] = idx + 5
     best_params_ret = {**best_params, **opt}
     try:
       best_params_ret['mix_features']
