@@ -208,11 +208,17 @@ def set_rewiring_space(opt):
 
   opt['beltrami'] = True  # tune.choice([True, False])
   bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
+
   non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
   opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
   # opt['attention_type'] = "scaled_dot"
   opt['feat_hidden_dim'] = tune.choice([32, 64])
-  opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
+  opt['pos_enc_type'] = tune.choice(['DW64', 'DW128', 'DW256'])
+  if opt['dataset'] == 'ogbn-arxiv':
+    opt['pos_enc_hidden_dim'] = tune.choice([16, 32, 64])
+  else:
+    opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
+
   opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
   if spec.config.beltrami else tune.choice([32, 64, 128]))
   # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
@@ -502,11 +508,7 @@ def set_arxiv_search_space(opt):
   opt["dropout"] = tune.uniform(0, 0.2)
   # opt["dropout"] = 0
   # opt['step_size'] = tune.choice([0.5, 1])
-  opt['step_size'] = 0.2
-  # opt['adjoint_step_size'] = tune.choice([0.5, 1])
-  opt['adjoint_step_size'] = 0.2
-  # opt["time"] = tune.choice([1,2,3,4,5,6,7,8,9,10])
-  opt['time'] = tune.uniform(2, 8)
+
   # opt['time'] = 5
   # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
   if opt['function'] == 'transformer':
@@ -541,16 +543,21 @@ def set_arxiv_search_space(opt):
 
   # opt["tol_scale"] = tune.loguniform(1000, 1e7)
 
+  # tune the integrator
+  opt['step_size'] = 0.2
+  # opt['adjoint_step_size'] = tune.choice([0.5, 1])
   if opt["adjoint"]:
     # opt["tol_scale_adjoint"] = tune.loguniform(1000, 1e5)
     # opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
-    opt["adjoint_method"] = "rk4"
-
-  opt["method"] = "rk4"
-  # opt['method'] = tune.choice(['dopri5', 'rk4'])
+    opt["adjoint_method"] = ["rk4", "dopri5"]
+    opt['adjoint_step_size'] = 0.2
+  # opt["time"] = tune.choice([1,2,3,4,5,6,7,8,9,10])
+  opt['time'] = tune.uniform(2, 8)
+  # opt["method"] = "rk4"
+  opt['method'] = tune.choice(['dopri5', 'rk4'])
   # opt['use_mlp'] = tune.choice([True, False])
   opt['use_mlp'] = False
-  opt['cosine_sim'] = tune.choice([True, False])
+  # opt['cosine_sim'] = tune.choice([True, False])
 
   if opt['rewiring'] == 'gdc':
     # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
