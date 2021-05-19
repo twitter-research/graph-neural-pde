@@ -63,7 +63,10 @@ def run_best_params(opt):
     best_params_ret['attention_type'] = opt['att_sim_type']
     best_params_ret['square_plus'] = False
 
-  best_params_ret['pos_enc_orientation'] = best_params_ret['pos_enc_dim']
+  try:
+    best_params_ret['pos_enc_orientation'] = best_params_ret['pos_enc_dim']
+  except:
+    pass
 
   print("Running with parameters {}".format(best_params_ret))
 
