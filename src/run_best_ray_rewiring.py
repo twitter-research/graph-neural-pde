@@ -293,7 +293,7 @@ def run_top5(opt):
   # opt['edge_sampling_add'] = 0.16
   # opt['edge_sampling_rmv'] = 0.16
 
-  samples = [0.02, 0.04, 0.08, 0.16]
+  samples = [0.0, 0.02, 0.04, 0.08, 0.16]
   opt['edge_sampling_sym'] = False
 
   opt['max_nfe'] = 2000
@@ -309,6 +309,7 @@ def run_top5(opt):
   for add in samples:
     opt['edge_sampling_add'] = add
     for rmv in samples:
+      opt['experiment'] = f"add_{add}_rmv_{rmv}"
       opt['edge_sampling_rmv'] = rmv
 
       best_params_ret = {**best_params, **opt}
