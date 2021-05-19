@@ -283,7 +283,7 @@ def KNN_abalation_grid(opt):
 
 def run_top5(opt):
 
-  opt['folder'] = 'Cora_edge_sampling_beltrami_top1ablation'
+  opt['folder'] = 'Cora_top5'
   opt['name'] = 'Cora_edge_sampling_beltrami_top1ablation_test'
 
   opt['edge_sampling'] = True
