@@ -125,6 +125,7 @@ def mainLoop(opt):
   indexes = [[0,1,2,3,4]] #,[3,4]] #[[0,1,2], [0,1,2]] #,3,4]]#, [0,1,2,3,4]] #,0,0]
   opt['run_with_KNN'] = False
   opt['change_att_sim_type'] = False
+  opt['bestwithKNN'] = False
   opt['bestwithAttTypes'] = ['cosine_sim', 'scaled_dot'] #[False]
 
   for i, ds in enumerate(datas):
