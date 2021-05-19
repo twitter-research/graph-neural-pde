@@ -543,9 +543,9 @@ def set_arxiv_search_space(opt):
   opt['label_rate'] = tune.uniform(0.1, 0.5)
 
   if opt["adjoint"]:
-    opt["adjoint_method"] = tune.choice(['dopri5', 'rk4', 'adaptive_heun'])
+    opt["adjoint_method"] = tune.choice(['dopri5', 'rk4'])
     opt['adjoint_step_size'] = 0.2
-    if opt["adjoint_method"] == 'dopri5' or 'adaptive_heun':
+    if opt["adjoint_method"] == 'dopri5':
       opt["tol_scale_adjoint"] = tune.loguniform(1e2, 1e6)
     else:
       opt['adjoint_step_size'] = tune.choice([0.5, 1])
