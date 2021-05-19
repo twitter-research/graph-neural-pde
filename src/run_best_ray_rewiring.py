@@ -283,11 +283,14 @@ def KNN_abalation_grid(opt):
 
 def run_top5(opt):
 
+  opt['folder'] = 'Cora_edge_sampling_beltrami_2splits'
+  opt['name'] = 'Cora_edge_sampling_beltrami_2splits_test2'
+
   opt['edge_sampling'] = True
   opt['edge_sampling_T'] = 'TN'
-  opt['edge_sampling_epoch'] = 10
-  opt['edge_sampling_add'] = 0.32
-  opt['edge_sampling_rmv'] = 0.32
+  opt['edge_sampling_epoch'] = 20
+  opt['edge_sampling_add'] = 0.16
+  opt['edge_sampling_rmv'] = 0.16
   opt['edge_sampling_sym'] = False
 
   opt['max_nfe'] = 2000
@@ -398,7 +401,7 @@ if __name__ == '__main__':
 
   opt = vars(args)
   # run_best_params(opt)
-  mainLoop(opt)
+  # mainLoop(opt)
   # KNN_abalation(opt)
   # KNN_abalation_grid(opt)
-  # run_top5(opt)
+  run_top5(opt)
