@@ -81,6 +81,7 @@ class AttentionTests(unittest.TestCase):
     self.assertTrue(torch.all(attention > 0.))
     self.assertTrue(torch.all(attention <= 1.))
 
+
   def test_symetric_attention(self):
     in_features = self.x1.shape[1]
     out_features = self.x1.shape[1]

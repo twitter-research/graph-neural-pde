@@ -13,6 +13,7 @@ from graph_rewiring import get_two_hop, apply_gdc
 from ogb.nodeproppred import PygNodePropPredDataset
 import torch_geometric.transforms as T
 from torch_geometric.utils import to_undirected
+from graph_rewiring import make_symmetric
 
 DATA_PATH = '../data'
 
@@ -63,6 +64,9 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     dataset.data = data
   if opt['rewiring']:
     dataset.data = rewire(dataset.data, opt)
+    if opt['make_symm']:
+      dataset.data.edge_index, dataset.data.edge_attr = make_symmetric(dataset.data)
+
   train_mask_exists = True
   try:
     dataset.data.train_mask
