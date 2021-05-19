@@ -227,10 +227,10 @@ def set_rewiring_space(opt):
         opt['rewire_KNN_k'] = tune.choice([16, 32, 64, 128, 256])
         opt['rewire_KNN_sym'] = tune.choice([True, False])
 
-    opt['rewire_KNN'] = True
-    if opt['rewire_KNN']:
-        opt['rewire_sampling_T'] = tune.choice(["T0","TN"])
-        opt['rewire_sampling_epoch'] = tune.choice([2,10,20,50])
+    opt['edge_sampling'] = True
+    if opt['edge_sampling']:
+        opt['edge_sampling_T'] = tune.choice(["T0","TN"])
+        opt['edge_sampling_epoch'] = tune.choice([2,10,20,50])
         opt['edge_sampling_add'] = tune.choice([0.04, 0.08, 0.16, 0.32])
         opt['edge_sampling_rmv'] = tune.choice([0.04, 0.08, 0.16, 0.32])
         opt['edge_sampling_sym'] = tune.choice([True, False])
