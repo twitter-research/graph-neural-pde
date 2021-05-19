@@ -216,7 +216,6 @@ def set_rewiring_space(opt):
                         if spec.config.beltrami else tune.choice([32, 64, 128]))
     # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
     opt['pos_enc_orientation'] = tune.choice(["row", "col"])
-
     opt['square_plus'] = tune.choice([True, False])
 
     opt['rewire_KNN'] = False #tune.choice([True, False])
@@ -225,6 +224,14 @@ def set_rewiring_space(opt):
         opt['rewire_KNN_epoch'] = tune.choice([2,10,20,50])
         opt['rewire_KNN_k'] = tune.choice([16, 32, 64, 128, 256])
         opt['rewire_KNN_sym'] = tune.choice([True, False])
+
+    opt['rewire_KNN'] = True
+    if opt['rewire_KNN']:
+        opt['rewire_sampling_T'] = tune.choice(["T0","TN"])
+        opt['rewire_sampling_epoch'] = tune.choice([2,10,20,50])
+        opt['edge_sampling_add'] = tune.choice([0.04, 0.08, 0.16, 0.32])
+        opt['edge_sampling_rmv'] = tune.choice([0.04, 0.08, 0.16, 0.32])
+        opt['edge_sampling_sym'] = tune.choice([True, False])
     return opt
 
 

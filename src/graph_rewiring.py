@@ -183,6 +183,54 @@ def apply_KNN(data, pos_encoding, model, opt):
   return ei
 
 
+@torch.no_grad()
+def apply_edge_sampling(data, pos_encoding, model, opt):
+  print(f"Rewiring with edge sampling")
+
+  # generate new edges and add to edge_index
+  num_nodes = data.num_nodes
+  M = int(data.num_nodes * opt['edge_sampling_add'])
+  new_edges = np.random.choice(num_nodes, size=(2, M), replace=True, p=None)
+  new_edges = torch.tensor(new_edges)
+  cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges], dim=1)
+  new_edges = torch.unique(cat, sorted=False, return_inverse=False,
+                            return_counts=False, dim=1)
+
+  #add to model edge index
+  model.odeblock.odefunc.edge_index = new_edges
+
+  #get P_T0 or P_TN
+  if opt['edge_sampling_T'] == "T0":
+    z0 = model.forward_encoder(data.x, pos_encoding)
+    if model.opt['use_labels']:
+      y = z0[:, -model.num_classes:]
+      z0 = z0[:, :-model.num_classes]
+    p = z0[:, model.opt['feat_hidden_dim']:].contiguous()
+
+  elif opt['edge_sampling_T'] == 'TN':
+    zT = model.forward_ODE(data.x, pos_encoding)
+    if model.opt['use_labels']:
+      y = zT[:, -model.num_classes:]
+      zT = zT[:, :-model.num_classes]
+    p = zT[:, model.opt['feat_hidden_dim']:].contiguous()
+
+  #calc distance metric
+  temp_att_type = model.opt['attention_type']
+  model.opt['attention_type'] = 'pos_distance'
+  pos_enc_distances = model.odeblock.get_attention_weights(p)
+  model.opt['attention_type'] = temp_att_type
+
+  #threshold
+  threshold = torch.quantile(pos_enc_distances, 1 - opt['edge_sampling_rmv'])
+  mask = pos_enc_distances < threshold
+
+  #update edge index in model
+  model.odeblock.odefunc.edge_index = model.odeblock.odefunc.edge_index[:, mask.T]
+
+  if opt['edge_sampling_sym']:
+    model.odeblock.odefunc.edge_index = to_undirected(model.odeblock.odefunc.edge_index)
+
+
 #### THIS SHOULD BE OK
 def apply_beltrami(data, opt, data_dir='../data'):
   pos_enc_dir = os.path.join(f"{data_dir}", "pos_encodings")

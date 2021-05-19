@@ -7,7 +7,7 @@ from GNN_KNN import GNN_KNN
 import time
 from data import get_dataset
 from ogb.nodeproppred import Evaluator
-from graph_rewiring import apply_gdc, KNN, apply_KNN, apply_beltrami
+from graph_rewiring import apply_gdc, KNN, apply_KNN, apply_beltrami, apply_edge_sampling
 
 
 def get_cora_opt(opt):
@@ -256,7 +256,7 @@ def main(opt):
   else:
     pos_encoding = None
 
-  if opt['rewire_KNN']:
+  if opt['rewire_KNN'] or opt['edge_sampling']:
     model = GNN_KNN(opt, dataset, device).to(device)
   else:
     model = GNN(opt, dataset, device).to(device)
@@ -276,6 +276,9 @@ def main(opt):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
       ei = apply_KNN(data, pos_encoding, model, opt)
       model.odeblock.odefunc.edge_index = ei
+
+    if opt['edge_sampling'] and epoch % opt['edge_sampling_epoch'] == 0 and epoch != 0:
+      apply_edge_sampling(data, pos_encoding, model, opt)
 
     if opt['dataset'] == 'ogbn-arxiv':  # this is a proxy for 'external encoder'
       loss = train_OGB(model, mp, optimizer, data, pos_encoding)
@@ -405,7 +408,6 @@ if __name__ == '__main__':
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
   parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
   parser.add_argument('--pos_enc_orientation', type=str, default="row", help="row, col")
-  parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
   parser.add_argument('--pos_enc_hidden_dim', type=int, default=32, help="dimension of position in beltrami")
   parser.add_argument('--rewire_KNN', action='store_true', help='perform KNN rewiring every few epochs')
@@ -415,8 +417,20 @@ if __name__ == '__main__':
   parser.add_argument('--rewire_KNN_sym', action='store_true', help='make KNN symmetric')
   parser.add_argument('--KNN_online', action='store_true', help='perform rewiring online')
   parser.add_argument('--KNN_online_reps', type=int, default=4, help="how many online KNN its")
+
+  parser.add_argument('--edge_sampling', action='store_true', help='perform edge sampling rewiring')
+  parser.add_argument('--edge_sampling_T', type=str, default="T0", help="T0, TN")
+  parser.add_argument('--edge_sampling_epoch', type=int, default=5, help="frequency of epochs to rewire")
+  parser.add_argument('--edge_sampling_add', type=float, default=0.05, help="percentage of new edges to add")
+  parser.add_argument('--edge_sampling_rmv', type=float, default=0.05, help="percentage of edges to remove")
+  parser.add_argument('--edge_sampling_sym', action='store_true', help='make KNN symmetric')
+
+
+  parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
+
+
 
   args = parser.parse_args()
 

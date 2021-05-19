@@ -85,7 +85,7 @@ class RewireAttODEblock(ODEblock):
       self.odefunc.attention_weights = ew
 
     # if self.opt['threshold_type'] == 'topk_adj':
-    #   #todo not efficient see graph rewiting A+A.T
+    #   #todo not efficient see graph rewiring A+A.T
     #   S_hat = (0.5 * A1 + 0.5 * A2).coalesce()
     #   self.data_edge_index = S_hat.indices()
     #   self.odefunc.attention_weights = S_hat.values()
@@ -203,7 +203,6 @@ class RewireAttODEblock(ODEblock):
     self.odefunc.edge_index = self.data_edge_index
     attention_weights = self.get_attention_weights(x)
     mean_att = attention_weights.mean(dim=1, keepdim=False)
-    self.odefunc.edge_weight = mean_att
     self.odefunc.attention_weights = mean_att
 
     self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight

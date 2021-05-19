@@ -20,7 +20,7 @@ from GNN_ICML20 import train as train_icml
 from GNN_KNN import GNN_KNN
 from GNN_KNN_early import GNNKNNEarly
 
-from graph_rewiring import apply_gdc, KNN, apply_KNN, apply_beltrami
+from graph_rewiring import apply_gdc, KNN, apply_KNN, apply_beltrami, apply_edge_sampling
 from graph_rewiring_ray import set_search_space, set_rewiring_space, set_cora_search_space, set_citeseer_search_space
 
 """
@@ -118,6 +118,8 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       KNN_ei = [apply_KNN(data, pos_encoding, model, opt) for model, data in zip(models, datas)]
       for i, data in enumerate(datas):
         models[i].odeblock.odefunc.edge_index = KNN_ei[i]
+    if opt['edge_sampling'] and epoch % opt['edge_sampling_epoch'] == 0 and epoch != 0:
+      apply_edge_sampling(data, pos_encoding, model, opt)
 
     if opt['dataset'] == 'ogbn-arxiv':
       loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in
@@ -197,6 +199,9 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       ei = apply_KNN(data, pos_encoding, model, opt)
       model.odeblock.odefunc.edge_index = ei
 
+    if opt['edge_sampling'] and epoch % opt['edge_sampling_epoch'] == 0 and epoch != 0:
+      apply_edge_sampling(data, pos_encoding, model, opt)
+
     if opt['dataset'] == 'ogbn-arxiv':
       loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in
                       zip(models, mps, optimizers, datas)])
@@ -257,6 +262,9 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
       ei = apply_KNN(data, pos_encoding, model, opt)
       model.odeblock.odefunc.edge_index = ei
+
+    if opt['edge_sampling'] and epoch % opt['edge_sampling_epoch'] == 0 and epoch != 0:
+      apply_edge_sampling(data, pos_encoding, model, opt)
 
     loss = train(model, optimizer, data, pos_encoding)
 
@@ -485,6 +493,14 @@ if __name__ == "__main__":
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
   parser.add_argument('--max_epochs', type=int, default=1000, help="max epochs to train before patience")
   parser.add_argument('--patience', type=int, default=100, help="amount of patience for non improving val acc")
+
+
+  parser.add_argument('--rewire_edge_sampling', action='store_true', help='perform edge sampling rewiring')
+  parser.add_argument('--rewire_sampling_T', type=str, default="T0", help="T0, TN")
+  parser.add_argument('--rewire_sampling_epoch', type=int, default=5, help="frequency of epochs to rewire")
+  parser.add_argument('--edge_sampling_add', type=float, default=0.05, help="percentage of new edges to add")
+  parser.add_argument('--edge_sampling_rmv', type=float, default=0.05, help="percentage of edges to remove")
+
 
   args = parser.parse_args()
   opt = vars(args)
