@@ -186,7 +186,7 @@ class SpGraphTransAttentionLayer(nn.Module):
       prods = self.output_var_p ** 2 * torch.exp(
         -torch.sum((src_p - dst_p) ** 2, dim=1) / (2 * self.lengthscale_p ** 2))
       v = None
-      return prods.unsqueeze(dim=1), v
+      prods = prods.unsqueeze(dim=1)
 
     elif self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel_z":
       # todo the below is very error prone. Think of a better way when there's time
@@ -204,7 +204,7 @@ class SpGraphTransAttentionLayer(nn.Module):
               * self.output_var_p ** 2 * torch.exp(
         -torch.sum((src_p - dst_p) ** 2, dim=1) / (2 * self.lengthscale_p ** 2))
       v = None
-      return prods.unsqueeze(dim=1), v
+      prods = prods.unsqueeze(dim=1)
 
     elif self.opt['beltrami'] and self.opt['attention_type'] == "pos_distance":
       # todo the below is very error prone. Think of a better way when there's time
@@ -225,6 +225,75 @@ class SpGraphTransAttentionLayer(nn.Module):
       prods = torch.sum((src_z - dst_z) ** 2, dim=1)
       v = None
       return prods, v
+
+
+    # elif self.opt['beltrami'] and self.opt['attention_type'] == "z_distance_QK":
+    #   # todo the below is very error prone. Think of a better way when there's time
+    #   label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
+    #   p = x[:, self.opt['feat_hidden_dim']: label_index]
+    #   x = torch.cat((x[:, :self.opt['feat_hidden_dim']], x[:, label_index:]), dim=1)
+    #
+    #   qx = self.Qx(x)
+    #   kx = self.Kx(x)
+    #   vx = self.Vx(x)
+    #   # perform linear operation and split into h heads
+    #   kx = kx.view(-1, self.h, self.d_k)
+    #   qx = qx.view(-1, self.h, self.d_k)
+    #   vx = vx.view(-1, self.h, self.d_k)
+    #   # transpose to get dimensions [n_nodes, attention_dim, n_heads]
+    #   kx = kx.transpose(1, 2)
+    #   qx = qx.transpose(1, 2)
+    #   vx = vx.transpose(1, 2)
+    #   src_x = qx[edge[0, :], :, :]
+    #   dst_x = kx[edge[1, :], :, :]
+    #
+    #   qp = self.Qp(p)
+    #   kp = self.Kp(p)
+    #   vp = self.Vp(p)
+    #   # perform linear operation and split into h heads
+    #   kp = kp.view(-1, self.h, self.d_k)
+    #   qp = qp.view(-1, self.h, self.d_k)
+    #   vp = vp.view(-1, self.h, self.d_k)
+    #   # transpose to get dimensions [n_nodes, attention_dim, n_heads]
+    #   kp = kp.transpose(1, 2)
+    #   qp = qp.transpose(1, 2)
+    #   vp = vp.transpose(1, 2)
+    #   src_p = qp[edge[0, :], :, :]
+    #   dst_p = kp[edge[1, :], :, :]
+    #
+    #   prods = (torch.sum((src_x - dst_x) ** 2, dim=1) / (2 * self.lengthscale_x ** 2)) + \
+    #           (torch.sum((src_p - dst_p) ** 2, dim=1) / (2 * self.lengthscale_p ** 2))
+    #
+    #   # take the mean
+    #   prods = prods.mean(dim=1)
+    #   v = None
+    #   return prods, v
+    #
+    # elif self.opt['beltrami'] and self.opt['attention_type'] == "p_distance_QK":
+    #   # todo the below is very error prone. Think of a better way when there's time
+    #   label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
+    #   p = x[:, self.opt['feat_hidden_dim']: label_index]
+    #
+    #   qp = self.Qp(p)
+    #   kp = self.Kp(p)
+    #   vp = self.Vp(p)
+    #   # perform linear operation and split into h heads
+    #   kp = kp.view(-1, self.h, self.d_k)
+    #   qp = qp.view(-1, self.h, self.d_k)
+    #   vp = vp.view(-1, self.h, self.d_k)
+    #   # transpose to get dimensions [n_nodes, attention_dim, n_heads]
+    #   kp = kp.transpose(1, 2)
+    #   qp = qp.transpose(1, 2)
+    #   vp = vp.transpose(1, 2)
+    #   src_p = qp[edge[0, :], :, :]
+    #   dst_p = kp[edge[1, :], :, :]
+    #
+    #   prods = torch.sum((src_p - dst_p) ** 2, dim=1) / (2 * self.lengthscale_p ** 2)
+    #
+    #   # take the mean
+    #   prods = prods.mean(dim=1)
+    #   v = None
+    #   return prods, v
 
     else:
       q = self.Q(x)

@@ -176,7 +176,6 @@ def apply_KNN(data, pos_encoding, model, opt):
       zT = zT[:, :-model.num_classes]
     pT = zT[:, model.opt['feat_hidden_dim']:].contiguous()
     ei = KNN(pT, opt)
-
   else:
     raise Exception("Need to set rewire_KNN_T")
 

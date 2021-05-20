@@ -120,8 +120,8 @@ def mainLoop(opt):
   opt['metric'] = 'test_acc'
 
   datas = ['Cora']#,'Citeseer'] #, 'Pubmed'] #['Cora', 'Citeseer', 'Photo']
-  folders = ['Cora_DIGL_beltrami_2splits3'] #beltrami_2','Citeseer_beltrami_1']#, 'Pubmed_beltrami_2_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
-  names = ['Cora_DIGL_beltrami_2splits3_test'] #['Cora_beltrami_attdefaults_test','Citeseer_beltrami_attdefaults_test']
+  folders = ['Cora_beltrami_exp_kernel'] #beltrami_2','Citeseer_beltrami_1']#, 'Pubmed_beltrami_2_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
+  names = ['Cora_beltrami_exp_kernel_test'] #['Cora_beltrami_attdefaults_test','Citeseer_beltrami_attdefaults_test']
   indexes = [[0,1,2,3,4]] #,[3,4]] #[[0,1,2], [0,1,2]] #,3,4]]#, [0,1,2,3,4]] #,0,0]
   opt['run_with_KNN'] = False
   opt['bestwithKNN'] = False
@@ -436,7 +436,7 @@ if __name__ == '__main__':
 
   opt = vars(args)
   # run_best_params(opt)
-  # mainLoop(opt)
+  mainLoop(opt)
   # KNN_abalation(opt)
   # KNN_abalation_grid(opt)
-  run_top5(opt)
+  # run_top5(opt)
