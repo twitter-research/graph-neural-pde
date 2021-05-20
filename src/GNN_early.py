@@ -30,7 +30,9 @@ class GNNEarly(BaseGNN):
     #   from torchdiffeq import odeint
     # self.odeblock.train_integrator = odeint
 
+
     self.set_solver_data(dataset.data)
+    self.set_solver_m2()
 
   def set_solver_m2(self):
     if self.odeblock.test_integrator.m2 is None:
