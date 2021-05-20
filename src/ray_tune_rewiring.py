@@ -533,5 +533,5 @@ if __name__ == "__main__":
 
   args = parser.parse_args()
   opt = vars(args)
-  main(opt)
-  # mainLoop(opt)
+  # main(opt)
+  mainLoop(opt)
