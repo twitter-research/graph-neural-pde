@@ -215,7 +215,7 @@ def set_rewiring_space(opt):
   opt['feat_hidden_dim'] = tune.choice([32, 64])
   opt['pos_enc_type'] = tune.choice(['DW64', 'DW128', 'DW256'])
   if opt['dataset'] == 'ogbn-arxiv':
-    opt['pos_enc_hidden_dim'] = tune.choice([32, 64, 128])
+    opt['pos_enc_hidden_dim'] = tune.choice([32, 64, 98])
   else:
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
 
