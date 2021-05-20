@@ -273,20 +273,21 @@ class EarlyStopInt(torch.nn.Module):
         TypeError: if `options` is supplied without `method`, or if `t` or `y0` has
             an invalid dtype.
     """
-    method = self.opt['method']
-    assert method in ['rk4', 'dopri5'], "Only dopri5 and rk4 implemented with early stopping"
-    event_fn = None
-    ver = torchdiffeq.__version__
-    if int(ver[0]+ver[2]+ver[4]) >= 21: #0.2.1 change of signiture *around* this release
-      shapes, func, y0, t, rtol, atol, method, options, event_fn, t_is_reversed = _check_inputs(func, y0, self.t, rtol, atol, method, options, event_fn, SOLVERS)
-    else:
-      shapes, func, y0, t, rtol, atol, method, options = _check_inputs(func, y0, self.t, rtol, atol, method, options, SOLVERS)
+    with torch.no_grad():
+      method = self.opt['method']
+      assert method in ['rk4', 'dopri5'], "Only dopri5 and rk4 implemented with early stopping"
+      event_fn = None
+      ver = torchdiffeq.__version__
+      if int(ver[0]+ver[2]+ver[4]) >= 21: #0.2.1 change of signiture *around* this release
+        shapes, func, y0, t, rtol, atol, method, options, event_fn, t_is_reversed = _check_inputs(func, y0, self.t, rtol, atol, method, options, event_fn, SOLVERS)
+      else:
+        shapes, func, y0, t, rtol, atol, method, options = _check_inputs(func, y0, self.t, rtol, atol, method, options, SOLVERS)
 
-    self.solver = SOLVERS[method](func, y0, rtol=rtol, atol=atol, opt=self.opt, **options)
-    if self.solver.data is None:
-      self.solver.data = self.data
-    self.solver.m2 = self.m2
-    t, solution = self.solver.integrate(t)
-    if shapes is not None:
-      solution = _flat_to_shape(solution, (len(t),), shapes)
-    return solution
+      self.solver = SOLVERS[method](func, y0, rtol=rtol, atol=atol, opt=self.opt, **options)
+      if self.solver.data is None:
+        self.solver.data = self.data
+      self.solver.m2 = self.m2
+      t, solution = self.solver.integrate(t)
+      if shapes is not None:
+        solution = _flat_to_shape(solution, (len(t),), shapes)
+      return solution
