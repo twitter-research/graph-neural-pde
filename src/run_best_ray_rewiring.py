@@ -59,6 +59,10 @@ def run_best_params(opt):
   if opt["run_with_KNN"]:
     best_params_ret = with_KNN(best_params_ret)
 
+  #todo one off delete this after use
+  best_params_ret['rewire_KNN'] = False
+  best_params_ret['edge_sampling'] = False
+
   if opt['change_att_sim_type']:
     best_params_ret['attention_type'] = opt['att_sim_type']
     best_params_ret['square_plus'] = False
