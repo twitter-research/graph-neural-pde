@@ -256,7 +256,7 @@ def main(opt):
   else:
     pos_encoding = None
 
-  if opt['rewire_KNN'] or opt['edge_sampling']:
+  if opt['rewire_KNN'] or opt['KNN_online'] or opt['edge_sampling'] or opt['edge_sampling_online']:
     model = GNN_KNN(opt, dataset, device).to(device)
   else:
     model = GNN(opt, dataset, device).to(device)
@@ -433,7 +433,8 @@ if __name__ == '__main__':
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
 
-
+  # --dataset Cora --block attention --beltrami --edge_sampling --edge_sampling_T TN --edge_sampling_space pos_distance
+  # --dataset Cora --block attention --beltrami --edge_sampling_online --edge_sampling_space pos_distance
 
   args = parser.parse_args()
 

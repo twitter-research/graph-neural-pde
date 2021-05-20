@@ -168,6 +168,21 @@ class SpGraphTransAttentionLayer(nn.Module):
         -torch.sum((src_p - dst_p) ** 2, dim=1) / (2 * self.lengthscale_p ** 2))
 
       v = None
+    elif self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel_pos":
+
+      p = x[:, self.opt['feat_hidden_dim']:]
+      x = x[:, :self.opt['feat_hidden_dim']]
+
+      src_p = qp[edge[0, :], :, :]
+      dst_p = kp[edge[1, :], :, :]
+
+      prods = self.output_var_x ** 2 * torch.exp(
+        -torch.sum((src_x - dst_x) ** 2, dim=1) / (2 * self.lengthscale_x ** 2)) \
+              * self.output_var_p ** 2 * torch.exp(
+        -torch.sum((src_p - dst_p) ** 2, dim=1) / (2 * self.lengthscale_p ** 2))
+      v = None
+
+
 
     elif self.opt['beltrami'] and self.opt['attention_type'] == "pos_distance":
       p = x#[:, self.opt['feat_hidden_dim']:]

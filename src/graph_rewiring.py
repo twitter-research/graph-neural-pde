@@ -183,12 +183,11 @@ def apply_KNN(data, pos_encoding, model, opt):
   return ei
 
 
-
-def edge_sampling(model, x, opt):
+def edge_sampling(model, z, opt):
   #calc distance metric
   temp_att_type = model.opt['attention_type']
   model.opt['attention_type'] = model.opt['edge_sampling_space']
-  pos_enc_distances = model.odeblock.get_attention_weights(x)
+  pos_enc_distances = model.odeblock.get_attention_weights(z)
   model.opt['attention_type'] = temp_att_type
 
   #threshold
@@ -196,7 +195,6 @@ def edge_sampling(model, x, opt):
   mask = pos_enc_distances < threshold
 
   return model.odeblock.odefunc.edge_index[:, mask.T]
-
 
 
 @torch.no_grad()
@@ -221,17 +219,8 @@ def apply_edge_sampling(data, pos_encoding, model, opt):
   elif opt['edge_sampling_T'] == 'TN':
     z = model.forward_ODE(data.x, pos_encoding)
 
-  if model.opt['use_labels']:
-    y = z[:, -model.num_classes:]
-    z = z[:, :-model.num_classes]
-
-  if opt['edge_sampling_space'] == 'z_distance':
-    x = z.contiguous()
-  else:
-    x = z[:, model.opt['feat_hidden_dim']:].contiguous()
-
   # update edge index in model
-  model.odeblock.odefunc.edge_index = edge_sampling(model, x, opt)
+  model.odeblock.odefunc.edge_index = edge_sampling(model, z, opt)
 
   if opt['edge_sampling_sym']:
     model.odeblock.odefunc.edge_index = to_undirected(model.odeblock.odefunc.edge_index)
