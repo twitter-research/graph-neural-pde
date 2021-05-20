@@ -183,6 +183,22 @@ def apply_KNN(data, pos_encoding, model, opt):
   return ei
 
 
+
+def edge_sampling(model, x, opt):
+  #calc distance metric
+  temp_att_type = model.opt['attention_type']
+  model.opt['attention_type'] = model.opt['edge_sampling_space']
+  pos_enc_distances = model.odeblock.get_attention_weights(x)
+  model.opt['attention_type'] = temp_att_type
+
+  #threshold
+  threshold = torch.quantile(pos_enc_distances, 1 - opt['edge_sampling_rmv'])
+  mask = pos_enc_distances < threshold
+
+  return model.odeblock.odefunc.edge_index[:, mask.T]
+
+
+
 @torch.no_grad()
 def apply_edge_sampling(data, pos_encoding, model, opt):
   print(f"Rewiring with edge sampling")
@@ -201,31 +217,21 @@ def apply_edge_sampling(data, pos_encoding, model, opt):
 
   #get P_T0 or P_TN
   if opt['edge_sampling_T'] == "T0":
-    z0 = model.forward_encoder(data.x, pos_encoding)
-    if model.opt['use_labels']:
-      y = z0[:, -model.num_classes:]
-      z0 = z0[:, :-model.num_classes]
-    p = z0[:, model.opt['feat_hidden_dim']:].contiguous()
-
+    z = model.forward_encoder(data.x, pos_encoding)
   elif opt['edge_sampling_T'] == 'TN':
-    zT = model.forward_ODE(data.x, pos_encoding)
-    if model.opt['use_labels']:
-      y = zT[:, -model.num_classes:]
-      zT = zT[:, :-model.num_classes]
-    p = zT[:, model.opt['feat_hidden_dim']:].contiguous()
+    z = model.forward_ODE(data.x, pos_encoding)
 
-  #calc distance metric
-  temp_att_type = model.opt['attention_type']
-  model.opt['attention_type'] = model.opt['edge_sampling_space']
-  pos_enc_distances = model.odeblock.get_attention_weights(p)
-  model.opt['attention_type'] = temp_att_type
+  if model.opt['use_labels']:
+    y = z[:, -model.num_classes:]
+    z = z[:, :-model.num_classes]
 
-  #threshold
-  threshold = torch.quantile(pos_enc_distances, 1 - opt['edge_sampling_rmv'])
-  mask = pos_enc_distances < threshold
+  if opt['edge_sampling_space'] == 'z_distance':
+    x = z.contiguous()
+  else:
+    x = z[:, model.opt['feat_hidden_dim']:].contiguous()
 
-  #update edge index in model
-  model.odeblock.odefunc.edge_index = model.odeblock.odefunc.edge_index[:, mask.T]
+  # update edge index in model
+  model.odeblock.odefunc.edge_index = edge_sampling(model, x, opt)
 
   if opt['edge_sampling_sym']:
     model.odeblock.odefunc.edge_index = to_undirected(model.odeblock.odefunc.edge_index)
