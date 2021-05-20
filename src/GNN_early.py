@@ -36,8 +36,6 @@ class GNNEarly(BaseGNN):
     self.set_solver_m2()
 
   def set_solver_m2(self):
-    if self.odeblock.test_integrator is None:
-      self.odeblock.test_integrator = EarlyStopInt(self.T, opt, self.device)
     if self.odeblock.test_integrator.m2 is None:
       self.odeblock.test_integrator.m2 = self.m2
     else:
@@ -49,7 +47,7 @@ class GNNEarly(BaseGNN):
 
 
   def cleanup(self):
-    del self.odeblock.test_integrator
+    del self.odeblock.test_integrator.m2
     torch.cuda.empty_cache()
 
 
