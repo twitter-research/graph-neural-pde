@@ -202,7 +202,7 @@ def set_rewiring_space(opt):
   # opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
 
   # experiment args
-  opt['block'] = 'attention'
+  # opt['block'] = 'attention'
   opt['function'] = 'laplacian'
   opt['use_lcc'] = True
 
