@@ -434,7 +434,10 @@ if __name__ == '__main__':
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
 
   # --dataset Cora --block attention --beltrami --edge_sampling --edge_sampling_T TN --edge_sampling_space pos_distance
+  # --dataset Cora --block attention --beltrami --edge_sampling --edge_sampling_T TN --edge_sampling_space pos_distance
+
   # --dataset Cora --block attention --beltrami --edge_sampling_online --edge_sampling_space pos_distance
+
 
   args = parser.parse_args()
 

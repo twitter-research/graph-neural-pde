@@ -86,17 +86,19 @@ class SpGraphTransAttentionLayer(nn.Module):
       self.h, self.attention_dim)
     self.d_k = self.attention_dim // self.h
 
-    if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
+    if self.opt['beltrami'] and self.opt['attention_type'] in ["exp_kernel","exp_kernel_pos","exp_kernel_z"]:
       self.output_var_x = nn.Parameter(torch.ones(1))
       self.lengthscale_x = nn.Parameter(torch.ones(1))
       self.output_var_p = nn.Parameter(torch.ones(1))
       self.lengthscale_p = nn.Parameter(torch.ones(1))
 
-      self.Qx = nn.Linear(opt['feat_hidden_dim'], self.attention_dim)
+    if self.opt['beltrami'] and self.opt['attention_type'] in "exp_kernel":
+      #todo the below is very error prone. Think of a better way when there's time
+      self.Qx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
       self.init_weights(self.Qx)
-      self.Vx = nn.Linear(opt['feat_hidden_dim'], self.attention_dim)
+      self.Vx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
       self.init_weights(self.Vx)
-      self.Kx = nn.Linear(opt['feat_hidden_dim'], self.attention_dim)
+      self.Kx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
       self.init_weights(self.Kx)
 
       self.Qp = nn.Linear(opt['pos_enc_hidden_dim'], self.attention_dim)
@@ -121,7 +123,6 @@ class SpGraphTransAttentionLayer(nn.Module):
     self.Wout = nn.Linear(self.d_k, in_features)
     self.init_weights(self.Wout)
 
-
   def init_weights(self, m):
     if type(m) == nn.Linear:
       # nn.init.xavier_uniform_(m.weight, gain=1.414)
@@ -129,10 +130,15 @@ class SpGraphTransAttentionLayer(nn.Module):
       nn.init.constant_(m.weight, 1e-5)
 
   def forward(self, x, edge):
+    """
+    x might be [features, augmentation, positional encoding, labels]
+    """
+    # if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
     if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
-
-      p = x[:, self.opt['feat_hidden_dim']:]
-      x = x[:, :self.opt['feat_hidden_dim']]
+      # todo the below is very error prone. Think of a better way when there's time
+      label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
+      p = x[:, self.opt['feat_hidden_dim']: label_index]
+      x = torch.cat((x[:, :self.opt['feat_hidden_dim']], x[:, label_index:]), dim=1)
 
       qx = self.Qx(x)
       kx = self.Kx(x)
@@ -169,23 +175,43 @@ class SpGraphTransAttentionLayer(nn.Module):
 
       v = None
     elif self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel_pos":
+      # todo the below is very error prone. Think of a better way when there's time
+      label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
+      p = x[:, self.opt['feat_hidden_dim']: label_index]
+      x = torch.cat((x[:, :self.opt['feat_hidden_dim']], x[:, label_index:]), dim=1)
 
-      p = x[:, self.opt['feat_hidden_dim']:]
-      x = x[:, :self.opt['feat_hidden_dim']]
+      src_p = p[edge[0, :], :]
+      dst_p = p[edge[1, :], :]
 
-      src_p = qp[edge[0, :], :, :]
-      dst_p = kp[edge[1, :], :, :]
+      prods = self.output_var_p ** 2 * torch.exp(
+        -torch.sum((src_p - dst_p) ** 2, dim=1) / (2 * self.lengthscale_p ** 2))
+      v = None
+      return prods.unsqueeze(dim=1), v
+
+    elif self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel_z":
+      # todo the below is very error prone. Think of a better way when there's time
+      label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
+      p = x[:, self.opt['feat_hidden_dim']: label_index]
+      x = torch.cat((x[:, :self.opt['feat_hidden_dim']], x[:, label_index:]), dim=1)
+
+      src_p = p[edge[0, :], :]
+      dst_p = p[edge[1, :], :]
+      src_x = x[edge[0, :], :]
+      dst_x = x[edge[1, :], :]
 
       prods = self.output_var_x ** 2 * torch.exp(
         -torch.sum((src_x - dst_x) ** 2, dim=1) / (2 * self.lengthscale_x ** 2)) \
               * self.output_var_p ** 2 * torch.exp(
         -torch.sum((src_p - dst_p) ** 2, dim=1) / (2 * self.lengthscale_p ** 2))
       v = None
-
-
+      return prods.unsqueeze(dim=1), v
 
     elif self.opt['beltrami'] and self.opt['attention_type'] == "pos_distance":
-      p = x#[:, self.opt['feat_hidden_dim']:]
+      # todo the below is very error prone. Think of a better way when there's time
+      label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
+      p = x[:, self.opt['feat_hidden_dim']: label_index]
+      x = torch.cat((x[:, :self.opt['feat_hidden_dim']], x[:, label_index:]), dim=1)
+
       src_p = p[edge[0, :], :]
       dst_p = p[edge[1, :], :]
       prods = torch.sum((src_p - dst_p) ** 2, dim=1)
@@ -193,7 +219,7 @@ class SpGraphTransAttentionLayer(nn.Module):
       return prods, v
 
     elif self.opt['beltrami'] and self.opt['attention_type'] == "z_distance":
-      z = x#[:, self.opt['feat_hidden_dim']:]
+      z = x
       src_z = z[edge[0, :], :]
       dst_z = z[edge[1, :], :]
       prods = torch.sum((src_z - dst_z) ** 2, dim=1)
@@ -227,11 +253,12 @@ class SpGraphTransAttentionLayer(nn.Module):
 
       elif self.opt['attention_type'] == "cosine_power":
         if torch.__version__ == '1.6.0':
-          prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.norm(src,p=2,dim=1)+1e-5, self.src_pow)
-                                                 *torch.pow(torch.norm(dst_k,p=2,dim=1)+1e-5, self.dst_pow))
+          prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.norm(src, p=2, dim=1) + 1e-5, self.src_pow)
+                                                   * torch.pow(torch.norm(dst_k, p=2, dim=1) + 1e-5, self.dst_pow))
         else:
           prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.linalg.norm(src, ord=2, dim=1) + 1e-5, self.src_pow)
-                                                  *torch.pow(torch.linalg.norm(dst_k,ord=2,dim=1)+1e-5, self.dst_pow))
+                                                   * torch.pow(torch.linalg.norm(dst_k, ord=2, dim=1) + 1e-5,
+                                                               self.dst_pow))
 
       elif self.opt['attention_type'] == "pearson":
         src_mu = torch.mean(src, dim=1, keepdim=True)
