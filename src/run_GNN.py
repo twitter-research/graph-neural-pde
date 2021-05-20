@@ -411,7 +411,7 @@ if __name__ == '__main__':
   parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
 
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
-  parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
+  parser.add_argument('--pos_enc_type', type=str, default="DW64", help='positional encoder either GDC, DW64, DW128, DW256')
   parser.add_argument('--pos_enc_orientation', type=str, default="row", help="row, col")
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
