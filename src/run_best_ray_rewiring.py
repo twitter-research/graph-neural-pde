@@ -116,7 +116,7 @@ def mainLoop(opt):
   opt['epoch'] = 500
   opt['num_splits'] = 8
   opt['gpus'] = 1
-  opt['earlystopxT'] = 5
+  opt['earlystopxT'] = 2 #5
   opt['metric'] = 'test_acc'
 
   datas = ['Cora']#,'Citeseer'] #, 'Pubmed'] #['Cora', 'Citeseer', 'Photo']
