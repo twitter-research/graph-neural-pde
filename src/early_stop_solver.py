@@ -278,7 +278,7 @@ class EarlyStopInt(torch.nn.Module):
       assert method in ['rk4', 'dopri5'], "Only dopri5 and rk4 implemented with early stopping"
       event_fn = None
       ver = torchdiffeq.__version__
-      if int(ver[0]+ver[2]+ver[4]) >= 21: #0.2.1 change of signiture *around* this release
+      if int(ver[0]+ver[2]+ver[4]) >= 21: #0.2.1 change of signature *around* this release
         shapes, func, y0, t, rtol, atol, method, options, event_fn, t_is_reversed = _check_inputs(func, y0, self.t, rtol, atol, method, options, event_fn, SOLVERS)
       else:
         shapes, func, y0, t, rtol, atol, method, options = _check_inputs(func, y0, self.t, rtol, atol, method, options, SOLVERS)

@@ -24,7 +24,8 @@ class GNNEarly(BaseGNN):
     # self.regularization_fns = ()
     self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
     # overwrite the test integrator with this custom one
-    self.odeblock.test_integrator = EarlyStopInt(self.T, opt, device)
+    with torch.no_grad():
+      self.odeblock.test_integrator = EarlyStopInt(self.T, opt, device)
     # if opt['adjoint']:
     #   from torchdiffeq import odeint_adjoint as odeint
     # else:
@@ -36,8 +37,9 @@ class GNNEarly(BaseGNN):
     self.set_solver_m2()
 
   def set_solver_m2(self):
+    with torch.no_grad():
     # if self.odeblock.test_integrator.m2 is None:
-    self.odeblock.test_integrator.m2 = self.m2
+      self.odeblock.test_integrator.m2 = self.m2
     # else:
     #   self.odeblock.test_integrator.m2.weight.data = self.m2.weight.data.detach().clone()
     #   self.odeblock.test_integrator.m2.bias.data = self.m2.bias.data.detach().clone()
