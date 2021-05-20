@@ -343,7 +343,7 @@ def mainLoop(opt):
   opt['grace_period'] = 20
   opt['reduction_factor'] = 10
   opt['num_splits'] = 2
-  opt['max_nfe'] = 300
+  # opt['max_nfe'] = 300
 
   opt['rewiring'] = None
   opt['attention_type'] = 'exp_kernel_z'
