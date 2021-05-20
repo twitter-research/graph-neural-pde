@@ -208,10 +208,10 @@ def set_rewiring_space(opt):
 
   opt['beltrami'] = True  # tune.choice([True, False])
 
-  if opt['dataset'] == 'ogbn-arxiv':
-    bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])
-  else:
-    bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
+  # if opt['dataset'] == 'ogbn-arxiv':
+  #   bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])
+  # else:
+  bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
 
   non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
   opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
@@ -221,6 +221,8 @@ def set_rewiring_space(opt):
   if opt['dataset'] == 'ogbn-arxiv':
     # opt['pos_enc_hidden_dim'] = tune.choice([32, 64, 98])
     opt['pos_enc_hidden_dim'] = 98
+  elif opt['dataset'] == 'ogbn-arxiv' and opt['use_labels']:
+    opt['pos_enc_hidden_dim'] = 64
   else:
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
 
