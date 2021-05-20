@@ -34,10 +34,10 @@ class GNNEarly(BaseGNN):
 
   def set_solver_m2(self):
     if self.odeblock.test_integrator.m2 is None:
-      self.odeblock.test_integrator.m2 = self.m2
+      self.odeblock.test_integrator.m2 = self.m2.clone.detach()
     else:
-      self.odeblock.test_integrator.m2.weight.data = self.m2.weight.data
-      self.odeblock.test_integrator.m2.bias.data = self.m2.bias.data
+      self.odeblock.test_integrator.m2.weight.data = self.m2.weight.data.clone.detach()
+      self.odeblock.test_integrator.m2.bias.data = self.m2.bias.data.clone.detach()
 
   def set_solver_data(self, data):
     self.odeblock.test_integrator.data = data
@@ -78,7 +78,9 @@ class GNNEarly(BaseGNN):
       x = torch.cat([x, c_aux], dim=1)
 
     self.odeblock.set_x0(x)
-    self.set_solver_m2()
+
+    with torch.no_grad:
+      self.set_solver_m2()
 
     if self.training and self.odeblock.nreg > 0:
       z, self.reg_states = self.odeblock(x)
