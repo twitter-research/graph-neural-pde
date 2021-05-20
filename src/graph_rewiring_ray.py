@@ -221,7 +221,7 @@ def set_rewiring_space(opt):
     # opt['pos_enc_hidden_dim'] = tune.choice([32, 64, 98])
     opt['pos_enc_hidden_dim'] = 64
   elif opt['dataset'] == 'ogbn-arxiv':
-    opt['pos_enc_hidden_dim'] = 98
+    opt['pos_enc_hidden_dim'] = tune.choice([98, 128])
   else:
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
 
@@ -542,7 +542,7 @@ def set_arxiv_search_space(opt):
   # opt['add_source'] = tune.choice([True, False])
   opt['add_source'] = tune.choice([True, False])
   if opt['block'] == 'hard_attention':
-    opt['att_samp_pct'] = tune.uniform(0.3, 1)
+    opt['att_samp_pct'] = tune.uniform(0.3, 0.6)
   # opt['batch_norm'] = tune.choice([True, False])
   opt['batch_norm'] = True
   # opt['label_rate'] = tune.uniform(0.05, 0.5)
