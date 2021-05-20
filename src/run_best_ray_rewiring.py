@@ -59,10 +59,6 @@ def run_best_params(opt):
   if opt["run_with_KNN"]:
     best_params_ret = with_KNN(best_params_ret)
 
-  #todo one off delete this after use
-  best_params_ret['rewire_KNN'] = False
-  best_params_ret['edge_sampling'] = False
-
   if opt['change_att_sim_type']:
     best_params_ret['attention_type'] = opt['att_sim_type']
     best_params_ret['square_plus'] = False
@@ -116,17 +112,17 @@ def run_best_params(opt):
 
 
 def mainLoop(opt):
-  opt['max_nfe'] = 2000
+  opt['max_nfe'] = 1000
   opt['epoch'] = 500
   opt['num_splits'] = 8
   opt['gpus'] = 1
-  opt['earlystopxT'] = 1 #2 #5
+  opt['earlystopxT'] = 2 #5
   opt['metric'] = 'test_acc'
 
-  datas = ['Cora']#,'Citeseer'] #, 'Pubmed'] #['Cora', 'Citeseer', 'Photo']
-  folders = ['Cora_beltrami_exp_kernel'] #beltrami_2','Citeseer_beltrami_1']#, 'Pubmed_beltrami_2_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
-  names = ['Cora_beltrami_exp_kernel_test'] #['Cora_beltrami_attdefaults_test','Citeseer_beltrami_attdefaults_test']
-  indexes = [[0,1,2,3,4]] #,[3,4]] #[[0,1,2], [0,1,2]] #,3,4]]#, [0,1,2,3,4]] #,0,0]
+  datas = ['Cora','Citeseer','Cora','Citeseer']#['Cora']#,'Citeseer'] #, 'Pubmed'] #['Cora', 'Citeseer', 'Photo']
+  folders = ['Cora_beltrami_exp_kernel_z','Citeseer_beltrami_exp_kernel_z','Cora_beltrami_exp_kernel_z2','Citeseer_beltrami_exp_kernel_z2']#['Cora_beltrami_exp_kernel'] #beltrami_2','Citeseer_beltrami_1']#, 'Pubmed_beltrami_2_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
+  names = ['Citeseer_beltrami_exp_kernel_test'] #['Cora_beltrami_attdefaults_test','Citeseer_beltrami_attdefaults_test']
+  indexes = [[0,1,2,3,4],[0,1,2,3,4],[0,1,2,3,4],[0,1,2,3,4]] #,[3,4]] #[[0,1,2], [0,1,2]] #,3,4]]#, [0,1,2,3,4]] #,0,0]
   opt['run_with_KNN'] = False
   opt['bestwithKNN'] = False
   opt['edge_sampling'] = False
