@@ -504,26 +504,31 @@ if __name__ == "__main__":
 
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
   parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
-  parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
+  parser.add_argument('--pos_enc_orientation', type=str, default="row", help="row, col")
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
   parser.add_argument('--pos_enc_hidden_dim', type=int, default=32, help="dimension of position in beltrami")
   parser.add_argument('--rewire_KNN', action='store_true', help='perform KNN rewiring every few epochs')
-  parser.add_argument('--rewire_KNN_epoch', type=int, default=10, help="frequency of epochs to rewire")
+  parser.add_argument('--rewire_KNN_T', type=str, default="T0", help="T0, TN")
+  parser.add_argument('--rewire_KNN_epoch', type=int, default=5, help="frequency of epochs to rewire")
   parser.add_argument('--rewire_KNN_k', type=int, default=64, help="target degree for KNN rewire")
   parser.add_argument('--rewire_KNN_sym', action='store_true', help='make KNN symmetric')
-  parser.add_argument('--rewire_KNN_T', type=str, default="T0", help="T0, TN")
-  parser.add_argument('--attention_type', type=str, default="scaled_dot",
-                      help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
-  parser.add_argument('--max_epochs', type=int, default=1000, help="max epochs to train before patience")
-  parser.add_argument('--patience', type=int, default=100, help="amount of patience for non improving val acc")
+  parser.add_argument('--KNN_online', action='store_true', help='perform rewiring online')
+  parser.add_argument('--KNN_online_reps', type=int, default=4, help="how many online KNN its")
 
-
-  parser.add_argument('--rewire_edge_sampling', action='store_true', help='perform edge sampling rewiring')
-  parser.add_argument('--rewire_sampling_T', type=str, default="T0", help="T0, TN")
-  parser.add_argument('--rewire_sampling_epoch', type=int, default=5, help="frequency of epochs to rewire")
+  parser.add_argument('--edge_sampling', action='store_true', help='perform edge sampling rewiring')
+  parser.add_argument('--edge_sampling_T', type=str, default="T0", help="T0, TN")
+  parser.add_argument('--edge_sampling_epoch', type=int, default=5, help="frequency of epochs to rewire")
   parser.add_argument('--edge_sampling_add', type=float, default=0.05, help="percentage of new edges to add")
   parser.add_argument('--edge_sampling_rmv', type=float, default=0.05, help="percentage of edges to remove")
+  parser.add_argument('--edge_sampling_sym', action='store_true', help='make KNN symmetric')
   parser.add_argument('--edge_sampling_space', type=str, default="pos_distance", help="pos_distance, z_distance")
+  parser.add_argument('--edge_sampling_online', action='store_true', help='perform rewiring online')
+  parser.add_argument('--edge_sampling_online_reps', type=int, default=4, help="how many online KNN its")
+
+
+  parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
+  parser.add_argument('--attention_type', type=str, default="scaled_dot",
+                      help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson, exp_kernel_pos, exp_kernel_z")
 
 
   args = parser.parse_args()
