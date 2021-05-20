@@ -337,9 +337,32 @@ def main(opt):
 
 
 def mainLoop(opt):
-  opt['rewire_KNN'] = False #True
-  datas = ['ogbn-arxiv']  # ['Citeseer', 'Photo']
-  folders = ['ogbn-arxiv-1']  # ['Citeseer_beltrami_1', 'Photo_beltrami_1']
+  opt['epoch'] = 100
+  opt['gpus'] = 1
+  opt['num_samples'] = 1000
+  opt['grace_period'] = 20
+  opt['reduction_factor'] = 10
+  opt['num_splits'] = 2
+  opt['max_nfe'] = 300
+
+  opt['rewiring'] = None
+  opt['attention_type'] = 'exp_kernel_z'
+  opt['beltrami'] = True
+
+  opt['rewire_KNN'] = True
+  opt['edge_sampling'] = False
+  datas = ['Cora', 'Citeseer']
+  folders = ['Cora_beltrami_exp_kernel_z','Citeseer_beltrami_exp_kernel_z']
+  for i, ds in enumerate(datas):
+    print(f"Running Tuning for {ds}")
+    opt["dataset"] = ds
+    opt["name"] = folders[i]
+    main(opt)
+
+  opt['rewire_KNN'] = False
+  opt['edge_sampling'] = True
+  datas = ['Cora', 'Citeseer']
+  folders = ['Cora_beltrami_exp_kernel_z','Citeseer_beltrami_exp_kernel_z']
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
     opt["dataset"] = ds

@@ -188,7 +188,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
 
 def set_rewiring_space(opt):
     # DIGL args
-    opt['rewiring'] = None #'gdc'  # tune.choice(['gdc', None])
+    # opt['rewiring'] = None #'gdc'  # tune.choice(['gdc', None])
 
     if opt['rewiring']:
       opt['attention_rewiring'] = False #tune.choice([True, False])
@@ -207,11 +207,13 @@ def set_rewiring_space(opt):
     opt['function'] = 'laplacian'
     # opt['use_lcc'] = True <- this is actually opt['not_lcc'] = False but is default for all except arxiv
 
-    opt['beltrami'] = True  # tune.choice([True, False])
-    bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
-    non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
-    opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
+    # opt['beltrami'] = True  # tune.choice([True, False])
+
+    # bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
+    # non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
+    # opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
     # opt['attention_type'] = "scaled_dot"
+
     opt['feat_hidden_dim'] = tune.choice([16, 32, 64, 128])
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32, 64])
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
@@ -220,20 +222,32 @@ def set_rewiring_space(opt):
     opt['pos_enc_orientation'] = tune.choice(["row", "col"])
     opt['square_plus'] = tune.choice([True, False])
 
-    opt['rewire_KNN'] = False #tune.choice([True, False])
+    # opt['rewire_KNN'] = False #tune.choice([True, False])
     if opt['rewire_KNN']:
         opt['rewire_KNN_T'] = tune.choice(["T0","TN"])
         opt['rewire_KNN_epoch'] = tune.choice([2,10,20,50])
         opt['rewire_KNN_k'] = tune.choice([16, 32, 64, 128, 256])
         opt['rewire_KNN_sym'] = tune.choice([True, False])
+        opt['edge_sampling_T'] = None
+        opt['edge_sampling_epoch'] = None
+        opt['edge_sampling_add'] = None
+        opt['edge_sampling_rmv'] = None
+        opt['edge_sampling_sym'] = None
+        opt['edge_sampling_space'] = None
 
-    opt['edge_sampling'] = True
+    # opt['edge_sampling'] = True
     if opt['edge_sampling']:
+        opt['rewire_KNN_T'] = None
+        opt['rewire_KNN_epoch'] = None
+        opt['rewire_KNN_k'] = None
+        opt['rewire_KNN_sym'] = None
         opt['edge_sampling_T'] = tune.choice(["T0","TN"])
         opt['edge_sampling_epoch'] = tune.choice([2,10,20,50])
         opt['edge_sampling_add'] = tune.choice([0.04, 0.08, 0.16, 0.32])
         opt['edge_sampling_rmv'] = tune.choice([0.04, 0.08, 0.16, 0.32])
         opt['edge_sampling_sym'] = tune.choice([True, False])
+        opt['edge_sampling_space'] = tune.choice(['pos_distance','z_distance'])
+
     return opt
 
 def set_cora_search_space(opt):
