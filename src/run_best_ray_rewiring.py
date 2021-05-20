@@ -287,12 +287,12 @@ def run_top5(opt):
   idxs = [0,4]
 
   # opt['folder'] = 'Cora_top5'
-  opt['name'] = 'Edge_sampling_beltrami_top1ablation_test'
+  opt['name'] = 'Edge_sampling_beltrami_top1ablation_test_DZ'
 
   opt['edge_sampling'] = True
   # opt['edge_sampling_T'] = 'TN'
   opt['edge_sampling_epoch'] = 10
-
+  opt['edge_sampling_space'] = 'z_distance'
   # opt['edge_sampling_add'] = 0.16
   # opt['edge_sampling_rmv'] = 0.16
 
@@ -306,7 +306,7 @@ def run_top5(opt):
   opt['gpus'] = 1
   opt['earlystopxT'] = 5
   opt['metric'] = 'test_acc'
-  # opt['index'] = 0
+  opt['index'] = 0
   # best_params = top5[opt['index']]
 
   ###Getting the best params from random sources

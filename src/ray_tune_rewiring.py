@@ -500,6 +500,7 @@ if __name__ == "__main__":
   parser.add_argument('--rewire_sampling_epoch', type=int, default=5, help="frequency of epochs to rewire")
   parser.add_argument('--edge_sampling_add', type=float, default=0.05, help="percentage of new edges to add")
   parser.add_argument('--edge_sampling_rmv', type=float, default=0.05, help="percentage of edges to remove")
+  parser.add_argument('--edge_sampling_space', type=str, default="pos_distance", help="pos_distance, z_distance")
 
 
   args = parser.parse_args()

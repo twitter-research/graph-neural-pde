@@ -177,6 +177,14 @@ class SpGraphTransAttentionLayer(nn.Module):
       v = None
       return prods, v
 
+    elif self.opt['beltrami'] and self.opt['attention_type'] == "z_distance":
+      z = x#[:, self.opt['feat_hidden_dim']:]
+      src_z = z[edge[0, :], :]
+      dst_z = z[edge[1, :], :]
+      prods = torch.sum((src_z - dst_z) ** 2, dim=1)
+      v = None
+      return prods, v
+
     else:
       q = self.Q(x)
       k = self.K(x)

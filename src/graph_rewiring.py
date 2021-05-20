@@ -216,7 +216,7 @@ def apply_edge_sampling(data, pos_encoding, model, opt):
 
   #calc distance metric
   temp_att_type = model.opt['attention_type']
-  model.opt['attention_type'] = 'pos_distance'
+  model.opt['attention_type'] = model.opt['edge_sampling_space']
   pos_enc_distances = model.odeblock.get_attention_weights(p)
   model.opt['attention_type'] = temp_att_type
 

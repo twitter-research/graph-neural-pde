@@ -424,6 +424,7 @@ if __name__ == '__main__':
   parser.add_argument('--edge_sampling_add', type=float, default=0.05, help="percentage of new edges to add")
   parser.add_argument('--edge_sampling_rmv', type=float, default=0.05, help="percentage of edges to remove")
   parser.add_argument('--edge_sampling_sym', action='store_true', help='make KNN symmetric')
+  parser.add_argument('--edge_sampling_space', type=str, default="pos_distance", help="pos_distance, z_distance")
 
 
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
