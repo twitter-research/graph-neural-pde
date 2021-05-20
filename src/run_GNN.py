@@ -434,7 +434,7 @@ if __name__ == '__main__':
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson, exp_kernel_pos, exp_kernel_z")
 
   # --dataset Cora --block attention --beltrami --edge_sampling --edge_sampling_T TN --edge_sampling_space pos_distance
-  # --dataset Cora --block attention --beltrami --edge_sampling --edge_sampling_T TN --edge_sampling_space pos_distance
+  # --dataset Cora --block attention --beltrami --rewire_KNN --rewire_KNN_T TN
 
   # --dataset Cora --block attention --beltrami --edge_sampling_online --edge_sampling_space pos_distance
 
