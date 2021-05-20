@@ -26,15 +26,8 @@ class GNNEarly(BaseGNN):
     # overwrite the test integrator with this custom one
     with torch.no_grad():
       self.odeblock.test_integrator = EarlyStopInt(self.T, opt, device)
-    # if opt['adjoint']:
-    #   from torchdiffeq import odeint_adjoint as odeint
-    # else:
-    #   from torchdiffeq import odeint
-    # self.odeblock.train_integrator = odeint
-
-
-    self.set_solver_data(dataset.data)
-    self.set_solver_m2()
+      self.set_solver_data(dataset.data)
+      self.set_solver_m2()
 
   def set_solver_m2(self):
     with torch.no_grad():
