@@ -115,7 +115,7 @@ def mainLoop(opt):
   opt['max_nfe'] = 2000
   opt['epoch'] = 500
   opt['num_splits'] = 8
-  opt['gpus'] = 2
+  opt['gpus'] = 1
   opt['earlystopxT'] = 1 #2 #5
   opt['metric'] = 'test_acc'
 
