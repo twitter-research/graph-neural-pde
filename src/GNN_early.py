@@ -79,7 +79,7 @@ class GNNEarly(BaseGNN):
 
     self.odeblock.set_x0(x)
 
-    with torch.no_grad:
+    with torch.no_grad():
       self.set_solver_m2()
 
     if self.training and self.odeblock.nreg > 0:
