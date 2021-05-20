@@ -19,6 +19,7 @@ class GNNEarly(BaseGNN):
     super(GNNEarly, self).__init__(opt, dataset, device)
     self.f = set_function(opt)
     block = set_block(opt)
+    self.device = device
     time_tensor = torch.tensor([0, self.T]).to(device)
     # self.regularization_fns = ()
     self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
@@ -35,6 +36,8 @@ class GNNEarly(BaseGNN):
     self.set_solver_m2()
 
   def set_solver_m2(self):
+    if self.odeblock.test_integrator is None:
+      self.odeblock.test_integrator = EarlyStopInt(self.T, opt, self.device)
     if self.odeblock.test_integrator.m2 is None:
       self.odeblock.test_integrator.m2 = self.m2
     else:
@@ -43,6 +46,12 @@ class GNNEarly(BaseGNN):
 
   def set_solver_data(self, data):
     self.odeblock.test_integrator.data = data
+
+
+  def cleanup(self):
+    del self.odeblock.test_integrator
+    torch.cuda.empty_cache()
+
 
   def forward(self, x, pos_encoding=None):
     # Encode each node based on its feature.
@@ -81,8 +90,8 @@ class GNNEarly(BaseGNN):
 
     self.odeblock.set_x0(x)
 
-    # with torch.no_grad():
-    #   self.set_solver_m2()
+    with torch.no_grad():
+      self.set_solver_m2()
 
     if self.training and self.odeblock.nreg > 0:
       z, self.reg_states = self.odeblock(x)
@@ -104,6 +113,7 @@ class GNNEarly(BaseGNN):
 
     # Decode each node embedding to get node label.
     z = self.m2(z)
+    self.cleanup()
     return z
 
 
