@@ -218,11 +218,11 @@ def set_rewiring_space(opt):
   # opt['attention_type'] = "scaled_dot"
   opt['feat_hidden_dim'] = tune.choice([32, 64])
   opt['pos_enc_type'] = tune.choice(['DW64', 'DW128', 'DW256'])
-  if opt['dataset'] == 'ogbn-arxiv':
+  if opt['dataset'] == 'ogbn-arxiv' and opt['use_labels']:
     # opt['pos_enc_hidden_dim'] = tune.choice([32, 64, 98])
+    opt['pos_enc_hidden_dim'] = 64
+  elif opt['dataset'] == 'ogbn-arxiv':
     opt['pos_enc_hidden_dim'] = 98
-  elif opt['dataset'] == 'ogbn-arxiv' and opt['use_labels']:
-    opt['pos_enc_hidden_dim'] = 58
   else:
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
 
