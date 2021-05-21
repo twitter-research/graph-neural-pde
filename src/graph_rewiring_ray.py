@@ -203,7 +203,7 @@ def set_rewiring_space(opt):
 
   # experiment args
   opt['function'] = 'laplacian'
-  opt['use_lcc'] = True
+  # opt['use_lcc'] = True
 
   opt['beltrami'] = True  # tune.choice([True, False])
 
@@ -215,13 +215,16 @@ def set_rewiring_space(opt):
   non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
   opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
   # opt['attention_type'] = "scaled_dot"
-  opt['feat_hidden_dim'] = tune.choice([32, 64])
+  if opt['dataset'] == 'ogbn-arxiv':
+    opt['feat_hidden_dim'] = tune.choice([32, 64, 98])
+  else:
+    opt['feat_hidden_dim'] = tune.choice([32, 64])
   opt['pos_enc_type'] = tune.choice(['DW64', 'DW128', 'DW256'])
   if opt['dataset'] == 'ogbn-arxiv' and opt['use_labels']:
     # opt['pos_enc_hidden_dim'] = tune.choice([32, 64, 98])
     opt['pos_enc_hidden_dim'] = 64
   elif opt['dataset'] == 'ogbn-arxiv':
-    opt['pos_enc_hidden_dim'] = tune.choice([98, 128])
+    opt['pos_enc_hidden_dim'] = tune.choice([64, 98, 128])
   else:
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
 
@@ -542,9 +545,9 @@ def set_arxiv_search_space(opt):
   # opt['add_source'] = tune.choice([True, False])
   opt['add_source'] = tune.choice([True, False])
   if opt['block'] == 'hard_attention':
-    opt['att_samp_pct'] = tune.uniform(0.3, 0.6)
-  # opt['batch_norm'] = tune.choice([True, False])
-  opt['batch_norm'] = True
+    opt['att_samp_pct'] = tune.uniform(0.2, 0.6)
+  opt['batch_norm'] = tune.choice([True, False])
+  # opt['batch_norm'] = True
   # opt['label_rate'] = tune.uniform(0.05, 0.5)
   opt['label_rate'] = tune.uniform(0.1, 0.5)
 
