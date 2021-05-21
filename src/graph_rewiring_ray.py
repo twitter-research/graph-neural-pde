@@ -283,6 +283,48 @@ def set_cora_search_space(opt):
   return opt
 
 
+def set_cora_planetoid_search_space(opt):
+  opt["decay"] = tune.loguniform(0.0001, 0.1)  # weight decay l2 reg
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+
+  opt["lr"] = tune.uniform(0.01, 0.2)
+  # opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
+  opt["input_dropout"] = 0.5
+  opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
+  opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
+  opt["time"] = tune.uniform(10.0, 35.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
+
+  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 5))  #
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 8))  # hidden dim for attention
+    opt['attention_norm_idx'] = tune.choice([0, 1])
+    # opt['attention_norm_idx'] = 0
+    # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
+    opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
+  else:
+    opt["self_loop_weight"] = tune.uniform(0, 3)
+
+  # if opt['self_loop_weight'] > 0.0:
+  #     opt['exact'] = True  # for GDC, need exact if selp loop weight >0
+  opt['exact'] = tune.sample_from(lambda spec: True if spec.config.self_loop_weight > 0.0 else False)
+
+  opt["tol_scale"] = tune.loguniform(1, 10000)  # num you multiply the default rtol and atol by
+  if opt["adjoint"]:
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
+    opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
+
+  opt['add_source'] = tune.choice([True, False])
+  # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+  # opt['batch_norm'] = tune.choice([True, False])
+  opt['batch_norm'] = False
+  opt['use_mlp'] = False
+  # opt['use_mlp'] = tune.choice([True, False])
+
+  return opt
+
+
 def set_citeseer_search_space(opt):
   opt["decay"] = 0.1  # tune.loguniform(2e-3, 1e-2)
   if opt['regularise']:
@@ -591,7 +633,10 @@ def set_arxiv_search_space(opt):
 def set_search_space(opt):
   opt = set_rewiring_space(opt)
   if opt["dataset"] == "Cora":
-    return set_cora_search_space(opt)
+    if opt["num_splits"] == 0:
+      return set_cora_planetoid_search_space(opt)
+    else:
+      return set_cora_search_space(opt)
   elif opt["dataset"] == "Pubmed":
     return set_pubmed_search_space(opt)
   elif opt["dataset"] == "Citeseer":
