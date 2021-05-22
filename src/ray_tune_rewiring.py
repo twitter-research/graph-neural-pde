@@ -355,7 +355,7 @@ def mainLoop(opt):
   opt['rewire_KNN'] = True
   opt['edge_sampling'] = False
   datas = ['Cora', 'Citeseer']
-  folders = ['Cora_beltrami_exp_kernel_z2','Citeseer_beltrami_exp_kernel_z2']
+  folders = ['Cora_beltrami_exp_kernel_QK','Citeseer_beltrami_exp_kernel_QK']
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
     opt["dataset"] = ds
