@@ -281,23 +281,25 @@ def KNN_abalation_grid(opt):
   main_ray(best_params_ret)
 
 
-def run_top5(opt):
-  folders = ['Cora_top5','Citeseer_beltrami_1']
+def edge_sampling_ablation(opt):
+  # folders = ['Cora_top5','Citeseer_beltrami_1']
+  folders = ['Cora_beltrami_edgeS_QK','Citeseer_beltrami_edgeS_QK']
   datas = ['Cora','Citeseer']
-  idxs = [0,4]
+  idxs = [0,0]
 
   # opt['folder'] = 'Cora_top5'
-  opt['name'] = 'Edge_sampling_beltrami_top1ablation_test_DZ'
+  opt['name'] = 'Edge_sampling_beltrami_top1ablation_test_dQK'
 
   opt['edge_sampling'] = True
   # opt['edge_sampling_T'] = 'TN'
   opt['edge_sampling_epoch'] = 10
-  opt['edge_sampling_space'] = 'z_distance'
+  # opt['edge_sampling_space'] = 'z_distance'
   # opt['edge_sampling_add'] = 0.16
   # opt['edge_sampling_rmv'] = 0.16
 
-  TI = ['T0','TN']
-  samples = [0.0, 0.02, 0.04, 0.08, 0.16]
+  # TI = ['T0','TN']
+  sample_spaces = ['z_distance', 'pos_distance']
+  samples = [0.0, 0.02, 0.04, 0.08, 0.16, 0.32]
   opt['edge_sampling_sym'] = False
 
   opt['max_nfe'] = 2000
@@ -310,26 +312,30 @@ def run_top5(opt):
   # best_params = top5[opt['index']]
 
   ###Getting the best params from random sources
-  best_Cora_params = top5[opt['index']]
-
-  CiteseerOpt = {'folder':'Citeseer_beltrami_1','index':4,'metric':'test_acc'}
-  Citeseer_best_params_dir = get_best_params_dir(CiteseerOpt)
-  with open(Citeseer_best_params_dir + '/params.json') as f:
-    best_Citeseer_params = json.loads(f.read())
-
-  best_params_each = [best_Cora_params, best_Citeseer_params]
+  # best_Cora_params = top5[opt['index']]
+  # CiteseerOpt = {'folder':'Citeseer_beltrami_1','index':4,'metric':'test_acc'}
+  # Citeseer_best_params_dir = get_best_params_dir(CiteseerOpt)
+  # with open(Citeseer_best_params_dir + '/params.json') as f:
+  #   best_Citeseer_params = json.loads(f.read())
+  # best_params_each = [best_Cora_params, best_Citeseer_params]
 
   # for idx, best_params in enumerate(top5):
     # opt['index'] = idx + 5
 
-  for i, (folder, data, best_params) in enumerate(zip(folders, datas, best_params_each)):
+  # for i, (folder, data, best_params) in enumerate(zip(folders, datas, best_params_each)):
+  for i, (folder, data) in enumerate(zip(folders, datas)):
     opt['folder'] = folder
     opt['dataset'] = data
     opt['index'] = idxs[i]
 
-    for ti in TI:
-      opt['edge_sampling_T'] = ti
+    best_params_dir = get_best_params_dir(opt)
+    with open(best_params_dir + '/params.json') as f:
+      best_params = json.loads(f.read())
 
+    # for ti in TI:
+    #   opt['edge_sampling_T'] = ti
+    for sample_space in sample_spaces:
+      opt['edge_sampling_space'] = sample_space
       for add in samples:
         opt['edge_sampling_add'] = add
 
@@ -436,7 +442,8 @@ if __name__ == '__main__':
 
   opt = vars(args)
   # run_best_params(opt)
-  mainLoop(opt)
+  # mainLoop(opt)
   # KNN_abalation(opt)
   # KNN_abalation_grid(opt)
   # run_top5(opt)
+  edge_sampling_ablation(opt)
