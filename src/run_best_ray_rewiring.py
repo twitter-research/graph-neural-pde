@@ -288,7 +288,7 @@ def edge_sampling_ablation(opt):
   idxs = [1,0]
 
   # opt['folder'] = 'Cora_top5'
-  opt['name'] = 'Edge_sampling_beltrami_top1ablation_test_dQK'
+  opt['name'] = 'Edge_sampling_beltrami_top1ablation_test_dQK_5split'
 
   opt['edge_sampling'] = True
   opt['edge_sampling_T'] = 'TN'
