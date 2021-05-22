@@ -91,12 +91,12 @@ class SpGraphTransAttentionLayer(nn.Module):
       self.lengthscale_x = nn.Parameter(torch.ones(1))
       self.output_var_p = nn.Parameter(torch.ones(1))
       self.lengthscale_p = nn.Parameter(torch.ones(1))
-
-      self.Qx = nn.Linear(opt['feat_hidden_dim'], self.attention_dim)
+      #todo the below is very error prone. Think of a better way when there's time
+      self.Qx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
       self.init_weights(self.Qx)
-      self.Vx = nn.Linear(opt['feat_hidden_dim'], self.attention_dim)
+      self.Vx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
       self.init_weights(self.Vx)
-      self.Kx = nn.Linear(opt['feat_hidden_dim'], self.attention_dim)
+      self.Kx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
       self.init_weights(self.Kx)
 
       self.Qp = nn.Linear(opt['pos_enc_hidden_dim'], self.attention_dim)
@@ -121,7 +121,6 @@ class SpGraphTransAttentionLayer(nn.Module):
     self.Wout = nn.Linear(self.d_k, in_features)
     self.init_weights(self.Wout)
 
-
   def init_weights(self, m):
     if type(m) == nn.Linear:
       # nn.init.xavier_uniform_(m.weight, gain=1.414)
@@ -129,11 +128,15 @@ class SpGraphTransAttentionLayer(nn.Module):
       nn.init.constant_(m.weight, 1e-5)
 
   def forward(self, x, edge):
+    """
+    x might be [features, augmentation, positional encoding, labels]
+    """
     # if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
     if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
-
-      p = x[:, self.opt['feat_hidden_dim']:]
-      x = x[:, :self.opt['feat_hidden_dim']]
+      # todo the below is very error prone. Think of a better way when there's time
+      label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
+      p = x[:, self.opt['feat_hidden_dim']: label_index]
+      x = torch.cat((x[:, :self.opt['feat_hidden_dim']], x[:, label_index:]), dim=1)
 
       qx = self.Qx(x)
       kx = self.Kx(x)
@@ -197,11 +200,12 @@ class SpGraphTransAttentionLayer(nn.Module):
 
       elif self.opt['attention_type'] == "cosine_power":
         if torch.__version__ == '1.6.0':
-          prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.norm(src,p=2,dim=1)+1e-5, self.src_pow)
-                                                 *torch.pow(torch.norm(dst_k,p=2,dim=1)+1e-5, self.dst_pow))
+          prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.norm(src, p=2, dim=1) + 1e-5, self.src_pow)
+                                                   * torch.pow(torch.norm(dst_k, p=2, dim=1) + 1e-5, self.dst_pow))
         else:
           prods = torch.sum(src * dst_k, dim=1) / (torch.pow(torch.linalg.norm(src, ord=2, dim=1) + 1e-5, self.src_pow)
-                                                  *torch.pow(torch.linalg.norm(dst_k,ord=2,dim=1)+1e-5, self.dst_pow))
+                                                   * torch.pow(torch.linalg.norm(dst_k, ord=2, dim=1) + 1e-5,
+                                                               self.dst_pow))
 
       elif self.opt['attention_type'] == "pearson":
         src_mu = torch.mean(src, dim=1, keepdim=True)

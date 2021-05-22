@@ -202,20 +202,29 @@ def set_rewiring_space(opt):
   # opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
 
   # experiment args
-  opt['block'] = 'attention'
   opt['function'] = 'laplacian'
-  opt['use_lcc'] = True
+  # opt['use_lcc'] = True
 
   opt['beltrami'] = True  # tune.choice([True, False])
+
+  # if opt['dataset'] == 'ogbn-arxiv':
+  #   bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])
+  # else:
   bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
 
   non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
   opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
   # opt['attention_type'] = "scaled_dot"
-  opt['feat_hidden_dim'] = tune.choice([32, 64])
-  opt['pos_enc_type'] = tune.choice(['DW64', 'DW128', 'DW256'])
   if opt['dataset'] == 'ogbn-arxiv':
-    opt['pos_enc_hidden_dim'] = tune.choice([32, 64, 128])
+    opt['feat_hidden_dim'] = tune.choice([32, 64, 98])
+  else:
+    opt['feat_hidden_dim'] = tune.choice([32, 64])
+  opt['pos_enc_type'] = tune.choice(['DW64', 'DW128', 'DW256'])
+  if opt['dataset'] == 'ogbn-arxiv' and opt['use_labels']:
+    # opt['pos_enc_hidden_dim'] = tune.choice([32, 64, 98])
+    opt['pos_enc_hidden_dim'] = 64
+  elif opt['dataset'] == 'ogbn-arxiv':
+    opt['pos_enc_hidden_dim'] = tune.choice([64, 98, 128])
   else:
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32])
 
@@ -270,6 +279,48 @@ def set_cora_search_space(opt):
   # opt['att_samp_pct'] = tune.uniform(0.3, 1)
   opt['batch_norm'] = tune.choice([True, False])
   opt['use_mlp'] = tune.choice([True, False])
+
+  return opt
+
+
+def set_cora_planetoid_search_space(opt):
+  opt["decay"] = tune.loguniform(0.0001, 0.1)  # weight decay l2 reg
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+
+  opt["lr"] = tune.uniform(0.01, 0.2)
+  # opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
+  opt["input_dropout"] = 0.5
+  opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
+  opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
+  opt["time"] = tune.uniform(10.0, 35.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
+
+  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 5))  #
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 8))  # hidden dim for attention
+    opt['attention_norm_idx'] = tune.choice([0, 1])
+    # opt['attention_norm_idx'] = 0
+    # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
+    opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
+  else:
+    opt["self_loop_weight"] = tune.uniform(0, 3)
+
+  # if opt['self_loop_weight'] > 0.0:
+  #     opt['exact'] = True  # for GDC, need exact if selp loop weight >0
+  opt['exact'] = tune.sample_from(lambda spec: True if spec.config.self_loop_weight > 0.0 else False)
+
+  opt["tol_scale"] = tune.loguniform(1, 10000)  # num you multiply the default rtol and atol by
+  if opt["adjoint"]:
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
+    opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
+
+  opt['add_source'] = tune.choice([True, False])
+  # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+  # opt['batch_norm'] = tune.choice([True, False])
+  opt['batch_norm'] = False
+  opt['use_mlp'] = False
+  # opt['use_mlp'] = tune.choice([True, False])
 
   return opt
 
@@ -536,16 +587,17 @@ def set_arxiv_search_space(opt):
   # opt['add_source'] = tune.choice([True, False])
   opt['add_source'] = tune.choice([True, False])
   if opt['block'] == 'hard_attention':
-    opt['att_samp_pct'] = tune.uniform(0.3, 1)
-  # opt['batch_norm'] = tune.choice([True, False])
-  opt['batch_norm'] = True
+    opt['att_samp_pct'] = tune.uniform(0.2, 0.6)
+  opt['batch_norm'] = tune.choice([True, False])
+  # opt['batch_norm'] = True
   # opt['label_rate'] = tune.uniform(0.05, 0.5)
   opt['label_rate'] = tune.uniform(0.1, 0.5)
 
   if opt["adjoint"]:
-    opt["adjoint_method"] = tune.choice(['dopri5', 'rk4', 'adaptive_heun'])
+    # opt["adjoint_method"] = tune.choice(['dopri5', 'rk4'])
+    opt["adjoint_method"] = 'rk4'
     opt['adjoint_step_size'] = 0.2
-    if opt["adjoint_method"] == 'dopri5' or 'adaptive_heun':
+    if opt["adjoint_method"] == 'dopri5':
       opt["tol_scale_adjoint"] = tune.loguniform(1e2, 1e6)
     else:
       opt['adjoint_step_size'] = tune.choice([0.5, 1])
@@ -558,8 +610,8 @@ def set_arxiv_search_space(opt):
   opt['time'] = tune.uniform(2, 8)
   # opt["method"] = "rk4"
   opt['method'] = tune.choice(['dopri5', 'rk4'])
-  # opt['use_mlp'] = tune.choice([True, False])
-  opt['use_mlp'] = False
+  opt['use_mlp'] = tune.choice([True, False])
+  # opt['use_mlp'] = False
   # opt['cosine_sim'] = tune.choice([True, False])
 
   if opt['rewiring'] == 'gdc':
@@ -581,7 +633,10 @@ def set_arxiv_search_space(opt):
 def set_search_space(opt):
   opt = set_rewiring_space(opt)
   if opt["dataset"] == "Cora":
-    return set_cora_search_space(opt)
+    if opt["num_splits"] == 0:
+      return set_cora_planetoid_search_space(opt)
+    else:
+      return set_cora_search_space(opt)
   elif opt["dataset"] == "Pubmed":
     return set_pubmed_search_space(opt)
   elif opt["dataset"] == "Citeseer":
