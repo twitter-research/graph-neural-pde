@@ -185,9 +185,14 @@ def apply_KNN(data, pos_encoding, model, opt):
 def edge_sampling(model, z, opt):
   #calc distance metric
   temp_att_type = model.opt['attention_type']
-  model.opt['attention_type'] = model.opt['edge_sampling_space']
+  #edge_sampling_space is in:
+    # ['pos_distance','z_distance']) if ['attention_type'] == exp_kernel_z or exp_kernel_pos as have removed queries / keys
+    # ['pos_distance_QK','z_distance_QK']) for exp_kernel
+    # ['z_distance_QK']) for any other attention type, plus requires symmetric_attention as don't learn the pos QKp(p) just QK(z)
+
+  model.opt['attention_type'] = model.opt['edge_sampling_space'] #this changes the opt at all levels as opt is assigment link
   pos_enc_distances = model.odeblock.get_attention_weights(z)
-  model.opt['attention_type'] = temp_att_type
+  model.odeblock.multihead_att_layer.opt['attention_type'] = temp_att_type
 
   #threshold
   threshold = torch.quantile(pos_enc_distances, 1 - opt['edge_sampling_rmv'])
@@ -212,7 +217,7 @@ def apply_edge_sampling(data, pos_encoding, model, opt):
   #add to model edge index
   model.odeblock.odefunc.edge_index = new_edges
 
-  #get P_T0 or P_TN
+  #get Z_T0 or Z_TN
   if opt['edge_sampling_T'] == "T0":
     z = model.forward_encoder(data.x, pos_encoding)
   elif opt['edge_sampling_T'] == 'TN':

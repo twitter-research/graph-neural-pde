@@ -417,6 +417,8 @@ if __name__ == '__main__':
   parser.add_argument('--rewire_KNN_sym', action='store_true', help='make KNN symmetric')
   parser.add_argument('--KNN_online', action='store_true', help='perform rewiring online')
   parser.add_argument('--KNN_online_reps', type=int, default=4, help="how many online KNN its")
+  parser.add_argument('--KNN_space', type=str, default="pos_distance", help="Z,P,QKZ,QKp")
+
 
   parser.add_argument('--edge_sampling', action='store_true', help='perform edge sampling rewiring')
   parser.add_argument('--edge_sampling_T', type=str, default="T0", help="T0, TN")
@@ -424,16 +426,21 @@ if __name__ == '__main__':
   parser.add_argument('--edge_sampling_add', type=float, default=0.05, help="percentage of new edges to add")
   parser.add_argument('--edge_sampling_rmv', type=float, default=0.05, help="percentage of edges to remove")
   parser.add_argument('--edge_sampling_sym', action='store_true', help='make KNN symmetric')
-  parser.add_argument('--edge_sampling_space', type=str, default="pos_distance", help="pos_distance, z_distance")
   parser.add_argument('--edge_sampling_online', action='store_true', help='perform rewiring online')
   parser.add_argument('--edge_sampling_online_reps', type=int, default=4, help="how many online KNN its")
-
+  parser.add_argument('--edge_sampling_space', type=str, default="pos_distance", help="pos_distance, z_distance,pos_distance_QK, z_distance_QK")
 
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson, exp_kernel_pos, exp_kernel_z")
 
+  parser.add_argument('--symmetric_attention', action='store_true', help='maks the attention symmetric for rewring in QK space')
+
   # --dataset Cora --block attention --beltrami --edge_sampling --edge_sampling_T TN --edge_sampling_space pos_distance
+  # --dataset Cora --block attention --attention_type exp_kernel --beltrami --edge_sampling --edge_sampling_T TN --edge_sampling_space pos_distance_QK --symmetric_attention
+  # --dataset Cora --block attention --attention_type scaled_dot --beltrami --edge_sampling --edge_sampling_T TN --edge_sampling_space z_distance_QK --symmetric_attention
+
+
   # --dataset Cora --block attention --beltrami --rewire_KNN --rewire_KNN_T TN
 
   # --dataset Cora --block attention --beltrami --edge_sampling_online --edge_sampling_space pos_distance
