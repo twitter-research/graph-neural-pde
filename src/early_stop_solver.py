@@ -36,10 +36,12 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
     super(EarlyStopDopri5, self).__init__(func, y0, rtol, atol, **kwargs)
 
     self.lf = torch.nn.CrossEntropyLoss()
-    self.m2 = None
+    self.m2_weight = None
+    self.m2_bias = None
     self.data = None
     self.best_val = 0
     self.best_test = 0
+    self.max_test_steps = opt['max_test_steps']
     self.best_time = 0
     self.ode_test = self.test_OGB if opt['dataset'] == 'ogbn-arxiv' else self.test
     self.dataset = opt['dataset']
@@ -53,6 +55,7 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
     self.best_test = test
     self.best_time = time.item()
 
+  @torch.no_grad()
   def integrate(self, t):
     solution = torch.empty(len(t), *self.y0.shape, dtype=self.y0.dtype, device=self.y0.device)
     solution[0] = self.y0
@@ -64,6 +67,7 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
       solution[i] = y
     return new_t, solution
 
+  @torch.no_grad()
   def advance(self, next_t):
     """
     Takes steps dt to get to the next user specified time point next_t. In practice this goes past next_t and then interpolates
@@ -71,15 +75,18 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
     :return: The state, x(next_t)
     """
     n_steps = 0
-    while next_t > self.rk_state.t1:
-      assert n_steps < self.max_num_steps, 'max_num_steps exceeded ({}>={})'.format(n_steps, self.max_num_steps)
+    while next_t > self.rk_state.t1 and n_steps < self.max_test_steps:
+      # assert n_steps < self.max_num_steps, 'max_num_steps exceeded ({}>={})'.format(n_steps, self.max_num_steps)
       self.rk_state = self._adaptive_step(self.rk_state)
       n_steps += 1
       train_acc, val_acc, test_acc = self.evaluate(self.rk_state)
       if val_acc > self.best_val:
         self.set_accs(train_acc, val_acc, test_acc, self.rk_state.t1)
     new_t = next_t
-    return (new_t, _interp_evaluate(self.rk_state.interp_coeff, self.rk_state.t0, self.rk_state.t1, next_t))
+    if n_steps < self.max_test_steps:
+      return (new_t, _interp_evaluate(self.rk_state.interp_coeff, self.rk_state.t0, self.rk_state.t1, next_t))
+    else:
+      return (new_t, _interp_evaluate(self.rk_state.interp_coeff, self.rk_state.t0, self.rk_state.t1, self.rk_state.t1))
 
   @torch.no_grad()
   def test(self, logits):
@@ -102,10 +109,10 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
   def evaluate(self, rkstate):
     # Activation.
     z = rkstate.y1
-    if not self.m2.in_features == z.shape[1]:  # system has been augmented
-      z = torch.split(z, self.m2.in_features, dim=1)[0]
+    if not self.m2_weight.shape[1] == z.shape[1]:  # system has been augmented
+      z = torch.split(z, self.m2_weight.shape[1], dim=1)[0]
     z = F.relu(z)
-    z = self.m2(z)
+    z = F.linear(z, self.m2_weight, self.m2_bias)
     t0, t1 = float(self.rk_state.t0), float(self.rk_state.t1)
     if self.dataset == 'ogbn-arxiv':
       z = z.log_softmax(dim=-1)
@@ -124,6 +131,7 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
     if self.data is None:
       self.data = data
 
+
 class EarlyStopRK4(FixedGridODESolver):
   order = 4
 
@@ -131,7 +139,8 @@ class EarlyStopRK4(FixedGridODESolver):
     super(EarlyStopRK4, self).__init__(func, y0, step_size=opt['step_size'])
     self.eps = torch.as_tensor(eps, dtype=self.dtype, device=self.device)
     self.lf = torch.nn.CrossEntropyLoss()
-    self.m2 = None
+    self.m2_weight = None
+    self.m2_bias = None
     self.data = None
     self.best_val = 0
     self.best_test = 0
@@ -142,15 +151,18 @@ class EarlyStopRK4(FixedGridODESolver):
       self.lf = torch.nn.functional.nll_loss
       self.evaluator = Evaluator(name=opt['dataset'])
 
+  @torch.no_grad()
   def _step_func(self, func, t, dt, y):
     return rk4_alt_step_func(func, t + self.eps, dt - 2 * self.eps, y)
 
+  @torch.no_grad()
   def set_accs(self, train, val, test, time):
     self.best_train = train
     self.best_val = val
     self.best_test = test
     self.best_time = time.item()
 
+  @torch.no_grad()
   def integrate(self, t):
     time_grid = self.grid_constructor(self.func, self.y0, t)
     assert time_grid[0] == t[0] and time_grid[-1] == t[-1]
@@ -194,10 +206,10 @@ class EarlyStopRK4(FixedGridODESolver):
   @torch.no_grad()
   def evaluate(self, z, t0, t1):
     # Activation.
-    if not self.m2.in_features == z.shape[1]:  # system has been augmented
-      z = torch.split(z, self.m2.in_features, dim=1)[0]
+    if not self.m2_weight.shape[1] == z.shape[1]:  # system has been augmented
+      z = torch.split(z, self.m2_weight.shape[1], dim=1)[0]
     z = F.relu(z)
-    z = self.m2(z)
+    z = F.linear(z, self.m2_weight, self.m2_bias)
     if self.dataset == 'ogbn-arxiv':
       z = z.log_softmax(dim=-1)
       loss = self.lf(z[self.data.train_mask], self.data.y.squeeze()[self.data.train_mask])
@@ -228,7 +240,9 @@ class EarlyStopInt(torch.nn.Module):
     self.device = device
     self.solver = None
     self.data = None
-    self.m2 = None
+    self.max_test_steps = opt['max_test_steps']
+    self.m2_weight = None
+    self.m2_bias = None
     self.opt = opt
     self.t = torch.tensor([0, opt['earlystopxT'] * t], dtype=torch.float).to(self.device)
 
@@ -286,7 +300,8 @@ class EarlyStopInt(torch.nn.Module):
       self.solver = SOLVERS[method](func, y0, rtol=rtol, atol=atol, opt=self.opt, **options)
       if self.solver.data is None:
         self.solver.data = self.data
-      self.solver.m2 = self.m2
+      self.solver.m2_weight = self.m2_weight
+      self.solver.m2_bias = self.m2_bias
       t, solution = self.solver.integrate(t)
       if shapes is not None:
         solution = _flat_to_shape(solution, (len(t),), shapes)

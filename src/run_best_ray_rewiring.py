@@ -24,11 +24,13 @@ def appendDFToCSV_void(df, csvFilePath, sep=","):
   else:
     df.to_csv(csvFilePath, mode='a', index=False, sep=sep, header=False)
 
+
 def get_best_params_dir(opt):
   analysis = Analysis("../ray_tune/{}".format(opt['folder']))
   df = analysis.dataframe(metric=opt['metric'], mode='max')
   best_params_dir = df.sort_values(opt['metric'], ascending=False)['logdir'].iloc[opt['index']]
   return best_params_dir
+
 
 def with_KNN(opt):
   opt['rewire_KNN'] = True
@@ -127,6 +129,7 @@ def mainLoop(opt):
 
     run_best_params(opt)
 
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')
@@ -147,6 +150,9 @@ if __name__ == '__main__':
   parser.add_argument("--adjoint", dest='adjoint', action='store_true',
                       help="use the adjoint ODE method to reduce memory footprint")
   parser.add_argument("--max_nfe", type=int, default=5000, help="Maximum number of function evaluations allowed.")
+  parser.add_argument("--max_test_steps", type=int, default=100,
+                      help="Maximum number steps for the dopri5Early test integrator. "
+                           "used if getting OOM errors at test time")
   parser.add_argument("--no_early", action="store_true",
                       help="Whether or not to use early stopping of the ODE integrator when testing.")
 
