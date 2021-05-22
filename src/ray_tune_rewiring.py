@@ -349,7 +349,7 @@ def mainLoop(opt):
   opt['max_nfe'] = 300 #1000
 
   opt['rewiring'] = None
-  opt['attention_type'] = 'exp_kernel_z' #not QK space ie 'exp_kernel'
+  # opt['attention_type'] = 'exp_kernel_z' #not QK space ie 'exp_kernel'
   opt['beltrami'] = True
 
   opt['rewire_KNN'] = True
@@ -362,15 +362,15 @@ def mainLoop(opt):
     opt["name"] = folders[i]
     main(opt)
 
-  opt['rewire_KNN'] = False
-  opt['edge_sampling'] = True
-  datas = ['Cora', 'Citeseer']
-  folders = ['Cora_beltrami_exp_kernel_z','Citeseer_beltrami_exp_kernel_z']
-  for i, ds in enumerate(datas):
-    print(f"Running Tuning for {ds}")
-    opt["dataset"] = ds
-    opt["name"] = folders[i]
-    main(opt)
+  # opt['rewire_KNN'] = False
+  # opt['edge_sampling'] = True
+  # datas = ['Cora', 'Citeseer']
+  # folders = ['Cora_beltrami_exp_kernel_z','Citeseer_beltrami_exp_kernel_z']
+  # for i, ds in enumerate(datas):
+  #   print(f"Running Tuning for {ds}")
+  #   opt["dataset"] = ds
+  #   opt["name"] = folders[i]
+  #   main(opt)
 
 
 if __name__ == "__main__":
@@ -528,6 +528,7 @@ if __name__ == "__main__":
   parser.add_argument('--edge_sampling_online', action='store_true', help='perform rewiring online')
   parser.add_argument('--edge_sampling_online_reps', type=int, default=4, help="how many online KNN its")
 
+  parser.add_argument('--symmetric_attention', action='store_true', help='maks the attention symmetric for rewring in QK space')
 
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--attention_type', type=str, default="scaled_dot",

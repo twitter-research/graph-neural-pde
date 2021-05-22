@@ -209,9 +209,19 @@ def set_rewiring_space(opt):
 
     # opt['beltrami'] = True  # tune.choice([True, False])
 
-    # bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
-    # non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
-    # opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
+    bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
+    non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
+    opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
+
+    # edge_sampling_space is in:
+    # ['pos_distance','z_distance']) if ['attention_type'] == exp_kernel_z or exp_kernel_pos as have removed queries / keys
+    # ['pos_distance_QK','z_distance_QK']) for exp_kernel
+    # ['z_distance_QK']) for any other attention type, plus requires symmetric_attention as don't learn the pos QKp(p) just QK(z)
+    opt['symmetric_attention'] = True #symmetric attention required for distance in QK space
+    exp_kernel_choice = tune.choice(['pos_distance_QK','z_distance_QK'])
+    non_exp_kernel_choice = 'z_distance_QK'
+    opt['edge_sampling_space'] = tune.sample_from(lambda spec: exp_kernel_choice if spec.config.beltrami else non_exp_kernel_choice)
+
     # opt['attention_type'] = "scaled_dot"
 
     opt['feat_hidden_dim'] = tune.choice([16, 32, 64, 128])
