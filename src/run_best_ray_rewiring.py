@@ -283,9 +283,9 @@ def KNN_abalation_grid(opt):
 
 def edge_sampling_ablation(opt):
   # folders = ['Cora_top5','Citeseer_beltrami_1']
-  folders = ['Cora_beltrami_edgeS_QK','Citeseer_beltrami_edgeS_QK']
+  folders = ['Cora_beltrami_edgeS_QK_5split','Citeseer_beltrami_edgeS_QK_5split']
   datas = ['Cora','Citeseer']
-  idxs = [0,0]
+  idxs = [1,0]
 
   # opt['folder'] = 'Cora_top5'
   opt['name'] = 'Edge_sampling_beltrami_top1ablation_test_dQK'
