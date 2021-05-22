@@ -291,7 +291,7 @@ def edge_sampling_ablation(opt):
   opt['name'] = 'Edge_sampling_beltrami_top1ablation_test_dQK'
 
   opt['edge_sampling'] = True
-  # opt['edge_sampling_T'] = 'TN'
+  opt['edge_sampling_T'] = 'TN'
   opt['edge_sampling_epoch'] = 10
   # opt['edge_sampling_space'] = 'z_distance'
   # opt['edge_sampling_add'] = 0.16
@@ -303,7 +303,7 @@ def edge_sampling_ablation(opt):
   opt['edge_sampling_sym'] = False
 
   opt['max_nfe'] = 2000
-  opt['epoch'] = 500
+  opt['epoch'] = 200
   opt['num_splits'] = 8
   opt['gpus'] = 1
   opt['earlystopxT'] = 5
