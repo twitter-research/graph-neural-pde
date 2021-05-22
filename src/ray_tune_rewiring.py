@@ -352,8 +352,8 @@ def mainLoop(opt):
   # opt['attention_type'] = 'exp_kernel_z' #not QK space ie 'exp_kernel'
   opt['beltrami'] = True
 
-  opt['rewire_KNN'] = True
-  opt['edge_sampling'] = False
+  opt['rewire_KNN'] = False
+  opt['edge_sampling'] = True
   datas = ['Cora', 'Citeseer']
   folders = ['Cora_beltrami_exp_kernel_QK','Citeseer_beltrami_exp_kernel_QK']
   for i, ds in enumerate(datas):
