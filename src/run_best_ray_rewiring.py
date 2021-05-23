@@ -288,7 +288,7 @@ def edge_sampling_ablation(opt):
   idxs = [1,0]
 
   # opt['folder'] = 'Cora_top5'
-  opt['name'] = 'Edge_sampling_beltrami_top1ablation_test_dQK_5split'
+  opt['name'] = 'Edge_sampling_beltrami_top1ablation_test_dQK_5split_no_early'
 
   opt['edge_sampling'] = True
   opt['edge_sampling_T'] = 'TN'
@@ -307,8 +307,9 @@ def edge_sampling_ablation(opt):
   opt['num_splits'] = 8
   opt['gpus'] = 1
   opt['earlystopxT'] = 5
+  opt['no_early'] = True
   opt['metric'] = 'test_acc'
-  opt['index'] = 0
+  # opt['index'] = 0
   # best_params = top5[opt['index']]
 
   ###Getting the best params from random sources
