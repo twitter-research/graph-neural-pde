@@ -340,13 +340,14 @@ def main(opt):
 
 
 def mainLoop(opt):
-  opt['epoch'] = 100
+  opt['epoch'] = 250
   opt['gpus'] = 1
   opt['num_samples'] = 500
   opt['grace_period'] = 20
   opt['reduction_factor'] = 10
-  opt['num_splits'] = 5
-  opt['max_nfe'] = 300 #1000
+  # opt['num_splits'] = 5
+  opt['num_init'] = 3
+  opt['max_nfe'] = 500 #1000
 
   opt['rewiring'] = 'None' #'gdc' #None
   # opt['attention_type'] = 'exp_kernel_z' #not QK space ie 'exp_kernel'
@@ -354,8 +355,8 @@ def mainLoop(opt):
 
   opt['rewire_KNN'] = False
   opt['edge_sampling'] = False
-  datas = ['Cora', 'Citeseer']
-  folders = ['Cora_beltrami_5split','Citeseer_beltrami_5split']
+  datas = ['Pubmed'] #['Cora', 'Citeseer']
+  folders = ['Pubmed_beltrami_planetoid'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
     opt["dataset"] = ds

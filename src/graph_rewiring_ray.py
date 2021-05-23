@@ -226,8 +226,8 @@ def set_rewiring_space(opt):
 
     # opt['attention_type'] = "scaled_dot"
 
-    opt['feat_hidden_dim'] = tune.choice([16, 32, 64, 128])
-    opt['pos_enc_hidden_dim'] = tune.choice([16, 32, 64])
+    opt['feat_hidden_dim'] = tune.choice([16, 32, 64])#, 128])
+    opt['pos_enc_hidden_dim'] = tune.choice([16, 32])#, 64])
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
                         if spec.config.beltrami else tune.choice([32, 64, 128]))
     # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
@@ -346,7 +346,7 @@ def set_pubmed_search_space(opt):
         opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
         opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
 
-    opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+    # opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
     opt["lr"] = tune.loguniform(0.02, 0.1)
     opt["input_dropout"] = tune.uniform(0.2, 0.5)  #0.4 tune.uniform(0.2, 0.5)
     opt["dropout"] = tune.uniform(0.05, 0.45)
