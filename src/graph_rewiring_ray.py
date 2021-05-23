@@ -355,7 +355,7 @@ def set_pubmed_search_space(opt):
 
     if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
         opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(2, 4)) #0, 4))
-        opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 8))#(4, 8))
+        opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 7))#8))#(4, 8))
         opt['attention_norm_idx'] = tune.choice([0, 1])
         # opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
         opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
