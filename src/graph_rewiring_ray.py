@@ -199,15 +199,16 @@ def set_rewiring_space(opt):
       opt['exact'] = True
       opt['gdc_threshold'] = 0.01
       opt['ppr_alpha'] = 0.05 # tune.uniform(0.01, 0.2)
-      ks = [16, 32, 64, 128]
+      ks = [8, 16, 32, 64]
       opt['gdc_k'] = tune.choice(ks)
+      opt['pos_enc_orientation'] = tune.choice(["row", "col"])
 
     # experiment args
     opt['block'] = 'attention'
     opt['function'] = 'laplacian'
     # opt['use_lcc'] = True <- this is actually opt['not_lcc'] = False but is default for all except arxiv
 
-    # opt['beltrami'] = True  # tune.choice([True, False])
+    opt['beltrami'] = True  # tune.choice([True, False])
 
     bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
     non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
@@ -217,10 +218,11 @@ def set_rewiring_space(opt):
     # ['pos_distance','z_distance']) if ['attention_type'] == exp_kernel_z or exp_kernel_pos as have removed queries / keys
     # ['pos_distance_QK','z_distance_QK']) for exp_kernel
     # ['z_distance_QK']) for any other attention type, plus requires symmetric_attention as don't learn the pos QKp(p) just QK(z)
-    opt['symmetric_attention'] = True #symmetric attention required for distance in QK space
-    exp_kernel_choice = tune.choice(['pos_distance_QK','z_distance_QK'])
-    non_exp_kernel_choice = 'z_distance_QK'
-    opt['edge_sampling_space'] = tune.sample_from(lambda spec: exp_kernel_choice if spec.config.beltrami else non_exp_kernel_choice)
+
+    # opt['symmetric_attention'] = True #symmetric attention required for distance in QK space
+    # exp_kernel_choice = tune.choice(['pos_distance_QK','z_distance_QK'])
+    # non_exp_kernel_choice = 'z_distance_QK'
+    # opt['edge_sampling_space'] = tune.sample_from(lambda spec: exp_kernel_choice if spec.config.beltrami else non_exp_kernel_choice)
 
     # opt['attention_type'] = "scaled_dot"
 
@@ -229,7 +231,7 @@ def set_rewiring_space(opt):
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
                         if spec.config.beltrami else tune.choice([32, 64, 128]))
     # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
-    opt['pos_enc_orientation'] = tune.choice(["row", "col"])
+
     opt['square_plus'] = tune.choice([True, False])
 
     # opt['rewire_KNN'] = False #tune.choice([True, False])

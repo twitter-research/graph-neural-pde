@@ -436,15 +436,6 @@ if __name__ == '__main__':
 
   parser.add_argument('--symmetric_attention', action='store_true', help='maks the attention symmetric for rewring in QK space')
 
-  # --dataset Cora --block attention --beltrami --edge_sampling --edge_sampling_T TN --edge_sampling_space pos_distance
-  # --dataset Cora --block attention --attention_type exp_kernel --beltrami --edge_sampling --edge_sampling_T TN --edge_sampling_space pos_distance_QK --symmetric_attention
-  # --dataset Cora --block attention --attention_type scaled_dot --beltrami --edge_sampling --edge_sampling_T TN --edge_sampling_space z_distance_QK --symmetric_attention
-
-
-  # --dataset Cora --block attention --beltrami --rewire_KNN --rewire_KNN_T TN
-
-  # --dataset Cora --block attention --beltrami --edge_sampling_online --edge_sampling_space pos_distance
-
 
   args = parser.parse_args()
 

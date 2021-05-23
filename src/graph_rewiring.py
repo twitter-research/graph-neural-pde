@@ -157,7 +157,8 @@ def KNN(x, opt):
 
 @torch.no_grad()
 def apply_KNN(data, pos_encoding, model, opt):
-
+#todo KNN in a similar way to edge sampling where the QK project is taken from a forward
+# pass in the model with custom 'attention type'
   if opt['rewire_KNN_T'] == "raw":
     ei = KNN(data.x, opt)  # rewiring on raw features here
 

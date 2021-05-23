@@ -348,14 +348,14 @@ def mainLoop(opt):
   opt['num_splits'] = 5
   opt['max_nfe'] = 300 #1000
 
-  opt['rewiring'] = None
+  opt['rewiring'] = 'gdc' #None
   # opt['attention_type'] = 'exp_kernel_z' #not QK space ie 'exp_kernel'
   opt['beltrami'] = True
 
   opt['rewire_KNN'] = False
-  opt['edge_sampling'] = True
+  opt['edge_sampling'] = False
   datas = ['Cora', 'Citeseer']
-  folders = ['Cora_beltrami_edgeS_QK_5split','Citeseer_beltrami_edgeS_QK_5split'] #was actually Cora_beltrami_exp_kernel_QK need to rename in jupyter
+  folders = ['Cora_beltrami_DIGL_5split','Citeseer_beltrami_DIGL_5split']
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
     opt["dataset"] = ds
