@@ -292,7 +292,7 @@ def edge_sampling_ablation(opt):
 
   opt['edge_sampling'] = True
   opt['edge_sampling_T'] = 'TN'
-  opt['edge_sampling_epoch'] = 10
+  opt['edge_sampling_epoch'] = 2 #10
   # opt['edge_sampling_space'] = 'z_distance'
   # opt['edge_sampling_add'] = 0.16
   # opt['edge_sampling_rmv'] = 0.16
