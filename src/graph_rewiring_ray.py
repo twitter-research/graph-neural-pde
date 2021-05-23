@@ -201,6 +201,9 @@ def set_rewiring_space(opt):
   # if opt['rewiring'] == 'gdc':
   # opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
 
+  if opt['block'] == 'hard_attention':
+    opt['att_samp_pct'] = tune.uniform(0.2, 1)
+
   # experiment args
   opt['function'] = 'laplacian'
   # opt['use_lcc'] = True
@@ -217,9 +220,12 @@ def set_rewiring_space(opt):
   # opt['attention_type'] = "scaled_dot"
   if opt['dataset'] == 'ogbn-arxiv':
     opt['feat_hidden_dim'] = tune.choice([32, 64, 98])
+    # GDC doesn't scale for ogbn arxiv
+    opt['pos_enc_type'] = tune.choice(['DW64', 'DW128', 'DW256'])
   else:
     opt['feat_hidden_dim'] = tune.choice([32, 64])
-  opt['pos_enc_type'] = tune.choice(['DW64', 'DW128', 'DW256'])
+    opt['pos_enc_type'] = tune.choice(['GDC', 'DW64', 'DW128', 'DW256'])
+
   if opt['dataset'] == 'ogbn-arxiv' and opt['use_labels']:
     # opt['pos_enc_hidden_dim'] = tune.choice([32, 64, 98])
     opt['pos_enc_hidden_dim'] = 64
@@ -256,7 +262,7 @@ def set_cora_search_space(opt):
   opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
   opt["time"] = tune.uniform(10.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  # hidden dim for attention
     opt['attention_norm_idx'] = tune.choice([0, 1])
@@ -296,7 +302,7 @@ def set_cora_planetoid_search_space(opt):
   opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
   opt["time"] = tune.uniform(10.0, 35.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 5))  #
     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 8))  # hidden dim for attention
     opt['attention_norm_idx'] = tune.choice([0, 1])
@@ -338,7 +344,7 @@ def set_citeseer_search_space(opt):
   opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
   #
 
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(1, 4))
     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
     opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
@@ -374,7 +380,7 @@ def set_pubmed_search_space(opt):
   opt["time"] = tune.uniform(5.0, 30.0)
   opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
 
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 7))
     opt['attention_norm_idx'] = tune.choice([0, 1])
@@ -387,7 +393,7 @@ def set_pubmed_search_space(opt):
   opt["tol_scale"] = tune.loguniform(1, 1e5)
 
   if opt["adjoint"]:
-    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
+    opt["tol_scale_adjoint"] = tune.loguniform(10, 1e5)
     opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
   else:
     raise Exception("Can't train on PubMed without the adjoint method.")
@@ -395,7 +401,8 @@ def set_pubmed_search_space(opt):
   opt['add_source'] = tune.choice([True, False])
   # opt['att_samp_pct'] = tune.uniform(0.3, 1)
   opt['batch_norm'] = tune.choice([True, False])
-  # opt['use_mlp'] = tune.choice([True, False])
+  # opt['batch_norm'] = True
+  opt['use_mlp'] = False
 
   return opt
 
@@ -414,7 +421,7 @@ def set_photo_search_space(opt):
   # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
   opt["optimizer"] = "adam"
 
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
     opt['attention_norm_idx'] = tune.choice([0, 1])
@@ -466,7 +473,7 @@ def set_computers_search_space(opt):
   opt["time"] = tune.uniform(0.5, 10.0)
   opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
 
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))
     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
     opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
@@ -510,7 +517,7 @@ def set_coauthors_search_space(opt):
   opt["time"] = tune.uniform(0.5, 10.0)
   opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
 
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))
     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
     opt['attention_norm_idx'] = tune.choice([0, 1])
@@ -586,8 +593,7 @@ def set_arxiv_search_space(opt):
   # opt['data_norm'] = tune.choice(['rw', 'gcn'])
   # opt['add_source'] = tune.choice([True, False])
   opt['add_source'] = tune.choice([True, False])
-  if opt['block'] == 'hard_attention':
-    opt['att_samp_pct'] = tune.uniform(0.2, 0.6)
+
   opt['batch_norm'] = tune.choice([True, False])
   # opt['batch_norm'] = True
   # opt['label_rate'] = tune.uniform(0.05, 0.5)
@@ -649,6 +655,8 @@ def set_search_space(opt):
     return set_coauthors_search_space(opt)
   elif opt["dataset"] == "ogbn-arxiv":
     return set_arxiv_search_space(opt)
+  else:
+    raise NotImplementedError
 
 
 def main(opt):

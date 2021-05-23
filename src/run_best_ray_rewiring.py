@@ -69,6 +69,9 @@ def run_best_params(opt):
   if opt["run_with_KNN"]:
     best_params_ret = with_KNN(best_params_ret)
 
+  if opt['decay'] < 0:
+    best_params_ret['decay'] = best_params['decay']
+
   if opt['change_att_sim_type']:
     best_params_ret['attention_type'] = opt['att_sim_type']
     best_params_ret['square_plus'] = False
@@ -146,6 +149,7 @@ if __name__ == '__main__':
   parser.add_argument('--name', type=str, default=None)
   parser.add_argument('--gpus', type=float, default=0, help='number of gpus per trial. Can be fractional')
   parser.add_argument('--cpus', type=float, default=1, help='number of cpus per trial. Can be fractional')
+  parser.add_argument('--decay', type=float, default=-1, help='will override if set to a nonnegative value')
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random slpits >= 0. 0 for planetoid split")
   parser.add_argument("--adjoint", dest='adjoint', action='store_true',
                       help="use the adjoint ODE method to reduce memory footprint")

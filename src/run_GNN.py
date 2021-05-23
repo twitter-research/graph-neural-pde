@@ -310,7 +310,7 @@ if __name__ == '__main__':
                       help='Whether to run with best params for cora. Overrides the choice of dataset')
   # data args
   parser.add_argument('--dataset', type=str, default='Cora',
-                      help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS')
+                      help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS, ogbn-arxiv')
   parser.add_argument('--data_norm', type=str, default='rw',
                       help='rw for random walk, gcn for symmetric gcn norm')
   parser.add_argument('--self_loop_weight', type=float, default=1.0, help='Weight of self-loops.')
