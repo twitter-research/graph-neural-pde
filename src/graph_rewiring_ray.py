@@ -209,10 +209,12 @@ def set_rewiring_space(opt):
     # opt['use_lcc'] = True <- this is actually opt['not_lcc'] = False but is default for all except arxiv
 
     opt['beltrami'] = True  # tune.choice([True, False])
-
-    bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
-    non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
-    opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
+    bel_choice = ['scaled_dot']
+    non_bel_choice = ['scaled_dot']
+    # bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
+    # non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
+    # opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
+    opt['attention_type'] = "scaled_dot"
 
     # edge_sampling_space is in:
     # ['pos_distance','z_distance']) if ['attention_type'] == exp_kernel_z or exp_kernel_pos as have removed queries / keys
@@ -226,13 +228,22 @@ def set_rewiring_space(opt):
 
     # opt['attention_type'] = "scaled_dot"
 
-    opt['feat_hidden_dim'] = tune.choice([16, 32, 64])#, 128])
-    opt['pos_enc_hidden_dim'] = tune.choice([16, 32])#, 64])
-    opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
-                        if spec.config.beltrami else tune.choice([32, 64, 128]))
+    # opt['feat_hidden_dim'] = tune.choice([16, 32, 64])#, 128])
+    # opt['pos_enc_hidden_dim'] = tune.choice([16, 32])#, 64])
+    # opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
+    #                     if spec.config.beltrami else tune.choice([32, 64, 128]))
+
+    opt['feat_hidden_dim'] = 64 #tune.choice([32, 64])
+    opt['pos_enc_type'] = None #tune.choice(['HYP02', 'HYP04', 'HYP08', 'HYP16'])
+    opt['pos_enc_hidden_dim'] = 64
+    opt['pos_enc_hidden_dim'] = 32 #tune.choice([16, 32])
+    opt['hidden_dim'] = 96
+    opt['pos_enc_orientation'] = 'col' #tune.choice(["row", "col"])
+    opt['square_plus'] = False #tune.choice([True, False])
+
     # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
 
-    opt['square_plus'] = tune.choice([True, False])
+    # opt['square_plus'] = tune.choice([True, False])
 
     # opt['rewire_KNN'] = False #tune.choice([True, False])
     if opt['rewire_KNN']:
@@ -253,12 +264,12 @@ def set_rewiring_space(opt):
         opt['rewire_KNN_epoch'] = None
         opt['rewire_KNN_k'] = None
         opt['rewire_KNN_sym'] = None
-        opt['edge_sampling_T'] = tune.choice(["T0","TN"])
-        opt['edge_sampling_epoch'] = tune.choice([2,10,20,50])
-        opt['edge_sampling_add'] = tune.choice([0.04, 0.08, 0.16, 0.32])
-        opt['edge_sampling_rmv'] = tune.choice([0.04, 0.08, 0.16, 0.32])
-        opt['edge_sampling_sym'] = tune.choice([True, False])
-        opt['edge_sampling_space'] = tune.choice(['pos_distance','z_distance'])
+        opt['edge_sampling_T'] = 'TN' #tune.choice(["T0","TN"])
+        opt['edge_sampling_epoch'] = 10 #tune.choice([2,10,20,50])
+        opt['edge_sampling_add'] = 0.08 #tune.choice([0.04, 0.08, 0.16, 0.32])
+        opt['edge_sampling_rmv'] = 0.08 #tune.choice([0.04, 0.08, 0.16, 0.32])
+        opt['edge_sampling_sym'] = False #tune.choice([True, False])
+        opt['edge_sampling_space'] = 'pos_distance' #tune.choice(['pos_distance','z_distance'])
 
     return opt
 
@@ -303,41 +314,77 @@ def set_cora_search_space(opt):
     return opt
 
 
+# def set_citeseer_search_space(opt):
+#
+#     opt["decay"] = 0.1  # tune.loguniform(2e-3, 1e-2)
+#     if opt['regularise']:
+#         opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
+#         opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+#
+#     opt["lr"] = tune.loguniform(2e-3, 0.01)
+#     opt["input_dropout"] = tune.uniform(0.4, 0.8)
+#     opt["dropout"] = tune.uniform(0, 0.8)
+#     opt["time"] = tune.uniform(0.5, 8.0)
+#     opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
+#     #
+#
+#     if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+#         opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(1, 4))
+#         opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
+#         opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
+#         # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
+#         opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+#             [0, 1])  # whether or not to use self-loops
+#     else:
+#         opt["self_loop_weight"] = tune.uniform(0, 3)  # 1 seems to work pretty well
+#
+#     opt["tol_scale"] = tune.loguniform(1, 2e3)
+#
+#     if opt["adjoint"]:
+#         opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
+#         opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
+#
+#         opt['add_source'] = tune.choice([True, False])
+#         # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+#         opt['batch_norm'] = tune.choice([True, False])
+#         # opt['use_mlp'] = tune.choice([True, False])
+#     return opt
+
 def set_citeseer_search_space(opt):
+  opt["decay"] = 0.1  # tune.loguniform(2e-3, 1e-2)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
-    opt["decay"] = 0.1  # tune.loguniform(2e-3, 1e-2)
-    if opt['regularise']:
-        opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
-        opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+  opt["lr"] = 0.006115 #tune.loguniform(2e-3, 0.01)
+  opt["input_dropout"] = 0.430196 #tune.uniform(0.4, 0.8)
+  opt["dropout"] = 0.440859#tune.uniform(0, 0.8)
+  opt["time"] = 7.6887 #tune.uniform(0.5, 8.0)
+  opt["optimizer"] = 'adamax'#tune.choice(["rmsprop", "adam", "adamax"])
+  #
 
-    opt["lr"] = tune.loguniform(2e-3, 0.01)
-    opt["input_dropout"] = tune.uniform(0.4, 0.8)
-    opt["dropout"] = tune.uniform(0, 0.8)
-    opt["time"] = tune.uniform(0.5, 8.0)
-    opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
-    #
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+    opt["heads"] = 8 #tune.sample_from(lambda _: 2 ** np.random.randint(1, 4))
+    opt["attention_dim"] = 128 #tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
+    opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
+    # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
+    opt["self_loop_weight"] = 1#tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+      # [0, 1])  # whether or not to use self-loops
+  else:
+    opt["self_loop_weight"] = tune.uniform(0, 3)  # 1 seems to work pretty well
 
-    if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-        opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(1, 4))
-        opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
-        opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
-        # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
-        opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-            [0, 1])  # whether or not to use self-loops
-    else:
-        opt["self_loop_weight"] = tune.uniform(0, 3)  # 1 seems to work pretty well
+  opt["tol_scale"] = 4.5495#tune.loguniform(1, 2e3)
 
-    opt["tol_scale"] = tune.loguniform(1, 2e3)
+  if opt["adjoint"]:
+    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
 
-    if opt["adjoint"]:
-        opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
-        opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
+    opt['add_source'] = True#tune.choice([True, False])
+    # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+    opt['batch_norm'] = Fase #tune.choice([True, False])
+    # opt['use_mlp'] = tune.choice([True, False])
+  return opt
 
-        opt['add_source'] = tune.choice([True, False])
-        # opt['att_samp_pct'] = tune.uniform(0.3, 1)
-        opt['batch_norm'] = tune.choice([True, False])
-        # opt['use_mlp'] = tune.choice([True, False])
-    return opt
 
 def set_pubmed_search_space(opt):
 
