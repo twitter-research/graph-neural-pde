@@ -277,6 +277,7 @@ def set_rewiring_space(opt):
     opt['edge_sampling_sym'] = tune.choice([True, False])
     opt['edge_sampling_add'] = tune.choice([0.04, 0.08, 0.16]) # tune.choice([0.04, 0.08, 0.16, 0.32])
     opt['edge_sampling_rmv'] = tune.choice([0.0, 0.04, 0.08])  # tune.choice([0.04, 0.08, 0.16, 0.32])
+    opt["time"] = tune.uniform(0.25, 5.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
     return opt
 
@@ -292,7 +293,7 @@ def set_cora_search_space(opt):
     opt["input_dropout"] = 0.5
     opt["optimizer"] = tune.choice(["adam", "adamax"])
     opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-    opt["time"] = tune.uniform(10.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
+    # opt["time"] = tune.uniform(10.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
     if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
         opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
