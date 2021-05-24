@@ -350,7 +350,7 @@ def mainLoop(opt):
   opt['rewiring'] = 'None' #'gdc' #None
   # opt['attention_type'] = 'exp_kernel_z' #not QK space ie 'exp_kernel'
   opt['beltrami'] = True
-  opt['adjoint'] = True
+  opt['adjoint'] = False
 
   opt['rewire_KNN'] = False
   opt['edge_sampling'] = True #False
