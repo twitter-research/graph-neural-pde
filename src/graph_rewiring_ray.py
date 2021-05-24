@@ -385,8 +385,9 @@ def set_pubmed_search_space(opt):
     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 7))
     opt['attention_norm_idx'] = tune.choice([0, 1])
     # opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
-    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-      [0, 1])  # whether or not to use self-loops
+    # opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+    #   [0, 1])  # whether or not to use self-loops
+    opt["self_loop_weight"] = 1
   else:
     opt["self_loop_weight"] = tune.uniform(0, 3)
 
