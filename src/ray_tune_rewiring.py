@@ -42,24 +42,11 @@ def average_test(models, datas, pos_encoding, opt):
   return train_accs, val_accs, tmp_test_accs
 
 
-# def average_test_OGB(models, mps, datas, pos_encoding):
-#   results = [test_OGB(model, mp, data, pos_encoding, opt) for model, mp, data in zip(models, mps, datas)]
-#   train_accs, val_accs, tmp_test_accs = [], [], []
-#
-#   for train_acc, val_acc, test_acc in results:
-#     train_accs.append(train_acc)
-#     val_accs.append(val_acc)
-#     tmp_test_accs.append(test_acc)
-#
-#   return train_accs, val_accs, tmp_test_accs
-
-
 def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
   models = []
-  mps = []
   datas = []
   optimizers = []
 
@@ -67,11 +54,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
     # dataset = get_dataset(opt, data_dir, opt['not_lcc'])
     dataset.data = set_train_val_test_split(
       np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
-    # datas.append(dataset.data)
 
-    # if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
-    #   pos_encoding = apply_beltrami(dataset.data, opt)
-    #   mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
     if opt['beltrami']:
       pos_encoding = apply_beltrami(dataset.data, opt, data_dir).to(device)
       opt['pos_enc_dim'] = pos_encoding.shape[1]
@@ -120,11 +103,6 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       for i, data in enumerate(datas):
         models[i].odeblock.odefunc.edge_index = KNN_ei[i]
 
-    # if opt['dataset'] == 'ogbn-arxiv':
-    #   loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in
-    #                   zip(models, mps, optimizers, datas)])
-    #   train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas, pos_encoding)
-    # else:
     loss = np.mean(
       [train_this(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])
     train_accs, val_accs, tmp_test_accs = average_test(models, datas, pos_encoding, opt)
@@ -134,6 +112,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((models[best].state_dict(), optimizers[best].state_dict()), path)
     tune.report(loss=loss, accuracy=np.mean(val_accs), test_acc=np.mean(tmp_test_accs), train_acc=np.mean(train_accs),
+                val_acc_std=np.std(val_accs), test_acc_std=np.std(tmp_test_accs),
                 forward_nfe=model.fm.sum,
                 backward_nfe=model.bm.sum)
 
@@ -212,6 +191,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       path = os.path.join(checkpoint_dir, "checkpoint")
       torch.save((models[best].state_dict(), optimizers[best].state_dict()), path)
     tune.report(loss=loss, accuracy=np.mean(val_accs), test_acc=np.mean(tmp_test_accs), train_acc=np.mean(train_accs),
+                val_acc_std=np.std(val_accs), test_acc_std=np.std(tmp_test_accs),
                 forward_nfe=model.fm.sum,
                 backward_nfe=model.bm.sum)
 
@@ -226,9 +206,6 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
       dataset.data,
       num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
-  # if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
-  #   pos_encoding = apply_beltrami(dataset.data, opt)
-  #   mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
   if opt['beltrami']:
     pos_encoding = apply_beltrami(dataset.data, opt, data_dir).to(device)
     opt['pos_enc_dim'] = pos_encoding.shape[1]
@@ -276,6 +253,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
         train_acc = tmp_train_acc
         val_acc = tmp_val_acc
         test_acc = tmp_test_acc
+        best_time = opt['time']
       if model.odeblock.test_integrator.solver.best_val > val_acc:
         best_epoch = epoch
         val_acc = model.odeblock.test_integrator.solver.best_val
@@ -288,8 +266,6 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
     tune.report(loss=loss, accuracy=val_acc, test_acc=test_acc, train_acc=train_acc, best_time=best_time,
                 best_epoch=best_epoch,
                 forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
-
-    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e4)
 
 
 def main(opt):
@@ -304,7 +280,8 @@ def main(opt):
     reduction_factor=opt["reduction_factor"],
   )
   reporter = CLIReporter(
-    metric_columns=["accuracy", "test_acc", "train_acc", "loss", "training_iteration", "forward_nfe", "backward_nfe"]
+    metric_columns=["accuracy", "test_acc_std", "test_acc", "train_acc", "loss", "training_iteration",
+                    "val_acc_std", "test_acc_std", "forward_nfe", "backward_nfe"]
   )
   # choose a search algorithm from https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
   search_alg = AxSearch(metric=opt['metric'])

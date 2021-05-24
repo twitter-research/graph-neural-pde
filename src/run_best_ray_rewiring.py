@@ -102,7 +102,8 @@ def run_best_params(opt):
     progress_reporter=reporter,
     raise_on_failed_trial=False)
 
-  df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
+  # select the epoch with the highest validation accuracy
+  df = result.dataframe(metric='accuracy', mode="max").sort_values(opt['metric'], ascending=False)
 
   try:
     csvFilePath = '../ray_results/{}.csv'.format(name)  # , time.strftime("%Y%m%d-%H%M%S"))
