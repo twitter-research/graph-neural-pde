@@ -381,7 +381,7 @@ def set_citeseer_search_space(opt):
 
     opt['add_source'] = True#tune.choice([True, False])
     # opt['att_samp_pct'] = tune.uniform(0.3, 1)
-    opt['batch_norm'] = Fase #tune.choice([True, False])
+    opt['batch_norm'] = False #tune.choice([True, False])
     # opt['use_mlp'] = tune.choice([True, False])
   return opt
 
