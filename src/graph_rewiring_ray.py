@@ -234,7 +234,7 @@ def set_rewiring_space(opt):
     #                     if spec.config.beltrami else tune.choice([32, 64, 128]))
 
     opt['feat_hidden_dim'] = 64 #tune.choice([32, 64])
-    opt['pos_enc_type'] = None #tune.choice(['HYP02', 'HYP04', 'HYP08', 'HYP16'])
+    opt['pos_enc_type'] = 'GDC' #tune.choice(['HYP02', 'HYP04', 'HYP08', 'HYP16'])
     opt['pos_enc_hidden_dim'] = 64
     opt['pos_enc_hidden_dim'] = 32 #tune.choice([16, 32])
     opt['hidden_dim'] = 96
