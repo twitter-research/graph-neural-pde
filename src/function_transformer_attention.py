@@ -254,7 +254,7 @@ class SpGraphTransAttentionLayer(nn.Module):
 
     #this branch is built to encorporate distance in the QK space for both exponential kerels and regular attention types
     elif self.opt['beltrami'] and self.opt['symmetric_attention'] and self.opt['attention_type'] == "z_distance_QK":
-      if hasattr(self, 'QKx'):
+      if hasattr(self, 'QKx'): #this path is if orignal attention was exponential kernal type
         # todo the below is very error prone. Think of a better way when there's time
         label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
         p = x[:, self.opt['feat_hidden_dim']: label_index]
@@ -291,7 +291,7 @@ class SpGraphTransAttentionLayer(nn.Module):
         #need to check length scale as their ratio is learned
         prods = (torch.sum((src_x - dst_x) ** 2, dim=1) / (2 * self.lengthscale_x ** 2)) + \
                 (torch.sum((src_p - dst_p) ** 2, dim=1) / (2 * self.lengthscale_p ** 2))
-      else:
+      else: #this path is if orignal attention was not exponential kernal type
         # if self.opt['symmetric_attention']: <- this is assumed
         q = self.QK(x)
         k = q

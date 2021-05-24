@@ -426,8 +426,8 @@ if __name__ == '__main__':
                       help='run parameters discovered with attention different attention similarity ')
   parser.add_argument('--reps', type=int, default=1, help='the number of random weight initialisations to use')
   parser.add_argument('--name', type=str, default=None)
-  #todo if we add new pos_enc_types this will break
-  parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
+  # #todo if we add new pos_enc_types this will break
+  # parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
   parser.add_argument('--gpus', type=float, default=0, help='number of gpus per trial. Can be fractional')
   parser.add_argument('--cpus', type=float, default=1, help='number of cpus per trial. Can be fractional')
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random slpits >= 0. 0 for planetoid split")

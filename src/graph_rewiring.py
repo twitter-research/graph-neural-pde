@@ -189,10 +189,10 @@ def edge_sampling(model, z, opt):
   #edge_sampling_space is in:
     # ['pos_distance','z_distance']) if ['attention_type'] == exp_kernel_z or exp_kernel_pos as have removed queries / keys
     # ['pos_distance_QK','z_distance_QK']) for exp_kernel
-    # ['z_distance_QK']) for any other attention type, plus requires symmetric_attention as don't learn the pos QKp(p) just QK(z)
+    # ['z_distance_QK']) for any other attention type as don't learn the pos QKp(p) just QK(z), plus requires symmetric_attention
 
   model.opt['attention_type'] = model.opt['edge_sampling_space'] #this changes the opt at all levels as opt is assigment link
-  pos_enc_distances = model.odeblock.get_attention_weights(z)
+  pos_enc_distances = model.odeblock.get_attention_weights(z) #forward pass of multihead_att_layer
   model.odeblock.multihead_att_layer.opt['attention_type'] = temp_att_type
 
   #threshold
