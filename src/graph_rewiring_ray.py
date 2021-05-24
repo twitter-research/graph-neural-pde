@@ -194,13 +194,13 @@ def set_rewiring_space(opt):
       opt['attention_rewiring'] = False #tune.choice([True, False])
       opt['reweight_attention'] = False #tune.sample_from(lambda spec: tune.choice([True, False])
                                   # if spec.config.rewiring else False) #tune.choice([True, False])
-      opt['make_symm'] = tune.choice([True, False]) #this is DIGL (A+A.T)/2 with weights aswell
+      opt['make_symm'] = False #tune.choice([True, False]) #this is DIGL (A+A.T)/2 with weights aswell
       opt['gdc_sparsification'] = 'topk'  # 'threshold'
       opt['exact'] = True
       opt['gdc_threshold'] = 0.01
       opt['ppr_alpha'] = 0.05 # tune.uniform(0.01, 0.2)
       ks = [8, 16, 32, 64]
-      opt['gdc_k'] = tune.choice(ks)
+      opt['gdc_k'] = None #tune.choice(ks)
       opt['pos_enc_orientation'] = tune.choice(["row", "col"])
     opt['reweight_attention'] = False
 
@@ -377,8 +377,8 @@ def set_citeseer_search_space(opt):
   opt["tol_scale"] = 4.5495#tune.loguniform(1, 2e3)
 
   if opt["adjoint"]:
-    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
+    opt["tol_scale_adjoint"] = None#tune.loguniform(1, 1e5)
+    opt["adjoint_method"] = None#tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
 
     opt['add_source'] = True#tune.choice([True, False])
     # opt['att_samp_pct'] = tune.uniform(0.3, 1)
