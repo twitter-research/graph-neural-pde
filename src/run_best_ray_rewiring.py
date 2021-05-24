@@ -26,7 +26,7 @@ def appendDFToCSV_void(df, csvFilePath, sep=","):
 
 def get_best_params_dir(opt):
   analysis = Analysis("../ray_tune/{}".format(opt['folder']))
-  df = analysis.dataframe(metric=opt['metric'], mode='max')
+  df = analysis.dataframe(metric='accuracy', mode='max')
   best_params_dir = df.sort_values(opt['metric'], ascending=False)['logdir'].iloc[opt['index']]
   return best_params_dir
 
@@ -113,16 +113,16 @@ def run_best_params(opt):
 
 def mainLoop(opt):
   opt['max_nfe'] = 1000
-  opt['epoch'] = 500
+  opt['epoch'] = 250
   opt['num_splits'] = 8
   opt['gpus'] = 1
   opt['earlystopxT'] = 2 #5
   opt['metric'] = 'test_acc'
 
-  datas = ['Cora','Citeseer','Cora','Citeseer']#['Cora']#,'Citeseer'] #, 'Pubmed'] #['Cora', 'Citeseer', 'Photo']
-  folders = ['Cora_beltrami_exp_kernel_z','Citeseer_beltrami_exp_kernel_z','Cora_beltrami_exp_kernel_z2','Citeseer_beltrami_exp_kernel_z2']#['Cora_beltrami_exp_kernel'] #beltrami_2','Citeseer_beltrami_1']#, 'Pubmed_beltrami_2_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
-  names = ['blah2','blah2','blah2','blah2']#['Citeseer_beltrami_exp_kernel_test'] #['Cora_beltrami_attdefaults_test','Citeseer_beltrami_attdefaults_test']
-  indexes = [[0,1,2,3,4],[0,1,2,3,4],[0,1,2,3,4],[0,1,2,3,4]] #,[3,4]] #[[0,1,2], [0,1,2]] #,3,4]]#, [0,1,2,3,4]] #,0,0]
+  datas = ['Cora','Citeseer','Pubmed']#,'Cora','Citeseer']#['Cora']#,'Citeseer'] #, 'Pubmed'] #['Cora', 'Citeseer', 'Photo']
+  folders = ['Cora_hyp_encs','Citeseer_hyp_encs'] #,'Cora_beltrami_exp_kernel_z2','Citeseer_beltrami_exp_kernel_z2']#['Cora_beltrami_exp_kernel'] #beltrami_2','Citeseer_beltrami_1']#, 'Pubmed_beltrami_2_KNN'] #['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
+  names = ['Cora_hyp_encs','Citeseer_hyp_encs']#,'blah2','blah2']#['Citeseer_beltrami_exp_kernel_test'] #['Cora_beltrami_attdefaults_test','Citeseer_beltrami_attdefaults_test']
+  indexes = [[0,1,2,3,4],[0,1,2,3,4]] #,[0,1,2,3,4],[0,1,2,3,4]] #,[3,4]] #[[0,1,2], [0,1,2]] #,3,4]]#, [0,1,2,3,4]] #,0,0]
   opt['run_with_KNN'] = False
   opt['bestwithKNN'] = False
   opt['edge_sampling'] = False
@@ -443,8 +443,8 @@ if __name__ == '__main__':
 
   opt = vars(args)
   # run_best_params(opt)
-  # mainLoop(opt)
+  mainLoop(opt)
   # KNN_abalation(opt)
   # KNN_abalation_grid(opt)
   # run_top5(opt)
-  edge_sampling_ablation(opt)
+  # edge_sampling_ablation(opt)
