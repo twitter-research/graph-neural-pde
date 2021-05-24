@@ -278,7 +278,7 @@ def main(opt):
       model.odeblock.odefunc.edge_index = ei
 
     if opt['edge_sampling'] and epoch % opt['edge_sampling_epoch'] == 0 and epoch != 0:
-      apply_edge_sampling(data, pos_encoding, model, opt)
+      apply_edge_sampling(data.x, pos_encoding, model, opt)
 
     if opt['dataset'] == 'ogbn-arxiv':  # this is a proxy for 'external encoder'
       loss = train_OGB(model, mp, optimizer, data, pos_encoding)
@@ -424,11 +424,13 @@ if __name__ == '__main__':
   parser.add_argument('--edge_sampling_T', type=str, default="T0", help="T0, TN")
   parser.add_argument('--edge_sampling_epoch', type=int, default=5, help="frequency of epochs to rewire")
   parser.add_argument('--edge_sampling_add', type=float, default=0.05, help="percentage of new edges to add")
+  parser.add_argument('--edge_sampling_add_type', type=str, default="random", help="random, ,anchored, importance, degree")
+
   parser.add_argument('--edge_sampling_rmv', type=float, default=0.05, help="percentage of edges to remove")
   parser.add_argument('--edge_sampling_sym', action='store_true', help='make KNN symmetric')
   parser.add_argument('--edge_sampling_online', action='store_true', help='perform rewiring online')
   parser.add_argument('--edge_sampling_online_reps', type=int, default=4, help="how many online KNN its")
-  parser.add_argument('--edge_sampling_space', type=str, default="pos_distance", help="pos_distance, z_distance,pos_distance_QK, z_distance_QK")
+  parser.add_argument('--edge_sampling_space', type=str, default="pos_distance", help="attention,pos_distance, z_distance, pos_distance_QK, z_distance_QK")
 
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
@@ -442,3 +444,11 @@ if __name__ == '__main__':
   opt = vars(args)
 
   main(opt)
+
+
+# --dataset Cora --block attention --attention_type scaled_dot --beltrami --edge_sampling
+#           --edge_sampling_T TN --edge_sampling_space z_distance_QK --symmetric_attention
+# --dataset Cora --block attention --attention_type scaled_dot --beltrami --edge_sampling
+#           --edge_sampling_add_type importance --edge_sampling_space attention
+# --dataset Cora --block attention --attention_type scaled_dot --beltrami --edge_sampling_online
+#           --edge_sampling_add_type importance --edge_sampling_space attention

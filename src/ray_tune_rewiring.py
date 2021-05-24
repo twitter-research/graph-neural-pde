@@ -120,7 +120,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       for i, data in enumerate(datas):
         models[i].odeblock.odefunc.edge_index = KNN_ei[i]
     if opt['edge_sampling'] and epoch % opt['edge_sampling_epoch'] == 0 and epoch != 0:
-      apply_edge_sampling(data, pos_encoding, model, opt)
+      apply_edge_sampling(data.x, pos_encoding, model, opt)
 
     if opt['dataset'] == 'ogbn-arxiv':
       loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in
@@ -198,11 +198,11 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
 
   for epoch in range(1, opt["epoch"]):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
-      ei = apply_KNN(data, pos_encoding, model, opt)
+      ei = apply_KNN(data.x, pos_encoding, model, opt)
       model.odeblock.odefunc.edge_index = ei
 
     if opt['edge_sampling'] and epoch % opt['edge_sampling_epoch'] == 0 and epoch != 0:
-      apply_edge_sampling(data, pos_encoding, model, opt)
+      apply_edge_sampling(data.x, pos_encoding, model, opt)
 
     if opt['dataset'] == 'ogbn-arxiv':
       loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in
@@ -263,11 +263,11 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
   best_time = best_epoch = train_acc = val_acc = test_acc = 0
   for epoch in range(1, opt["epoch"]):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
-      ei = apply_KNN(data, pos_encoding, model, opt)
+      ei = apply_KNN(data.x, pos_encoding, model, opt)
       model.odeblock.odefunc.edge_index = ei
 
     if opt['edge_sampling'] and epoch % opt['edge_sampling_epoch'] == 0 and epoch != 0:
-      apply_edge_sampling(data, pos_encoding, model, opt)
+      apply_edge_sampling(data.x, pos_encoding, model, opt)
 
     loss = train(model, optimizer, data, pos_encoding)
 

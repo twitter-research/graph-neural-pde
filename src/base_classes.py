@@ -102,6 +102,7 @@ class BaseGNN(MessagePassing):
     self.T = opt['time']
     self.num_classes = dataset.num_classes
     self.num_features = dataset.data.num_features
+    self.num_nodes = dataset.data.num_nodes
     self.device = device
     self.fm = Meter()
     self.bm = Meter()

@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch_sparse
+from torch_scatter import scatter
 from torch_geometric.transforms.two_hop import TwoHop
 from utils import get_rw_adj
 # from torch_geometric.transforms import GDC
@@ -184,54 +185,91 @@ def apply_KNN(data, pos_encoding, model, opt):
 
 
 def edge_sampling(model, z, opt):
-  #calc distance metric
-  temp_att_type = model.opt['attention_type']
-  #edge_sampling_space is in:
-    # ['pos_distance','z_distance']) if ['attention_type'] == exp_kernel_z or exp_kernel_pos as have removed queries / keys
-    # ['pos_distance_QK','z_distance_QK']) for exp_kernel
-    # ['z_distance_QK']) for any other attention type as don't learn the pos QKp(p) just QK(z), plus requires symmetric_attention
 
-  model.opt['attention_type'] = model.opt['edge_sampling_space'] #this changes the opt at all levels as opt is assigment link
-  pos_enc_distances = model.odeblock.get_attention_weights(z) #forward pass of multihead_att_layer
-  model.odeblock.multihead_att_layer.opt['attention_type'] = temp_att_type
+  if opt['edge_sampling_space'] == 'attention':
+    attention_weights = model.odeblock.get_attention_weights(z)
+    mean_att = attention_weights.mean(dim=1, keepdim=False)
+    threshold = torch.quantile(mean_att, 1 - opt['att_samp_pct'])
+    mask = mean_att > threshold
+  else:
+    #calc distance metric if edge_sampling_space is in:
+      # ['pos_distance','z_distance']) if ['attention_type'] == exp_kernel_z or exp_kernel_pos as have xremoved queries / keys
+      # ['pos_distance_QK','z_distance_QK']) for exp_kernel
+      # ['z_distance_QK']) for any other attention type as don't learn the pos QKp(p) just QK(z), plus requires symmetric_attention
+    temp_att_type = model.opt['attention_type']
+    model.opt['attention_type'] = model.opt['edge_sampling_space'] #this changes the opt at all levels as opt is assigment link
+    pos_enc_distances = model.odeblock.get_attention_weights(z) #forward pass of multihead_att_layer
+    model.odeblock.multihead_att_layer.opt['attention_type'] = temp_att_type
 
-  #threshold
-  threshold = torch.quantile(pos_enc_distances, 1 - opt['edge_sampling_rmv'])
-  mask = pos_enc_distances < threshold
+    #threshold on distances so we throw away the biggest, opposite to attentions
+    threshold = torch.quantile(pos_enc_distances, 1 - opt['edge_sampling_rmv'])
+    mask = pos_enc_distances < threshold
 
-  return model.odeblock.odefunc.edge_index[:, mask.T]
+  #renormalise attention - this should get done anyway in each block forward pass
+  # model.odeblock.odefunc.edge_index = model.odeblock.odefunc.edge_index[:, mask.T]
+  # sampled_attention_weights = renormalise_attention(mean_att[mask])
+  # model.odeblock.odefunc.attention_weights = sampled_attention_weights
 
+  # print('retaining {} of {} edges'.format(self.odefunc.edge_index.shape[1], self.data_edge_index.shape[1]))
 
-@torch.no_grad()
-def apply_edge_sampling(data, pos_encoding, model, opt):
-  print(f"Rewiring with edge sampling")
-
-  # generate new edges and add to edge_index
-  num_nodes = data.num_nodes
-  M = int(data.num_nodes * opt['edge_sampling_add'])
-  new_edges = np.random.choice(num_nodes, size=(2, M), replace=True, p=None)
-  new_edges = torch.tensor(new_edges, device=model.device)
-  cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges], dim=1)
-  new_edges = torch.unique(cat, sorted=False, return_inverse=False,
-                            return_counts=False, dim=1)
-
-  #add to model edge index
-  model.odeblock.odefunc.edge_index = new_edges
-
-  #get Z_T0 or Z_TN
-  if opt['edge_sampling_T'] == "T0":
-    z = model.forward_encoder(data.x, pos_encoding)
-  elif opt['edge_sampling_T'] == 'TN':
-    z = model.forward_ODE(data.x, pos_encoding)
-
-  # update edge index in model
-  model.odeblock.odefunc.edge_index = edge_sampling(model, z, opt)
+  model.odeblock.odefunc.edge_index = model.odeblock.odefunc.edge_index[:, mask.T]
 
   if opt['edge_sampling_sym']:
     model.odeblock.odefunc.edge_index = to_undirected(model.odeblock.odefunc.edge_index)
 
+  return model.odeblock.odefunc.edge_index
 
-#### THIS SHOULD BE OK
+# def renormalise_attention(model, attention):
+#   index = model.odeblock.odefunc.edge_index[model.opt['attention_norm_idx']]
+#   att_sums = scatter(attention, index, dim=0, dim_size=model.num_nodes, reduce='sum')[index]
+#   return attention / (att_sums + 1e-16)
+
+
+def add_edges(model, opt):
+  num_nodes = model.num_nodes
+  M = int(num_nodes * opt['edge_sampling_add'])
+  # generate new edges and add to edge_index
+  if opt['edge_sampling_add_type'] == 'random':
+    new_edges = np.random.choice(num_nodes, size=(2, M), replace=True, p=None)
+    new_edges = torch.tensor(new_edges, device=model.device)
+    cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges], dim=1)
+  elif opt['edge_sampling_add_type'] == 'anchored':
+    pass
+  elif opt['edge_sampling_add_type'] == 'importance':
+    atts = model.odeblock.odefunc.attention_weights.mean(dim=1)
+    # src = model.odeblock.odefunc.edge_index[0, :]
+    dst = model.odeblock.odefunc.edge_index[1, :]
+
+    importance = scatter(atts, dst, dim=0, dim_size=num_nodes, reduce='sum') #column sum to represent outgoing importance
+    anchors = torch.topk(importance, M, dim=0)[1]
+    rand_nodes = torch.tensor(np.random.choice(num_nodes, size=M, replace=True, p=None))
+    new_edges = torch.stack([anchors, rand_nodes], dim=0)
+    new_edges2 = torch.stack([rand_nodes, anchors], dim=0)
+    #todo this only adds 1 new edge to each important anchor
+    cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges, new_edges2], dim=1)
+  elif opt['edge_sampling_add_type'] == 'degree':
+    pass
+
+  new_ei = torch.unique(cat, sorted=False, return_inverse=False, return_counts=False, dim=1)
+  return new_ei
+
+@torch.no_grad()
+def apply_edge_sampling(x, pos_encoding, model, opt):
+  print(f"Rewiring with edge sampling")
+
+  #add to model edge index
+  model.odeblock.odefunc.edge_index = add_edges(model, opt)
+
+  # get Z_T0 or Z_TN
+  if opt['edge_sampling_T'] == "T0":
+    z = model.forward_encoder(x, pos_encoding)
+  elif opt['edge_sampling_T'] == 'TN':
+    z = model.forward_ODE(x, pos_encoding)
+
+  #sample the edges and update edge index in model
+  model.odeblock.odefunc.edge_index = edge_sampling(model, z, opt)
+
+
 def apply_beltrami(data, opt, data_dir='../data'):
   pos_enc_dir = os.path.join(f"{data_dir}", "pos_encodings")
   # generate new positional encodings

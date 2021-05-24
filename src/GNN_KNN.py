@@ -3,7 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 from base_classes import BaseGNN
 from model_configurations import set_block, set_function
-from graph_rewiring import KNN, edge_sampling
+from graph_rewiring import KNN, add_edges, edge_sampling
 
 
 # Define the GNN model.
@@ -78,6 +78,7 @@ class GNN_KNN(BaseGNN):
           z, self.reg_states = self.odeblock(z)
         else:
           z = self.odeblock(z)
+        self.odeblock.odefunc.edge_index = add_edges(self, self.opt)
         self.odeblock.odefunc.edge_index = edge_sampling(self, z, self.opt)
 
     else:
