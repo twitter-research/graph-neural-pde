@@ -289,8 +289,6 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
                 best_epoch=best_epoch,
                 forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
 
-    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e4)
-
 
 def main(opt):
   data_dir = os.path.abspath("../data")
