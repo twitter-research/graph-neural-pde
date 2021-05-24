@@ -232,7 +232,9 @@ def add_edges(model, opt):
   if opt['edge_sampling_add_type'] == 'random':
     new_edges = np.random.choice(num_nodes, size=(2, M), replace=True, p=None)
     new_edges = torch.tensor(new_edges, device=model.device)
-    cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges], dim=1)
+    new_edges2 = new_edges[[1, 0], :]
+    # cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges], dim=1)
+    cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges, new_edges2], dim=1)
   elif opt['edge_sampling_add_type'] == 'anchored':
     pass
   elif opt['edge_sampling_add_type'] == 'importance':
@@ -242,7 +244,7 @@ def add_edges(model, opt):
 
     importance = scatter(atts, dst, dim=0, dim_size=num_nodes, reduce='sum') #column sum to represent outgoing importance
     anchors = torch.topk(importance, M, dim=0)[1]
-    rand_nodes = torch.tensor(np.random.choice(num_nodes, size=M, replace=True, p=None))
+    rand_nodes = torch.tensor(np.random.choice(num_nodes, size=M, replace=True, p=None), device=model.device)
     new_edges = torch.stack([anchors, rand_nodes], dim=0)
     new_edges2 = torch.stack([rand_nodes, anchors], dim=0)
     #todo this only adds 1 new edge to each important anchor
