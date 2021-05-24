@@ -353,9 +353,9 @@ def mainLoop(opt):
   opt['adjoint'] = False
 
   opt['rewire_KNN'] = False
-  opt['edge_sampling'] = True #False
-  datas = ['Citeseer'] #['Cora', 'Citeseer']
-  folders = ['Citeseer_fixed_params_ray_tune'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
+  opt['edge_sampling'] = False
+  datas = ['Cora'] #['Cora', 'Citeseer']
+  folders = ['Cora_online_edge_sampling'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
     opt["dataset"] = ds

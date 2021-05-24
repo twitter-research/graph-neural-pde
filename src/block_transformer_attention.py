@@ -33,6 +33,10 @@ class AttODEblock(ODEblock):
     attention, values = self.multihead_att_layer(x, self.odefunc.edge_index)
     return attention
 
+  def get_raw_attention_weights(self, x):
+    attention, (values, prods) = self.multihead_att_layer(x, self.odefunc.edge_index)
+    return prods
+
   def forward(self, x):
     t = self.t.type_as(x)
     self.odefunc.attention_weights = self.get_attention_weights(x)

@@ -423,13 +423,13 @@ if __name__ == '__main__':
   parser.add_argument('--edge_sampling', action='store_true', help='perform edge sampling rewiring')
   parser.add_argument('--edge_sampling_T', type=str, default="T0", help="T0, TN")
   parser.add_argument('--edge_sampling_epoch', type=int, default=5, help="frequency of epochs to rewire")
-  parser.add_argument('--edge_sampling_add', type=float, default=0.05, help="percentage of new edges to add")
+  parser.add_argument('--edge_sampling_add', type=float, default=0.10, help="percentage of new edges to add")
   parser.add_argument('--edge_sampling_add_type', type=str, default="random", help="random, ,anchored, importance, degree")
 
-  parser.add_argument('--edge_sampling_rmv', type=float, default=0.05, help="percentage of edges to remove")
+  parser.add_argument('--edge_sampling_rmv', type=float, default=0.0, help="percentage of edges to remove")
   parser.add_argument('--edge_sampling_sym', action='store_true', help='make KNN symmetric')
   parser.add_argument('--edge_sampling_online', action='store_true', help='perform rewiring online')
-  parser.add_argument('--edge_sampling_online_reps', type=int, default=4, help="how many online KNN its")
+  parser.add_argument('--edge_sampling_online_reps', type=int, default=3, help="how many online KNN its")
   parser.add_argument('--edge_sampling_space', type=str, default="pos_distance", help="attention,pos_distance, z_distance, pos_distance_QK, z_distance_QK")
 
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')

@@ -187,11 +187,12 @@ def apply_KNN(data, pos_encoding, model, opt):
 def edge_sampling(model, z, opt):
 
   if opt['edge_sampling_space'] == 'attention':
-    attention_weights = model.odeblock.get_attention_weights(z)
+    # attention_weights = model.odeblock.get_attention_weights(z)
+    attention_weights = model.odeblock.get_raw_attention_weights(z)
     mean_att = attention_weights.mean(dim=1, keepdim=False)
     threshold = torch.quantile(mean_att, 1 - opt['att_samp_pct'])
     mask = mean_att > threshold
-  else:
+  elif opt['edge_sampling_space'] in ['pos_distance','z_distance','pos_distance_QK','z_distance_QK']:
     #calc distance metric if edge_sampling_space is in:
       # ['pos_distance','z_distance']) if ['attention_type'] == exp_kernel_z or exp_kernel_pos as have xremoved queries / keys
       # ['pos_distance_QK','z_distance_QK']) for exp_kernel
@@ -223,7 +224,6 @@ def edge_sampling(model, z, opt):
 #   index = model.odeblock.odefunc.edge_index[model.opt['attention_norm_idx']]
 #   att_sums = scatter(attention, index, dim=0, dim_size=model.num_nodes, reduce='sum')[index]
 #   return attention / (att_sums + 1e-16)
-
 
 def add_edges(model, opt):
   num_nodes = model.num_nodes

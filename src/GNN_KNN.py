@@ -14,6 +14,7 @@ class GNN_KNN(BaseGNN):
     block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
     self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
+    self.data_edge_index = dataset.data.edge_index.to(device)
 
   def forward(self, x, pos_encoding):
     # Encode each node based on its feature.
@@ -80,6 +81,7 @@ class GNN_KNN(BaseGNN):
           z = self.odeblock(z)
         self.odeblock.odefunc.edge_index = add_edges(self, self.opt)
         self.odeblock.odefunc.edge_index = edge_sampling(self, z, self.opt)
+      self.odeblock.odefunc.edge_index = self.data_edge_index #to reset edge index after diffusion
 
     else:
       self.odeblock.set_x0(x)
