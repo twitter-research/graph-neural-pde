@@ -210,8 +210,6 @@ def set_rewiring_space(opt):
     # opt['use_lcc'] = True <- this is actually opt['not_lcc'] = False but is default for all except arxiv
 
     opt['beltrami'] = True  # tune.choice([True, False])
-    bel_choice = ['scaled_dot']
-    non_bel_choice = ['scaled_dot']
     # bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
     # non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
     # opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
