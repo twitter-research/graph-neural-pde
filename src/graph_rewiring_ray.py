@@ -275,8 +275,8 @@ def set_rewiring_space(opt):
     opt['edge_sampling_space'] =  'attention'
     opt['edge_sampling_online_reps'] = tune.choice([2,3,4])
     opt['edge_sampling_sym'] = tune.choice([True, False])
-    opt['edge_sampling_add'] = 0.08  # tune.choice([0.04, 0.08, 0.16, 0.32])
-    opt['edge_sampling_rmv'] = 0.0  # tune.choice([0.04, 0.08, 0.16, 0.32])
+    opt['edge_sampling_add'] = tune.choice([0.04, 0.08, 0.16]) # tune.choice([0.04, 0.08, 0.16, 0.32])
+    opt['edge_sampling_rmv'] = tune.choice([0.0, 0.04, 0.08])  # tune.choice([0.04, 0.08, 0.16, 0.32])
 
     return opt
 
