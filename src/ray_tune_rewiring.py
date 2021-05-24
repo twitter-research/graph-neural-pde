@@ -345,7 +345,7 @@ def mainLoop(opt):
   opt['reduction_factor'] = 10
   # opt['num_splits'] = 5
   opt['num_init'] = 3
-  opt['max_nfe'] = 500 #1000
+  opt['max_nfe'] = 3000
 
   opt['rewiring'] = 'None' #'gdc' #None
   # opt['attention_type'] = 'exp_kernel_z' #not QK space ie 'exp_kernel'
