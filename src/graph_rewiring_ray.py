@@ -192,8 +192,8 @@ def set_rewiring_space(opt):
 
     if opt['rewiring']:
       opt['attention_rewiring'] = False #tune.choice([True, False])
-      opt['reweight_attention'] = tune.sample_from(lambda spec: tune.choice([True, False])
-                                  if spec.config.rewiring else False) #tune.choice([True, False])
+      opt['reweight_attention'] = False #tune.sample_from(lambda spec: tune.choice([True, False])
+                                  # if spec.config.rewiring else False) #tune.choice([True, False])
       opt['make_symm'] = tune.choice([True, False]) #this is DIGL (A+A.T)/2 with weights aswell
       opt['gdc_sparsification'] = 'topk'  # 'threshold'
       opt['exact'] = True
@@ -202,6 +202,7 @@ def set_rewiring_space(opt):
       ks = [8, 16, 32, 64]
       opt['gdc_k'] = tune.choice(ks)
       opt['pos_enc_orientation'] = tune.choice(["row", "col"])
+    opt['reweight_attention'] = False
 
     # experiment args
     opt['block'] = 'attention'
