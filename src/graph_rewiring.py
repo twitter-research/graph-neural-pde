@@ -248,8 +248,8 @@ def add_edges(model, opt):
     # anchors = torch.topk(importance, M, dim=0)[1]
     # importance_probs = np.abs(importance.detach().numpy()) / np.abs(importance.detach().numpy()).sum()
     importance_probs = torch.abs(importance) / torch.abs(importance).sum()
-    anchors = torch.multinomial(importance_probs, M, replacement=True)
-    anchors2 = torch.multinomial(importance_probs, M, replacement=True)
+    anchors = torch.multinomial(importance_probs, M, replacement=True).to(model.device)
+    anchors2 = torch.multinomial(importance_probs, M, replacement=True).to(model.device)
     # anchors = torch.tensor(np.random.choice(num_nodes, size=M, replace=True, p=importance_probs), device=model.device)
     # anchors2 = torch.tensor(np.random.choice(num_nodes, size=M, replace=True, p=importance_probs), device=model.device)
     new_edges = torch.stack([anchors, anchors2], dim=0)
