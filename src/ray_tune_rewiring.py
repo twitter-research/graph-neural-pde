@@ -340,7 +340,7 @@ def main(opt):
 def mainLoop(opt):
   opt['epoch'] = 250
   opt['gpus'] = 1
-  opt['num_samples'] = 500
+  opt['num_samples'] = 1000
   opt['grace_period'] = 20
   opt['reduction_factor'] = 10
   # opt['num_splits'] = 5
@@ -354,8 +354,8 @@ def mainLoop(opt):
 
   opt['rewire_KNN'] = False
   opt['edge_sampling'] = False
-  datas = ['Citeseer'] #['Cora', 'Citeseer']
-  folders = ['Citeseer_online_edge_sampling'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
+  datas = ['Cora','Citeseer'] #['Cora', 'Citeseer']
+  folders = ['Cora_online_edge_sampling2','Citeseer_online_edge_sampling2'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
     opt["dataset"] = ds

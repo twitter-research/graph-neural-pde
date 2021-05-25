@@ -227,16 +227,12 @@ def set_rewiring_space(opt):
     # opt['edge_sampling_space'] = tune.sample_from(lambda spec: exp_kernel_choice if spec.config.beltrami else non_exp_kernel_choice)
 
 
-    # opt['feat_hidden_dim'] = tune.choice([16, 32, 64])#, 128])
-    # opt['pos_enc_hidden_dim'] = tune.choice([16, 32])#, 64])
-    # opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
-    #                     if spec.config.beltrami else tune.choice([32, 64, 128]))
+    opt['feat_hidden_dim'] = tune.choice([16, 32, 64])#, 128])
+    opt['pos_enc_hidden_dim'] = tune.choice([16, 32])#, 64])
+    opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
+                        if spec.config.beltrami else tune.choice([32, 64, 128]))
 
-    opt['feat_hidden_dim'] = 64 #tune.choice([32, 64])
     opt['pos_enc_type'] = 'GDC' #tune.choice(['HYP02', 'HYP04', 'HYP08', 'HYP16'])
-    opt['pos_enc_hidden_dim'] = 64
-    opt['pos_enc_hidden_dim'] = 32 #tune.choice([16, 32])
-    opt['hidden_dim'] = 96
     opt['pos_enc_orientation'] = 'col' #tune.choice(["row", "col"])
     opt['square_plus'] = False #tune.choice([True, False])
 
@@ -367,7 +363,7 @@ def set_citeseer_search_space(opt):
   opt["lr"] = 0.006115 #tune.loguniform(2e-3, 0.01)
   opt["input_dropout"] = 0.430196 #tune.uniform(0.4, 0.8)
   opt["dropout"] = 0.440859#tune.uniform(0, 0.8)
-  opt["time"] = 7.6887 #tune.uniform(0.5, 8.0)
+  # opt["time"] = 7.6887 #tune.uniform(0.5, 8.0)
   opt["optimizer"] = 'adamax'#tune.choice(["rmsprop", "adam", "adamax"])
   #
 
