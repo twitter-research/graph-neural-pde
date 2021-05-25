@@ -449,31 +449,32 @@ def top5_onlineSampling_FAlayer(opt):
         pass
       print("Running with parameters {}".format(best_params_ret))
 
+
       scheduler = ASHAScheduler(
-        metric=opt['metric'],
+        metric=best_params_ret['metric'],
         mode="max",
         max_t=opt["epoch"],
-        grace_period=opt["grace_period"],
-        reduction_factor=opt["reduction_factor"],
+        grace_period=best_params_ret["grace_period"],
+        reduction_factor=best_params_ret["reduction_factor"],
       )
       reporter = CLIReporter(
         metric_columns=["accuracy", "test_acc", "train_acc", "loss", "training_iteration", "forward_nfe", "backward_nfe"]
       )
       # choose a search algorithm from https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
-      search_alg = AxSearch(metric=opt['metric'])
+      search_alg = AxSearch(metric=best_params_ret['metric'])
       search_alg = None
 
-      train_fn = train_ray if opt["num_splits"] == 0 else train_ray_rand
+      train_fn = train_ray if best_params_ret["num_splits"] == 0 else train_ray_rand
 
       result = tune.run(
         partial(train_fn, data_dir=data_dir),
-        name=opt["name"],
-        resources_per_trial={"cpu": opt["cpus"], "gpu": opt["gpus"]},
+        name=best_params_ret["name"],
+        resources_per_trial={"cpu": best_params_ret["cpus"], "gpu": best_params_ret["gpus"]},
         search_alg=search_alg,
         keep_checkpoints_num=3,
         checkpoint_score_attr=opt['metric'],
-        config=opt,
-        num_samples=opt["num_samples"],
+        config=best_params_ret,
+        num_samples=best_params_ret["num_samples"],
         scheduler=scheduler,
         max_failures=2,
         local_dir="../ray_tune",
@@ -506,30 +507,30 @@ def top5_onlineSampling_FAlayer(opt):
       print("Running with parameters {}".format(best_params_ret))
 
       scheduler = ASHAScheduler(
-        metric=opt['metric'],
+        metric=best_params_ret['metric'],
         mode="max",
-        max_t=opt["epoch"],
-        grace_period=opt["grace_period"],
-        reduction_factor=opt["reduction_factor"],
+        max_t=best_params_ret["epoch"],
+        grace_period=best_params_ret["grace_period"],
+        reduction_factor=best_params_ret["reduction_factor"],
       )
       reporter = CLIReporter(
         metric_columns=["accuracy", "test_acc", "train_acc", "loss", "training_iteration", "forward_nfe", "backward_nfe"]
       )
       # choose a search algorithm from https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
-      search_alg = AxSearch(metric=opt['metric'])
+      search_alg = AxSearch(metric=best_params_ret['metric'])
       search_alg = None
 
-      train_fn = train_ray if opt["num_splits"] == 0 else train_ray_rand
+      train_fn = train_ray if best_params_ret["num_splits"] == 0 else train_ray_rand
 
       result = tune.run(
         partial(train_fn, data_dir=data_dir),
-        name=opt["name"],
-        resources_per_trial={"cpu": opt["cpus"], "gpu": opt["gpus"]},
+        name=best_params_ret["name"],
+        resources_per_trial={"cpu": best_params_ret["cpus"], "gpu": best_params_ret["gpus"]},
         search_alg=search_alg,
         keep_checkpoints_num=3,
-        checkpoint_score_attr=opt['metric'],
-        config=opt,
-        num_samples=opt["num_samples"],
+        checkpoint_score_attr=best_params_ret['metric'],
+        config=best_params_ret,
+        num_samples=best_params_ret["num_samples"],
         scheduler=scheduler,
         max_failures=2,
         local_dir="../ray_tune",
