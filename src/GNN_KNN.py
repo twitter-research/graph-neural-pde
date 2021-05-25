@@ -96,7 +96,9 @@ class GNN_KNN(BaseGNN):
           mean_attention = self.odeblock.get_raw_attention_weights(z).mean(dim=1, keepdim=False)
           dummy = DummyData(self.odeblock.odefunc.edge_index, mean_attention, self.num_nodes)
           self.odeblock.odefunc.edge_index = gdc(dummy).edge_index
-
+        elif self.opt['edge_sampling_add_type'] == 'n2_radius':
+          self.odeblock.odefunc.edge_index = add_edges(self, self.opt)
+          self.odeblock.odefunc.edge_index = edge_sampling(self, z, self.opt)
       self.odeblock.odefunc.edge_index = self.data_edge_index #to reset edge index after diffusion
 
     else:

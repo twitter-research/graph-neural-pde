@@ -232,7 +232,7 @@ def add_edges(model, opt):
   M = int(num_edges * opt['edge_sampling_add'])
   # generate new edges and add to edge_index
   if opt['edge_sampling_add_type'] == 'random':
-    new_edges = np.random.choice(num_edges, size=(2, M), replace=True, p=None)
+    new_edges = np.random.choice(num_nodes, size=(2, M), replace=True, p=None)
     new_edges = torch.tensor(new_edges, device=model.device)
     new_edges2 = new_edges[[1, 0], :]
     # cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges], dim=1)
@@ -258,7 +258,8 @@ def add_edges(model, opt):
     cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges, new_edges2], dim=1)
   elif opt['edge_sampling_add_type'] == 'degree': #proportional to degree
     pass
-
+  elif opt['edge_sampling_add_type'] == 'n2_radius':
+    return torch.ones((num_nodes,num_nodes),dtype=torch.long)
   new_ei = torch.unique(cat, sorted=False, return_inverse=False, return_counts=False, dim=1)
   return new_ei
 
