@@ -283,9 +283,8 @@ def set_rewiring_space(opt):
     opt['fa_layer_time']  = tune.choice([1, 2, 3])# 1.0
     opt['fa_layer_method'] = 'rk4'
     opt['fa_layer_step_size']  = tune.choice([0.5, 1])# 1.0
-
     opt['fa_layer_edge_sampling_rmv'] = tune.choice([0, 0.25 ,0.5, 0.75])
-    opt["time"] = tune.uniform(0.25, 5.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
+    # opt["time"] = tune.uniform(0.25, 5.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
     return opt
 

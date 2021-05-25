@@ -354,6 +354,8 @@ def mainLoop(opt):
 
   opt['rewire_KNN'] = False
   opt['edge_sampling'] = False
+  opt['fa_layer'] = True
+
   datas = ['Cora','Citeseer'] #['Cora', 'Citeseer']
   folders = ['Cora_fc_layer3','Citeseer_fc_layer3'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
   for i, ds in enumerate(datas):
