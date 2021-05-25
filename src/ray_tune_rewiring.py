@@ -407,9 +407,12 @@ def top5_onlineSampling_FAlayer(opt):
   opt['no_early'] = True
   opt['metric'] = 'test_acc'
 
+
   opt['block'] = 'attention'
   opt['function'] = 'laplacian'
   opt['beltrami'] = True
+  opt['edge_sampling'] = False
+  opt['rewire_KNN'] = False
 
   datas = ['Cora','Citeseer']
   idxs = [0,1,2,3,4]
@@ -427,7 +430,7 @@ def top5_onlineSampling_FAlayer(opt):
 
   #edge sampling
   ESnames = ['Cora_onlineSampling_no_early', 'Citeseer_onlineSampling_no_early']
-  opt['edge_sampling'] = True
+  opt['edge_sampling_online'] = True
   opt['fa_layer'] = False
   for i, (data, best_params) in enumerate(zip(datas, best_params_each)):
     for idx in idxs:
@@ -484,7 +487,7 @@ def top5_onlineSampling_FAlayer(opt):
 
   #FA layer
   FAnames = ['Cora_FAlayer_no_early', 'Citeseer_FAlayer_no_early']
-  opt['edge_sampling'] = False
+  opt['edge_sampling_online'] = False
   opt['fa_layer'] = True
   for i, (data, best_params) in enumerate(zip(datas, best_params_each)):
     for idx in idxs:
