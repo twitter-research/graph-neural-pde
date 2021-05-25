@@ -398,11 +398,11 @@ def top5_onlineSampling_FAlayer(opt):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
   opt['max_nfe'] = 3000
-  opt['num_samples'] = 50
+  opt['num_samples'] = 100
   opt['grace_period'] = 20
   opt['reduction_factor'] = 10
   opt['epoch'] = 250
-  opt['num_splits'] = 4
+  opt['num_splits'] = 3
   opt['gpus'] = 1
   opt['no_early'] = True
   opt['metric'] = 'test_acc'
@@ -439,9 +439,9 @@ def top5_onlineSampling_FAlayer(opt):
       name = ESnames[i]
       opt['name'] = name
       best_params = best_params_each[i][idx]
-      best_params = edge_sampling_online_space(best_params)
-
       best_params_ret = {**best_params, **opt}
+      best_params_ret = edge_sampling_online_space(best_params_ret)
+
       try:
         best_params_ret['mix_features']
       except KeyError:
@@ -496,9 +496,9 @@ def top5_onlineSampling_FAlayer(opt):
       name = FAnames[i]
       opt['name'] = name
       best_params = best_params_each[i][idx]
-      best_params = fa_layer_space(best_params)
-
       best_params_ret = {**best_params, **opt}
+      best_params_ret = fa_layer_space(best_params_ret)
+
       try:
         best_params_ret['mix_features']
       except KeyError:
