@@ -8,7 +8,7 @@ import torch.nn.functional as F
 import torch_sparse
 from torch_scatter import scatter
 from torch_geometric.transforms.two_hop import TwoHop
-from utils import get_rw_adj
+from utils import get_rw_adj, get_full_adjacency
 # from torch_geometric.transforms import GDC
 from pykeops.torch import LazyTensor
 import os
@@ -185,7 +185,6 @@ def apply_KNN(data, pos_encoding, model, opt):
 
 
 def edge_sampling(model, z, opt):
-
   if opt['edge_sampling_space'] == 'attention':
     # attention_weights = model.odeblock.get_attention_weights(z)
     attention_weights = model.odeblock.get_raw_attention_weights(z)
@@ -206,13 +205,6 @@ def edge_sampling(model, z, opt):
     threshold = torch.quantile(pos_enc_distances, 1 - opt['edge_sampling_rmv'])
     mask = pos_enc_distances < threshold
 
-  #renormalise attention - this should get done anyway in each block forward pass
-  # model.odeblock.odefunc.edge_index = model.odeblock.odefunc.edge_index[:, mask.T]
-  # sampled_attention_weights = renormalise_attention(mean_att[mask])
-  # model.odeblock.odefunc.attention_weights = sampled_attention_weights
-
-  # print('retaining {} of {} edges'.format(self.odefunc.edge_index.shape[1], self.data_edge_index.shape[1]))
-
   model.odeblock.odefunc.edge_index = model.odeblock.odefunc.edge_index[:, mask.T]
 
   if opt['edge_sampling_sym']:
@@ -220,10 +212,6 @@ def edge_sampling(model, z, opt):
 
   return model.odeblock.odefunc.edge_index
 
-# def renormalise_attention(model, attention):
-#   index = model.odeblock.odefunc.edge_index[model.opt['attention_norm_idx']]
-#   att_sums = scatter(attention, index, dim=0, dim_size=model.num_nodes, reduce='sum')[index]
-#   return attention / (att_sums + 1e-16)
 
 def add_edges(model, opt):
   num_nodes = model.num_nodes
@@ -232,10 +220,10 @@ def add_edges(model, opt):
   M = int(num_edges * opt['edge_sampling_add'])
   # generate new edges and add to edge_index
   if opt['edge_sampling_add_type'] == 'random':
+    # np.random.seed(0)
     new_edges = np.random.choice(num_nodes, size=(2, M), replace=True, p=None)
     new_edges = torch.tensor(new_edges, device=model.device)
     new_edges2 = new_edges[[1, 0], :]
-    # cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges], dim=1)
     cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges, new_edges2], dim=1)
   elif opt['edge_sampling_add_type'] == 'anchored':
     pass
@@ -245,21 +233,19 @@ def add_edges(model, opt):
     dst = model.odeblock.odefunc.edge_index[1, :]
 
     importance = scatter(atts, dst, dim=0, dim_size=num_nodes, reduce='sum') #column sum to represent outgoing importance
-    # anchors = torch.topk(importance, M, dim=0)[1]
-    # importance_probs = np.abs(importance.detach().numpy()) / np.abs(importance.detach().numpy()).sum()
     importance_probs = torch.abs(importance) / torch.abs(importance).sum()
     anchors = torch.multinomial(importance_probs, M, replacement=True).to(model.device)
-    anchors2 = torch.multinomial(importance_probs, M, replacement=True).to(model.device)
-    # anchors = torch.tensor(np.random.choice(num_nodes, size=M, replace=True, p=importance_probs), device=model.device)
-    # anchors2 = torch.tensor(np.random.choice(num_nodes, size=M, replace=True, p=importance_probs), device=model.device)
+    # anchors2 = torch.multinomial(importance_probs, M, replacement=True).to(model.device)
+    new_nodes = np.random.choice(num_nodes, size=M, replace=True, p=None)
+    anchors2 = torch.tensor(new_nodes, device=model.device, dtype=torch.long)
+
     new_edges = torch.stack([anchors, anchors2], dim=0)
     new_edges2 = torch.stack([anchors2, anchors], dim=0)
-    #todo this only adds 1 new edge to each important anchor
     cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges, new_edges2], dim=1)
   elif opt['edge_sampling_add_type'] == 'degree': #proportional to degree
     pass
   elif opt['edge_sampling_add_type'] == 'n2_radius':
-    return torch.ones((num_nodes,num_nodes),dtype=torch.long)
+    return get_full_adjacency(num_nodes)
   new_ei = torch.unique(cat, sorted=False, return_inverse=False, return_counts=False, dim=1)
   return new_ei
 

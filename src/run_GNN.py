@@ -256,7 +256,7 @@ def main(opt):
   else:
     pos_encoding = None
 
-  if opt['rewire_KNN'] or opt['KNN_online'] or opt['edge_sampling'] or opt['edge_sampling_online']:
+  if opt['rewire_KNN'] or opt['KNN_online'] or opt['edge_sampling'] or opt['edge_sampling_online'] or opt['fa_layer']:
     model = GNN_KNN(opt, dataset, device).to(device)
   else:
     model = GNN(opt, dataset, device).to(device)
@@ -423,19 +423,22 @@ if __name__ == '__main__':
   parser.add_argument('--edge_sampling', action='store_true', help='perform edge sampling rewiring')
   parser.add_argument('--edge_sampling_T', type=str, default="T0", help="T0, TN")
   parser.add_argument('--edge_sampling_epoch', type=int, default=5, help="frequency of epochs to rewire")
-  parser.add_argument('--edge_sampling_add', type=float, default=0.32, help="percentage of new edges to add")
+  parser.add_argument('--edge_sampling_add', type=float, default=0.64, help="percentage of new edges to add")
   parser.add_argument('--edge_sampling_add_type', type=str, default="random", help="random, ,anchored, importance, degree")
-  parser.add_argument('--edge_sampling_rmv', type=float, default=0.0, help="percentage of edges to remove")
+  parser.add_argument('--edge_sampling_rmv', type=float, default=0.32, help="percentage of edges to remove")
   parser.add_argument('--edge_sampling_sym', action='store_true', help='make KNN symmetric')
   parser.add_argument('--edge_sampling_online', action='store_true', help='perform rewiring online')
-  parser.add_argument('--edge_sampling_online_reps', type=int, default=3, help="how many online KNN its")
+  parser.add_argument('--edge_sampling_online_reps', type=int, default=4, help="how many online KNN its")
   parser.add_argument('--edge_sampling_space', type=str, default="pos_distance", help="attention,pos_distance, z_distance, pos_distance_QK, z_distance_QK")
+  parser.add_argument('--symmetric_attention', action='store_true', help='maks the attention symmetric for rewring in QK space')
+
+
+  parser.add_argument('--fa_layer', action='store_true', help='fully connected final ode')
 
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson, exp_kernel_pos, exp_kernel_z")
 
-  parser.add_argument('--symmetric_attention', action='store_true', help='maks the attention symmetric for rewring in QK space')
 
 
   args = parser.parse_args()
@@ -451,3 +454,6 @@ if __name__ == '__main__':
 #           --edge_sampling_add_type importance --edge_sampling_space attention
 # --dataset Cora --block attention --attention_type scaled_dot --beltrami --edge_sampling_online
 #           --edge_sampling_add_type importance --edge_sampling_space attention
+
+# --dataset Cora --block attention --attention_type scaled_dot --beltrami --edge_sampling_online  --edge_sampling_add_type importance --edge_sampling_space attention
+# --dataset Cora --block attention --attention_type scaled_dot --beltrami --fa_layer

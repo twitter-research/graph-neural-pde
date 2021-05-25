@@ -157,12 +157,20 @@ def get_sem(vec):
   return retval
 
 
+def get_full_adjacency(num_nodes):
+  # what is the format of the edge index?
+  edge_index = torch.zeros((2, num_nodes ** 2),dtype=torch.long)
+  for idx in range(num_nodes):
+    edge_index[0][idx * num_nodes: (idx + 1) * num_nodes] = idx
+    edge_index[1][idx * num_nodes: (idx + 1) * num_nodes] = torch.arange(0, num_nodes,dtype=torch.long)
+  return edge_index
+
+
+
 from typing import Optional
 import torch
 from torch import Tensor
 from torch_scatter import scatter, segment_csr, gather_csr
-
-
 # https://twitter.com/jon_barron/status/1387167648669048833?s=12
 # @torch.jit.script
 def squareplus(src: Tensor, index: Optional[Tensor], ptr: Optional[Tensor] = None,

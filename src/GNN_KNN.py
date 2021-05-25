@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from base_classes import BaseGNN
 from model_configurations import set_block, set_function
 from graph_rewiring import KNN, add_edges, edge_sampling, GDC
-from utils import DummyData
+from utils import DummyData, get_full_adjacency
 
 # Define the GNN model.
 class GNN_KNN(BaseGNN):
@@ -84,8 +84,6 @@ class GNN_KNN(BaseGNN):
           self.odeblock.odefunc.edge_index = edge_sampling(self, z, self.opt)
         elif self.opt['edge_sampling_add_type'] == 'gdc':
           diff_args = dict(method='ppr', alpha=self.opt['ppr_alpha'])
-          # diff_args['eps'] = self.opt['gdc_threshold']
-          # sparse_args = dict(method='threshold', eps=self.opt['gdc_threshold'])
           sparse_args = dict(method='threshold', avg_degree=16)
           slw = None if self.opt['self_loop_weight']==0 else self.opt['self_loop_weight']
           gdc = GDC(self_loop_weight=slw,
@@ -96,9 +94,10 @@ class GNN_KNN(BaseGNN):
           mean_attention = self.odeblock.get_raw_attention_weights(z).mean(dim=1, keepdim=False)
           dummy = DummyData(self.odeblock.odefunc.edge_index, mean_attention, self.num_nodes)
           self.odeblock.odefunc.edge_index = gdc(dummy).edge_index
-        elif self.opt['edge_sampling_add_type'] == 'n2_radius':
+        elif self.opt['edge_sampling_add_type'] == 'n2_radius': #this is too dense
           self.odeblock.odefunc.edge_index = add_edges(self, self.opt)
           self.odeblock.odefunc.edge_index = edge_sampling(self, z, self.opt)
+
       self.odeblock.odefunc.edge_index = self.data_edge_index #to reset edge index after diffusion
 
     else:
@@ -107,6 +106,19 @@ class GNN_KNN(BaseGNN):
         z, self.reg_states = self.odeblock(x)
       else:
         z = self.odeblock(x)
+
+    if self.opt['fa_layer']:
+      self.opt['time'] = self.opt['fa_layer_time'] #1.0
+      self.opt['method'] = self.opt['fa_layer_method']#'rk4'
+      self.opt['step_size'] = self.opt['fa_layer_step_size']#1.0
+      self.odeblock.set_x0(z)
+      fa = get_full_adjacency(self.num_nodes).to(device=self.device)
+      self.odeblock.odefunc.edge_index = fa
+      # self.opt['edge_sampling_space'] == 'attention'
+      # self.opt['edge_sampling_rmv'] = 0.5
+      # self.odeblock.odefunc.edge_index = edge_sampling(self, z, self.opt)
+      z = self.odeblock(z)
+      self.odeblock.odefunc.edge_index = self.data_edge_index
 
     if self.opt['augment']:
       z = torch.split(z, x.shape[1] // 2, dim=1)[0]

@@ -340,7 +340,7 @@ def main(opt):
 def mainLoop(opt):
   opt['epoch'] = 250
   opt['gpus'] = 1
-  opt['num_samples'] = 1000
+  opt['num_samples'] = 500
   opt['grace_period'] = 20
   opt['reduction_factor'] = 10
   # opt['num_splits'] = 5
@@ -355,7 +355,7 @@ def mainLoop(opt):
   opt['rewire_KNN'] = False
   opt['edge_sampling'] = False
   datas = ['Cora','Citeseer'] #['Cora', 'Citeseer']
-  folders = ['Cora_online_edge_sampling3','Citeseer_online_edge_sampling3'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
+  folders = ['Cora_fc_layer','Citeseer_fc_layer'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
     opt["dataset"] = ds
@@ -527,8 +527,9 @@ if __name__ == "__main__":
   parser.add_argument('--edge_sampling_space', type=str, default="pos_distance", help="pos_distance, z_distance")
   parser.add_argument('--edge_sampling_online', action='store_true', help='perform rewiring online')
   parser.add_argument('--edge_sampling_online_reps', type=int, default=4, help="how many online KNN its")
-
   parser.add_argument('--symmetric_attention', action='store_true', help='maks the attention symmetric for rewring in QK space')
+
+  parser.add_argument('--fa_layer', action='store_true', help='fully connected final ode')
 
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--attention_type', type=str, default="scaled_dot",

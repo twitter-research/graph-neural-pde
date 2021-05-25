@@ -266,17 +266,24 @@ def set_rewiring_space(opt):
         opt['edge_sampling_sym'] = False #tune.choice([True, False])
         opt['edge_sampling_space'] = 'pos_distance' #tune.choice(['pos_distance','z_distance'])
 
-    opt['edge_sampling_online'] = True
-    opt['edge_sampling_add_type'] = tune.choice(['importance','random'])
+    # opt['edge_sampling_online'] = True
+    # opt['edge_sampling_add_type'] = tune.choice(['importance','random'])
     opt['edge_sampling_space'] =  tune.choice(['attention','pos_distance','z_distance'])#,'pos_distance_QK','z_distance_QK'])
     #todo some new issues with other sampling types on gpu
     # opt['symmetric_attention'] = tune.sample_from(lambda spec: True if spec.config.edge_sampling_space
     #                                         in ['pos_distance_QK','z_distance_QK'] else False)
 
-    opt['edge_sampling_online_reps'] = tune.choice([2,3,4])
-    opt['edge_sampling_sym'] = tune.choice([True, False])
-    opt['edge_sampling_add'] = tune.choice([0.04, 0.08, 0.16, 0.32, 0.64]) # tune.choice([0.04, 0.08, 0.16, 0.32])
-    opt['edge_sampling_rmv'] = tune.choice([0.0, 0.04, 0.08])  # tune.choice([0.04, 0.08, 0.16, 0.32])
+    opt['edge_sampling_online_reps'] = None#tune.choice([2,3,4])
+    opt['edge_sampling_sym'] = None#tune.choice([True, False])
+    opt['edge_sampling_add'] = None#tune.choice([0.04, 0.08, 0.16, 0.32, 0.64]) # tune.choice([0.04, 0.08, 0.16, 0.32])
+    opt['edge_sampling_rmv'] = None#tune.choice([0.0, 0.04, 0.08])  # tune.choice([0.04, 0.08, 0.16, 0.32])
+    opt['edge_sampling_rmv'] = tune.choice([0.5, 0.6, 0.7])  # tune.choice([0.04, 0.08, 0.16, 0.32])
+
+    opt['fa_layer'] = True
+    opt['fa_layer_time']  = tune.choice([1, 2, 3])# 1.0
+    opt['fa_layer_method'] = 'rk4'
+    opt['fa_layer_step_size']  = tune.choice([0.5, 1])# 1.0
+
     opt["time"] = tune.uniform(0.25, 5.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
     return opt
