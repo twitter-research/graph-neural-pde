@@ -249,7 +249,7 @@ def add_edges(model, opt):
     new_edges2 = torch.stack([rand_nodes, anchors], dim=0)
     #todo this only adds 1 new edge to each important anchor
     cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges, new_edges2], dim=1)
-  elif opt['edge_sampling_add_type'] == 'degree':
+  elif opt['edge_sampling_add_type'] == 'degree': #proportional to degree
     pass
 
   new_ei = torch.unique(cat, sorted=False, return_inverse=False, return_counts=False, dim=1)

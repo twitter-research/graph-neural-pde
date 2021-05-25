@@ -229,7 +229,7 @@ class DummyDataset(object):
 
 
 class DummyData(object):
-  def __init__(self, edge_index=None, edge_Attr=None, num_nodes=None):
+  def __init__(self, edge_index=None, edge_attr=None, num_nodes=None):
     self.edge_index = edge_index
-    self.edge_attr = edge_Attr
+    self.edge_attr = edge_attr
     self.num_nodes = num_nodes
