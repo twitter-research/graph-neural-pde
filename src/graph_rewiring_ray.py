@@ -268,10 +268,10 @@ def set_rewiring_space(opt):
 
     opt['edge_sampling_online'] = True
     opt['edge_sampling_add_type'] = tune.choice(['importance','random'])
-    opt['edge_sampling_space'] =  'attention'
+    opt['edge_sampling_space'] =  ['attention','pos_distance','z_distance','pos_distance_QK','z_distance_QK']
     opt['edge_sampling_online_reps'] = tune.choice([2,3,4])
     opt['edge_sampling_sym'] = tune.choice([True, False])
-    opt['edge_sampling_add'] = tune.choice([0.04, 0.08, 0.16]) # tune.choice([0.04, 0.08, 0.16, 0.32])
+    opt['edge_sampling_add'] = tune.choice([0.04, 0.08, 0.16, 0.32, 0.64]) # tune.choice([0.04, 0.08, 0.16, 0.32])
     opt['edge_sampling_rmv'] = tune.choice([0.0, 0.04, 0.08])  # tune.choice([0.04, 0.08, 0.16, 0.32])
     opt["time"] = tune.uniform(0.25, 5.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 

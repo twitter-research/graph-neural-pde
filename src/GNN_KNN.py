@@ -87,7 +87,8 @@ class GNN_KNN(BaseGNN):
           # diff_args['eps'] = self.opt['gdc_threshold']
           # sparse_args = dict(method='threshold', eps=self.opt['gdc_threshold'])
           sparse_args = dict(method='threshold', avg_degree=16)
-          gdc = GDC(self_loop_weight=None if self.opt['self_loop_weight']==0 else self.opt['self_loop_weight'],
+          slw = None if self.opt['self_loop_weight']==0 else self.opt['self_loop_weight']
+          gdc = GDC(self_loop_weight=slw,
                     normalization_in='sym',
                     normalization_out='col',
                     diffusion_kwargs=diff_args,
