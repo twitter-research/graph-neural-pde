@@ -431,7 +431,7 @@ def top5_onlineSampling_FAlayer(opt):
   for i, (data, best_params) in enumerate(zip(datas, best_params_each)):
     for idx in idxs:
       opt['dataset'] = data
-      opt['index'] = idxs[i][idx]
+      opt['index'] = idxs[i]
       name = ESnames[i]
       opt['name'] = name
       best_params = best_params_each[i][idx]
@@ -487,7 +487,7 @@ def top5_onlineSampling_FAlayer(opt):
   for i, (data, best_params) in enumerate(zip(datas, best_params_each)):
     for idx in idxs:
       opt['dataset'] = data
-      opt['index'] = idxs[i][idx]
+      opt['index'] = idxs[i]
       name = FAnames[i]
       opt['name'] = name
       best_params = best_params_each[i][idx]
