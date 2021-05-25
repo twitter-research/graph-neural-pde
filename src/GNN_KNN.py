@@ -115,8 +115,8 @@ class GNN_KNN(BaseGNN):
       fa = get_full_adjacency(self.num_nodes).to(device=self.device)
       self.odeblock.odefunc.edge_index = fa
       # self.opt['edge_sampling_space'] == 'attention'
-      # self.opt['edge_sampling_rmv'] = 0.5
-      # self.odeblock.odefunc.edge_index = edge_sampling(self, z, self.opt)
+      self.opt['edge_sampling_rmv'] = self.opt['fa_layer_edge_sampling_rmv']
+      self.odeblock.odefunc.edge_index = edge_sampling(self, z, self.opt)
       z = self.odeblock(z)
       self.odeblock.odefunc.edge_index = self.data_edge_index
 

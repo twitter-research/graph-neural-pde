@@ -434,7 +434,7 @@ if __name__ == '__main__':
 
 
   parser.add_argument('--fa_layer', action='store_true', help='fully connected final ode')
-
+  parser.add_argument('--fa_layer_edge_sampling_rmv', type=float, default=0.8, help="percentage of edges to remove")
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson, exp_kernel_pos, exp_kernel_z")
