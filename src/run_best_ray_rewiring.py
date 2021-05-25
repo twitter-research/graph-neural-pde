@@ -12,6 +12,7 @@ import os, time
 from ray.tune import CLIReporter
 from run_best_ray_rewiring_top5 import top5
 
+
 def appendDFToCSV_void(df, csvFilePath, sep=","):
   import os
   if not os.path.isfile(csvFilePath):
@@ -412,120 +413,6 @@ def edge_sampling_ablation(opt):
                            mean_confidence_interval(test_accs)))
 
 
-def edge_sampling_online_space(opt):
-  # experiment args
-  opt['block'] = 'attention'
-  opt['function'] = 'laplacian'
-  opt['beltrami'] = True  # tune.choice([True, False])
-  # opt['edge_sampling_online'] = True
-  # opt['edge_sampling_add_type'] = tune.choice(['importance','random'])
-  opt['edge_sampling_space'] = tune.choice(
-    ['attention', 'pos_distance', 'z_distance'])  # ,'pos_distance_QK','z_distance_QK'])
-  # todo some new issues with other sampling types on gpu
-  # opt['symmetric_attention'] = tune.sample_from(lambda spec: True if spec.config.edge_sampling_space
-  #                                         in ['pos_distance_QK','z_distance_QK'] else False)
-  opt['edge_sampling_online_reps'] = None  # tune.choice([2,3,4])
-  opt['edge_sampling_sym'] = None  # tune.choice([True, False])
-  opt['edge_sampling_add'] = None  # tune.choice([0.04, 0.08, 0.16, 0.32, 0.64]) # tune.choice([0.04, 0.08, 0.16, 0.32])
-  opt['edge_sampling_rmv'] = None  # tune.choice([0.0, 0.04, 0.08])  # tune.choice([0.04, 0.08, 0.16, 0.32])
-  opt['edge_sampling_rmv'] = None  # tune.choice([0.04, 0.08, 0.16, 0.32])
-  opt["time"] = tune.uniform(0.25, 5.0)
-
-def fa_layer_space(opt):
-  opt['fa_layer'] = True
-  opt['fa_layer_time'] = tune.choice([1, 2, 3])  # 1.0
-  opt['fa_layer_method'] = 'rk4'
-  opt['fa_layer_step_size'] = tune.choice([0.5, 1])  # 1.0
-  opt['fa_layer_edge_sampling_rmv'] = tune.choice([0, 0.25, 0.5, 0.75])
-    return opt
-
-def top5_onlineSampling_FAlayer(opt):
-  opt['max_nfe'] = 3000
-  opt['epoch'] = 200
-  opt['num_splits'] = 8
-  opt['gpus'] = 1
-  opt['no_early'] = True
-  opt['metric'] = 'test_acc'
-
-  datas = ['Cora','Citeseer']
-  idxs = [0,1,2,3,4]
-  names = ['Cora_onlineSampling_FAlayer_no_early', 'Citeseer_onlineSampling_FAlayer_no_early']
-
-  sample_spaces = ['z_distance', 'pos_distance']
-  samples = [0.0, 0.02, 0.04, 0.08, 0.16, 0.32]
-  opt['edge_sampling_sym'] = False
-
-  # best_params = top5[opt['index']]
-
-  ###Getting the best params from random sources
-  best_Cora_params = top5
-  best_Citeseer_params = []
-  for i in idxs:
-    CiteseerOpt = {'folder':'Citeseer_beltrami_1','index':4,'metric':'test_acc'}
-    Citeseer_best_params_dir = get_best_params_dir(CiteseerOpt)
-    with open(Citeseer_best_params_dir + '/params.json') as f:
-      best_Citeseer_param = json.loads(f.read())
-    best_Citeseer_params.append(best_Citeseer_param)
-
-  best_params_each = [best_Cora_params, best_Citeseer_params]
-
-
-  for i, (data, best_params) in enumerate(zip(datas, best_params_each)):
-    for idx in idxs:
-      # opt['folder'] = folder
-      opt['dataset'] = data
-      opt['index'] = idxs[i][idx]
-      name = names[i]
-      opt['name'] = name
-      best_params = best_params_each[i][idx]
-
-      best_params_ret = {**best_params, **opt}
-      try:
-        best_params_ret['mix_features']
-      except KeyError:
-        best_params_ret['mix_features'] = False
-      try:
-        best_params_ret['pos_enc_orientation'] = best_params_ret['pos_enc_dim']
-      except:
-        pass
-      print("Running with parameters {}".format(best_params_ret))
-
-      data_dir = os.path.abspath("../data")
-      reporter = CLIReporter(
-        metric_columns=["accuracy", "loss", "test_acc", "train_acc", "best_time", "best_epoch",
-                        "training_iteration", "forward_nfe", "backward_nfe"])
-
-      result = tune.run(
-        partial(train_ray_int, data_dir=data_dir),
-        name=name,
-        resources_per_trial={"cpu": opt['cpus'], "gpu": opt['gpus']},
-        search_alg=None,
-        keep_checkpoints_num=3,
-        checkpoint_score_attr='accuracy',
-        config=best_params_ret,
-        num_samples=opt['reps'] if opt["num_splits"] == 0 else opt["num_splits"] * opt["reps"],
-        scheduler=None,
-        max_failures=1,  # early stop solver can't recover from failure as it doesn't own m2.
-        local_dir='../ray_tune',
-        progress_reporter=reporter,
-        raise_on_failed_trial=False)
-
-      df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
-
-      try:
-        csvFilePath = '../ray_results/{}.csv'.format(name)  # , time.strftime("%Y%m%d-%H%M%S"))
-        appendDFToCSV_void(df, csvFilePath, sep=",")
-        # df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
-      except:
-        pass
-
-      print(df[['accuracy', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
-
-      test_accs = df['test_acc'].values
-      print("test accuracy {}".format(test_accs))
-      log = "mean test {:04f}, test std {:04f}, test sem {:04f}, test 95% conf {:04f}"
-      print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs),
-                       mean_confidence_interval(test_accs)))
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
