@@ -397,7 +397,7 @@ def top5_onlineSampling_FAlayer(opt):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
   opt['max_nfe'] = 3000
-  opt['num_samples'] = 500
+  opt['num_samples'] = 50
   opt['grace_period'] = 20
   opt['reduction_factor'] = 10
   opt['epoch'] = 250
