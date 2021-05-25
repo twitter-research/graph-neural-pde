@@ -277,7 +277,7 @@ def set_rewiring_space(opt):
     opt['edge_sampling_sym'] = None#tune.choice([True, False])
     opt['edge_sampling_add'] = None#tune.choice([0.04, 0.08, 0.16, 0.32, 0.64]) # tune.choice([0.04, 0.08, 0.16, 0.32])
     opt['edge_sampling_rmv'] = None#tune.choice([0.0, 0.04, 0.08])  # tune.choice([0.04, 0.08, 0.16, 0.32])
-    opt['edge_sampling_rmv'] = tune.choice([0.5, 0.6, 0.7])  # tune.choice([0.04, 0.08, 0.16, 0.32])
+    opt['edge_sampling_rmv'] = tune.choice([0, 0.25 ,0.5, 0.75])  # tune.choice([0.04, 0.08, 0.16, 0.32])
 
     opt['fa_layer'] = True
     opt['fa_layer_time']  = tune.choice([1, 2, 3])# 1.0
