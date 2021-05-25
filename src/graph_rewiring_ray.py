@@ -268,10 +268,10 @@ def set_rewiring_space(opt):
 
     opt['edge_sampling_online'] = True
     opt['edge_sampling_add_type'] = tune.choice(['importance','random'])
-    opt['edge_sampling_space'] =  tune.choice(['attention','pos_distance','z_distance','pos_distance_QK','z_distance_QK'])
+    opt['edge_sampling_space'] =  tune.choice(['attention','pos_distance','z_distance'])#,'pos_distance_QK','z_distance_QK'])
 
-    opt['symmetric_attention'] = tune.sample_from(lambda spec: True if spec.config.edge_sampling_space
-                                            in ['pos_distance_QK','z_distance_QK'] else False)
+    # opt['symmetric_attention'] = tune.sample_from(lambda spec: True if spec.config.edge_sampling_space
+    #                                         in ['pos_distance_QK','z_distance_QK'] else False)
 
     opt['edge_sampling_online_reps'] = tune.choice([2,3,4])
     opt['edge_sampling_sym'] = tune.choice([True, False])
