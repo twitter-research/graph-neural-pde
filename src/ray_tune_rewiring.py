@@ -383,6 +383,7 @@ def edge_sampling_online_space(opt):
   opt['edge_sampling_add'] = tune.choice([0.04, 0.08, 0.16, 0.32, 0.64]) # tune.choice([0.04, 0.08, 0.16, 0.32])
   opt['edge_sampling_rmv'] = tune.choice([0.0, 0.04, 0.08])  # tune.choice([0.04, 0.08, 0.16, 0.32])
   opt["time"] = tune.uniform(0.25, 5.0)
+  return opt
 
 def fa_layer_space(opt):
   opt['fa_layer'] = True
