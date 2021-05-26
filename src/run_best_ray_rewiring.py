@@ -353,89 +353,108 @@ def run_top5(opt):
                      mean_confidence_interval(test_accs)))
 
 def run_top5withES(opt):
-
-  opt['edge_sampling'] = True
-  opt['edge_sampling_T'] = 'TN'
-  opt['edge_sampling_epoch'] = 10
-  opt['edge_sampling_add'] = 0.32
-  opt['edge_sampling_rmv'] = 0.32
-  opt['edge_sampling_sym'] = False
-
   opt['max_nfe'] = 2000
-  opt['epoch'] = 500
+  opt['epoch'] = 200
   opt['num_splits'] = 8
   opt['gpus'] = 1
-  opt['earlystopxT'] = 5
+  # opt['earlystopxT'] = 5
+  opt['no_early'] = True
   opt['metric'] = 'test_acc'
 
-  for idx, best_params in enumerate(top5):
-    opt['index'] = idx + 5
-    best_params_ret = {**best_params, **opt}
-    try:
-      best_params_ret['mix_features']
-    except KeyError:
-      best_params_ret['mix_features'] = False
-    # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
-    best_params_ret['epoch'] = opt['epoch']
-    best_params_ret['max_nfe'] = opt['max_nfe']
-    # handle adjoint
-    if best_params['adjoint'] or opt['adjoint']:
-      best_params_ret['adjoint'] = True
+  opt['name'] = 'Cora_top52_Esonline_varySampling'
+  # opt['reps'] = 8
+  opt['edge_sampling'] = False
+  opt['rewire_KNN'] = False
+  opt['KNN_online'] = False
+  opt['symmetric_attention'] = False
 
-    if opt["run_with_KNN"]:
-      best_params_ret = with_KNN(best_params_ret)
+  opt['edge_sampling_online'] = True
+  opt['edge_sampling_online_reps'] = 3
+  opt['edge_sampling_add_type'] = 'random'
+  opt['edge_sampling_space'] = 'attention'
+  opt['edge_sampling_add'] = 0
+  opt['att_samp_pct_rmv'] = 0
+  samples = [0, 0.08, 0.16, 0.32]
+  # opt['edge_sampling_add'] = 0.32
+  # opt['edge_sampling_rmv'] = 0.32
+  opt['edge_sampling_sym'] = False
 
-    if opt['change_att_sim_type']:
-      best_params_ret['attention_type'] = opt['att_sim_type']
-      best_params_ret['square_plus'] = False
+  best_params = top5[0]
+  best_params['time'] = best_params['time'] / 3
+  # for idx, best_params in enumerate(top5):
+  idx = 0
+  for add in samples:
+    for rmv in samples:
+      opt['edge_sampling_add'] = add
+      opt['edge_sampling_rmv'] = rmv
+      opt['index'] = idx
+      idx = idx + 1
+      best_params_ret = {**best_params, **opt}
+      try:
+        best_params_ret['mix_features']
+      except KeyError:
+        best_params_ret['mix_features'] = False
+      # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
+      best_params_ret['epoch'] = opt['epoch']
+      best_params_ret['max_nfe'] = opt['max_nfe']
+      # handle adjoint
+      if best_params['adjoint'] or opt['adjoint']:
+        best_params_ret['adjoint'] = True
 
-    try:
-      best_params_ret['pos_enc_orientation'] = best_params_ret['pos_enc_dim']
-    except:
-      pass
-    print("Running with parameters {}".format(best_params_ret))
+      if opt["run_with_KNN"]:
+        best_params_ret = with_KNN(best_params_ret)
 
-    data_dir = os.path.abspath("../data")
-    reporter = CLIReporter(
-      metric_columns=["accuracy", "loss", "test_acc", "train_acc", "best_time", "best_epoch",
-                      "training_iteration", "forward_nfe", "backward_nfe"])
+      if opt['change_att_sim_type']:
+        best_params_ret['attention_type'] = opt['att_sim_type']
+        best_params_ret['square_plus'] = False
 
-    if opt['name'] is None:
-      name = opt['folder'] + '_test'
-    else:
-      name = opt['name']
+      try:
+        best_params_ret['pos_enc_orientation'] = best_params_ret['pos_enc_dim']
+      except:
+        pass
+      print("Running with parameters {}".format(best_params_ret))
 
-    result = tune.run(
-      partial(train_ray_int, data_dir=data_dir),
-      name=name,
-      resources_per_trial={"cpu": opt['cpus'], "gpu": opt['gpus']},
-      search_alg=None,
-      keep_checkpoints_num=3,
-      checkpoint_score_attr='accuracy',
-      config=best_params_ret,
-      num_samples=opt['reps'] if opt["num_splits"] == 0 else opt["num_splits"] * opt["reps"],
-      scheduler=None,
-      max_failures=1,  # early stop solver can't recover from failure as it doesn't own m2.
-      local_dir='../ray_tune',
-      progress_reporter=reporter,
-      raise_on_failed_trial=False)
+      data_dir = os.path.abspath("../data")
+      reporter = CLIReporter(
+        metric_columns=["accuracy", "loss", "test_acc", "train_acc", "best_time", "best_epoch",
+                        "training_iteration", "forward_nfe", "backward_nfe"])
 
-    df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
+      if opt['name'] is None:
+        name = opt['folder'] + '_test'
+      else:
+        name = opt['name']
 
-    try:
-      csvFilePath = '../ray_results/{}.csv'.format(name)  # , time.strftime("%Y%m%d-%H%M%S"))
-      appendDFToCSV_void(df, csvFilePath, sep=",")
-      # df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
-    except:
-      pass
+      result = tune.run(
+        partial(train_ray_int, data_dir=data_dir),
+        name=name,
+        resources_per_trial={"cpu": opt['cpus'], "gpu": opt['gpus']},
+        search_alg=None,
+        keep_checkpoints_num=3,
+        checkpoint_score_attr='accuracy',
+        config=best_params_ret,
+        num_samples=opt['reps'] if opt["num_splits"] == 0 else opt["num_splits"] * opt["reps"],
+        scheduler=None,
+        max_failures=1,  # early stop solver can't recover from failure as it doesn't own m2.
+        local_dir='../ray_tune',
+        progress_reporter=reporter,
+        raise_on_failed_trial=False)
 
-    print(df[['accuracy', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
+      df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
 
-    test_accs = df['test_acc'].values
-    print("test accuracy {}".format(test_accs))
-    log = "mean test {:04f}, test std {:04f}, test sem {:04f}, test 95% conf {:04f}"
-    print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs),
-                     mean_confidence_interval(test_accs)))
+      try:
+        csvFilePath = '../ray_results/{}.csv'.format(name)  # , time.strftime("%Y%m%d-%H%M%S"))
+        appendDFToCSV_void(df, csvFilePath, sep=",")
+        # df.to_csv('../ray_results/{}_{}.csv'.format(name, time.strftime("%Y%m%d-%H%M%S")))
+      except:
+        pass
+
+      print(df[['accuracy', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
+
+      test_accs = df['test_acc'].values
+      print("test accuracy {}".format(test_accs))
+      log = "mean test {:04f}, test std {:04f}, test sem {:04f}, test 95% conf {:04f}"
+      print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs),
+                       mean_confidence_interval(test_accs)))
 
 def KNN_abalation_grid(opt):
   opt["dataset"] = 'Cora'
