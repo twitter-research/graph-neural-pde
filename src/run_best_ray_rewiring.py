@@ -369,7 +369,7 @@ def run_top5withES(opt):
   opt['no_early'] = True
   opt['metric'] = 'test_acc'
 
-  opt['name'] = 'Cora_top52_Esonline_varySampling'
+  opt['name'] = 'Cora_top52_Esonline_varySampling2'
   # opt['reps'] = 8
   opt['edge_sampling'] = False
   opt['rewire_KNN'] = False
