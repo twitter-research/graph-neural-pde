@@ -262,19 +262,19 @@ def set_pos_enc_space(opt):
 
 
 def run_top5(opt):
-  opt['name'] = 'Cora_top52_Esonline0'
+  opt['name'] = 'Cora_top52_Esonline0_2'
   # opt['reps'] = 8
   opt['edge_sampling'] = False
   opt['rewire_KNN'] = False
   opt['KNN_online'] = False
   opt['symmetric_attention'] = False
 
-  opt['edge_sampling_online'] = True
-  opt['edge_sampling_online_reps'] = 1
-  opt['edge_sampling_add_type'] = 'random'
-  opt['edge_sampling_space'] = 'attention'
-  opt['edge_sampling_add'] = 0
-  opt['att_samp_pct_rmv'] = 0
+  # # opt['edge_sampling_online'] = True #*** this might not have been hit
+  # opt['edge_sampling_online_reps'] = 1
+  # opt['edge_sampling_add_type'] = 'random'
+  # opt['edge_sampling_space'] = 'attention'
+  # opt['edge_sampling_add'] = 0
+  # opt['att_samp_pct_rmv'] = 0
 
   opt['max_nfe'] = 2000
   opt['epoch'] = 1000
@@ -286,6 +286,14 @@ def run_top5(opt):
   for idx, best_params in enumerate(top5):
     opt['index'] = idx
     best_params_ret = {**best_params, **opt}
+
+    best_params_ret['edge_sampling_online'] = True #*** this might not have been hit
+    best_params_ret['edge_sampling_online_reps'] = 1
+    best_params_ret['edge_sampling_add_type'] = 'random'
+    best_params_ret['edge_sampling_space'] = 'attention'
+    best_params_ret['edge_sampling_add'] = 0
+    best_params_ret['att_samp_pct_rmv'] = 0
+
     try:
       best_params_ret['mix_features']
     except KeyError:
@@ -372,8 +380,6 @@ def run_top5withES(opt):
   opt['edge_sampling_online_reps'] = 3
   opt['edge_sampling_add_type'] = 'random'
   opt['edge_sampling_space'] = 'attention'
-  opt['edge_sampling_add'] = 0
-  opt['att_samp_pct_rmv'] = 0
   samples = [0, 0.08, 0.16, 0.32]
   # opt['edge_sampling_add'] = 0.32
   # opt['edge_sampling_rmv'] = 0.32
@@ -385,11 +391,15 @@ def run_top5withES(opt):
   idx = 0
   for add in samples:
     for rmv in samples:
-      opt['edge_sampling_add'] = add
-      opt['edge_sampling_rmv'] = rmv
-      opt['index'] = idx
-      idx = idx + 1
       best_params_ret = {**best_params, **opt}
+      best_params_ret['edge_sampling_online'] = True
+      best_params_ret['edge_sampling_online_reps'] = 3
+      best_params_ret['edge_sampling_add_type'] = 'random'
+      best_params_ret['edge_sampling_space'] = 'attention'
+      best_params_ret['edge_sampling_add'] = add
+      best_params_ret['edge_sampling_rmv'] = rmv
+      best_params_ret['index'] = idx
+      idx = idx + 1
       try:
         best_params_ret['mix_features']
       except KeyError:
