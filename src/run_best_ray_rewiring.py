@@ -265,6 +265,9 @@ def run_top5(opt):
   opt['name'] = 'Cora_top52'
   # opt['reps'] = 8
   opt['edge_sampling'] = False
+  opt['rewire_KNN'] = False
+  opt['KNN_online'] = False
+  opt['edge_sampling_online'] = False
   opt['max_nfe'] = 2000
   opt['epoch'] = 1000
   opt['num_splits'] = 8
