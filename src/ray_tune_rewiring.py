@@ -578,7 +578,7 @@ def ES_test(opt):
   best_params_each = [best_Cora_params, best_Citeseer_params]
 
   # edge sampling
-  ESnames = ['Cora_onlineSampling_gdc', 'Citeseer_onlineSampling_gdc']
+  ESnames = ['Cora_onlineSampling_gdc2', 'Citeseer_onlineSampling_gdc2']
   for i, (data, best_params) in enumerate(zip(datas, best_params_each)):
     for idx in idxs:
       # best_params[idx]['time'] = best_params[idx]['time'] / 3
