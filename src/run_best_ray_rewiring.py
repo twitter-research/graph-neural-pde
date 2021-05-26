@@ -268,6 +268,7 @@ def run_top5(opt):
   opt['rewire_KNN'] = False
   opt['KNN_online'] = False
   opt['edge_sampling_online'] = False
+  opt['symmetric_attention'] = False
   opt['max_nfe'] = 2000
   opt['epoch'] = 1000
   opt['num_splits'] = 8
