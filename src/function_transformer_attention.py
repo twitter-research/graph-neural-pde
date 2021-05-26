@@ -245,7 +245,7 @@ class SpGraphTransAttentionLayer(nn.Module):
       attention = squareplus(prods, edge[self.opt['attention_norm_idx']])
     else:
       attention = softmax(prods, edge[self.opt['attention_norm_idx']])
-    return attention, v
+    return attention, (v, prods)
 
   def __repr__(self):
     return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'

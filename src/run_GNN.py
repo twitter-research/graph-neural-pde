@@ -7,7 +7,7 @@ from GNN_KNN import GNN_KNN
 import time
 from data import get_dataset
 from ogb.nodeproppred import Evaluator
-from graph_rewiring import apply_KNN, apply_beltrami
+from graph_rewiring import apply_gdc, KNN, apply_KNN, apply_beltrami, apply_edge_sampling
 
 
 def get_cora_opt(opt):

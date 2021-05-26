@@ -3,8 +3,8 @@ from torch import nn
 import torch.nn.functional as F
 from base_classes import BaseGNN
 from model_configurations import set_block, set_function
-from graph_rewiring import KNN
-
+from graph_rewiring import KNN, add_edges, edge_sampling, GDC
+from utils import DummyData, get_full_adjacency
 
 # Define the GNN model.
 class GNN_KNN(BaseGNN):
@@ -14,6 +14,8 @@ class GNN_KNN(BaseGNN):
     block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
     self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
+    self.data_edge_index = dataset.data.edge_index.to(device)
+    self.fa = get_full_adjacency(self.num_nodes).to(device)
 
   def forward(self, x, pos_encoding):
     # Encode each node based on its feature.
@@ -59,6 +61,30 @@ class GNN_KNN(BaseGNN):
       z, self.reg_states = self.odeblock(x)
     else:
       z = self.odeblock(x)
+
+    if self.opt['fa_layer']:
+      temp_time = self.opt['time']
+      temp_method = self.opt['method']
+      temp_step_size = self.opt['step_size']
+
+      self.opt['time'] = self.opt['fa_layer_time'] #1.0
+      self.opt['method'] = self.opt['fa_layer_method']#'rk4'
+      self.opt['step_size'] = self.opt['fa_layer_step_size']#1.0
+      self.odeblock.set_x0(z)
+      self.odeblock.odefunc.edge_index = self.fa
+      if self.opt['fa_layer_edge_sampling_rmv'] != 0:
+        temp_edge_sampling_rmv = self.opt['edge_sampling_rmv']
+        self.opt['edge_sampling_rmv'] = self.opt['fa_layer_edge_sampling_rmv']
+        self.odeblock.odefunc.edge_index = edge_sampling(self, z, self.opt)
+        self.opt['edge_sampling_rmv'] = temp_edge_sampling_rmv
+
+      z = self.odeblock(z)
+      self.odeblock.odefunc.edge_index = self.data_edge_index
+
+      self.opt['time'] = temp_time
+      self.opt['method'] = temp_method
+      self.opt['step_size'] = temp_step_size
+
 
     if self.opt['augment']:
       z = torch.split(z, x.shape[1] // 2, dim=1)[0]
