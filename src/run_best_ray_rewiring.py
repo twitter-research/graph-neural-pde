@@ -643,5 +643,6 @@ if __name__ == '__main__':
   # mainLoop(opt)
   # KNN_abalation(opt)
   # KNN_abalation_grid(opt)
-  run_top5(opt)
+  # run_top5(opt)
+  run_top5withES(opt)
   # edge_sampling_ablation(opt)
