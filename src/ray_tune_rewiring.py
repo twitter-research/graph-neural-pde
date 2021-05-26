@@ -580,8 +580,8 @@ def ES_test(opt):
   opt['edge_sampling_online'] = True
   opt['fa_layer'] = False
   for i, (data, best_params) in enumerate(zip(datas, best_params_each)):
-    best_params['time'] = best_params['time'] / 3
     for idx in idxs:
+      best_params[idx]['time'] = best_params[idx]['time'] / 3
       opt['dataset'] = data
       opt['index'] = idxs[i]
       name = ESnames[i]
