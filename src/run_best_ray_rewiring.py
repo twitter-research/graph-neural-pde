@@ -292,7 +292,7 @@ def run_top5(opt):
     best_params_ret['edge_sampling_add_type'] = 'random'
     best_params_ret['edge_sampling_space'] = 'attention'
     best_params_ret['edge_sampling_add'] = 0
-    best_params_ret['att_samp_pct_rmv'] = 0
+    best_params_ret['edge_sampling_rmv'] = 0
 
     try:
       best_params_ret['mix_features']
@@ -360,7 +360,7 @@ def run_top5(opt):
     print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs),
                      mean_confidence_interval(test_accs)))
 
-def run_top5withES(opt):
+def run_top_withES(opt):
   opt['max_nfe'] = 2000
   opt['epoch'] = 200
   opt['num_splits'] = 8
@@ -381,9 +381,7 @@ def run_top5withES(opt):
   opt['edge_sampling_online_reps'] = 3
   opt['edge_sampling_add_type'] = 'random'
   opt['edge_sampling_space'] = 'attention'
-  samples = [0, 0.08, 0.16, 0.32]
-  # opt['edge_sampling_add'] = 0.32
-  # opt['edge_sampling_rmv'] = 0.32
+  samples = [0, 0.01, 0.02, 0.04, 0.08]
   opt['edge_sampling_sym'] = False
 
   best_params = top5[0]
@@ -490,12 +488,8 @@ def KNN_abalation_grid(opt):
 
 def edge_sampling_ablation(opt):
   # folders = ['Cora_top5','Citeseer_beltrami_1']
-  folders = ['Cora_beltrami_edgeS_QK_5split','Citeseer_beltrami_edgeS_QK_5split']
+  folders = ['Cora_edgeS_ablation','Citeseer_edgeS_ablation']
   datas = ['Cora','Citeseer']
-  idxs = [1,0]
-
-  # opt['folder'] = 'Cora_top5'
-  opt['name'] = 'Edge_sampling_beltrami_top1ablation_test_dQK_5split_no_early_es2'
 
   opt['edge_sampling'] = True
   opt['edge_sampling_T'] = 'TN'
@@ -516,22 +510,24 @@ def edge_sampling_ablation(opt):
   opt['earlystopxT'] = 5
   opt['no_early'] = True
   opt['metric'] = 'test_acc'
-  # opt['index'] = 0
-  # best_params = top5[opt['index']]
+
 
   ###Getting the best params from random sources
-  # best_Cora_params = top5[opt['index']]
-  # CiteseerOpt = {'folder':'Citeseer_beltrami_1','index':4,'metric':'test_acc'}
-  # Citeseer_best_params_dir = get_best_params_dir(CiteseerOpt)
-  # with open(Citeseer_best_params_dir + '/params.json') as f:
-  #   best_Citeseer_params = json.loads(f.read())
-  # best_params_each = [best_Cora_params, best_Citeseer_params]
+  best_Cora_params = top5[0]
+  best_Citeseer_params = []
+  idxs = [0]
+  for i in idxs:
+    CiteseerOpt = {'folder':'Citeseer_beltrami_1','index':4,'metric':'test_acc'}
+    Citeseer_best_params_dir = get_best_params_dir(CiteseerOpt)
+    with open(Citeseer_best_params_dir + '/params.json') as f:
+      best_Citeseer_param = json.loads(f.read())
+    best_Citeseer_params.append(best_Citeseer_param)
 
-  # for idx, best_params in enumerate(top5):
-    # opt['index'] = idx + 5
+  best_params_each = [best_Cora_params, best_Citeseer_params]
 
-  # for i, (folder, data, best_params) in enumerate(zip(folders, datas, best_params_each)):
-  for i, (folder, data) in enumerate(zip(folders, datas)):
+
+  for i, (folder, data, best_params) in enumerate(zip(folders, datas, best_params_each)):
+  # for i, (folder, data) in enumerate(zip(folders, datas)):
     opt['folder'] = folder
     opt['dataset'] = data
     opt['index'] = idxs[i]
@@ -619,6 +615,100 @@ def edge_sampling_ablation(opt):
                            mean_confidence_interval(test_accs)))
 
 
+def edge_sampling_online_ablation(opt):
+  folders = ['Cora_edgeS_ablation','Citeseer_edgeS_ablation']
+  datas = ['Cora','Citeseer']
+
+  opt['max_nfe'] = 2000
+  opt['epoch'] = 200
+  opt['num_splits'] = 8
+  opt['gpus'] = 1
+  # opt['earlystopxT'] = 5
+  opt['no_early'] = True
+  opt['metric'] = 'test_acc'
+
+  opt['edge_sampling'] = False
+  opt['rewire_KNN'] = False
+  opt['KNN_online'] = False
+  opt['symmetric_attention'] = False
+  opt['fa_layer'] = False
+
+  opt['edge_sampling_online'] = True
+  opt['edge_sampling_online_reps'] = 3
+  # opt['edge_sampling_add_type'] = 'random'
+  opt['edge_sampling_space'] = 'attention'
+  samples = [0, 0.01, 0.02, 0.04, 0.08]
+  sample_add_types = ['importance', 'random']
+  opt['edge_sampling_sym'] = False
+
+
+  ###Getting the best params from random sources
+  best_Cora_params = top5[0]
+  best_Citeseer_params = []
+  idxs = [0]
+  for i in idxs:
+    CiteseerOpt = {'folder':'Citeseer_beltrami_1','index':4,'metric':'test_acc'}
+    Citeseer_best_params_dir = get_best_params_dir(CiteseerOpt)
+    with open(Citeseer_best_params_dir + '/params.json') as f:
+      best_Citeseer_param = json.loads(f.read())
+    best_Citeseer_params.append(best_Citeseer_param)
+
+  best_params_each = [best_Cora_params, best_Citeseer_params]
+
+  idx = 0
+  for i, (folder, data, best_params) in enumerate(zip(folders, datas, best_params_each)):
+    opt['folder'] = folder
+    opt['dataset'] = data
+    for add_type in sample_add_types:
+      opt['edge_sampling_add_type'] = add_type
+      for add in samples:
+        opt['edge_sampling_add'] = add
+        for rmv in samples:
+          opt['edge_sampling_rmv'] = rmv
+          opt['experiment'] = f"add_{add}_rmv_{rmv}"
+
+          best_params_ret = {**best_params, **opt}
+          best_params_ret['index'] = idx
+          idx = idx + 1
+
+          try:
+            best_params_ret['mix_features']
+          except KeyError:
+            best_params_ret['mix_features'] = False
+          # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
+          best_params_ret['epoch'] = opt['epoch']
+          best_params_ret['max_nfe'] = opt['max_nfe']
+          # handle adjoint
+          if best_params['adjoint'] or opt['adjoint']:
+            best_params_ret['adjoint'] = True
+
+          try:
+            best_params_ret['pos_enc_orientation'] = best_params_ret['pos_enc_dim']
+          except:
+            pass
+          print("Running with parameters {}".format(best_params_ret))
+
+          data_dir = os.path.abspath("../data")
+          reporter = CLIReporter(
+            metric_columns=["accuracy", "loss", "test_acc", "train_acc", "best_time", "best_epoch",
+                            "training_iteration", "forward_nfe", "backward_nfe"])
+
+          result = tune.run(
+            partial(train_ray_int, data_dir=data_dir),
+            name=folder,
+            resources_per_trial={"cpu": opt['cpus'], "gpu": opt['gpus']},
+            search_alg=None,
+            keep_checkpoints_num=3,
+            checkpoint_score_attr='accuracy',
+            config=best_params_ret,
+            num_samples=opt['reps'] if opt["num_splits"] == 0 else opt["num_splits"] * opt["reps"],
+            scheduler=None,
+            max_failures=1,  # early stop solver can't recover from failure as it doesn't own m2.
+            local_dir='../ray_tune',
+            progress_reporter=reporter,
+            raise_on_failed_trial=False)
+
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -654,6 +744,7 @@ if __name__ == '__main__':
   # mainLoop(opt)
   # KNN_abalation(opt)
   # KNN_abalation_grid(opt)
-  run_top5withES(opt)
-  run_top5(opt)
+  # run_top5withES(opt)
+  # run_top5(opt)
   # edge_sampling_ablation(opt)
+  edge_sampling_online_ablation(opt)
