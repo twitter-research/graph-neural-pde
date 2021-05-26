@@ -170,7 +170,7 @@ def apply_KNN(data, pos_encoding, model, opt):
       z0 = z0[:, :-model.num_classes]
     p0 = z0[:, model.opt['feat_hidden_dim']:].contiguous()
     ei = KNN(p0, opt)
-
+    # ei = KNN(model.forward_encoder(data.x, pos_encoding), opt)
   elif opt['rewire_KNN_T'] == 'TN':
     zT = model.forward_ODE(data.x, pos_encoding)
     if model.opt['use_labels']:
@@ -178,6 +178,7 @@ def apply_KNN(data, pos_encoding, model, opt):
       zT = zT[:, :-model.num_classes]
     pT = zT[:, model.opt['feat_hidden_dim']:].contiguous()
     ei = KNN(pT, opt)
+    # ei = KNN(model.forward_ODE(data.x, pos_encoding), opt)
   else:
     raise Exception("Need to set rewire_KNN_T")
 
@@ -186,8 +187,7 @@ def apply_KNN(data, pos_encoding, model, opt):
 @torch.no_grad()
 def edge_sampling(model, z, opt):
   if opt['edge_sampling_space'] == 'attention':
-    # attention_weights = model.odeblock.get_attention_weights(z)
-    attention_weights = model.odeblock.get_raw_attention_weights(z)
+    attention_weights = model.odeblock.get_attention_weights(z)
     mean_att = attention_weights.mean(dim=1, keepdim=False)
     threshold = torch.quantile(mean_att, 1 - opt['edge_sampling_rmv'])
     mask = mean_att > threshold
@@ -200,8 +200,7 @@ def edge_sampling(model, z, opt):
     model.opt['attention_type'] = model.opt['edge_sampling_space'] #this changes the opt at all levels as opt is assigment link
     pos_enc_distances = model.odeblock.get_attention_weights(z) #forward pass of multihead_att_layer
     model.odeblock.multihead_att_layer.opt['attention_type'] = temp_att_type
-
-    #threshold on distances so we throw away the biggest, opposite to attentions
+    # threshold on distances so we throw away the biggest, opposite to attentions
     threshold = torch.quantile(pos_enc_distances, 1 - opt['edge_sampling_rmv'])
     mask = pos_enc_distances < threshold
 
@@ -213,9 +212,31 @@ def edge_sampling(model, z, opt):
   return model.odeblock.odefunc.edge_index
 
 @torch.no_grad()
+def add_outgoing_attention_edges(model, M):
+  """
+  add new edges for nodes that other nodes tend to pay attention to
+  :params M: The number of edges to add. 2 * M get added to the edges index to make them undirected
+  """
+  atts = model.odeblock.odefunc.attention_weights.mean(dim=1)
+  dst = model.odeblock.odefunc.edge_index[1, :]
+
+  importance = scatter(atts, dst, dim=0, dim_size=model.num_nodes,
+                       reduce='sum')  # column sum to represent outgoing importance
+  degree = scatter(torch.ones(size=atts.shape), dst, dim=0, dim_size=model.num_nodes,
+                       reduce='sum')
+  normed_importance = torch.divide(importance, degree)
+  # todo squareplus might be better here.
+  importance_probs = F.softmax(normed_importance)
+  anchors = torch.multinomial(importance_probs, M, replacement=True).to(model.device)
+  new_nodes = np.random.choice(model.num_nodes, size=M, replace=True, p=None)
+  anchors2 = torch.tensor(new_nodes, device=model.device, dtype=torch.long)
+
+  new_edges = torch.cat([torch.stack([anchors, anchors2],dim=0), torch.stack([anchors2, anchors], dim=0)], dim=1)
+  return new_edges
+
+@torch.no_grad()
 def add_edges(model, opt):
   num_nodes = model.num_nodes
-  # M = int(num_nodes * opt['edge_sampling_add'])
   num_edges = model.odeblock.odefunc.edge_index.shape[1]
   M = int(num_edges * opt['edge_sampling_add'])
   # generate new edges and add to edge_index
@@ -228,32 +249,24 @@ def add_edges(model, opt):
   elif opt['edge_sampling_add_type'] == 'anchored':
     pass
   elif opt['edge_sampling_add_type'] == 'importance':
-    atts = model.odeblock.odefunc.attention_weights.mean(dim=1)
-    # src = model.odeblock.odefunc.edge_index[0, :]
-    dst = model.odeblock.odefunc.edge_index[1, :]
-
-    importance = scatter(atts, dst, dim=0, dim_size=num_nodes, reduce='sum') #column sum to represent outgoing importance
-    importance_probs = torch.abs(importance) / torch.abs(importance).sum()
-    anchors = torch.multinomial(importance_probs, M, replacement=True).to(model.device)
-    # anchors2 = torch.multinomial(importance_probs, M, replacement=True).to(model.device)
-    new_nodes = np.random.choice(num_nodes, size=M, replace=True, p=None)
-    anchors2 = torch.tensor(new_nodes, device=model.device, dtype=torch.long)
-
-    new_edges = torch.stack([anchors, anchors2], dim=0)
-    new_edges2 = torch.stack([anchors2, anchors], dim=0)
-    cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges, new_edges2], dim=1)
-  elif opt['edge_sampling_add_type'] == 'degree': #proportional to degree
+    if M > 0:
+      new_edges = add_outgoing_attention_edges(model, M)
+      cat = torch.cat([model.odeblock.odefunc.edge_index, new_edges], dim=1)
+    else:
+      cat = model.odeblock.odefunc.edge_index
+  elif opt['edge_sampling_add_type'] == 'degree':  # proportional to degree
     pass
   elif opt['edge_sampling_add_type'] == 'n2_radius':
     return get_full_adjacency(num_nodes)
   new_ei = torch.unique(cat, sorted=False, return_inverse=False, return_counts=False, dim=1)
   return new_ei
 
+
 @torch.no_grad()
 def apply_edge_sampling(x, pos_encoding, model, opt):
   print(f"Rewiring with edge sampling")
 
-  #add to model edge index
+  # add to model edge index
   model.odeblock.odefunc.edge_index = add_edges(model, opt)
 
   # get Z_T0 or Z_TN
@@ -262,7 +275,7 @@ def apply_edge_sampling(x, pos_encoding, model, opt):
   elif opt['edge_sampling_T'] == 'TN':
     z = model.forward_ODE(x, pos_encoding)
 
-  #sample the edges and update edge index in model
+  # sample the edges and update edge index in model
   model.odeblock.odefunc.edge_index = edge_sampling(model, z, opt)
 
 
@@ -277,7 +290,10 @@ def apply_beltrami(data, opt, data_dir='../data'):
   if os.path.exists(fname):
     print("    Found them! Loading cached version")
     with open(fname, "rb") as f:
+      # pos_encoding = pickle.load(f)
       pos_encoding = pickle.load(f)
+    if opt['pos_enc_type'].startswith("DW"):
+      pos_encoding = pos_encoding['data']
 
   # - otherwise, calculate...
   else:
@@ -289,8 +305,15 @@ def apply_beltrami(data, opt, data_dir='../data'):
       print(f"[x] The positional encoding type you specified ({opt['pos_enc_type']}) does not exist")
       quit()
     # - ... and store them on disk
-    if not os.path.exists(pos_enc_dir):
-      os.makedirs(pos_enc_dir)
+    POS_ENC_PATH = os.path.join(data_dir, "pos_encodings")
+    if not os.path.exists(POS_ENC_PATH):
+      os.makedirs(POS_ENC_PATH)
+
+    if opt['pos_enc_csv']:
+      sp = pos_encoding.to_sparse()
+      table_mat = np.concatenate([sp.indices(), np.atleast_2d(sp.values())], axis=0).T
+      np.savetxt(f"{fname[:-4]}.csv", table_mat, delimiter=",")
+
     with open(fname, "wb") as f:
       pickle.dump(pos_encoding, f)
 
