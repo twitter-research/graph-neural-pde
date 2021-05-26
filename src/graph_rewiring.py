@@ -183,7 +183,7 @@ def apply_KNN(data, pos_encoding, model, opt):
 
   return ei
 
-
+@torch.no_grad()
 def edge_sampling(model, z, opt):
   if opt['edge_sampling_space'] == 'attention':
     # attention_weights = model.odeblock.get_attention_weights(z)
@@ -212,7 +212,7 @@ def edge_sampling(model, z, opt):
 
   return model.odeblock.odefunc.edge_index
 
-
+@torch.no_grad()
 def add_edges(model, opt):
   num_nodes = model.num_nodes
   # M = int(num_nodes * opt['edge_sampling_add'])
