@@ -189,6 +189,11 @@ def set_rewiring_space(opt):
   # DIGL args
   opt['rewiring'] = None  # tune.choice(['gdc', None])
 
+  if opt['fa_layer']:
+    opt['edge_sampling_rmv'] = 0.01
+    opt['edge_sampling_add'] = 0.01
+    opt['edge_sampling_add_type'] = 'importance'
+    opt['edge_sampling_space'] = 'attention'
   # opt['attention_rewiring'] = tune.choice([True, False])
   # opt['reweight_attention'] = tune.choice([True, False])
   # opt['make_symm'] = tune.choice([True, False])

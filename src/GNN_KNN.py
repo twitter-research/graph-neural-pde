@@ -67,16 +67,13 @@ class GNN_KNN(BaseGNN):
       temp_method = self.opt['method']
       temp_step_size = self.opt['step_size']
 
-      self.opt['time'] = self.opt['fa_layer_time'] #1.0
-      self.opt['method'] = self.opt['fa_layer_method']#'rk4'
-      self.opt['step_size'] = self.opt['fa_layer_step_size']#1.0
+      self.opt['time'] = 1 # self.opt['fa_layer_time'] #1.0
+      self.opt['method'] = 'rk4' # self.opt['fa_layer_method']#'rk4'
+      self.opt['step_size'] = 1 # self.opt['fa_layer_step_size']#1.0
       self.odeblock.set_x0(z)
-      self.odeblock.odefunc.edge_index = self.fa
-      if self.opt['fa_layer_edge_sampling_rmv'] != 0:
-        temp_edge_sampling_rmv = self.opt['edge_sampling_rmv']
-        self.opt['edge_sampling_rmv'] = self.opt['fa_layer_edge_sampling_rmv']
+      self.odeblock.odefunc.edge_index = add_edges(self, self.opt)
+      if self.opt['edge_sampling_rmv'] != 0:
         self.odeblock.odefunc.edge_index = edge_sampling(self, z, self.opt)
-        self.opt['edge_sampling_rmv'] = temp_edge_sampling_rmv
 
       z = self.odeblock(z)
       self.odeblock.odefunc.edge_index = self.data_edge_index
