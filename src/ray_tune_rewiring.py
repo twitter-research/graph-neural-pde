@@ -560,6 +560,8 @@ def ES_test(opt):
   opt['beltrami'] = True
   opt['edge_sampling'] = False
   opt['rewire_KNN'] = False
+  opt['edge_sampling_online'] = True
+  opt['fa_layer'] = False
 
   datas = ['Cora', 'Citeseer']
   idxs = [0, 1, 2, 3, 4]
@@ -577,8 +579,6 @@ def ES_test(opt):
 
   # edge sampling
   ESnames = ['Cora_onlineSampling_0test1rep', 'Citeseer_onlineSampling_0test1rep']
-  opt['edge_sampling_online'] = True
-  opt['fa_layer'] = False
   for i, (data, best_params) in enumerate(zip(datas, best_params_each)):
     for idx in idxs:
       # best_params[idx]['time'] = best_params[idx]['time'] / 3
