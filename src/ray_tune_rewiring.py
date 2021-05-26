@@ -541,6 +541,109 @@ def top5_onlineSampling_FAlayer(opt):
         raise_on_failed_trial=False,
       )
 
+def ES_test(opt):
+  def top5_onlineSampling_FAlayer(opt):
+    data_dir = os.path.abspath("../data")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    opt['max_nfe'] = 3000
+    opt['num_samples'] = 10
+    opt['grace_period'] = 20
+    opt['reduction_factor'] = 10
+    opt['epoch'] = 250
+    opt['num_splits'] = 3
+    opt['gpus'] = 1
+    opt['no_early'] = True
+    opt['metric'] = 'test_acc'
+
+    opt['block'] = 'attention'
+    opt['function'] = 'laplacian'
+    opt['beltrami'] = True
+    opt['edge_sampling'] = False
+    opt['rewire_KNN'] = False
+
+    datas = ['Cora', 'Citeseer']
+    idxs = [0, 1, 2, 3, 4]
+
+    ###Getting the best params from random sources
+    best_Cora_params = top5
+    best_Citeseer_params = []
+    for i in idxs:
+      CiteseerOpt = {'folder': 'Citeseer_beltrami_1', 'index': 4, 'metric': 'test_acc'}
+      Citeseer_best_params_dir = get_best_params_dir(CiteseerOpt)
+      with open(Citeseer_best_params_dir + '/params.json') as f:
+        best_Citeseer_param = json.loads(f.read())
+      best_Citeseer_params.append(best_Citeseer_param)
+    best_params_each = [best_Cora_params, best_Citeseer_params]
+
+    # edge sampling
+    ESnames = ['Cora_onlineSampling_0test', 'Citeseer_onlineSampling_0test']
+    opt['edge_sampling_online'] = True
+    opt['fa_layer'] = False
+    for i, (data, best_params) in enumerate(zip(datas, best_params_each)):
+      best_params['time'] = best_params['time'] / 3
+      for idx in idxs:
+        opt['dataset'] = data
+        opt['index'] = idxs[i]
+        name = ESnames[i]
+        opt['name'] = name
+        best_params = best_params_each[i][idx]
+        best_params_ret = {**best_params, **opt}
+
+        best_params_ret['edge_sampling_online'] = True
+        best_params_ret['edge_sampling_add_type'] = tune.choice(['importance', 'random'])
+        opt['edge_sampling_space'] = tune.choice(['attention', 'pos_distance', 'z_distance'])
+        opt['edge_sampling_online_reps'] = 3 #tune.choice([2, 3, 4])
+        opt['edge_sampling_sym'] = False #tune.choice([True, False])
+        opt['edge_sampling_add'] = 0.0 #tune.choice([0.04, 0.08, 0.16, 0.32, 0.64])  # tune.choice([0.04, 0.08, 0.16, 0.32])
+        opt['edge_sampling_rmv'] = 0.0 #tune.choice([0.0, 0.04, 0.08])  # tune.choice([0.04, 0.08, 0.16, 0.32])
+        # opt["time"] = tune.uniform(0.25, 5.0)
+
+        # best_params_ret = edge_sampling_online_space(best_params_ret)
+
+        try:
+          best_params_ret['mix_features']
+        except KeyError:
+          best_params_ret['mix_features'] = False
+        try:
+          best_params_ret['pos_enc_orientation'] = best_params_ret['pos_enc_dim']
+        except:
+          pass
+        print("Running with parameters {}".format(best_params_ret))
+
+        scheduler = ASHAScheduler(
+          metric=best_params_ret['metric'],
+          mode="max",
+          max_t=opt["epoch"],
+          grace_period=best_params_ret["grace_period"],
+          reduction_factor=best_params_ret["reduction_factor"],
+        )
+        reporter = CLIReporter(
+          metric_columns=["accuracy", "test_acc", "train_acc", "loss", "training_iteration", "forward_nfe",
+                          "backward_nfe"]
+        )
+        # choose a search algorithm from https://docs.ray.io/en/latest/tune/api_docs/suggestion.html
+        search_alg = AxSearch(metric=best_params_ret['metric'])
+        search_alg = None
+
+        train_fn = train_ray if best_params_ret["num_splits"] == 0 else train_ray_rand
+
+        result = tune.run(
+          partial(train_fn, data_dir=data_dir),
+          name=best_params_ret["name"],
+          resources_per_trial={"cpu": best_params_ret["cpus"], "gpu": best_params_ret["gpus"]},
+          search_alg=search_alg,
+          keep_checkpoints_num=3,
+          checkpoint_score_attr=opt['metric'],
+          config=best_params_ret,
+          num_samples=best_params_ret["num_samples"],
+          scheduler=scheduler,
+          max_failures=2,
+          local_dir="../ray_tune",
+          progress_reporter=reporter,
+          raise_on_failed_trial=False,
+        )
+
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
@@ -709,4 +812,5 @@ if __name__ == "__main__":
   opt = vars(args)
   # main(opt)
   # mainLoop(opt)
-  top5_onlineSampling_FAlayer(opt)
+  # top5_onlineSampling_FAlayer(opt)
+  ES_test(opt)

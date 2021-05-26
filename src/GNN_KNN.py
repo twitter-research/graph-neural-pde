@@ -85,7 +85,8 @@ class GNN_KNN(BaseGNN):
           self.odeblock.odefunc.edge_index = edge_sampling(self, z, self.opt)
         elif self.opt['edge_sampling_add_type'] == 'gdc':
           diff_args = dict(method='ppr', alpha=self.opt['ppr_alpha'])
-          sparse_args = dict(method='threshold', avg_degree=16)
+          # sparse_args = dict(method='threshold', avg_degree=16)
+          sparse_args = dict(method='topk', k=32, dim=0)
           slw = None if self.opt['self_loop_weight']==0 else self.opt['self_loop_weight']
           gdc = GDC(self_loop_weight=slw,
                     normalization_in='sym',
@@ -95,7 +96,8 @@ class GNN_KNN(BaseGNN):
           mean_attention = self.odeblock.get_raw_attention_weights(z).mean(dim=1, keepdim=False)
           dummy = DummyData(self.odeblock.odefunc.edge_index, mean_attention, self.num_nodes)
           self.odeblock.odefunc.edge_index = gdc(dummy).edge_index
-        elif self.opt['edge_sampling_add_type'] == 'n2_radius': #this is too dense
+
+        elif self.opt['edge_sampling_add_type'] == 'n2_radius': #this is too slow
           self.odeblock.odefunc.edge_index = add_edges(self, self.opt)
           self.odeblock.odefunc.edge_index = edge_sampling(self, z, self.opt)
 
