@@ -175,8 +175,9 @@ def edge_sampling(model, z, opt):
   if opt['edge_sampling_space'] == 'attention':
     attention_weights = model.odeblock.get_attention_weights(z)
     mean_att = attention_weights.mean(dim=1, keepdim=False)
-    threshold = torch.quantile(mean_att, 1 - opt['edge_sampling_rmv'])
+    threshold = torch.quantile(mean_att, opt['edge_sampling_rmv'])
     mask = mean_att > threshold
+
   elif opt['edge_sampling_space'] in ['pos_distance', 'z_distance', 'pos_distance_QK', 'z_distance_QK']:
     temp_att_type = model.opt['attention_type']
     model.opt['attention_type'] = model.opt[
