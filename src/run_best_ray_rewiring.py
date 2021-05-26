@@ -277,7 +277,7 @@ def run_top5(opt):
   # opt['att_samp_pct_rmv'] = 0
 
   opt['max_nfe'] = 2000
-  opt['epoch'] = 1000
+  opt['epoch'] = 200
   opt['num_splits'] = 8
   opt['gpus'] = 1
   opt['earlystopxT'] = 5
@@ -375,6 +375,7 @@ def run_top5withES(opt):
   opt['rewire_KNN'] = False
   opt['KNN_online'] = False
   opt['symmetric_attention'] = False
+  opt['fa_layer'] = False
 
   opt['edge_sampling_online'] = True
   opt['edge_sampling_online_reps'] = 3
@@ -653,6 +654,6 @@ if __name__ == '__main__':
   # mainLoop(opt)
   # KNN_abalation(opt)
   # KNN_abalation_grid(opt)
-  # run_top5(opt)
   run_top5withES(opt)
+  run_top5(opt)
   # edge_sampling_ablation(opt)
