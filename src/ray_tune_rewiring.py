@@ -576,12 +576,12 @@ def ES_test(opt):
   best_params_each = [best_Cora_params, best_Citeseer_params]
 
   # edge sampling
-  ESnames = ['Cora_onlineSampling_0test', 'Citeseer_onlineSampling_0test']
+  ESnames = ['Cora_onlineSampling_0test1rep', 'Citeseer_onlineSampling_0test1rep']
   opt['edge_sampling_online'] = True
   opt['fa_layer'] = False
   for i, (data, best_params) in enumerate(zip(datas, best_params_each)):
     for idx in idxs:
-      best_params[idx]['time'] = best_params[idx]['time'] / 3
+      # best_params[idx]['time'] = best_params[idx]['time'] / 3
       opt['dataset'] = data
       opt['index'] = idxs[i]
       name = ESnames[i]
@@ -592,7 +592,7 @@ def ES_test(opt):
       best_params_ret['edge_sampling_online'] = True
       best_params_ret['edge_sampling_add_type'] = tune.choice(['importance', 'random'])
       opt['edge_sampling_space'] = tune.choice(['attention', 'pos_distance', 'z_distance'])
-      opt['edge_sampling_online_reps'] = 3 #tune.choice([2, 3, 4])
+      opt['edge_sampling_online_reps'] = 1 #3 #tune.choice([2, 3, 4])
       opt['edge_sampling_sym'] = False #tune.choice([True, False])
       opt['edge_sampling_add'] = 0.0 #tune.choice([0.04, 0.08, 0.16, 0.32, 0.64])  # tune.choice([0.04, 0.08, 0.16, 0.32])
       opt['edge_sampling_rmv'] = 0.0 #tune.choice([0.0, 0.04, 0.08])  # tune.choice([0.04, 0.08, 0.16, 0.32])
