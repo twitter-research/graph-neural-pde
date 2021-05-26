@@ -55,7 +55,7 @@ class GNN_KNN(BaseGNN):
       c_aux = torch.zeros(x.shape).to(self.device)
       x = torch.cat([x, c_aux], dim=1)
 
-    self.odeblock.set_x0(x)
+    # self.odeblock.set_x0(x) #had left in before check if a problem
 
     # if self.training and self.odeblock.nreg > 0:
     #   z, self.reg_states = self.odeblock(x)

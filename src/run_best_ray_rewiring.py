@@ -262,13 +262,20 @@ def set_pos_enc_space(opt):
 
 
 def run_top5(opt):
-  opt['name'] = 'Cora_top52'
+  opt['name'] = 'Cora_top52_Esonline0'
   # opt['reps'] = 8
   opt['edge_sampling'] = False
   opt['rewire_KNN'] = False
   opt['KNN_online'] = False
-  opt['edge_sampling_online'] = False
   opt['symmetric_attention'] = False
+
+  opt['edge_sampling_online'] = True
+  opt['edge_sampling_online_reps'] = 1
+  opt['edge_sampling_add_type'] = 'random'
+  opt['edge_sampling_space'] = 'attention'
+  opt['edge_sampling_add'] = 0
+  opt['att_samp_pct_rmv'] = 0
+
   opt['max_nfe'] = 2000
   opt['epoch'] = 1000
   opt['num_splits'] = 8
