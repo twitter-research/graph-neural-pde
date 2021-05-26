@@ -229,8 +229,10 @@ def add_outgoing_attention_edges(model, M):
   # todo squareplus might be better here.
   importance_probs = F.softmax(normed_importance, dim=0).to(model.device)
   anchors = torch.multinomial(importance_probs, M, replacement=True).to(model.device)
-  new_nodes = np.random.choice(model.num_nodes, size=M, replace=True, p=None)
-  anchors2 = torch.tensor(new_nodes, device=model.device, dtype=torch.long)
+  anchors2 = torch.multinomial(torch.ones(model.num_nodes), M, replacement=True).to(model.device)
+
+  # new_nodes = np.random.choice(model.num_nodes, size=M, replace=True, p=None)
+  # anchors2 = torch.tensor(new_nodes, device=model.device, dtype=torch.long)
 
   new_edges = torch.cat([torch.stack([anchors, anchors2], dim=0), torch.stack([anchors2, anchors], dim=0)], dim=1)
   return new_edges
