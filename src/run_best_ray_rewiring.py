@@ -262,7 +262,7 @@ def set_pos_enc_space(opt):
 
 
 def run_top5(opt):
-  opt['name'] = 'Cora_top52_Esonline0_2'
+  opt['name'] = 'Cora_top52_Esonline0_3'
   # opt['reps'] = 8
   opt['edge_sampling'] = False
   opt['rewire_KNN'] = False
