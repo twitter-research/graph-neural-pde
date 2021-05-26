@@ -376,8 +376,8 @@ def mainLoop(opt):
 
 def edge_sampling_online_space(opt):
   opt['edge_sampling_online'] = True
-  opt['edge_sampling_add_type'] = tune.choice(['importance','random'])
-  opt['edge_sampling_space'] = tune.choice(['attention', 'pos_distance', 'z_distance'])
+  opt['edge_sampling_add_type'] = 'gdc' #tune.choice(['importance','random'])
+  # opt['edge_sampling_space'] = tune.choice(['attention', 'pos_distance', 'z_distance'])
   opt['edge_sampling_online_reps'] = tune.choice([2,3,4])
   opt['edge_sampling_sym'] = tune.choice([True, False])
   opt['edge_sampling_add'] = tune.choice([0.04, 0.08, 0.16, 0.32, 0.64]) # tune.choice([0.04, 0.08, 0.16, 0.32])
@@ -546,7 +546,7 @@ def ES_test(opt):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
   opt['max_nfe'] = 3000
-  opt['num_samples'] = 10
+  opt['num_samples'] = 20
   opt['grace_period'] = 20
   opt['reduction_factor'] = 10
   opt['epoch'] = 250
@@ -578,7 +578,7 @@ def ES_test(opt):
   best_params_each = [best_Cora_params, best_Citeseer_params]
 
   # edge sampling
-  ESnames = ['Cora_onlineSampling_0test1rep', 'Citeseer_onlineSampling_0test1rep']
+  ESnames = ['Cora_onlineSampling_gdc', 'Citeseer_onlineSampling_gdc']
   for i, (data, best_params) in enumerate(zip(datas, best_params_each)):
     for idx in idxs:
       # best_params[idx]['time'] = best_params[idx]['time'] / 3
@@ -591,14 +591,14 @@ def ES_test(opt):
 
       best_params_ret['edge_sampling_online'] = True
       best_params_ret['edge_sampling_add_type'] = tune.choice(['importance', 'random'])
-      opt['edge_sampling_space'] = tune.choice(['attention', 'pos_distance', 'z_distance'])
-      opt['edge_sampling_online_reps'] = 1 #3 #tune.choice([2, 3, 4])
-      opt['edge_sampling_sym'] = False #tune.choice([True, False])
-      opt['edge_sampling_add'] = 0.0 #tune.choice([0.04, 0.08, 0.16, 0.32, 0.64])  # tune.choice([0.04, 0.08, 0.16, 0.32])
-      opt['edge_sampling_rmv'] = 0.0 #tune.choice([0.0, 0.04, 0.08])  # tune.choice([0.04, 0.08, 0.16, 0.32])
+      # opt['edge_sampling_space'] = tune.choice(['attention', 'pos_distance', 'z_distance'])
+      # opt['edge_sampling_online_reps'] = 1 #3 #tune.choice([2, 3, 4])
+      # opt['edge_sampling_sym'] = False #tune.choice([True, False])
+      # opt['edge_sampling_add'] = 0.0 #tune.choice([0.04, 0.08, 0.16, 0.32, 0.64])  # tune.choice([0.04, 0.08, 0.16, 0.32])
+      # opt['edge_sampling_rmv'] = 0.0 #tune.choice([0.0, 0.04, 0.08])  # tune.choice([0.04, 0.08, 0.16, 0.32])
       # opt["time"] = tune.uniform(0.25, 5.0)
 
-      # best_params_ret = edge_sampling_online_space(best_params_ret)
+      best_params_ret = edge_sampling_online_space(best_params_ret)
 
       try:
         best_params_ret['mix_features']
