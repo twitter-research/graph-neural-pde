@@ -7,7 +7,8 @@ def apply_KNN(x, k):
   distances, indices = nbrs.kneighbors(x)
   src = np.linspace(0, len(x) * k, len(x) * k + 1)[:-1] // k
   dst = indices.reshape(-1)
-  return np.vstack((src, dst))
+  ei = np.vstack((src, dst))
+  return ei
 
 def threshold_mat(dist, quant=1 / 1000):
   thresh = np.quantile(dist, quant, axis=None)
