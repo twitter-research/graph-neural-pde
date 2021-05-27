@@ -41,7 +41,7 @@ def set_rewiring_space(opt):
       opt['ppr_alpha'] = 0.05 # tune.uniform(0.01, 0.2)
       ks = [8, 16, 32, 64]
       opt['gdc_k'] = tune.choice(ks)
-      opt['rewire_KNN_sym'] = tune.choice([True, False])
+      opt['rewire_KNN_sym'] = False# tune.choice([True, False])
       opt['pos_enc_orientation'] = None #tune.choice(["row", "col"])
 
     # experiment args
@@ -72,7 +72,7 @@ def set_rewiring_space(opt):
 
     opt['pos_enc_type'] = 'DW256' #tune.choice(['DW256', 'DW128', 'DW64']) #'GDC' #tune.choice(['HYP02', 'HYP04', 'HYP08', 'HYP16'])
     opt['pos_enc_orientation'] = 'col' #tune.choice(["row", "col"])
-    opt['square_plus'] = tune.choice([True, False])
+    opt['square_plus'] = True #tune.choice([True, False])
 
     # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
 
@@ -135,13 +135,13 @@ def set_cora_search_space(opt):
     opt["lr"] = tune.uniform(0.01, 0.2)
     opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
     # opt["input_dropout"] = 0.5
-    opt["optimizer"] = tune.choice(["adam", "adamax"])
+    opt["optimizer"] = "adamax" # tune.choice(["adam", "adamax"])
     opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-    opt["time"] = tune.uniform(10.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
+    opt["time"] = tune.uniform(10.0, 20.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
     if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
         opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
-        opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  # hidden dim for attention
+        opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 8))  # hidden dim for attention
         opt['attention_norm_idx'] = tune.choice([0, 1])
         # opt['attention_norm_idx'] = 0
         # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
@@ -158,9 +158,9 @@ def set_cora_search_space(opt):
         opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
         opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
 
-    opt['add_source'] = tune.choice([True, False])
+    opt['add_source'] = False #tune.choice([True, False])
     # opt['att_samp_pct'] = tune.uniform(0.3, 1)
-    opt['batch_norm'] = tune.choice([True, False])
+    opt['batch_norm'] = False #tune.choice([True, False])
     opt['use_mlp'] = False #tune.choice([True, False])
 
     return opt
