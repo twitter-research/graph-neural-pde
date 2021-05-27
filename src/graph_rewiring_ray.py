@@ -282,7 +282,6 @@ def set_cora_search_space(opt):
 
   # if opt['self_loop_weight'] > 0.0:
   #     opt['exact'] = True  # for GDC, need exact if selp loop weight >0
-  opt['exact'] = tune.sample_from(lambda spec: True if spec.config.self_loop_weight > 0.0 else False)
 
   opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
   if opt["adjoint"]:
@@ -295,6 +294,7 @@ def set_cora_search_space(opt):
   opt['use_mlp'] = tune.choice([True, False])
 
   if opt['rewiring'] == 'gdc':
+    opt['exact'] = True
     opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
     opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
 

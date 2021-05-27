@@ -9,7 +9,7 @@ import torch_sparse
 from torch_scatter import scatter
 from torch_geometric.transforms.two_hop import TwoHop
 from utils import get_rw_adj, get_full_adjacency
-# from torch_geometric.transforms import GDC
+from torch_geometric.transforms import GDC
 from pykeops.torch import LazyTensor
 import os
 import pickle
@@ -307,7 +307,7 @@ def apply_beltrami(data, opt, data_dir='../data'):
 
 
 # Editted PyGeo source code
-class GDC(object):
+class GDC2(object):
   r"""Processes the graph via Graph Diffusion Convolution (GDC) from the
   `"Diffusion Improves Graph Learning" <https://www.kdd.in.tum.de/gdc>`_
   paper.
