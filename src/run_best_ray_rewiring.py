@@ -616,8 +616,10 @@ def edge_sampling_ablation(opt):
 
 
 def edge_sampling_online_ablation(opt):
-  folders = ['Cora_edgeS_ablation','Citeseer_edgeS_ablation']
-  datas = ['Cora','Citeseer']
+  # folders = ['Cora_edgeS_ablation','Citeseer_edgeS_ablation']
+  # datas = ['Cora','Citeseer']
+  folders = ['Citeseer_edgeS_ablation']
+  datas = ['Citeseer']
 
   opt['max_nfe'] = 2000
   opt['epoch'] = 200
@@ -643,7 +645,7 @@ def edge_sampling_online_ablation(opt):
 
 
   ###Getting the best params from random sources
-  best_Cora_params = top5[0]
+  # best_Cora_params = top5[0]
   best_Citeseer_params = []
   idxs = [0]
   for i in idxs:
@@ -653,7 +655,8 @@ def edge_sampling_online_ablation(opt):
       best_Citeseer_param = json.loads(f.read())
     best_Citeseer_params.append(best_Citeseer_param)
 
-  best_params_each = [best_Cora_params, best_Citeseer_params]
+  # best_params_each = [best_Cora_params, best_Citeseer_params]
+  best_params_each = [best_Citeseer_params[0]]
 
   idx = 0
   for i, (folder, data, best_params) in enumerate(zip(folders, datas, best_params_each)):
