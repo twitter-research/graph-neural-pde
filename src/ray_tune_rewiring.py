@@ -272,6 +272,7 @@ def main(opt):
   data_dir = os.path.abspath("../data")
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   opt = set_search_space(opt)
+  print(opt)
   scheduler = ASHAScheduler(
     metric=opt['metric'],
     mode="max",
