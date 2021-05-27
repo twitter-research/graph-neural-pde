@@ -13,7 +13,7 @@ from utils import get_rw_adj, get_full_adjacency
 from pykeops.torch import LazyTensor
 import os
 import pickle
-from distances_kNN import apply_dist_KNN, apply_dist_threshold
+from distances_kNN import apply_dist_KNN, apply_dist_threshold, get_distances
 from hyperbolic_distances import hyperbolize
 
 
@@ -152,13 +152,14 @@ def KNN(x, opt):
   ei = torch.cat([LS, indKNN.view(1, -1)], dim=0)
 
   if opt['rewire_KNN_sym']:
-    ei, _ = to_undirected(ei)
+    ei = to_undirected(ei)
 
   return ei
 
 
 @torch.no_grad()
 def apply_KNN(data, pos_encoding, model, opt):
+
   if opt['rewire_KNN_T'] == "raw":
     ei = KNN(data.x, opt)  # rewiring on raw features here
 
@@ -312,7 +313,6 @@ def apply_beltrami(data, opt, data_dir='../data'):
   # return data
 
 
-
 def apply_pos_dist_rewire(data, opt, data_dir='../data'):
   pos_enc_dir = os.path.join(f"{data_dir}", "pos_encodings")
   # generate new positional encodings distances
@@ -353,15 +353,21 @@ def apply_pos_dist_rewire(data, opt, data_dir='../data'):
     with open(fname, "wb") as f:
       pickle.dump(pos_dist, f)
 
+  if opt['pos_enc_type'].startswith("HYP"):
+    if opt['gdc_sparsification'] == 'topk':
+      ei = apply_dist_KNN(pos_dist, opt['gdc_k'])
+    elif opt['gdc_sparsification'] == 'threshold':
+      ei = apply_dist_threshold(pos_dist, opt['pos_dist_quantile'])
 
-  if opt['gdc_sparsification'] == 'topk':
-    ei = apply_dist_KNN(pos_dist, opt['gdc_k'])
-  elif opt['gdc_sparsification'] == 'threshold':
-    ei = apply_dist_threshold(pos_dist, opt['pos_dist_quantile'])
-  # elif opt['pos_dist_type'] == 'DW_pos_dist_thresh':
-  #   ei = apply_dist_threshold(pos_dist, opt['pos_dist_quantile'])
+  elif opt['pos_enc_type'].startswith("DW"):
+    pos_encoding = apply_beltrami(data, opt)
+    if opt['gdc_sparsification'] == 'topk':
+      ei = KNN(pos_encoding, opt)
+    elif opt['gdc_sparsification'] == 'threshold':
+      dist = get_distances(pos_encoding)
+      ei = apply_dist_threshold(dist)
 
-  data.edge_index = ei
+  data.edge_index = torch.from_numpy(ei)
 
   return data
 
