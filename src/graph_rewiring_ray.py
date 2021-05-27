@@ -137,7 +137,7 @@ def set_cora_search_space(opt):
     opt["input_dropout"] = 0.5
     opt["optimizer"] = tune.choice(["adam", "adamax"])
     opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-    opt["time"] = tune.uniform(5.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
+    opt["time"] = tune.uniform(4.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
     if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
         opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
