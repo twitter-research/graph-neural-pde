@@ -26,7 +26,6 @@ def rewire(data, opt):
     data = apply_gdc(data, opt)
   elif rw == 'pos_enc_knn':
     data = apply_pos_dist_rewire(data, opt)
-
   return data
 
 
@@ -65,11 +64,8 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
       val_mask=torch.zeros(y_new.size()[0], dtype=torch.bool)
     )
     dataset.data = data
-  if opt['rewiring']:
+  if opt['rewiring'] is not None:
     dataset.data = rewire(dataset.data, opt)
-    if opt['make_symm']:
-      dataset.data.edge_index, dataset.data.edge_attr = make_symmetric(dataset.data)
-
   train_mask_exists = True
   try:
     dataset.data.train_mask

@@ -161,8 +161,7 @@ def KNN(x, opt):
 
 @torch.no_grad()
 def apply_KNN(data, pos_encoding, model, opt):
-#todo KNN in a similar way to edge sampling where the QK project is taken from a forward
-# pass in the model with custom 'attention type'
+
   if opt['rewire_KNN_T'] == "raw":
     ei = KNN(data.x, opt)  # rewiring on raw features here
 
@@ -324,7 +323,6 @@ def apply_beltrami(data, opt, data_dir='../data'):
   return pos_encoding
   # data.x = torch.cat([data.x, pos_encoding], dim=1)
   # return data
-
 
 
 def apply_pos_dist_rewire(data, opt, data_dir='../data'):

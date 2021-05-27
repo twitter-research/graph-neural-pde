@@ -809,6 +809,8 @@ if __name__ == "__main__":
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson, exp_kernel_pos, exp_kernel_z")
 
 
+  parser.add_argument('--pos_dist_quantile', type=float, default=0.001, help="percentage of N**2 edges to keep")
+
   args = parser.parse_args()
   opt = vars(args)
   # main(opt)

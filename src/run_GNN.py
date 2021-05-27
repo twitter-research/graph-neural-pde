@@ -404,9 +404,6 @@ if __name__ == '__main__':
   parser.add_argument('--threshold_type', type=str, default="topk_adj", help="topk_adj, addD_rvR")
   parser.add_argument('--rw_addD', type=float, default=0.02, help="percentage of new edges to add")
   parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
-  parser.add_argument('--make_symm', action='store_true', help='makes any rewiring operation symmetric')
-
-
 
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
   parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
@@ -440,11 +437,13 @@ if __name__ == '__main__':
   parser.add_argument('--fa_layer_edge_sampling_rmv', type=float, default=0.8, help="percentage of edges to remove")
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
-                      help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson, exp_kernel_pos, exp_kernel_z")
+                      help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
+  parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")
+  parser.add_argument('--pos_enc_csv', action='store_true', help="Generate pos encoding as a sparse CSV")
+
+  parser.add_argument('--pos_dist_quantile', type=float, default=0.001, help="percentage of N**2 edges to keep")
 
 
-  parser.add_argument('--pos_dist_type', type=str, default="pos_dist_KNN", help="rewiring type to apply on pos distances")
-  parser.add_argument('--pos_dist_k', type=int, default=16, help="k for kNN on pos distances")
   args = parser.parse_args()
 
   opt = vars(args)
