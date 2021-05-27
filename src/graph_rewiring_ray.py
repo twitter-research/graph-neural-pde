@@ -285,7 +285,7 @@ def set_citeseer_search_space(opt):
 
   if opt['rewiring'] == 'gdc':
     opt['exact'] = True
-    opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
+    opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(2, 7))
     opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
 
   return opt
@@ -485,6 +485,19 @@ def set_coauthors_search_space(opt):
     opt['gdc_threshold'] = tune.loguniform(0.0001, 0.0005)
     # opt['gdc_threshold'] = None
     opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
+    # opt['heat_time'] = tune.uniform(1, 5)
+
+  if opt['rewiring'] == 'gdc':
+    print(f"setting pubmed gdc")
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'threshold'
+    opt['exact'] = False
+    # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    opt['gdc_method'] = 'ppr'
+    # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
+    opt['gdc_threshold'] = tune.loguniform(0.00001, 0.01)
+    # opt['gdc_threshold'] = None
+    opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
     # opt['heat_time'] = tune.uniform(1, 5)
 
   return opt
