@@ -24,6 +24,9 @@ def apply_dist_threshold(dist, quant=1/1000):
   return make_ei(threshold_mat(dist, quant))
 
 
+def get_distances(x):
+  dist = DistanceMetric.get_metric('euclidean')
+  return dist.pairwise(x)
 
 if __name__ == "__main__":
   # triangele
@@ -42,3 +45,7 @@ if __name__ == "__main__":
   print(f"Threshold mat \n {A}")
   print(f"Edge index1 \n {make_ei(A)}")
   print(f"Edge index2 \n {apply_dist_threshold(dist, quant)}")
+
+  square = np.array([[0,1],[1,1],[0,0],[1,0]])
+  sq_dist = get_distances(square)
+  print(f"sq_dist \n {sq_dist}")
