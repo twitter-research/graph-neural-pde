@@ -35,12 +35,19 @@ def set_rewiring_space(opt):
       opt['attention_rewiring'] = False #tune.choice([True, False])
       opt['reweight_attention'] = False #tune.sample_from(lambda spec: tune.choice([True, False])
                                   # if spec.config.rewiring else False) #tune.choice([True, False])
-      opt['gdc_sparsification'] = 'topk'  # 'threshold'
+      opt['gdc_sparsification'] = tune.choice(['topk','threshold'])
+
+      opt['pos_dist_quantile'] = tune.sample_from(lambda spec: tune.choice([0.001,0.004,0.008])
+                        if spec.config.gdc_sparsification == 'threshold' else None )
+
+      ks = [8, 16, 32, 64]
+      # opt['gdc_k'] = tune.choice(ks)
+      opt['gdc_k'] = tune.sample_from(lambda spec: tune.choice(ks)
+                        if spec.config.gdc_sparsification == 'topk' else None )
+
       opt['exact'] = True
       opt['gdc_threshold'] = 0.01
       opt['ppr_alpha'] = 0.05 # tune.uniform(0.01, 0.2)
-      ks = [8, 16, 32, 64]
-      opt['gdc_k'] = tune.choice(ks)
       opt['rewire_KNN_sym'] = False# tune.choice([True, False])
       opt['pos_enc_orientation'] = None #tune.choice(["row", "col"])
 
@@ -70,8 +77,8 @@ def set_rewiring_space(opt):
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
                         if spec.config.beltrami else tune.choice([32, 64, 128]))
 
-    opt['pos_enc_type'] = 'DW256' #tune.choice(['DW256', 'DW128', 'DW64']) #'GDC' #tune.choice(['HYP02', 'HYP04', 'HYP08', 'HYP16'])
-    opt['pos_enc_orientation'] = 'col' #tune.choice(["row", "col"])
+    opt['pos_enc_type'] = tune.choice(['DW256', 'DW128', 'DW64']) #'GDC' #tune.choice(['HYP02', 'HYP04', 'HYP08', 'HYP16'])
+    opt['pos_enc_orientation'] = 'row' #tune.choice(["row", "col"])
     opt['square_plus'] = True #tune.choice([True, False])
 
     # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
@@ -126,175 +133,143 @@ def set_rewiring_space(opt):
 
 
 def set_cora_search_space(opt):
-
-    opt["decay"] = tune.loguniform(0.001, 0.05)  # weight decay l2 reg
-    if opt['regularise']:
-        opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
-        opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
-
-    opt["lr"] = tune.uniform(0.01, 0.2)
-    opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
-    # opt["input_dropout"] = 0.5
-    opt["optimizer"] = "adamax" # tune.choice(["adam", "adamax"])
-    opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-    opt["time"] = tune.uniform(10.0, 20.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
-
-    if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-        opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
-        opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 8))  # hidden dim for attention
-        opt['attention_norm_idx'] = tune.choice([0, 1])
-        # opt['attention_norm_idx'] = 0
-        # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
-        opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
-    else:
-        opt["self_loop_weight"] = tune.uniform(0, 3)
-
-    # if opt['self_loop_weight'] > 0.0:
-    #     opt['exact'] = True  # for GDC, need exact if selp loop weight >0
-    # opt['exact'] = tune.sample_from(lambda spec: True if spec.config.self_loop_weight > 0.0 else False)
-
-    opt["tol_scale"] = tune.loguniform(1, 100)  # num you multiply the default rtol and atol by
-    if opt["adjoint"]:
-        opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
-        opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
-
-    opt['add_source'] = False #tune.choice([True, False])
-    # opt['att_samp_pct'] = tune.uniform(0.3, 1)
-    opt['batch_norm'] = False #tune.choice([True, False])
-    opt['use_mlp'] = False #tune.choice([True, False])
-
-    return opt
-
-
-# def set_citeseer_search_space(opt):
-#
-#     opt["decay"] = 0.1  # tune.loguniform(2e-3, 1e-2)
-#     if opt['regularise']:
-#         opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
-#         opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
-#
-#     opt["lr"] = tune.loguniform(2e-3, 0.01)
-#     opt["input_dropout"] = tune.uniform(0.4, 0.8)
-#     opt["dropout"] = tune.uniform(0, 0.8)
-#     opt["time"] = tune.uniform(0.5, 8.0)
-#     opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
-#     #
-#
-#     if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-#         opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(1, 4))
-#         opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
-#         opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
-#         # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
-#         opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-#             [0, 1])  # whether or not to use self-loops
-#     else:
-#         opt["self_loop_weight"] = tune.uniform(0, 3)  # 1 seems to work pretty well
-#
-#     opt["tol_scale"] = tune.loguniform(1, 2e3)
-#
-#     if opt["adjoint"]:
-#         opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
-#         opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
-#
-#         opt['add_source'] = tune.choice([True, False])
-#         # opt['att_samp_pct'] = tune.uniform(0.3, 1)
-#         opt['batch_norm'] = tune.choice([True, False])
-#         # opt['use_mlp'] = tune.choice([True, False])
-#     return opt
-
-def set_citeseer_search_space(opt):
-  opt["decay"] = 0.1  # tune.loguniform(2e-3, 1e-2)
+  opt["decay"] = tune.loguniform(0.01, 0.2)  # weight decay l2 reg
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
-  opt["lr"] = 0.006115 #tune.loguniform(2e-3, 0.01)
-  opt["input_dropout"] = 0.430196 #tune.uniform(0.4, 0.8)
-  opt["dropout"] = 0.440859#tune.uniform(0, 0.8)
-  # opt["time"] = 7.6887 #tune.uniform(0.5, 8.0)
-  opt["optimizer"] = 'adamax'#tune.choice(["rmsprop", "adam", "adamax"])
-  #
+  opt["lr"] = tune.uniform(0.01, 0.2)
+  opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
+  # opt["input_dropout"] = 0.5
+  opt["optimizer"] = tune.choice(["adam", "adamax"])
+  opt["dropout"] = tune.uniform(0, 0.2)  # output dropout
+  opt["time"] = tune.uniform(10.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
   if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-    opt["heads"] = 8 #tune.sample_from(lambda _: 2 ** np.random.randint(1, 4))
-    opt["attention_dim"] = 128 #tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
-    opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
+    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  # hidden dim for attention
+    opt['attention_norm_idx'] = tune.choice([0, 1])
+    # opt['attention_norm_idx'] = 0
     # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
-    opt["self_loop_weight"] = 1#tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-      # [0, 1])  # whether or not to use self-loops
+    opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
   else:
-    opt["self_loop_weight"] = tune.uniform(0, 3)  # 1 seems to work pretty well
+    opt["self_loop_weight"] = tune.uniform(0, 3)
 
-  opt["tol_scale"] = 4.5495#tune.loguniform(1, 2e3)
+  # if opt['self_loop_weight'] > 0.0:
+  #     opt['exact'] = True  # for GDC, need exact if selp loop weight >0
+  opt['exact'] = tune.sample_from(lambda spec: True if spec.config.self_loop_weight > 0.0 else False)
 
+  opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
   if opt["adjoint"]:
-    opt["tol_scale_adjoint"] = None#tune.loguniform(1, 1e5)
-    opt["adjoint_method"] = None#tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
+    opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
 
-    opt['add_source'] = True#tune.choice([True, False])
-    # opt['att_samp_pct'] = tune.uniform(0.3, 1)
-    opt['batch_norm'] = False #tune.choice([True, False])
-    # opt['use_mlp'] = tune.choice([True, False])
+  opt['add_source'] = tune.choice([True, False])
+  # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+  opt['batch_norm'] = tune.choice([True, False])
+  opt['use_mlp'] = False
+  # opt['use_mlp'] = tune.choice([True, False])
+
   return opt
 
 
-def set_pubmed_search_space(opt):
+def set_citeseer_search_space(opt):
+  # opt["decay"] = 0.1
+  opt['decay'] = tune.loguniform(2e-3, 1e-1)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
-    opt["decay"] = tune.uniform(0.001, 0.1)
-    if opt['regularise']:
-        opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
-        opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
+  opt["lr"] = tune.uniform(1e-3, 1e-2)
+  opt["input_dropout"] = tune.uniform(0.4, 0.7)
+  opt["dropout"] = tune.uniform(0.1, 0.7)
+  opt["time"] = tune.uniform(0.5, 12.0)
+  opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
+  #
 
-    # opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
-    opt["lr"] = tune.loguniform(0.02, 0.1)
-    opt["input_dropout"] = tune.uniform(0.2, 0.5)  #0.4 tune.uniform(0.2, 0.5)
-    opt["dropout"] = tune.uniform(0.05, 0.45)
-    opt["time"] = tune.uniform(5.0, 20.0)
-    opt["optimizer"] = tune.choice(["adam", "adamax"]) #"rmsprop"
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(1, 4))
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
+    opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
+    # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
+    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+      [0, 1])  # whether or not to use self-loops
+  else:
+    opt["self_loop_weight"] = tune.uniform(0, 3)  # 1 seems to work pretty well
 
-    if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-        opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(2, 4)) #0, 4))
-        opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(5, 7))#8))#(4, 8))
-        opt['attention_norm_idx'] = tune.choice([0, 1])
-        # opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
-        opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-          [0, 1])  # whether or not to use self-loops
-    else:
-        opt["self_loop_weight"] = tune.uniform(0, 3)
+  opt["tol_scale"] = tune.loguniform(1, 1e4)
 
-    opt["tol_scale"] = tune.loguniform(1e2, 1e4) #(1, 1e4)
-
-    if opt["adjoint"]:
-        opt["tol_scale_adjoint"] = tune.loguniform(1e2, 1e4) #(1, 1e4)
-        opt["adjoint_method"] = "dopri5" #tune.choice(["dopri5", "adaptive_heun"])
-    else:
-        raise Exception("Can't train on PubMed without the adjoint method.")
+  if opt["adjoint"]:
+    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
 
     opt['add_source'] = tune.choice([True, False])
     # opt['att_samp_pct'] = tune.uniform(0.3, 1)
     opt['batch_norm'] = tune.choice([True, False])
     # opt['use_mlp'] = tune.choice([True, False])
+  return opt
 
-    return opt
+
+def set_pubmed_search_space(opt):
+  opt['adjoint'] = True
+  opt["decay"] = tune.loguniform(1e-4, 1e-2)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
+    opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
+
+  opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+  opt["lr"] = tune.uniform(0.01, 0.05)
+  opt["input_dropout"] = 0.5  # tune.uniform(0.2, 0.5)
+  opt["dropout"] = tune.uniform(0, 0.6)
+  opt["time"] = tune.uniform(5.0, 30.0)
+  opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
+
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 7))
+    opt['attention_norm_idx'] = tune.choice([0, 1])
+    # opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+    # opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+    #   [0, 1])  # whether or not to use self-loops
+    opt["self_loop_weight"] = 1
+  else:
+    opt["self_loop_weight"] = tune.uniform(0, 3)
+
+  opt["tol_scale"] = tune.loguniform(1, 1e5)
+
+  if opt["adjoint"]:
+    opt["tol_scale_adjoint"] = tune.loguniform(10, 1e5)
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+  else:
+    raise Exception("Can't train on PubMed without the adjoint method.")
+
+  opt['add_source'] = tune.choice([True, False])
+  # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+  opt['batch_norm'] = tune.choice([True, False])
+  # opt['batch_norm'] = True
+  opt['use_mlp'] = False
+
+  return opt
 
 
 def set_photo_search_space(opt):
-
-  opt["decay"] = tune.loguniform(0.001, 1e-2)
+  opt['adjoint'] = True
+  opt["decay"] = tune.loguniform(0.0001, 1e-2)
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 5.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
-  opt["lr"] = tune.loguniform(1e-3, 0.1)
+  opt["lr"] = tune.loguniform(5e-4, 0.1)
   opt["input_dropout"] = tune.uniform(0.4, 0.8)
-  opt["dropout"] = tune.uniform(0, 0.8)
-  opt["time"] = tune.uniform(0.5, 7.0)
-  opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
+  opt["dropout"] = tune.uniform(0, 0.5)
+  opt["time"] = tune.uniform(0.5, 12.0)
+  # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
+  opt["optimizer"] = "adam"
 
-  if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 6))
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
     opt['attention_norm_idx'] = tune.choice([0, 1])
     opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
       [0, 1])
@@ -302,11 +277,11 @@ def set_photo_search_space(opt):
   else:
     opt["self_loop_weight"] = tune.uniform(0, 3)
 
-  opt["tol_scale"] = tune.loguniform(100, 1e5)
+  opt["tol_scale"] = tune.loguniform(100, 1e6)
 
   if opt["adjoint"]:
     opt["tol_scale_adjoint"] = tune.loguniform(100, 1e5)
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
 
   if opt['rewiring'] == 'gdc':
     # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
@@ -320,24 +295,111 @@ def set_photo_search_space(opt):
     opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
     # opt['heat_time'] = tune.uniform(1, 5)
 
-    opt['add_source'] = tune.choice([True, False])
-    # opt['att_samp_pct'] = tune.uniform(0.3, 1)
-    opt['batch_norm'] = tune.choice([True, False])
-    opt['use_mlp'] = tune.choice([True, False])
+  opt['add_source'] = tune.choice([True, False])
+  opt['add_source'] = False
+  # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+  # opt['batch_norm'] = tune.choice([True, False])
+  opt['batch_norm'] = True
+  opt['use_mlp'] = tune.choice([True, False])
+
+  return opt
+
+
+def set_computers_search_space(opt):
+  opt['adjoint'] = True
+  opt["decay"] = tune.loguniform(2e-3, 1e-2)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+
+  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+  opt["lr"] = tune.loguniform(5e-5, 5e-3)
+  opt["input_dropout"] = tune.uniform(0.4, 0.8)
+  opt["dropout"] = tune.uniform(0, 0.8)
+  opt["self_loop_weight"] = tune.choice([0, 1])
+  opt["time"] = tune.uniform(0.5, 10.0)
+  opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
+
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
+    opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
+    opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+      [0, 1])  # whether or not to use self-loops
+  else:
+    opt["self_loop_weight"] = tune.uniform(0, 3)
+
+  opt["tol_scale"] = tune.loguniform(1e1, 1e4)
+
+  if opt["adjoint"]:
+    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+
+  if opt['rewiring'] == 'gdc':
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'threshold'
+    opt['exact'] = False
+    # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    opt['gdc_method'] = 'ppr'
+    # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
+    opt['gdc_threshold'] = tune.loguniform(0.00001, 0.01)
+    # opt['gdc_threshold'] = None
+    opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
+    # opt['heat_time'] = tune.uniform(1, 5)
+  return opt
+
+
+def set_coauthors_search_space(opt):
+  opt['adjoint'] = True
+  opt["decay"] = tune.loguniform(1e-3, 2e-2)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.01, 10.0)
+
+  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 6))
+  opt["lr"] = tune.loguniform(1e-5, 0.1)
+  opt["input_dropout"] = tune.uniform(0.4, 0.8)
+  opt["dropout"] = tune.uniform(0, 0.8)
+  opt["self_loop_weight"] = tune.choice([0, 1])
+  opt["time"] = tune.uniform(0.5, 10.0)
+  opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
+
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
+    opt['attention_norm_idx'] = tune.choice([0, 1])
+    opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+      [0, 1])  # whether or not to use self-loops
+  else:
+    opt["self_loop_weight"] = tune.uniform(0, 3)
+
+  opt["tol_scale"] = tune.loguniform(1e1, 1e4)
+
+  if opt["adjoint"]:
+    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+
+  if opt['rewiring'] == 'gdc':
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'threshold'
+    opt['exact'] = False
+    # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    opt['gdc_method'] = 'ppr'
+    # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
+    opt['gdc_threshold'] = tune.loguniform(0.0001, 0.0005)
+    # opt['gdc_threshold'] = None
+    opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
+    # opt['heat_time'] = tune.uniform(1, 5)
 
   return opt
 
 
 def set_arxiv_search_space(opt):
-  opt['exact'] = False
-  # opt['use_lcc'] = False <-this is not a flag technically
-  opt['not_lcc'] = False #<-this is correct as it usually defaults to True (via not calling store_false)
-  opt["adjoint"] = True
-  opt["decay"] = 0 #tune.loguniform(1e-10, 1e-6)
-  # if opt['self_loop_weight'] > 0.0:
-  #   opt['exact'] = True #for GDC, need exact if selp loop weight >0
-
-
+  # opt["decay"] = tune.loguniform(1e-10, 1e-6)
+  opt["decay"] = 0
+  # opt["decay"] = 0
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)

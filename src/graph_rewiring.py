@@ -345,7 +345,6 @@ def apply_pos_dist_rewire(data, opt, data_dir='../data'):
         pos_encoding = apply_beltrami(data, opt, data_dir)
         pos_dist = hyperbolize(pos_encoding)
 
-
       else:
         print(f"[x] The positional encoding type you specified ({opt['pos_enc_type']}) does not exist")
         quit()

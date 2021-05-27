@@ -635,6 +635,35 @@ def ES_test(opt):
       )
 
 
+def pos_enc_DW_tune(opt):
+  opt['epoch'] = 250
+  opt['gpus'] = 1
+  opt['num_samples'] = 2000
+  opt['grace_period'] = 20
+  opt['reduction_factor'] = 10
+  opt['num_splits'] = 5
+  # opt['num_init'] = 3
+  opt['max_nfe'] = 3000
+
+  opt['rewiring'] = 'pos_enc_knn' #'gdc' #None
+  opt['beltrami'] = True
+  opt['adjoint'] = False
+  opt['rewire_KNN'] = False
+  opt['edge_sampling'] = False
+  opt['fa_layer'] = False
+
+  datas = ['Cora', 'Citeseer', 'Photo', 'Computers', 'CoauthorCS', 'Pubmed']
+  folders = ['Cora_DW_rewiring','Citeseer_DW_rewiring','Photo_DW_rewiring',
+              'Computers_DW_rewiring','CoauthorCS_DW_rewiring','Pubmed_DW_rewiring']
+  for i, ds in enumerate(datas):
+    print(f"Running Tuning for {ds}")
+    opt["dataset"] = ds
+    opt["name"] = folders[i]
+    main(opt)
+
+
+
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument(
@@ -803,6 +832,7 @@ if __name__ == "__main__":
   args = parser.parse_args()
   opt = vars(args)
   # main(opt)
-  mainLoop(opt)
+  # mainLoop(opt)
   # top5_onlineSampling_FAlayer(opt)
   # ES_test(opt)
+  pos_enc_DW_tune(opt)
