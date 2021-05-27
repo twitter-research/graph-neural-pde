@@ -635,7 +635,7 @@ def edge_sampling_online_ablation(opt):
   opt['symmetric_attention'] = False
   opt['fa_layer'] = False
   opt['beltrami'] = True
-  opt['pos_enc_type'] = 'dgl'
+  opt['pos_enc_type'] = 'GDC'
 
   opt['edge_sampling_online'] = True
   opt['edge_sampling_online_reps'] = 3
