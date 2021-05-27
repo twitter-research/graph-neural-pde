@@ -187,7 +187,8 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
 
 def set_rewiring_space(opt):
   # DIGL args
-  opt['rewiring'] = None  # tune.choice(['gdc', None])
+  opt['rewiring'] = 'gdc'  # tune.choice(['gdc', None])
+  opt['attention_rewiring'] = False
 
   if opt['fa_layer']:
     opt['edge_sampling_sym'] = False
@@ -200,7 +201,7 @@ def set_rewiring_space(opt):
   # opt['make_symm'] = tune.choice([True, False])
   # opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
   # opt['gdc_sparsification'] = 'topk'  # 'threshold'
-  opt['gdc_threshold'] = 0.01
+  # opt['gdc_threshold'] = 0.01
   # opt['ppr_alpha'] = 0.05
   # ks = [4, 8, 16, 32, 64, 128, 256]
   # opt['gdc_k'] = tune.choice(ks)
@@ -219,10 +220,11 @@ def set_rewiring_space(opt):
   # if opt['dataset'] == 'ogbn-arxiv':
   #   bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])
   # else:
-  bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
-
-  non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
-  opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
+  # bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
+  #
+  # non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
+  # opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
+  opt['attention_type'] = tune.choice(["cosine_sim", "scaled_dot"])
   # opt['attention_type'] = "scaled_dot"
   if opt['dataset'] == 'ogbn-arxiv':
     opt['feat_hidden_dim'] = tune.choice([32, 64, 98])
@@ -230,7 +232,7 @@ def set_rewiring_space(opt):
     opt['pos_enc_type'] = tune.choice(['DW64', 'DW128', 'DW256'])
   else:
     opt['feat_hidden_dim'] = tune.choice([32, 64])
-    opt['pos_enc_type'] = tune.choice(['GDC', 'DW64', 'DW128', 'DW256'])
+    opt['pos_enc_type'] = 'GDC'
 
   if opt['dataset'] == 'ogbn-arxiv' and opt['use_labels']:
     # opt['pos_enc_hidden_dim'] = tune.choice([32, 64, 98])
@@ -243,7 +245,7 @@ def set_rewiring_space(opt):
   opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
   if spec.config.beltrami else tune.choice([32, 64, 128]))
   # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
-  opt['pos_enc_orientation'] = tune.choice(["row", "col"])
+  opt['pos_enc_orientation'] = "row"
   opt['square_plus'] = tune.choice([True, False])
 
   # opt['rewire_KNN'] = tune.choice([True, False])
@@ -291,6 +293,22 @@ def set_cora_search_space(opt):
   # opt['att_samp_pct'] = tune.uniform(0.3, 1)
   opt['batch_norm'] = tune.choice([True, False])
   opt['use_mlp'] = tune.choice([True, False])
+
+  if opt['rewiring'] == 'gdc':
+    opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 10))
+    opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
+
+  # if opt['rewiring'] == 'gdc':
+  #   # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+  #   opt['gdc_sparsification'] = 'topk'
+  #   opt['exact'] = True
+  #   # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+  #   opt['gdc_method'] = 'ppr'
+  #   # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
+  #   opt['gdc_threshold'] = tune.loguniform(0.0001, 0.0005)
+  #   # opt['gdc_threshold'] = None
+  #   opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
+  #   # opt['heat_time'] = tune.uniform(1, 5)
 
   return opt
 
