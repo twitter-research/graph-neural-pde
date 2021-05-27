@@ -13,7 +13,7 @@ from graph_rewiring import get_two_hop, apply_gdc
 from ogb.nodeproppred import PygNodePropPredDataset
 import torch_geometric.transforms as T
 from torch_geometric.utils import to_undirected
-from graph_rewiring import make_symmetric
+from graph_rewiring import make_symmetric, apply_pos_dist_rewire
 
 DATA_PATH = '../data'
 
@@ -24,6 +24,8 @@ def rewire(data, opt):
     data = get_two_hop(data)
   elif rw == 'gdc':
     data = apply_gdc(data, opt)
+  elif rw == 'pos_en_gdc':
+    data.edge_index == apply_pos_dist_rewire(data, opt)
   return data
 
 

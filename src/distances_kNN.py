@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors, KDTree, BallTree, DistanceMetric
 
 
-def apply_KNN(x, k):
+def apply_dist_KNN(x, k):
   nbrs = NearestNeighbors(n_neighbors=k, metric='precomputed').fit(x)
   distances, indices = nbrs.kneighbors(x)
   src = np.linspace(0, len(x) * k, len(x) * k + 1)[:-1] // k
@@ -20,7 +20,7 @@ def make_ei(A):
   ei = np.vstack((src, dst))
   return ei
 
-def apply_threshold(dist, quant=1/1000):
+def apply_dist_threshold(dist, quant=1/1000):
   return make_ei(threshold_mat(dist, quant))
 
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
   print(f"distances \n {dist}")
 
   for k in range(4):  # 3
-    print(f"{k + 1} edges \n {apply_KNN(dist, k + 1)}")
+    print(f"{k + 1} edges \n {apply_dist_KNN(dist, k + 1)}")
 
   quant= 0.75
   thresh = np.quantile(dist, quant, axis=None)
@@ -41,4 +41,4 @@ if __name__ == "__main__":
   A = threshold_mat(dist, quant)
   print(f"Threshold mat \n {A}")
   print(f"Edge index1 \n {make_ei(A)}")
-  print(f"Edge index2 \n {apply_threshold(dist, quant)}")
+  print(f"Edge index2 \n {apply_dist_threshold(dist, quant)}")
