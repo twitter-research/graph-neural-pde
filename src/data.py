@@ -61,7 +61,7 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
       val_mask=torch.zeros(y_new.size()[0], dtype=torch.bool)
     )
     dataset.data = data
-  if opt['rewiring']:
+  if opt['rewiring'] is not None:
     dataset.data = rewire(dataset.data, opt)
   train_mask_exists = True
   try:

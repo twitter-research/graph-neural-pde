@@ -23,21 +23,13 @@ class GNNKNNEarly(BaseGNN):
     # self.regularization_fns = ()
     self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
     # overwrite the test integrator with this custom one
-    self.odeblock.test_integrator = EarlyStopInt(self.T, opt, device)
-    # if opt['adjoint']:
-    #   from torchdiffeq import odeint_adjoint as odeint
-    # else:
-    #   from torchdiffeq import odeint
-    # self.odeblock.train_integrator = odeint
-
-    self.set_solver_data(dataset.data)
+    with torch.no_grad():
+      self.odeblock.test_integrator = EarlyStopInt(self.T, self.opt, self.device)
+      self.set_solver_data(dataset.data)
 
   def set_solver_m2(self):
-    if self.odeblock.test_integrator.m2 is None:
-      self.odeblock.test_integrator.m2 = self.m2
-    else:
-      self.odeblock.test_integrator.m2.weight.data = self.m2.weight.data
-      self.odeblock.test_integrator.m2.bias.data = self.m2.bias.data
+    self.odeblock.test_integrator.m2_weight = self.m2.weight.data.detach().clone().to(self.device)
+    self.odeblock.test_integrator.m2_bias = self.m2.bias.data.detach().clone().to(self.device)
 
   def set_solver_data(self, data):
     self.odeblock.test_integrator.data = data
@@ -51,11 +43,8 @@ class GNNKNNEarly(BaseGNN):
     if self.opt['beltrami']:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
       x = self.mx(x)
-      if self.opt['dataset'] == 'ogbn-arxiv':
-        p = pos_encoding
-      else:
-        p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
-        p = self.mp(p)
+      p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
+      p = self.mp(p)
       x = torch.cat([x, p], dim=1)
     else:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
@@ -78,7 +67,9 @@ class GNNKNNEarly(BaseGNN):
       x = torch.cat([x, c_aux], dim=1)
 
     self.odeblock.set_x0(x)
-    self.set_solver_m2()
+
+    with torch.no_grad():
+      self.set_solver_m2()
 
     if self.training and self.odeblock.nreg > 0:
       z, self.reg_states = self.odeblock(x)
