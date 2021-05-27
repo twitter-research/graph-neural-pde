@@ -404,6 +404,9 @@ if __name__ == '__main__':
   parser.add_argument('--threshold_type', type=str, default="topk_adj", help="topk_adj, addD_rvR")
   parser.add_argument('--rw_addD', type=float, default=0.02, help="percentage of new edges to add")
   parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
+  parser.add_argument('--make_symm', action='store_true', help='makes any rewiring operation symmetric')
+
+
 
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
   parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
