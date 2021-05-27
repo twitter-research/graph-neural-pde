@@ -13,7 +13,7 @@ from utils import get_rw_adj, get_full_adjacency
 from pykeops.torch import LazyTensor
 import os
 import pickle
-from distances_kNN import apply_dist_KNN, apply_dist_threshold, get_distances
+from distances_kNN import apply_dist_KNN, apply_dist_threshold, get_distances, apply_feat_KNN
 from hyperbolic_distances import hyperbolize
 
 
@@ -135,7 +135,6 @@ def KNN(x, opt):
   print(f"Rewiring with KNN: t={opt['rewire_KNN_T']}, k={opt['rewire_KNN_k']}")
   X_i = LazyTensor(x[:, None, :])  # (N, 1, hd)
   X_j = LazyTensor(x[None, :, :])  # (1, N, hd)
-
   # distance between all the grid points and all the random data points
   D_ij = ((X_i - X_j) ** 2).sum(-1)  # (N**2, hd) symbolic matrix of squared distances
   # H_ij = D_ij / (X_i[:,:,0] * X_j[:,:,0])
@@ -155,7 +154,6 @@ def KNN(x, opt):
 
   if opt['rewire_KNN_sym']:
     ei = to_undirected(ei)
-
   return ei
 
 
@@ -373,7 +371,8 @@ def apply_pos_dist_rewire(data, opt, data_dir='../data'):
   elif opt['pos_enc_type'].startswith("DW"):
     pos_encoding = apply_beltrami(data, opt, data_dir)
     if opt['gdc_sparsification'] == 'topk':
-      ei = KNN(pos_encoding, opt)
+      ei = apply_feat_KNN(pos_encoding,  opt['gdc_k'])
+      # ei = KNN(pos_encoding, opt)
     elif opt['gdc_sparsification'] == 'threshold':
       dist = get_distances(pos_encoding)
       ei = apply_dist_threshold(dist)

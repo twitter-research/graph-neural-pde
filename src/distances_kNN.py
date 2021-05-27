@@ -2,6 +2,14 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors, KDTree, BallTree, DistanceMetric
 
 
+def apply_feat_KNN(x, k):
+  nbrs = NearestNeighbors(n_neighbors=k).fit(x)
+  distances, indices = nbrs.kneighbors(x)
+  src = np.linspace(0, len(x) * k, len(x) * k + 1)[:-1] // k
+  dst = indices.reshape(-1)
+  ei = np.vstack((src, dst))
+  return ei
+
 def apply_dist_KNN(x, k):
   nbrs = NearestNeighbors(n_neighbors=k, metric='precomputed').fit(x)
   distances, indices = nbrs.kneighbors(x)
