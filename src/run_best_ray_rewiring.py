@@ -661,7 +661,7 @@ def edge_sampling_online_ablation(opt):
 
   idx = 0
   for i, (folder, data, best_params) in enumerate(zip(folders, datas, best_params_each)):
-    opt['time'] = opt['time'] / 3
+    best_params['time'] = best_params['time'] / 3
     opt['folder'] = folder
     opt['dataset'] = data
     for add_type in sample_add_types:
