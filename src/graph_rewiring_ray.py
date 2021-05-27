@@ -59,7 +59,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
     # for split in range(opt["num_init"]):
     #     dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
-    if opt['rewiring']:
+    if opt['rewiring'] is not None:
       if opt['attention_rewiring']:
         # managing beltrami att_rewiring interactions
         temp_beltrami_type = opt['beltrami']
