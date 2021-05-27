@@ -79,7 +79,7 @@ def set_rewiring_space(opt):
 
     opt['pos_enc_type'] = tune.choice(['DW256', 'DW128', 'DW64']) #'GDC' #tune.choice(['HYP02', 'HYP04', 'HYP08', 'HYP16'])
     opt['pos_enc_orientation'] = 'row' #tune.choice(["row", "col"])
-    opt['square_plus'] = True #tune.choice([True, False])
+    opt['square_plus'] = tune.choice([True, False])
 
     # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
 
