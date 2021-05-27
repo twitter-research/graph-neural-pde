@@ -175,8 +175,8 @@ def edge_sampling(model, z, opt):
   if opt['edge_sampling_space'] == 'attention':
     attention_weights = model.odeblock.get_attention_weights(z)
     mean_att = attention_weights.mean(dim=1, keepdim=False)
-    threshold = torch.quantile(mean_att, 1 - opt['edge_sampling_rmv'])
-    mask = mean_att > threshold
+    threshold = torch.quantile(mean_att, opt['edge_sampling_rmv'])
+    mask = mean_att >= threshold
   elif opt['edge_sampling_space'] in ['pos_distance', 'z_distance', 'pos_distance_QK', 'z_distance_QK']:
     temp_att_type = model.opt['attention_type']
     model.opt['attention_type'] = model.opt[
@@ -194,6 +194,7 @@ def edge_sampling(model, z, opt):
 
   return model.odeblock.odefunc.edge_index
 
+
 @torch.no_grad()
 def add_outgoing_attention_edges(model, M):
   """
@@ -204,18 +205,18 @@ def add_outgoing_attention_edges(model, M):
   dst = model.odeblock.odefunc.edge_index[1, :]
 
   importance = scatter(atts, dst, dim=0, dim_size=model.num_nodes,
-                       reduce='sum')  # column sum to represent outgoing importance
-  degree = scatter(torch.ones(size=atts.shape), dst, dim=0, dim_size=model.num_nodes,
-                       reduce='sum')
+                       reduce='sum').to(model.device)  # column sum to represent outgoing importance
+  degree = scatter(torch.ones(size=atts.shape, device=model.device), dst, dim=0, dim_size=model.num_nodes,
+                   reduce='sum')
   normed_importance = torch.divide(importance, degree)
   # todo squareplus might be better here.
-  importance_probs = F.softmax(normed_importance)
+  importance_probs = F.softmax(normed_importance, dim=0).to(model.device)
   anchors = torch.multinomial(importance_probs, M, replacement=True).to(model.device)
-  new_nodes = np.random.choice(model.num_nodes, size=M, replace=True, p=None)
-  anchors2 = torch.tensor(new_nodes, device=model.device, dtype=torch.long)
+  anchors2 = torch.multinomial(torch.ones(model.num_nodes, device=model.device), M, replacement=True).to(model.device)
 
-  new_edges = torch.cat([torch.stack([anchors, anchors2],dim=0), torch.stack([anchors2, anchors], dim=0)], dim=1)
+  new_edges = torch.cat([torch.stack([anchors, anchors2], dim=0), torch.stack([anchors2, anchors], dim=0)], dim=1)
   return new_edges
+
 
 @torch.no_grad()
 def add_edges(model, opt):
@@ -259,7 +260,7 @@ def apply_edge_sampling(x, pos_encoding, model, opt):
     z = model.forward_ODE(x, pos_encoding)
 
   # sample the edges and update edge index in model
-  model.odeblock.odefunc.edge_index = edge_sampling(model, z, opt)
+  edge_sampling(model, z, opt)
 
 
 def apply_beltrami(data, opt, data_dir='../data'):

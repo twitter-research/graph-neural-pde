@@ -73,7 +73,7 @@ class GNN_KNN(BaseGNN):
       self.odeblock.set_x0(z)
       self.odeblock.odefunc.edge_index = add_edges(self, self.opt)
       if self.opt['edge_sampling_rmv'] != 0:
-        self.odeblock.odefunc.edge_index = edge_sampling(self, z, self.opt)
+        edge_sampling(self, z, self.opt)
 
       z = self.odeblock(z)
       self.odeblock.odefunc.edge_index = self.data_edge_index

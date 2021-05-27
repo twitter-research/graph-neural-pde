@@ -190,8 +190,9 @@ def set_rewiring_space(opt):
   opt['rewiring'] = None  # tune.choice(['gdc', None])
 
   if opt['fa_layer']:
-    opt['edge_sampling_rmv'] = 0.01
-    opt['edge_sampling_add'] = 0.01
+    opt['edge_sampling_sym'] = False
+    opt['edge_sampling_rmv'] = tune.uniform(0, 0.2)
+    opt['edge_sampling_add'] = tune.uniform(0, 0.2)
     opt['edge_sampling_add_type'] = 'importance'
     opt['edge_sampling_space'] = 'attention'
   # opt['attention_rewiring'] = tune.choice([True, False])
@@ -336,15 +337,16 @@ def set_cora_planetoid_search_space(opt):
   return opt
 
 
-def set_citeseer_search_space(opt):
-  opt["decay"] = 0.1  # tune.loguniform(2e-3, 1e-2)
+def set_citeseer_planetoid_search_space(opt):
+  # opt["decay"] = 0.1
+  opt['decay'] = tune.loguniform(2e-3, 1e-1)
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
   opt["lr"] = tune.loguniform(2e-3, 0.01)
-  opt["input_dropout"] = tune.uniform(0.4, 0.8)
-  opt["dropout"] = tune.uniform(0, 0.8)
+  opt["input_dropout"] = tune.uniform(0.4, 0.7)
+  opt["dropout"] = tune.uniform(0, 0.7)
   opt["time"] = tune.uniform(0.5, 8.0)
   opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
   #
@@ -372,8 +374,46 @@ def set_citeseer_search_space(opt):
   return opt
 
 
+def set_citeseer_search_space(opt):
+  # opt["decay"] = 0.1
+  opt['decay'] = tune.loguniform(2e-3, 1e-1)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
+    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+
+  opt["lr"] = tune.uniform(1e-3, 1e-2)
+  opt["input_dropout"] = tune.uniform(0.4, 0.7)
+  opt["dropout"] = tune.uniform(0.1, 0.7)
+  opt["time"] = tune.uniform(0.5, 12.0)
+  opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
+  #
+
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(1, 4))
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
+    opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
+    # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
+    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+      [0, 1])  # whether or not to use self-loops
+  else:
+    opt["self_loop_weight"] = tune.uniform(0, 3)  # 1 seems to work pretty well
+
+  opt["tol_scale"] = tune.loguniform(1, 1e4)
+
+  if opt["adjoint"]:
+    opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
+
+    opt['add_source'] = tune.choice([True, False])
+    # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+    opt['batch_norm'] = tune.choice([True, False])
+    # opt['use_mlp'] = tune.choice([True, False])
+  return opt
+
+
 def set_pubmed_search_space(opt):
-  opt["decay"] = tune.loguniform(1e-5, 1e-2)
+  opt['adjoint'] = True
+  opt["decay"] = tune.loguniform(1e-4, 1e-2)
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
     opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
@@ -381,7 +421,7 @@ def set_pubmed_search_space(opt):
   opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
   opt["lr"] = tune.uniform(0.01, 0.05)
   opt["input_dropout"] = 0.5  # tune.uniform(0.2, 0.5)
-  opt["dropout"] = tune.uniform(0, 0.5)
+  opt["dropout"] = tune.uniform(0, 0.6)
   opt["time"] = tune.uniform(5.0, 30.0)
   opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
 
@@ -414,6 +454,7 @@ def set_pubmed_search_space(opt):
 
 
 def set_photo_search_space(opt):
+  opt['adjoint'] = True
   opt["decay"] = tune.loguniform(0.0001, 1e-2)
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 5.0)
@@ -437,7 +478,7 @@ def set_photo_search_space(opt):
   else:
     opt["self_loop_weight"] = tune.uniform(0, 3)
 
-  opt["tol_scale"] = tune.loguniform(100, 1e5)
+  opt["tol_scale"] = tune.loguniform(100, 1e6)
 
   if opt["adjoint"]:
     opt["tol_scale_adjoint"] = tune.loguniform(100, 1e5)
@@ -466,6 +507,7 @@ def set_photo_search_space(opt):
 
 
 def set_computers_search_space(opt):
+  opt['adjoint'] = True
   opt["decay"] = tune.loguniform(2e-3, 1e-2)
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
@@ -510,6 +552,7 @@ def set_computers_search_space(opt):
 
 
 def set_coauthors_search_space(opt):
+  opt['adjoint'] = True
   opt["decay"] = tune.loguniform(1e-3, 2e-2)
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 10.0)
@@ -652,7 +695,10 @@ def set_search_space(opt):
   elif opt["dataset"] == "Pubmed":
     return set_pubmed_search_space(opt)
   elif opt["dataset"] == "Citeseer":
-    return set_citeseer_search_space(opt)
+    if opt["num_splits"] == 0:
+      return set_citeseer_search_space(opt)
+    else:
+      return set_citeseer_planetoid_search_space(opt)
   elif opt["dataset"] == "Computers":
     return set_computers_search_space(opt)
   elif opt["dataset"] == "Photo":
