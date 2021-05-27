@@ -57,9 +57,11 @@ def apply_gdc(data, opt, type="combined"):
   if opt['gdc_sparsification'] == 'topk':
     sparse_args = dict(method='topk', k=opt['gdc_k'], dim=0)
     diff_args['eps'] = opt['gdc_threshold']
-  else:
+  elif opt['gdc_sparsification'] == 'threshold':
     sparse_args = dict(method='threshold', eps=opt['gdc_threshold'])
     diff_args['eps'] = opt['gdc_threshold']
+  else:
+    raise NotImplementedError
   print('gdc sparse args: {}'.format(sparse_args))
   if opt['self_loop_weight'] != 0:
     gdc = GDC(float(opt['self_loop_weight']),
