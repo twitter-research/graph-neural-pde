@@ -459,6 +459,7 @@ if __name__ == "__main__":
                       help='perform DIGL using precalcualted GRAND attention')
 
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
+  parser.add_argument('--fa_layer', action='store_true', help='add a bottleneck paper style layer with more edges')
   parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
@@ -468,6 +469,7 @@ if __name__ == "__main__":
   parser.add_argument('--rewire_KNN_k', type=int, default=64, help="target degree for KNN rewire")
   parser.add_argument('--rewire_KNN_sym', action='store_true', help='make KNN symmetric')
   parser.add_argument('--rewire_KNN_T', type=str, default="T0", help="T0, TN")
+  parser.add_argument('--edge_sampling_space', type=str, default="attention", help="attention,pos_distance, z_distance, pos_distance_QK, z_distance_QK")
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
   parser.add_argument('--max_epochs', type=int, default=1000, help="max epochs to train before patience")
