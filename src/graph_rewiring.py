@@ -13,7 +13,7 @@ from utils import get_rw_adj, get_full_adjacency
 from pykeops.torch import LazyTensor
 import os
 import pickle
-from distances_kNN import apply_dist_KNN, apply_dist_threshold, get_distances
+from distances_kNN import apply_dist_KNN, apply_dist_threshold, get_distances, apply_feat_KNN
 from hyperbolic_distances import hyperbolize
 
 
@@ -359,9 +359,10 @@ def apply_pos_dist_rewire(data, opt, data_dir='../data'):
         ei = apply_dist_threshold(pos_dist, opt['pos_dist_quantile'])
 
   elif opt['pos_enc_type'].startswith("DW"):
-    pos_encoding = apply_beltrami(data, opt)
+    pos_encoding = apply_beltrami(data, opt, data_dir)
     if opt['gdc_sparsification'] == 'topk':
-      ei = KNN(pos_encoding, opt)
+      ei = apply_feat_KNN(pos_encoding,  opt['gdc_k'])
+      # ei = KNN(pos_encoding, opt)
     elif opt['gdc_sparsification'] == 'threshold':
       dist = get_distances(pos_encoding)
       ei = apply_dist_threshold(dist)
