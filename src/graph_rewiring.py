@@ -321,8 +321,6 @@ def apply_beltrami(data, opt, data_dir='../data'):
       pickle.dump(pos_encoding, f)
 
   return pos_encoding
-  # data.x = torch.cat([data.x, pos_encoding], dim=1)
-  # return data
 
 
 def apply_pos_dist_rewire(data, opt, data_dir='../data'):
@@ -346,7 +344,7 @@ def apply_pos_dist_rewire(data, opt, data_dir='../data'):
       print("    Encodings not found! Calculating and caching them")
       # choose different functions for different positional encodings
       if opt['pos_enc_type'].startswith("HYP"):
-        pos_encoding = apply_beltrami(data, opt)
+        pos_encoding = apply_beltrami(data, opt, data_dir)
         pos_dist = hyperbolize(pos_encoding)
 
 
@@ -373,7 +371,7 @@ def apply_pos_dist_rewire(data, opt, data_dir='../data'):
         ei = apply_dist_threshold(pos_dist, opt['pos_dist_quantile'])
 
   elif opt['pos_enc_type'].startswith("DW"):
-    pos_encoding = apply_beltrami(data, opt)
+    pos_encoding = apply_beltrami(data, opt, data_dir)
     if opt['gdc_sparsification'] == 'topk':
       ei = KNN(pos_encoding, opt)
     elif opt['gdc_sparsification'] == 'threshold':
