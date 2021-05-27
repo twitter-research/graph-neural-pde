@@ -589,9 +589,9 @@ def set_search_space(opt):
     return set_pubmed_search_space(opt)
   elif opt["dataset"] == "Citeseer":
     if opt["num_splits"] == 0:
-      return set_citeseer_search_space(opt)
-    else:
       return set_citeseer_planetoid_search_space(opt)
+    else:
+      return set_citeseer_search_space(opt)
   elif opt["dataset"] == "Computers":
     return set_computers_search_space(opt)
   elif opt["dataset"] == "Photo":
