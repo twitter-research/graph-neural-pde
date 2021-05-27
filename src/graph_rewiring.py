@@ -13,6 +13,9 @@ from utils import get_rw_adj, get_full_adjacency
 from pykeops.torch import LazyTensor
 import os
 import pickle
+from distances_kNN import apply_dist_KNN, apply_dist_threshold
+from hyperbolic_distances import hyperbolize
+
 
 ### for custom GDC
 import torch
@@ -325,6 +328,58 @@ def apply_beltrami(data, opt, data_dir='../data'):
   # data.x = torch.cat([data.x, pos_encoding], dim=1)
   # return data
 
+
+
+def apply_pos_dist_rewire(data, opt, data_dir='../data'):
+  pos_enc_dir = os.path.join(f"{data_dir}", "pos_encodings")
+  # generate new positional encodings distances
+  # do encodings already exist on disk?
+  fname = os.path.join(pos_enc_dir, f"{opt['dataset']}_{opt['pos_enc_type']}_dists.pkl")
+  print(f"[i] Looking for positional encoding DISTANCES in {fname}...")
+
+  # - if so, just load them
+  if os.path.exists(fname):
+    print("    Found them! Loading cached version")
+    with open(fname, "rb") as f:
+      pos_dist = pickle.load(f)
+    # if opt['pos_enc_type'].startswith("DW"):
+    #   pos_dist = pos_dist['data']
+
+  # - otherwise, calculate...
+  else:
+    print("    Encodings not found! Calculating and caching them")
+    # choose different functions for different positional encodings
+    if opt['pos_enc_type'].startswith("HYP"):
+      pos_encoding = apply_beltrami(data, opt)
+      pos_dist = hyperbolize(pos_encoding)
+
+
+    else:
+      print(f"[x] The positional encoding type you specified ({opt['pos_enc_type']}) does not exist")
+      quit()
+    # - ... and store them on disk
+    POS_ENC_PATH = os.path.join(data_dir, "pos_encodings")
+    if not os.path.exists(POS_ENC_PATH):
+      os.makedirs(POS_ENC_PATH)
+
+    # if opt['pos_enc_csv']:
+    #   sp = pos_encoding.to_sparse()
+    #   table_mat = np.concatenate([sp.indices(), np.atleast_2d(sp.values())], axis=0).T
+    #   np.savetxt(f"{fname[:-4]}.csv", table_mat, delimiter=",")
+
+    with open(fname, "wb") as f:
+      pickle.dump(pos_dist, f)
+
+
+  if opt['pos_dist_type'] == 'pos_dist_KNN':
+    ei = apply_dist_KNN(pos_dist, opt['pos_dist_k'])
+  elif opt['pos_dist_type'] == 'pos_dist_thresh':
+    ei = apply_dist_threshold(pos_dist, opt['pos_dist_quantile'])
+  # elif opt['pos_dist_type'] == 'DW_pos_dist_thresh':
+  #   ei = apply_dist_threshold(pos_dist, opt['pos_dist_quantile'])
+
+
+  return ei
 
 # Editted PyGeo source code
 class GDC(object):
