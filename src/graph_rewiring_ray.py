@@ -65,7 +65,7 @@ def set_rewiring_space(opt):
     # non_exp_kernel_choice = 'z_distance_QK'
     # opt['edge_sampling_space'] = tune.sample_from(lambda spec: exp_kernel_choice if spec.config.beltrami else non_exp_kernel_choice)
 
-    opt['feat_hidden_dim'] = tune.choice([16, 32, 64])#, 128])
+    opt['feat_hidden_dim'] = tune.choice([32, 64, 128])#, 128])
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32])#, 64])
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
                         if spec.config.beltrami else tune.choice([32, 64, 128]))
@@ -127,17 +127,17 @@ def set_rewiring_space(opt):
 
 def set_cora_search_space(opt):
 
-    opt["decay"] = tune.loguniform(0.001, 0.1)  # weight decay l2 reg
+    opt["decay"] = tune.loguniform(0.001, 0.05)  # weight decay l2 reg
     if opt['regularise']:
         opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
         opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
     opt["lr"] = tune.uniform(0.01, 0.2)
-    # opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
-    opt["input_dropout"] = 0.5
+    opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
+    # opt["input_dropout"] = 0.5
     opt["optimizer"] = tune.choice(["adam", "adamax"])
     opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-    opt["time"] = tune.uniform(4.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
+    opt["time"] = tune.uniform(10.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
     if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
         opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
@@ -153,7 +153,7 @@ def set_cora_search_space(opt):
     #     opt['exact'] = True  # for GDC, need exact if selp loop weight >0
     # opt['exact'] = tune.sample_from(lambda spec: True if spec.config.self_loop_weight > 0.0 else False)
 
-    opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
+    opt["tol_scale"] = tune.loguniform(1, 100)  # num you multiply the default rtol and atol by
     if opt["adjoint"]:
         opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
         opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
