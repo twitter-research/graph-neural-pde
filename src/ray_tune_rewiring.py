@@ -355,7 +355,7 @@ def mainLoop(opt):
   opt['fa_layer'] = False
 
   datas = ['Cora'] #['Cora', 'Citeseer']
-  folders = ['Cora_DW_kNN3'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
+  folders = ['Cora_DW_kNN4'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
     opt["dataset"] = ds
