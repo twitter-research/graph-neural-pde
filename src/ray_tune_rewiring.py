@@ -343,36 +343,25 @@ def mainLoop(opt):
   opt['num_samples'] = 500
   opt['grace_period'] = 20
   opt['reduction_factor'] = 10
-  # opt['num_splits'] = 5
-  opt['num_init'] = 3
+  opt['num_splits'] = 5
+  # opt['num_init'] = 3
   opt['max_nfe'] = 3000
 
-  opt['rewiring'] = 'None' #'gdc' #None
-  # opt['attention_type'] = 'exp_kernel_z' #not QK space ie 'exp_kernel'
+  opt['rewiring'] = 'pos_enc_knn' #'gdc' #None
   opt['beltrami'] = True
   opt['adjoint'] = False
-
   opt['rewire_KNN'] = False
   opt['edge_sampling'] = False
-  opt['fa_layer'] = True
+  opt['fa_layer'] = False
 
-  datas = ['Cora','Citeseer'] #['Cora', 'Citeseer']
-  folders = ['Cora_fc_layer3','Citeseer_fc_layer3'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
+  datas = ['Cora'] #['Cora', 'Citeseer']
+  folders = ['Cora_DW_kNN'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
     opt["dataset"] = ds
     opt["name"] = folders[i]
     main(opt)
 
-  # opt['rewire_KNN'] = False
-  # opt['edge_sampling'] = True
-  # datas = ['Cora', 'Citeseer']
-  # folders = ['Cora_beltrami_exp_kernel_z','Citeseer_beltrami_exp_kernel_z']
-  # for i, ds in enumerate(datas):
-  #   print(f"Running Tuning for {ds}")
-  #   opt["dataset"] = ds
-  #   opt["name"] = folders[i]
-  #   main(opt)
 
 def edge_sampling_online_space(opt):
   opt['edge_sampling_online'] = True
@@ -814,6 +803,6 @@ if __name__ == "__main__":
   args = parser.parse_args()
   opt = vars(args)
   # main(opt)
-  # mainLoop(opt)
+  mainLoop(opt)
   # top5_onlineSampling_FAlayer(opt)
-  ES_test(opt)
+  # ES_test(opt)

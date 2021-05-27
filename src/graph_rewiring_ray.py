@@ -30,20 +30,19 @@ python3 ray_tune.py --dataset ogbn-arxiv --lr 0.005 --add_source --function tran
 def set_rewiring_space(opt):
     # DIGL args
     # opt['rewiring'] = None #'gdc'  # tune.choice(['gdc', None])
-
+    opt['rewiring'] = 'pos_enc_knn'
     if opt['rewiring']:
       opt['attention_rewiring'] = False #tune.choice([True, False])
       opt['reweight_attention'] = False #tune.sample_from(lambda spec: tune.choice([True, False])
                                   # if spec.config.rewiring else False) #tune.choice([True, False])
-      opt['make_symm'] = False #tune.choice([True, False]) #this is DIGL (A+A.T)/2 with weights aswell
       opt['gdc_sparsification'] = 'topk'  # 'threshold'
       opt['exact'] = True
       opt['gdc_threshold'] = 0.01
       opt['ppr_alpha'] = 0.05 # tune.uniform(0.01, 0.2)
       ks = [8, 16, 32, 64]
-      opt['gdc_k'] = None #tune.choice(ks)
-      opt['pos_enc_orientation'] = tune.choice(["row", "col"])
-    opt['reweight_attention'] = False
+      opt['gdc_k'] = tune.choice(ks)
+      opt['rewire_KNN_sym'] = tune.choice([True, False])
+      opt['pos_enc_orientation'] = None #tune.choice(["row", "col"])
 
     # experiment args
     opt['block'] = 'attention'
@@ -51,11 +50,10 @@ def set_rewiring_space(opt):
     # opt['use_lcc'] = True <- this is actually opt['not_lcc'] = False but is default for all except arxiv
 
     opt['beltrami'] = True  # tune.choice([True, False])
-    bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
-    non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
-    opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
-    # opt['attention_type'] = "scaled_dot"
-
+    # bel_choice = tune.choice(["exp_kernel", "cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
+    # non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
+    # opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
+    opt['attention_type'] = tune.choice(["cosine_sim", "scaled_dot"])
 
     # edge_sampling_space is in:
     # ['pos_distance','z_distance']) if ['attention_type'] == exp_kernel_z or exp_kernel_pos as have removed queries / keys
@@ -67,21 +65,18 @@ def set_rewiring_space(opt):
     # non_exp_kernel_choice = 'z_distance_QK'
     # opt['edge_sampling_space'] = tune.sample_from(lambda spec: exp_kernel_choice if spec.config.beltrami else non_exp_kernel_choice)
 
-
     opt['feat_hidden_dim'] = tune.choice([16, 32, 64])#, 128])
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32])#, 64])
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
                         if spec.config.beltrami else tune.choice([32, 64, 128]))
 
-    opt['pos_enc_type'] = 'GDC' #tune.choice(['HYP02', 'HYP04', 'HYP08', 'HYP16'])
+    opt['pos_enc_type'] = tune.choice(['DW256', 'DW128', 'DW64']) #'GDC' #tune.choice(['HYP02', 'HYP04', 'HYP08', 'HYP16'])
     opt['pos_enc_orientation'] = 'col' #tune.choice(["row", "col"])
-    opt['square_plus'] = False #tune.choice([True, False])
+    opt['square_plus'] = tune.choice([True, False])
 
     # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
 
-    # opt['square_plus'] = tune.choice([True, False])
-
-    # opt['rewire_KNN'] = False #tune.choice([True, False])
+    opt['rewire_KNN'] = False
     if opt['rewire_KNN']:
         opt['rewire_KNN_T'] = tune.choice(["T0","TN"])
         opt['rewire_KNN_epoch'] = tune.choice([2,10,20,50])
@@ -94,7 +89,7 @@ def set_rewiring_space(opt):
         opt['edge_sampling_sym'] = None
         opt['edge_sampling_space'] = None
 
-    # opt['edge_sampling'] = True
+    opt['edge_sampling'] = False
     if opt['edge_sampling']:
         opt['rewire_KNN_T'] = None
         opt['rewire_KNN_epoch'] = None
@@ -107,25 +102,25 @@ def set_rewiring_space(opt):
         opt['edge_sampling_sym'] = False #tune.choice([True, False])
         opt['edge_sampling_space'] = 'pos_distance' #tune.choice(['pos_distance','z_distance'])
 
-    # opt['edge_sampling_online'] = True
-    # opt['edge_sampling_add_type'] = tune.choice(['importance','random'])
-    opt['edge_sampling_space'] =  tune.choice(['attention','pos_distance','z_distance'])#,'pos_distance_QK','z_distance_QK'])
-    #todo some new issues with other sampling types on gpu
-    # opt['symmetric_attention'] = tune.sample_from(lambda spec: True if spec.config.edge_sampling_space
-    #                                         in ['pos_distance_QK','z_distance_QK'] else False)
+    opt['edge_sampling_online'] = False
+    if opt['edge_sampling_online']:
+      opt['edge_sampling_add_type'] = tune.choice(['importance','random'])
+      opt['edge_sampling_space'] =  tune.choice(['attention','pos_distance','z_distance'])#,'pos_distance_QK','z_distance_QK'])
+      opt['symmetric_attention'] = tune.sample_from(lambda spec: True if spec.config.edge_sampling_space
+                                              in ['pos_distance_QK','z_distance_QK'] else False)
+      opt['edge_sampling_online_reps'] = None#tune.choice([2,3,4])
+      opt['edge_sampling_sym'] = None#tune.choice([True, False])
+      opt['edge_sampling_add'] = None#tune.choice([0.04, 0.08, 0.16, 0.32, 0.64]) # tune.choice([0.04, 0.08, 0.16, 0.32])
+      opt['edge_sampling_rmv'] = None#tune.choice([0.0, 0.04, 0.08])  # tune.choice([0.04, 0.08, 0.16, 0.32])
+      opt['edge_sampling_rmv'] = None  # tune.choice([0.04, 0.08, 0.16, 0.32])
 
-    opt['edge_sampling_online_reps'] = None#tune.choice([2,3,4])
-    opt['edge_sampling_sym'] = None#tune.choice([True, False])
-    opt['edge_sampling_add'] = None#tune.choice([0.04, 0.08, 0.16, 0.32, 0.64]) # tune.choice([0.04, 0.08, 0.16, 0.32])
-    opt['edge_sampling_rmv'] = None#tune.choice([0.0, 0.04, 0.08])  # tune.choice([0.04, 0.08, 0.16, 0.32])
-    opt['edge_sampling_rmv'] = None  # tune.choice([0.04, 0.08, 0.16, 0.32])
-
-    opt['fa_layer'] = True
-    opt['fa_layer_time']  = tune.choice([1, 2, 3])# 1.0
-    opt['fa_layer_method'] = 'rk4'
-    opt['fa_layer_step_size']  = tune.choice([0.5, 1])# 1.0
-    opt['fa_layer_edge_sampling_rmv'] = tune.choice([0, 0.25 ,0.5, 0.75])
-    # opt["time"] = tune.uniform(0.25, 5.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
+    opt['fa_layer'] = False
+    if opt['edge_sampling']:
+      opt['fa_layer_time']  = tune.choice([1, 2, 3])# 1.0
+      opt['fa_layer_method'] = 'rk4'
+      opt['fa_layer_step_size']  = tune.choice([0.5, 1])# 1.0
+      opt['fa_layer_edge_sampling_rmv'] = tune.choice([0, 0.25 ,0.5, 0.75])
+      # opt["time"] = tune.uniform(0.25, 5.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
     return opt
 
