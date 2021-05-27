@@ -24,7 +24,7 @@ def rewire(data, opt):
     data = get_two_hop(data)
   elif rw == 'gdc':
     data = apply_gdc(data, opt)
-  elif rw == 'pos_en_gdc':
+  elif rw == 'pos_enc_knn':
     data.edge_index == apply_pos_dist_rewire(data, opt)
   return data
 

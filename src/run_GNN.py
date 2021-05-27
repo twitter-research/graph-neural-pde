@@ -440,12 +440,16 @@ if __name__ == '__main__':
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson, exp_kernel_pos, exp_kernel_z")
 
 
-
+  parser.add_argument('--pos_dist_type', type=str, default="pos_dist_KNN", help="rewiring type to apply on pos distances")
+  parser.add_argument('--pos_dist_k', type=int, default=16, help="k for kNN on pos distances")
   args = parser.parse_args()
 
   opt = vars(args)
 
   main(opt)
+
+
+
 
 
 # --dataset Cora --block attention --attention_type scaled_dot --beltrami --edge_sampling
@@ -457,3 +461,5 @@ if __name__ == '__main__':
 
 # --dataset Cora --block attention --attention_type scaled_dot --beltrami --edge_sampling_online  --edge_sampling_add_type importance --edge_sampling_space attention
 # --dataset Cora --block attention --attention_type scaled_dot --beltrami --fa_layer
+
+# --dataset Cora --block attention --beltrami --rewiring pos_enc_knn --pos_dist_type pos_dist_KNN --pos_dist_k 16
