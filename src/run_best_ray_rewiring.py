@@ -634,6 +634,8 @@ def edge_sampling_online_ablation(opt):
   opt['KNN_online'] = False
   opt['symmetric_attention'] = False
   opt['fa_layer'] = False
+  opt['beltrami'] = True
+  opt['pos_enc_type'] = 'dgl'
 
   opt['edge_sampling_online'] = True
   opt['edge_sampling_online_reps'] = 3
@@ -642,7 +644,6 @@ def edge_sampling_online_ablation(opt):
   samples = [0, 0.01, 0.02, 0.04, 0.08]
   sample_add_types = ['importance', 'random']
   opt['edge_sampling_sym'] = False
-
 
   ###Getting the best params from random sources
   # best_Cora_params = top5[0]
