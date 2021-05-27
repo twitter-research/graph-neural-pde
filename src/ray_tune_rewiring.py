@@ -473,6 +473,9 @@ if __name__ == "__main__":
   parser.add_argument('--max_epochs', type=int, default=1000, help="max epochs to train before patience")
   parser.add_argument('--patience', type=int, default=100, help="amount of patience for non improving val acc")
 
+
+  parser.add_argument('--pos_dist_quantile', type=float, default=0.001, help="percentage of N**2 edges to keep")
+
   args = parser.parse_args()
   opt = vars(args)
   main(opt)
