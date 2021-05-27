@@ -309,8 +309,6 @@ def apply_beltrami(data, opt, data_dir='../data'):
       pickle.dump(pos_encoding, f)
 
   return pos_encoding
-  # data.x = torch.cat([data.x, pos_encoding], dim=1)
-  # return data
 
 
 def apply_pos_dist_rewire(data, opt, data_dir='../data'):
