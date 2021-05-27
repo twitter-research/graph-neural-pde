@@ -377,7 +377,7 @@ def apply_pos_dist_rewire(data, opt, data_dir='../data'):
       dist = get_distances(pos_encoding)
       ei = apply_dist_threshold(dist)
 
-  data.edge_index = torch.from_numpy(ei)
+  data.edge_index = torch.LongTensor(torch.from_numpy(ei))
 
   return data
 
