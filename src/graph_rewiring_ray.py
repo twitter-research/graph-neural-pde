@@ -70,7 +70,7 @@ def set_rewiring_space(opt):
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
                         if spec.config.beltrami else tune.choice([32, 64, 128]))
 
-    opt['pos_enc_type'] = tune.choice(['DW256', 'DW128', 'DW64']) #'GDC' #tune.choice(['HYP02', 'HYP04', 'HYP08', 'HYP16'])
+    opt['pos_enc_type'] = 'DW256' #tune.choice(['DW256', 'DW128', 'DW64']) #'GDC' #tune.choice(['HYP02', 'HYP04', 'HYP08', 'HYP16'])
     opt['pos_enc_orientation'] = 'col' #tune.choice(["row", "col"])
     opt['square_plus'] = tune.choice([True, False])
 
@@ -137,7 +137,7 @@ def set_cora_search_space(opt):
     opt["input_dropout"] = 0.5
     opt["optimizer"] = tune.choice(["adam", "adamax"])
     opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-    # opt["time"] = tune.uniform(10.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
+    opt["time"] = tune.uniform(5.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
 
     if opt["block"] in {'attention', 'mixed'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
         opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
@@ -161,7 +161,7 @@ def set_cora_search_space(opt):
     opt['add_source'] = tune.choice([True, False])
     # opt['att_samp_pct'] = tune.uniform(0.3, 1)
     opt['batch_norm'] = tune.choice([True, False])
-    opt['use_mlp'] = tune.choice([True, False])
+    opt['use_mlp'] = False #tune.choice([True, False])
 
     return opt
 
