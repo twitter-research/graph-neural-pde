@@ -725,7 +725,7 @@ def embeddings_ablation(opt):
 
   datas = ['Photo']#,'Citeseer']
   folders = ['Photo_DW_rewiring5']#,'Citeseer_DW_rewiring4']
-  names = ['Photo_DW_rewiring5_ablation','Citeseer_DW_rewiring4_ablation']
+  names = ['Photo_DW_rewiring5_ablation']#,'Citeseer_DW_rewiring4_ablation']
   indexes = [[0,1],[0,1]]
   opt['run_with_KNN'] = False
   opt['bestwithKNN'] = False
