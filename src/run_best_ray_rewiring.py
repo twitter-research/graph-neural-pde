@@ -725,7 +725,7 @@ def embeddings_ablation(opt):
 
   datas = ['Photo','Citeseer']
   folders = ['Photo_DW_rewiring5','Citeseer_DW_rewiring4']
-  names = ['Photo_DW_rewiring3_ablation','Citeseer_DW_rewiring3_ablation']
+  names = ['Photo_DW_rewiring5_ablation','Citeseer_DW_rewiring4_ablation']
   indexes = [[0,1],[0,1]]
   opt['run_with_KNN'] = False
   opt['bestwithKNN'] = False
@@ -738,22 +738,12 @@ def embeddings_ablation(opt):
     for idx_i, idx in enumerate(indexes[i]):
       for pos_enc_dim in pos_enc_dims:
         opt['pos_enc_type'] = 'DW' + str(pos_enc_dim)
-        if opt['change_att_sim_type']:
-          for att_type in opt['bestwithAttTypes']:
-            print(f"Running Best Params for {ds}")
-            opt["dataset"] = ds
-            opt["folder"] = folders[i]
-            opt["name"] = f"{names[i]}{'_KNN' if opt['bestwithKNN'] else ''}"
-            opt["index"] = indexes[i][idx_i]
-            opt['att_sim_type'] = att_type
-            run_best_params(opt)
-        else:
-          print(f"Running Best Params for {ds}")
-          opt["dataset"] = ds
-          opt["folder"] = folders[i]
-          opt["name"] = f"{names[i]}{'_KNN' if opt['bestwithKNN'] else ''}"
-          opt["index"] = indexes[i][idx_i]
-          run_best_params(opt)
+        print(f"Running Best Params for {ds}")
+        opt["dataset"] = ds
+        opt["folder"] = folders[i]
+        opt["name"] = names[i]
+        opt["index"] = indexes[i][idx_i]
+        run_best_params(opt)
 
 
 
