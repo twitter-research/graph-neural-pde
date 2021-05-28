@@ -74,19 +74,12 @@ def set_rewiring_space(opt):
 
     opt['feat_hidden_dim'] = tune.choice([64, 128, 256])  # , 128])
     opt['pos_enc_hidden_dim'] = tune.choice([16, 32])  # , 64])
-    opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
-    if spec.config.beltrami else tune.choice([32, 64, 128]))
-    #
-    # opt['feat_hidden_dim'] = tune.choice([32, 64, 128])#, 128])
-    # opt['pos_enc_hidden_dim'] = tune.choice([16, 32])#, 64])
-    # opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
-    #                     if spec.config.beltrami else tune.choice([32, 64, 128]))
+    opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim)
+    # if spec.config.beltrami else tune.choice([32, 64, 128]))
 
     opt['pos_enc_type'] = tune.choice(['DW256', 'DW128', 'DW64', 'DW16']) #'GDC' #tune.choice(['HYP02', 'HYP04', 'HYP08', 'HYP16'])
     opt['pos_enc_orientation'] = 'row' #tune.choice(["row", "col"])
     opt['square_plus'] = tune.choice([True, False])
-
-    # opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(6, 8))  # hidden dim of X in dX/dt
 
     opt['rewire_KNN'] = False
     if opt['rewire_KNN']:
@@ -272,7 +265,7 @@ def set_photo_search_space(opt):
   opt["dropout"] = tune.uniform(0, 0.5)
   opt["time"] = tune.uniform(0.5, 12.0)
   # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
-  opt["optimizer"] = tune.choice(["adam", "adamax"]) #adam"
+  opt["optimizer"] = 'adamax' #tune.choice(["adam", "adamax"]) #adam"
 
   if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))

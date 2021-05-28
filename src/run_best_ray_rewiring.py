@@ -715,6 +715,50 @@ def edge_sampling_online_ablation(opt):
 
 
 
+def embeddings_ablation(opt):
+  opt['max_nfe'] = 1000
+  opt['epoch'] = 250
+  opt['num_splits'] = 8
+  opt['gpus'] = 1
+  opt['earlystopxT'] = 2 #5
+  opt['metric'] = 'test_acc'
+
+  datas = ['Photo','Citeseer']
+  folders = ['Photo_DW_rewiring3','Citeseer_DW_rewiring3']
+  names = ['Photo_DW_rewiring3_ablation','Citeseer_DW_rewiring3_ablation']
+  indexes = [[0],[0]]
+  opt['run_with_KNN'] = False
+  opt['bestwithKNN'] = False
+  opt['edge_sampling'] = False
+  opt['change_att_sim_type'] = False
+  opt['bestwithAttTypes'] = ['cosine_sim', 'scaled_dot'] #[False]
+  pos_enc_dims = [16,64,128,256]
+
+  for i, ds in enumerate(datas):
+    for idx_i, idx in enumerate(indexes[i]):
+      for pos_enc_dim in pos_enc_dims:
+        opt['pos_enc_type'] = 'DW' + str(pos_enc_dim)
+        if opt['change_att_sim_type']:
+          for att_type in opt['bestwithAttTypes']:
+            print(f"Running Best Params for {ds}")
+            opt["dataset"] = ds
+            opt["folder"] = folders[i]
+            opt["name"] = f"{names[i]}{'_KNN' if opt['bestwithKNN'] else ''}"
+            opt["index"] = indexes[i][idx_i]
+            opt['att_sim_type'] = att_type
+            run_best_params(opt)
+        else:
+          print(f"Running Best Params for {ds}")
+          opt["dataset"] = ds
+          opt["folder"] = folders[i]
+          opt["name"] = f"{names[i]}{'_KNN' if opt['bestwithKNN'] else ''}"
+          opt["index"] = indexes[i][idx_i]
+          run_best_params(opt)
+
+
+
+
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')

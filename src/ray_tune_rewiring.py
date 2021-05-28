@@ -641,7 +641,7 @@ def pos_enc_DW_tune(opt):
   opt['num_samples'] = 100
   opt['grace_period'] = 20
   opt['reduction_factor'] = 10
-  opt['num_splits'] = 5
+  opt['num_splits'] = 4
   # opt['num_init'] = 3
   opt['max_nfe'] = 3000
 
@@ -653,7 +653,7 @@ def pos_enc_DW_tune(opt):
   opt['fa_layer'] = False
 
   datas = ['Photo']#['Cora', 'Citeseer', 'Photo', 'Computers', 'CoauthorCS', 'Pubmed']
-  folders = ['Photo_DW_rewiring3'] #['Cora_DW_rewiring','Citeseer_DW_rewiring','Photo_DW_rewiring',
+  folders = ['Photo_DW_rewiring4'] #['Cora_DW_rewiring','Citeseer_DW_rewiring','Photo_DW_rewiring',
               # 'Computers_DW_rewiring','CoauthorCS_DW_rewiring','Pubmed_DW_rewiring']
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
