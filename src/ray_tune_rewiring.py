@@ -653,7 +653,7 @@ def pos_enc_DW_tune(opt):
   opt['fa_layer'] = False
 
   datas = ['Photo']#['Cora', 'Citeseer', 'Photo', 'Computers', 'CoauthorCS', 'Pubmed']
-  folders = ['Photo_DW_rewiring2'] #['Cora_DW_rewiring','Citeseer_DW_rewiring','Photo_DW_rewiring',
+  folders = ['Photo_DW_rewiring3'] #['Cora_DW_rewiring','Citeseer_DW_rewiring','Photo_DW_rewiring',
               # 'Computers_DW_rewiring','CoauthorCS_DW_rewiring','Pubmed_DW_rewiring']
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
