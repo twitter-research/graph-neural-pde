@@ -30,7 +30,10 @@ python3 ray_tune.py --dataset ogbn-arxiv --lr 0.005 --add_source --function tran
 def set_rewiring_space(opt):
     # DIGL args
     # opt['rewiring'] = None #'gdc'  # tune.choice(['gdc', None])
-    opt['rewiring'] = 'pos_enc_knn'
+    # opt['rewiring'] = 'pos_enc_knn'
+    opt['pos_enc_type'] = 'GDC'  # pos_enc_dim #'DW' + str(pos_enc_dim)
+    opt['rewiring'] = 'gdc'
+
     if opt['rewiring']:
       opt['attention_rewiring'] = False #tune.choice([True, False])
       opt['reweight_attention'] = False #tune.sample_from(lambda spec: tune.choice([True, False])
@@ -50,6 +53,7 @@ def set_rewiring_space(opt):
       opt['ppr_alpha'] = 0.05 # tune.uniform(0.01, 0.2)
       opt['rewire_KNN_sym'] = False# tune.choice([True, False])
       opt['pos_enc_orientation'] = None #tune.choice(["row", "col"])
+
 
     # experiment args
     opt['block'] = 'attention'

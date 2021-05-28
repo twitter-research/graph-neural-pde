@@ -724,8 +724,10 @@ def embeddings_ablation(opt):
   opt['metric'] = 'test_acc'
 
   datas = ['Photo','Citeseer']
-  folders = ['Photo_DW_rewiring5','Citeseer_DW_rewiring4']
-  names = ['Photo_DW_rewiring5_ablation','Photo_DW_rewiring5_ablation']#,'Citeseer_DW_rewiring4_ablation']
+  folders = ['Citeseer_gdc_rewiring', 'Photo_gdc_rewiring']
+  names = ['CitePhoto_gdc_rewiring_test', 'CitePhoto_gdc_rewiring_test']
+  # folders = ['Photo_DW_rewiring5','Citeseer_DW_rewiring4']
+  # names = ['Photo_DW_rewiring5_ablation','Photo_DW_rewiring5_ablation']#,'Citeseer_DW_rewiring4_ablation']
   indexes = [[1],[1]]
   opt['run_with_KNN'] = False
   opt['bestwithKNN'] = False

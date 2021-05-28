@@ -663,7 +663,33 @@ def pos_enc_DW_tune(opt):
     opt["name"] = folders[i]
     main(opt)
 
+def pos_enc_gdc_tune(opt):
+  opt['epoch'] = 250
+  opt['gpus'] = 1
+  # opt['num_samples'] = 250
+  num_samples = [100, 50]
+  opt['grace_period'] = 20
+  opt['reduction_factor'] = 10
+  opt['num_splits'] = 4
+  # opt['num_init'] = 3
+  opt['max_nfe'] = 3000
 
+  opt['rewiring'] = 'pos_enc_knn' #'gdc' #None
+  opt['beltrami'] = True
+  opt['adjoint'] = False
+  opt['rewire_KNN'] = False
+  opt['edge_sampling'] = False
+  opt['fa_layer'] = False
+
+  datas = ['Citeseer','Photo']#['Cora', 'Citeseer', 'Photo', 'Computers', 'CoauthorCS', 'Pubmed']
+  folders = ['Citeseer_gdc_rewiring','Photo_gdc_rewiring'] #['Cora_DW_rewiring','Citeseer_DW_rewiring','Photo_DW_rewiring',
+              # 'Computers_DW_rewiring','CoauthorCS_DW_rewiring','Pubmed_DW_rewiring']
+  for i, ds in enumerate(datas):
+    opt['num_samples'] = num_samples[i]
+    print(f"Running Tuning for {ds}")
+    opt["dataset"] = ds
+    opt["name"] = folders[i]
+    main(opt)
 
 
 if __name__ == "__main__":
@@ -837,4 +863,4 @@ if __name__ == "__main__":
   # mainLoop(opt)
   # top5_onlineSampling_FAlayer(opt)
   # ES_test(opt)
-  pos_enc_DW_tune(opt)
+  pos_enc_gdc_tune(opt)
