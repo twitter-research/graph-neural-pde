@@ -254,7 +254,12 @@ def set_pubmed_search_space(opt):
 
 
 def set_photo_search_space(opt):
-  opt['adjoint'] = True
+  opt['feat_hidden_dim'] = tune.choice([64, 128, 256])  # , 128])
+  opt['pos_enc_hidden_dim'] = tune.choice([16, 32])  # , 64])
+  opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim
+  if spec.config.beltrami else tune.choice([32, 64, 128]))
+
+  # opt['adjoint'] = True
   opt["decay"] = tune.loguniform(0.0001, 1e-2)
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.01, 5.0)
@@ -266,11 +271,11 @@ def set_photo_search_space(opt):
   opt["dropout"] = tune.uniform(0, 0.5)
   opt["time"] = tune.uniform(0.5, 12.0)
   # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
-  opt["optimizer"] = "adam"
+  opt["optimizer"] = tune.choice(["adam", "adamax"]) adam"
 
   if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 7))
     opt['attention_norm_idx'] = tune.choice([0, 1])
     opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
       [0, 1])
