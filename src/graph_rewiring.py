@@ -58,7 +58,11 @@ def apply_gdc(data, opt, type="combined"):
     sparse_args = dict(method='topk', k=opt['gdc_k'], dim=0)
     diff_args['eps'] = opt['gdc_threshold']
   elif opt['gdc_sparsification'] == 'threshold':
-    sparse_args = dict(method='threshold', eps=opt['gdc_threshold'])
+    try:
+      target_degree = opt['target_degree']
+      sparse_args = dict(method='threshold', avg_degree=target_degree)
+    except KeyError:
+      sparse_args = dict(method='threshold', eps=opt['gdc_threshold'])
     diff_args['eps'] = opt['gdc_threshold']
   else:
     raise NotImplementedError

@@ -582,6 +582,7 @@ def set_arxiv_search_space(opt):
   if opt['rewiring'] == 'gdc':
     # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
     opt['gdc_sparsification'] = 'threshold'
+    opt['target_degree'] = tune.uniform(3, 11)
     opt['exact'] = False
     # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
     opt['gdc_method'] = 'ppr'
