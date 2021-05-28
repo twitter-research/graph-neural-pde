@@ -737,7 +737,7 @@ def embeddings_ablation(opt):
   for i, ds in enumerate(datas):
     for idx_i, idx in enumerate(indexes[i]):
       for pos_enc_dim in pos_enc_dims:
-        opt['pos_enc_type'] = None #pos_enc_dim #'DW' + str(pos_enc_dim)
+        opt['pos_enc_type'] = 'GDC' #pos_enc_dim #'DW' + str(pos_enc_dim)
         opt['rewiring'] = 'gdc'  #pos_enc_dim #'DW' + str(pos_enc_dim)
 
         print(f"Running Best Params for {ds}")
