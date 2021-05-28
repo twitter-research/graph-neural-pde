@@ -80,7 +80,10 @@ def set_rewiring_space(opt):
   #
   # non_bel_choice = tune.choice(["cosine_sim", "pearson", "scaled_dot"])  # "scaled_dot"
   # opt['attention_type'] = tune.sample_from(lambda spec: bel_choice if spec.config.beltrami else non_bel_choice)
-  opt['attention_type'] = tune.choice(["cosine_sim", "scaled_dot"])
+  if opt['dataset'] == 'ogbn-arxiv':
+    opt['attention_type'] = "scaled_dot"
+  else:
+    opt['attention_type'] = tune.choice(["cosine_sim", "scaled_dot"])
   # opt['attention_type'] = "scaled_dot"
   if opt['dataset'] == 'ogbn-arxiv':
     opt['feat_hidden_dim'] = tune.choice([32, 64, 98])
@@ -563,10 +566,10 @@ def set_arxiv_search_space(opt):
   # opt['add_source'] = tune.choice([True, False])
   opt['add_source'] = tune.choice([True, False])
 
-  opt['batch_norm'] = tune.choice([True, False])
-  # opt['batch_norm'] = True
+  # opt['batch_norm'] = tune.choice([True, False])
+  opt['batch_norm'] = True
   # opt['label_rate'] = tune.uniform(0.05, 0.5)
-  opt['label_rate'] = tune.uniform(0.1, 0.5)
+  opt['label_rate'] = tune.uniform(0.1, 1)
 
   if opt["adjoint"]:
     # opt["adjoint_method"] = tune.choice(['dopri5', 'rk4'])
@@ -583,10 +586,10 @@ def set_arxiv_search_space(opt):
     opt['step_size'] = tune.choice([0.2, 0.5, 1])
 
   opt['time'] = tune.uniform(2, 8)
-  # opt["method"] = "rk4"
-  opt['method'] = tune.choice(['dopri5', 'rk4'])
-  opt['use_mlp'] = tune.choice([True, False])
-  # opt['use_mlp'] = False
+  opt["method"] = "rk4"
+  # opt['method'] = tune.choice(['dopri5', 'rk4'])
+  # opt['use_mlp'] = tune.choice([True, False])
+  opt['use_mlp'] = False
   # opt['cosine_sim'] = tune.choice([True, False])
 
   if opt['rewiring'] == 'gdc':
