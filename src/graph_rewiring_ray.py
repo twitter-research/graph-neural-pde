@@ -184,7 +184,7 @@ def set_cora_search_space(opt):
 
 def set_cora_planetoid_search_space(opt):
   opt['adjoint'] = True
-  opt["decay"] = tune.loguniform(0.0001, 0.1)  # weight decay l2 reg
+  opt["decay"] = tune.loguniform(0.001, 0.1)  # weight decay l2 reg
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
@@ -208,7 +208,7 @@ def set_cora_planetoid_search_space(opt):
 
   # if opt['self_loop_weight'] > 0.0:
   #     opt['exact'] = True  # for GDC, need exact if selp loop weight >0
-  opt['exact'] = tune.sample_from(lambda spec: True if spec.config.self_loop_weight > 0.0 else False)
+  # opt['exact'] = tune.sample_from(lambda spec: True if spec.config.self_loop_weight > 0.0 else False)
 
   opt["tol_scale"] = tune.loguniform(1, 10000)  # num you multiply the default rtol and atol by
   if opt["adjoint"]:
@@ -366,6 +366,63 @@ def set_pubmed_search_space(opt):
     opt['gdc_threshold'] = tune.loguniform(0.00001, 0.01)
     # opt['gdc_threshold'] = None
     opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
+    # opt['heat_time'] = tune.uniform(1, 5)
+
+  return opt
+
+
+def set_pubmed_planetoid_search_space(opt):
+  opt['adjoint'] = True
+  opt["decay"] = tune.loguniform(1e-4, 1e-2)
+  if opt['regularise']:
+    opt["kinetic_energy"] = tune.loguniform(0.01, 1.0)
+    opt["directional_penalty"] = tune.loguniform(0.01, 1.0)
+
+  opt["hidden_dim"] = 128  # tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))
+  opt["lr"] = tune.uniform(0.01, 0.05)
+  opt["input_dropout"] = 0.5  # tune.uniform(0.2, 0.5)
+  opt["dropout"] = tune.uniform(0, 0.6)
+  opt["time"] = tune.uniform(5.0, 30.0)
+  opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
+
+  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
+    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 7))
+    # opt['attention_norm_idx'] = tune.choice([0, 1])
+    opt['attention_norm_idx'] = 0
+    # opt["leaky_relu_slope"] = tune.uniform(0, 0.8)
+    # opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+    #   [0, 1])  # whether or not to use self-loops
+    opt["self_loop_weight"] = 1
+  else:
+    opt["self_loop_weight"] = tune.uniform(0, 3)
+
+  opt["tol_scale"] = tune.loguniform(1, 1e5)
+
+  if opt["adjoint"]:
+    opt["tol_scale_adjoint"] = tune.loguniform(10, 1e5)
+    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun", "rk4"])
+  else:
+    raise Exception("Can't train on PubMed without the adjoint method.")
+
+  opt['add_source'] = tune.choice([True, False])
+  # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+  opt['batch_norm'] = tune.choice([True, False])
+  # opt['batch_norm'] = True
+  opt['use_mlp'] = False
+
+  if opt['rewiring'] == 'gdc':
+    print(f"setting pubmed gdc")
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'threshold'
+    opt['exact'] = False
+    # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
+    opt['gdc_method'] = 'ppr'
+    # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
+    opt['gdc_threshold'] = tune.uniform(0.00005, 0.001)
+    # opt['gdc_threshold'] = None
+    opt['ppr_alpha'] = 0.15
+    # opt['ppr_alpha'] = tune.uniform(0.01, 0.2)
     # opt['heat_time'] = tune.uniform(1, 5)
 
   return opt
@@ -628,7 +685,10 @@ def set_search_space(opt):
     else:
       return set_cora_search_space(opt)
   elif opt["dataset"] == "Pubmed":
-    return set_pubmed_search_space(opt)
+    if opt["num_splits"] == 0:
+      return set_pubmed_planetoid_search_space(opt)
+    else:
+      return set_pubmed_search_space(opt)
   elif opt["dataset"] == "Citeseer":
     if opt["num_splits"] == 0:
       return set_citeseer_planetoid_search_space(opt)
