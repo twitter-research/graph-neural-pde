@@ -221,6 +221,13 @@ def set_cora_planetoid_search_space(opt):
   opt['use_mlp'] = False
   # opt['use_mlp'] = tune.choice([True, False])
 
+  if opt['rewiring'] == 'gdc':
+    opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_threshold'] = tune.loguniform(0.00001, 0.01)
+    opt['exact'] = True
+    opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(2, 7))
+    opt['ppr_alpha'] = tune.uniform(0.05, 0.2)
+
   return opt
 
 
@@ -602,7 +609,7 @@ def set_arxiv_search_space(opt):
     opt['gdc_method'] = 'ppr'
     # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
     # opt['gdc_threshold'] = tune.loguniform(0.0000005, 0.00005)
-    opt['gdc_threshold'] = tune.uniform(0.0001, 0.01)
+    opt['gdc_threshold'] = tune.uniform(0.00001, 0.005)
     # opt['gdc_threshold'] = tune.loguniform(1e-7, 1e-5)
     # opt['gdc_threshold'] = None
     # opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
