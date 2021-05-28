@@ -369,11 +369,19 @@ def apply_pos_dist_rewire(data, opt, data_dir='../data'):
 
   elif opt['pos_enc_type'].startswith("DW"):
     pos_encoding = apply_beltrami(data, opt, data_dir)
+    try:
+      if torch.is_tensor(pos_encoding):
+        pos_encoding = pos_encoding.cpu().detach().numpy()
+    except:
+      pass
+
     if opt['gdc_sparsification'] == 'topk':
       ei = apply_feat_KNN(pos_encoding,  opt['gdc_k'])
       # ei = KNN(pos_encoding, opt)
     elif opt['gdc_sparsification'] == 'threshold':
       dist = get_distances(pos_encoding)
+
+
       ei = apply_dist_threshold(dist)
 
   data.edge_index = torch.from_numpy(ei).type(torch.LongTensor)

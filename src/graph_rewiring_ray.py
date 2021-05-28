@@ -259,7 +259,6 @@ def set_photo_search_space(opt):
     opt["kinetic_energy"] = tune.loguniform(0.01, 5.0)
     opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
 
-  opt["hidden_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 7))
   opt["lr"] = tune.loguniform(5e-4, 0.1)
   opt["input_dropout"] = tune.uniform(0.4, 0.8)
   opt["dropout"] = tune.uniform(0, 0.5)
