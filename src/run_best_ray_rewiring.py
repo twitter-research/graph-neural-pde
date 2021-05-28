@@ -723,8 +723,8 @@ def embeddings_ablation(opt):
   opt['earlystopxT'] = 2 #5
   opt['metric'] = 'test_acc'
 
-  datas = ['Citeseer'] #['Photo','Citeseer']
-  folders = ['Citeseer_DW_rewiring4'] #['Photo_DW_rewiring5','Citeseer_DW_rewiring4']
+  datas = ['Photo']#,'Citeseer']
+  folders = ['Photo_DW_rewiring5']#,'Citeseer_DW_rewiring4']
   names = ['Photo_DW_rewiring5_ablation','Citeseer_DW_rewiring4_ablation']
   indexes = [[0,1],[0,1]]
   opt['run_with_KNN'] = False
