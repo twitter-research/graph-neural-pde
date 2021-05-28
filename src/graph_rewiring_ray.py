@@ -521,6 +521,7 @@ def set_coauthors_search_space(opt):
 
 
 def set_arxiv_search_space(opt):
+  opt['adjoint'] = True
   # opt["decay"] = tune.loguniform(1e-10, 1e-6)
   opt["decay"] = 0
   # opt["decay"] = 0
@@ -601,7 +602,7 @@ def set_arxiv_search_space(opt):
     opt['gdc_method'] = 'ppr'
     # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
     # opt['gdc_threshold'] = tune.loguniform(0.0000005, 0.00005)
-    opt['gdc_threshold'] = tune.uniform(0.002, 0.01)
+    opt['gdc_threshold'] = tune.uniform(0.0001, 0.01)
     # opt['gdc_threshold'] = tune.loguniform(1e-7, 1e-5)
     # opt['gdc_threshold'] = None
     # opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
