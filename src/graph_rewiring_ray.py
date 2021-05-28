@@ -73,7 +73,7 @@ def set_rewiring_space(opt):
     # opt['edge_sampling_space'] = tune.sample_from(lambda spec: exp_kernel_choice if spec.config.beltrami else non_exp_kernel_choice)
 
     opt['feat_hidden_dim'] = tune.choice([64, 128, 256])  # , 128])
-    opt['pos_enc_hidden_dim'] = tune.choice([16, 32])  # , 64])
+    opt['pos_enc_hidden_dim'] = tune.choice([16, 32, 64])  # , 64])
     opt['hidden_dim'] = tune.sample_from(lambda spec: spec.config.feat_hidden_dim + spec.config.pos_enc_hidden_dim)
     # if spec.config.beltrami else tune.choice([32, 64, 128]))
 
@@ -182,7 +182,7 @@ def set_citeseer_search_space(opt):
   opt["input_dropout"] = tune.uniform(0.4, 0.7)
   opt["dropout"] = tune.uniform(0.1, 0.7)
   opt["time"] = tune.uniform(0.5, 12.0)
-  opt["optimizer"] = tune.choice(["rmsprop", "adam", "adamax"])
+  opt["optimizer"] = 'adam' #tune.choice(["rmsprop", "adam", "adamax"])
   #
 
   if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:

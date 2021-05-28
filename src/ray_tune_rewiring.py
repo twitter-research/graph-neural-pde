@@ -638,7 +638,8 @@ def ES_test(opt):
 def pos_enc_DW_tune(opt):
   opt['epoch'] = 250
   opt['gpus'] = 1
-  opt['num_samples'] = 100
+  # opt['num_samples'] = 250
+  num_samples = [250, 100]
   opt['grace_period'] = 20
   opt['reduction_factor'] = 10
   opt['num_splits'] = 4
@@ -652,10 +653,11 @@ def pos_enc_DW_tune(opt):
   opt['edge_sampling'] = False
   opt['fa_layer'] = False
 
-  datas = ['Citeseer'] #['Photo']#['Cora', 'Citeseer', 'Photo', 'Computers', 'CoauthorCS', 'Pubmed']
-  folders = ['Citeseer_DW_rewiring3'] #['Photo_DW_rewiring4'] #['Cora_DW_rewiring','Citeseer_DW_rewiring','Photo_DW_rewiring',
+  datas = ['Citeseer','Photo']#['Cora', 'Citeseer', 'Photo', 'Computers', 'CoauthorCS', 'Pubmed']
+  folders = ['Citeseer_DW_rewiring4','Photo_DW_rewiring5'] #['Cora_DW_rewiring','Citeseer_DW_rewiring','Photo_DW_rewiring',
               # 'Computers_DW_rewiring','CoauthorCS_DW_rewiring','Pubmed_DW_rewiring']
   for i, ds in enumerate(datas):
+    opt['num_samples'] = num_samples[i]
     print(f"Running Tuning for {ds}")
     opt["dataset"] = ds
     opt["name"] = folders[i]

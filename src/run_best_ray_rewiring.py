@@ -724,7 +724,7 @@ def embeddings_ablation(opt):
   opt['metric'] = 'test_acc'
 
   datas = ['Photo','Citeseer']
-  folders = ['Photo_DW_rewiring3','Citeseer_DW_rewiring3']
+  folders = ['Photo_DW_rewiring5','Citeseer_DW_rewiring4']
   names = ['Photo_DW_rewiring3_ablation','Citeseer_DW_rewiring3_ablation']
   indexes = [[0],[0]]
   opt['run_with_KNN'] = False
