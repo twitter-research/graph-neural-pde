@@ -638,7 +638,7 @@ def ES_test(opt):
 def pos_enc_DW_tune(opt):
   opt['epoch'] = 250
   opt['gpus'] = 1
-  opt['num_samples'] = 2000
+  opt['num_samples'] = 100
   opt['grace_period'] = 20
   opt['reduction_factor'] = 10
   opt['num_splits'] = 5
