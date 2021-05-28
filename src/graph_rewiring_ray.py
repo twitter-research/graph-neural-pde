@@ -598,7 +598,7 @@ def set_arxiv_search_space(opt):
     opt['gdc_method'] = 'ppr'
     # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
     # opt['gdc_threshold'] = tune.loguniform(0.0000005, 0.00005)
-    opt['gdc_threshold'] = tune.uniform(0.0005, 0.005)
+    opt['gdc_threshold'] = tune.uniform(0.001, 0.007)
     # opt['gdc_threshold'] = tune.loguniform(1e-7, 1e-5)
     # opt['gdc_threshold'] = None
     # opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
