@@ -779,7 +779,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   opt = vars(args)
-  run_best_params(opt)
+  # run_best_params(opt)
   # mainLoop(opt)
   # KNN_abalation(opt)
   # KNN_abalation_grid(opt)
