@@ -717,7 +717,7 @@ def edge_sampling_online_ablation(opt):
 
 def embeddings_ablation(opt):
   opt['max_nfe'] = 1000
-  opt['epoch'] = 250
+  opt['epoch'] = 400
   opt['num_splits'] = 8
   opt['gpus'] = 1
   opt['earlystopxT'] = 2 #5
@@ -726,7 +726,7 @@ def embeddings_ablation(opt):
   datas = ['Photo','Citeseer']
   folders = ['Photo_DW_rewiring5','Citeseer_DW_rewiring4']
   names = ['Photo_DW_rewiring3_ablation','Citeseer_DW_rewiring3_ablation']
-  indexes = [[0],[0]]
+  indexes = [[0,1],[0,1]]
   opt['run_with_KNN'] = False
   opt['bestwithKNN'] = False
   opt['edge_sampling'] = False
