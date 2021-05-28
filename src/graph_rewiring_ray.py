@@ -192,8 +192,9 @@ def set_citeseer_search_space(opt):
     opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(3, 8))
     opt['attention_norm_idx'] = 1  # tune.choice([0, 1])
     # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
-    opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
-      [0, 1])  # whether or not to use self-loops
+    opt["self_loop_weight"] = tune.choice([0, 1])
+    # opt["self_loop_weight"] = tune.choice([0, 0.5, 1, 2]) if opt['block'] == 'mixed' else tune.choice(
+    #   [0, 1])  # whether or not to use self-loops
   else:
     opt["self_loop_weight"] = tune.uniform(0, 3)  # 1 seems to work pretty well
 
@@ -203,10 +204,10 @@ def set_citeseer_search_space(opt):
     opt["tol_scale_adjoint"] = tune.loguniform(1, 1e5)
     opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
 
-    opt['add_source'] = tune.choice([True, False])
-    # opt['att_samp_pct'] = tune.uniform(0.3, 1)
-    opt['batch_norm'] = tune.choice([True, False])
-    # opt['use_mlp'] = tune.choice([True, False])
+  opt['add_source'] = tune.choice([True, False])
+  # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+  opt['batch_norm'] = tune.choice([True, False])
+  # opt['use_mlp'] = tune.choice([True, False])
   return opt
 
 
