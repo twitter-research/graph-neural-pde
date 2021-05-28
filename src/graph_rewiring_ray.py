@@ -582,12 +582,12 @@ def set_arxiv_search_space(opt):
   if opt['rewiring'] == 'gdc':
     # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
     opt['gdc_sparsification'] = 'threshold'
-    opt['target_degree'] = tune.uniform(3, 11)
+    # opt['target_degree'] = tune.uniform(3, 11)
     opt['exact'] = False
     # opt['gdc_method'] = tune.choice(['ppr', 'heat'])
     opt['gdc_method'] = 'ppr'
     # opt['avg_degree'] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  #  bug currently in pyg
-    opt['gdc_threshold'] = tune.loguniform(0.00000005, 0.000005)
+    opt['gdc_threshold'] = tune.loguniform(0.0000005, 0.00005)
     # opt['gdc_threshold'] = None
     # opt['ppr_alpha'] = tune.uniform(0.1, 0.25)
     opt['ppr_alpha'] = 0.15
