@@ -183,6 +183,7 @@ def set_cora_search_space(opt):
 
 
 def set_cora_planetoid_search_space(opt):
+  opt['adjoint'] = True
   opt["decay"] = tune.loguniform(0.0001, 0.1)  # weight decay l2 reg
   if opt['regularise']:
     opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
