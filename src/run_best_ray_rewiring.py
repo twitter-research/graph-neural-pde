@@ -733,6 +733,7 @@ def embeddings_ablation(opt):
   opt['change_att_sim_type'] = False
   opt['bestwithAttTypes'] = ['cosine_sim', 'scaled_dot'] #[False]
   pos_enc_dims = ['gdc'] #[16,64,128,256]
+  opt['pos_enc_csv'] = False
 
   for i, ds in enumerate(datas):
     for idx_i, idx in enumerate(indexes[i]):
