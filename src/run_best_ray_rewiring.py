@@ -723,21 +723,21 @@ def embeddings_ablation(opt):
   opt['earlystopxT'] = 2 #5
   opt['metric'] = 'test_acc'
 
-  datas = ['Photo']#,'Citeseer']
-  folders = ['Photo_DW_rewiring5']#,'Citeseer_DW_rewiring4']
-  names = ['Photo_DW_rewiring5_ablation']#,'Citeseer_DW_rewiring4_ablation']
-  indexes = [[0,1],[0,1]]
+  datas = ['Photo','Citeseer']
+  folders = ['Photo_DW_rewiring5','Citeseer_DW_rewiring4']
+  names = ['Photo_DW_rewiring5_ablation','Photo_DW_rewiring5_ablation']#,'Citeseer_DW_rewiring4_ablation']
+  indexes = [[1],[1]]
   opt['run_with_KNN'] = False
   opt['bestwithKNN'] = False
   opt['edge_sampling'] = False
   opt['change_att_sim_type'] = False
   opt['bestwithAttTypes'] = ['cosine_sim', 'scaled_dot'] #[False]
-  pos_enc_dims = [16,64,128,256]
+  pos_enc_dims = ['gdc'] #[16,64,128,256]
 
   for i, ds in enumerate(datas):
     for idx_i, idx in enumerate(indexes[i]):
       for pos_enc_dim in pos_enc_dims:
-        opt['pos_enc_type'] = 'DW' + str(pos_enc_dim)
+        opt['pos_enc_type'] = pos_enc_dim #'DW' + str(pos_enc_dim)
         print(f"Running Best Params for {ds}")
         opt["dataset"] = ds
         opt["folder"] = folders[i]
