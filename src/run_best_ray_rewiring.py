@@ -796,4 +796,5 @@ if __name__ == '__main__':
   # run_top5withES(opt)
   # run_top5(opt)
   # edge_sampling_ablation(opt)
-  edge_sampling_online_ablation(opt)
+  # edge_sampling_online_ablation(opt)
+  embeddings_ablation(opt)
