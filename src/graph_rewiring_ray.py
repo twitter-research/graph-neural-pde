@@ -271,7 +271,7 @@ def set_photo_search_space(opt):
   opt["dropout"] = tune.uniform(0, 0.5)
   opt["time"] = tune.uniform(0.5, 12.0)
   # opt["optimizer"] = tune.choice(["adam", "adamax", "rmsprop"])
-  opt["optimizer"] = tune.choice(["adam", "adamax"]) adam"
+  opt["optimizer"] = tune.choice(["adam", "adamax"]) #adam"
 
   if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
     opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 3))
