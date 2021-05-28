@@ -266,6 +266,15 @@ def set_citeseer_planetoid_search_space(opt):
     # opt['att_samp_pct'] = tune.uniform(0.3, 1)
     opt['batch_norm'] = tune.choice([True, False])
     # opt['use_mlp'] = tune.choice([True, False])
+
+  if opt['rewiring'] == 'gdc':
+    # opt['gdc_sparsification'] = tune.choice(['topk', 'threshold'])
+    opt['gdc_sparsification'] = 'threshold'
+    opt['gdc_threshold'] = tune.loguniform(0.00001, 0.01)
+    opt['exact'] = True
+    # opt['gdc_k'] = tune.sample_from(lambda _: 2 ** np.random.randint(2, 7))
+    opt['ppr_alpha'] = tune.uniform(0.05, 0.2)
+
   return opt
 
 
