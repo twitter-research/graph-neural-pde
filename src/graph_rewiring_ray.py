@@ -18,7 +18,7 @@ from run_GNN import get_optimizer, test, test_OGB, train
 from torch import nn
 from data import get_dataset, set_train_val_test_split
 from graph_rewiring import get_two_hop, apply_gdc, GDC, dirichlet_energy, make_symmetric, KNN, apply_beltrami
-
+from best_params import best_params_dict
 """
 python3 ray_tune.py --dataset ogbn-arxiv --lr 0.005 --add_source --function transformer --attention_dim 16 --hidden_dim 128 --heads 4 --input_dropout 0 --decay 0 --adjoint --adjoint_method rk4 --method rk4 --time 5.08 --epoch 500 --num_samples 1 --name ogbn-arxiv-test --gpus 1 --grace_period 50 
 
@@ -111,41 +111,42 @@ def set_rewiring_space(opt):
 
 
 def set_cora_search_space(opt):
-  opt["decay"] = tune.loguniform(0.001, 0.1)  # weight decay l2 reg
-  if opt['regularise']:
-    opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
-    opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
-
-  opt["lr"] = tune.uniform(0.01, 0.2)
-  # opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
-  opt["input_dropout"] = 0.5
-  opt["optimizer"] = tune.choice(["adam", "adamax"])
-  opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
-  opt["time"] = tune.uniform(10.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
-
-  if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
-    opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
-    opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  # hidden dim for attention
-    opt['attention_norm_idx'] = tune.choice([0, 1])
-    # opt['attention_norm_idx'] = 0
-    # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
-    opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
-  else:
-    opt["self_loop_weight"] = tune.uniform(0, 3)
-
-  # if opt['self_loop_weight'] > 0.0:
-  #     opt['exact'] = True  # for GDC, need exact if selp loop weight >0
-  opt['exact'] = tune.sample_from(lambda spec: True if spec.config.self_loop_weight > 0.0 else False)
-
-  opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
-  if opt["adjoint"]:
-    opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
-    opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
-
-  opt['add_source'] = tune.choice([True, False])
-  # opt['att_samp_pct'] = tune.uniform(0.3, 1)
-  opt['batch_norm'] = tune.choice([True, False])
-  opt['use_mlp'] = tune.choice([True, False])
+  opt["time"] = tune.uniform(10.0, 30.0)
+  # opt["decay"] = tune.loguniform(0.001, 0.1)  # weight decay l2 reg
+  # if opt['regularise']:
+  #   opt["kinetic_energy"] = tune.loguniform(0.001, 10.0)
+  #   opt["directional_penalty"] = tune.loguniform(0.001, 10.0)
+  #
+  # opt["lr"] = tune.uniform(0.01, 0.2)
+  # # opt["input_dropout"] = tune.uniform(0.2, 0.8)  # encoder dropout
+  # opt["input_dropout"] = 0.5
+  # opt["optimizer"] = tune.choice(["adam", "adamax"])
+  # opt["dropout"] = tune.uniform(0, 0.15)  # output dropout
+  # opt["time"] = tune.uniform(10.0, 30.0)  # tune.uniform(2.0, 30.0)  # terminal time of the ODE integrator;
+  #
+  # if opt["block"] in {'attention', 'mixed', 'hard_attention'} or opt['function'] in {'GAT', 'transformer', 'dorsey'}:
+  #   opt["heads"] = tune.sample_from(lambda _: 2 ** np.random.randint(0, 4))  #
+  #   opt["attention_dim"] = tune.sample_from(lambda _: 2 ** np.random.randint(4, 8))  # hidden dim for attention
+  #   opt['attention_norm_idx'] = tune.choice([0, 1])
+  #   # opt['attention_norm_idx'] = 0
+  #   # opt["leaky_relu_slope"] = tune.uniform(0, 0.7)
+  #   opt["self_loop_weight"] = tune.choice([0, 1])  # whether or not to use self-loops
+  # else:
+  #   opt["self_loop_weight"] = tune.uniform(0, 3)
+  #
+  # # if opt['self_loop_weight'] > 0.0:
+  # #     opt['exact'] = True  # for GDC, need exact if selp loop weight >0
+  # opt['exact'] = tune.sample_from(lambda spec: True if spec.config.self_loop_weight > 0.0 else False)
+  #
+  # opt["tol_scale"] = tune.loguniform(1, 1000)  # num you multiply the default rtol and atol by
+  # if opt["adjoint"]:
+  #   opt["adjoint_method"] = tune.choice(["dopri5", "adaptive_heun"])  # , "rk4"])
+  #   opt["tol_scale_adjoint"] = tune.loguniform(100, 10000)
+  #
+  # opt['add_source'] = tune.choice([True, False])
+  # # opt['att_samp_pct'] = tune.uniform(0.3, 1)
+  # opt['batch_norm'] = tune.choice([True, False])
+  # opt['use_mlp'] = tune.choice([True, False])
 
   return opt
 
@@ -541,7 +542,8 @@ def set_arxiv_search_space(opt):
 
 
 def set_search_space(opt):
-  opt = set_rewiring_space(opt)
+  # opt = set_rewiring_space(opt)
+  opt = best_params_dict[opt['dataset']]
   if opt["dataset"] == "Cora":
     if opt["num_splits"] == 0:
       return set_cora_planetoid_search_space(opt)

@@ -53,9 +53,6 @@ def get_computers_opt(opt):
   opt['ode'] = 'ode'
   return opt
 
-def get_best_params(opt):
-  return best_params_dict[opt['dataset']]
-
 def get_optimizer(name, parameters, lr, weight_decay=0):
   if name == 'sgd':
     return torch.optim.SGD(parameters, lr=lr, weight_decay=weight_decay)
@@ -228,7 +225,7 @@ def main(opt):
   #     opt = get_cora_opt(opt)
   # except KeyError:
   #   pass  # not always present when called as lib
-  opt = get_best_params(opt)
+  opt = best_params_dict[opt['dataset']]
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
