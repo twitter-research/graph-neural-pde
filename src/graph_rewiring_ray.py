@@ -544,6 +544,7 @@ def set_arxiv_search_space(opt):
 def set_search_space(opt):
   # opt = set_rewiring_space(opt)
   opt = best_params_dict[opt['dataset']]
+  opt['name'] = 'Cora_time_tune'
   if opt["dataset"] == "Cora":
     if opt["num_splits"] == 0:
       return set_cora_planetoid_search_space(opt)
