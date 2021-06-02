@@ -17,7 +17,7 @@ from utils import get_sem, mean_confidence_interval
 from run_GNN import get_optimizer, test, test_OGB, train
 from torch import nn
 from data import get_dataset, set_train_val_test_split
-from graph_rewiring import get_two_hop, apply_gdc, GDC, dirichlet_energy, make_symmetric, KNN, apply_beltrami
+from graph_rewiring import get_two_hop, apply_gdc, GDC, make_symmetric, apply_beltrami
 from best_params import best_params_dict
 """
 python3 ray_tune.py --dataset ogbn-arxiv --lr 0.005 --add_source --function transformer --attention_dim 16 --hidden_dim 128 --heads 4 --input_dropout 0 --decay 0 --adjoint --adjoint_method rk4 --method rk4 --time 5.08 --epoch 500 --num_samples 1 --name ogbn-arxiv-test --gpus 1 --grace_period 50 
