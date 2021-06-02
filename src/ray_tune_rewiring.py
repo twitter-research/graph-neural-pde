@@ -8,19 +8,15 @@ import torch
 import torch.nn.functional as F
 from data import get_dataset, set_train_val_test_split
 from GNN_early import GNNEarly
-from GNN import GNN, MP
+from GNN import GNN
 from ray import tune
 from ray.tune import CLIReporter
 from ray.tune.schedulers import ASHAScheduler
 from ray.tune.suggest.ax import AxSearch
 from run_GNN import get_optimizer, test, test_OGB, train, train_OGB
 from torch import nn
-from GNN_ICML20 import ICML_GNN, get_sym_adj
-from GNN_ICML20 import train as train_icml
-from GNN_KNN import GNN_KNN
-from GNN_KNN_early import GNNKNNEarly
 
-from graph_rewiring import apply_gdc, KNN, apply_KNN, apply_beltrami
+from graph_rewiring import apply_gdc, apply_beltrami
 from graph_rewiring_ray import set_search_space, set_rewiring_space, set_cora_search_space, set_citeseer_search_space
 
 """
