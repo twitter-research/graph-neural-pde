@@ -1,9 +1,10 @@
 import argparse
+import numpy as np
 import torch
 import torch.nn.functional as F
 from GNN import GNN
 import time
-from data import get_dataset
+from data import get_dataset, set_train_val_test_split
 from ogb.nodeproppred import Evaluator
 from graph_rewiring import apply_gdc, apply_beltrami
 from best_params import  best_params_dict
@@ -241,7 +242,10 @@ def main(cmd_opt):
 
   model = GNN(opt, dataset, device).to(device)
 
+  dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
   data = dataset.data.to(device)
+
+
 
   parameters = [p for p in model.parameters() if p.requires_grad]
   print_model_params(model)
