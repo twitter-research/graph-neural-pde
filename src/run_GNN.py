@@ -219,13 +219,16 @@ def test_OGB(model, data, pos_encoding, opt):
   return train_acc, valid_acc, test_acc
 
 
-def main(opt):
+def main(cmd_opt):
   # try:
   #   if opt['use_cora_defaults']:
   #     opt = get_cora_opt(opt)
   # except KeyError:
   #   pass  # not always present when called as lib
-  opt = best_params_dict[opt['dataset']]
+  # opt = set_rewiring_space(opt)
+  opt = best_params_dict[cmd_opt['dataset']]
+  best_opt = best_params_dict[cmd_opt['dataset']]
+  opt = {**cmd_opt, **best_opt}
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
