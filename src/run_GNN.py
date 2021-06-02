@@ -3,7 +3,6 @@ import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
 import torch.nn.functional as F
 from GNN import GNN, MP
-from GNN_KNN import GNN_KNN
 import time
 from data import get_dataset
 from ogb.nodeproppred import Evaluator
