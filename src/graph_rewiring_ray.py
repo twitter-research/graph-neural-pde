@@ -543,7 +543,7 @@ def set_arxiv_search_space(opt):
 
 def set_search_space(cmd_opt):
   # opt = set_rewiring_space(opt)
-  best_opt = best_params_dict[opt['dataset']]
+  best_opt = best_params_dict[cmd_opt['dataset']]
   opt = {**best_opt, **cmd_opt}
 
   opt['name'] = 'Cora_time_tune'
