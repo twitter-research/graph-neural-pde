@@ -6,7 +6,7 @@ import time
 from data import get_dataset
 from ogb.nodeproppred import Evaluator
 from graph_rewiring import apply_gdc, apply_beltrami
-
+from best_params import  best_params_dict
 
 def get_cora_opt(opt):
   opt['dataset'] = 'Cora'
@@ -53,6 +53,8 @@ def get_computers_opt(opt):
   opt['ode'] = 'ode'
   return opt
 
+def get_best_params(opt):
+  return best_params_dict[opt['dataset']]
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
   if name == 'sgd':
@@ -221,11 +223,13 @@ def test_OGB(model, data, pos_encoding, opt):
 
 
 def main(opt):
-  try:
-    if opt['use_cora_defaults']:
-      opt = get_cora_opt(opt)
-  except KeyError:
-    pass  # not always present when called as lib
+  # try:
+  #   if opt['use_cora_defaults']:
+  #     opt = get_cora_opt(opt)
+  # except KeyError:
+  #   pass  # not always present when called as lib
+  opt = get_best_params(opt)
+
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -332,6 +336,9 @@ if __name__ == '__main__':
                       help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
   parser.add_argument('--reweight_attention', dest='reweight_attention', action='store_true',
                       help="multiply attention scores by edge weights before softmax")
+  parser.add_argument('--attention_type', type=str, default="scaled_dot",
+                      help="scaled_dot,cosine_sim,pearson, exp_kernel")
+  parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
 
   # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
@@ -359,15 +366,14 @@ if __name__ == '__main__':
   parser.add_argument("--exact", action="store_true",
                       help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
 
+  #beltrami args
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
   parser.add_argument('--pos_enc_type', type=str, default="DW64", help='positional encoder either GDC, DW64, DW128, DW256')
   parser.add_argument('--pos_enc_orientation', type=str, default="row", help="row, col")
-  parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
   parser.add_argument('--pos_enc_hidden_dim', type=int, default=32, help="dimension of position in beltrami")
 
-  parser.add_argument('--attention_type', type=str, default="scaled_dot",
-                      help="scaled_dot,cosine_sim,pearson, exp_kernel")
+
   parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")
   parser.add_argument('--pos_enc_csv', action='store_true', help="Generate pos encoding as a sparse CSV")
 
