@@ -1,12 +1,11 @@
 import argparse
 import torch
-from torch_geometric.nn import GCNConv, ChebConv  # noqa
 import torch.nn.functional as F
-from GNN import GNN, MP
+from GNN import GNN
 import time
 from data import get_dataset
 from ogb.nodeproppred import Evaluator
-from graph_rewiring import apply_gdc, KNN, apply_KNN, apply_beltrami, apply_edge_sampling
+from graph_rewiring import apply_gdc, apply_beltrami
 
 
 def get_cora_opt(opt):
@@ -27,12 +26,8 @@ def get_cora_opt(opt):
   opt['num_class'] = 7
   opt['num_nodes'] = 2708
   opt['epoch'] = 50
-  # opt['augment'] = True
   opt['attention_dropout'] = 0
   opt['adjoint'] = False
-  # opt['ode'] = 'ode'
-
-  # opt['block'] = 'rewire_attention'
   opt['block'] = 'attention'
 
   return opt
@@ -79,7 +74,7 @@ def add_labels(feat, labels, idx, num_classes, device):
   if idx.dtype == torch.bool:
     idx = torch.where(idx)[0]  # convert mask to linear index
   onehot[idx, labels.squeeze()[idx]] = 1
-  # onehot[idx, labels[idx, 0]] = 1
+
   return torch.cat([feat, onehot], dim=-1)
 
 
@@ -106,11 +101,6 @@ def train(model, optimizer, data, pos_encoding=None):
 
     feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
   else:
-    # todo in the DGL code from OGB, they seem to apply an additional mask to the training data - currently commented
-    # mask_rate = 0.5
-    # mask = torch.rand(data.train_index.shape) < mask_rate
-    #
-    # train_pred_idx = data.train_idx[mask]
     train_pred_idx = data.train_mask
 
   out = model(feat, pos_encoding)
@@ -148,11 +138,6 @@ def train_OGB(model, mp, optimizer, data, pos_encoding=None):
 
     feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
   else:
-    # todo in the DGL code from OGB, they seem to apply an additional mask to the training data - currently commented
-    # mask_rate = 0.5
-    # mask = torch.rand(data.train_index.shape) < mask_rate
-    #
-    # train_pred_idx = data.train_idx[mask]
     train_pred_idx = data.train_mask
 
   pos_encoding = mp(pos_encoding).to(model.device)
@@ -215,8 +200,6 @@ def test_OGB(model, data, pos_encoding, opt):
 
   evaluator = Evaluator(name=name)
   model.eval()
-  # mp.eval()
-  # pos_encoding = mp(pos_encoding).to(model.device)
 
   out = model(feat, pos_encoding).log_softmax(dim=-1)
   y_pred = out.argmax(dim=-1, keepdim=True)
@@ -245,16 +228,6 @@ def main(opt):
     pass  # not always present when called as lib
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  # device = f"cuda:{opt['gpu']}" if torch.cuda.is_available() else 'cpu'
-
-  # if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
-  #   pos_encoding = apply_beltrami(dataset.data, opt)
-  #   mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
-  # elif opt['beltrami']:
-  #   pos_encoding = apply_beltrami(dataset.data, opt).to(device)
-  #   opt['pos_enc_dim'] = pos_encoding.shape[1]
-  # else:
-  #   pos_encoding = None
 
   if opt['beltrami']:
     pos_encoding = apply_beltrami(dataset.data, opt).to(device)
@@ -262,31 +235,17 @@ def main(opt):
   else:
     pos_encoding = None
 
-  if opt['rewire_KNN']:
-    model = GNN_KNN(opt, dataset, device).to(device)
-  else:
-    model = GNN(opt, dataset, device).to(device)
+  model = GNN(opt, dataset, device).to(device)
 
   data = dataset.data.to(device)
 
-  # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
   parameters = [p for p in model.parameters() if p.requires_grad]
   print_model_params(model)
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
   best_val_acc = test_acc = train_acc = best_epoch = 0
-  # test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
 
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
-
-    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
-      ei = apply_KNN(data, pos_encoding, model, opt)
-      model.odeblock.odefunc.edge_index = ei
-    #
-    # if opt['dataset'] == 'ogbn-arxiv':  # this is a proxy for 'external encoder'
-    #   loss = train_OGB(model, mp, optimizer, data, pos_encoding)
-    #   train_acc, val_acc, tmp_test_acc = test_OGB(model, mp, data, pos_encoding, opt)
-    # else:
     this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
     loss = train(model, optimizer, data, pos_encoding)
     train_acc, val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
@@ -359,10 +318,6 @@ if __name__ == '__main__':
   parser.add_argument('--ode_blocks', type=int, default=1, help='number of ode blocks to run')
   parser.add_argument('--add_source', dest='add_source', action='store_true',
                       help='If try get rid of alpha param and the beta*x0 source term')
-  # SDE args
-  parser.add_argument('--dt_min', type=float, default=1e-5, help='minimum timestep for the SDE solver')
-  parser.add_argument('--dt', type=float, default=1e-3, help='fixed step size')
-  parser.add_argument('--adaptive', dest='adaptive', action='store_true', help='use adaptive step sizes')
   # Attention args
   parser.add_argument('--leaky_relu_slope', type=float, default=0.2,
                       help='slope of the negative part of the leaky relu used in attention')
@@ -377,6 +332,7 @@ if __name__ == '__main__':
                       help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
   parser.add_argument('--reweight_attention', dest='reweight_attention', action='store_true',
                       help="multiply attention scores by edge weights before softmax")
+
   # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
   parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")
@@ -402,12 +358,6 @@ if __name__ == '__main__':
                       help='incorporate the feature grad in attention based edge dropout')
   parser.add_argument("--exact", action="store_true",
                       help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
-  parser.add_argument('--M_nodes', type=int, default=64, help="new number of nodes to add")
-  parser.add_argument('--new_edges', type=str, default="random", help="random, random_walk, k_hop")
-  parser.add_argument('--sparsify', type=str, default="S_hat", help="S_hat, recalc_att")
-  parser.add_argument('--threshold_type', type=str, default="topk_adj", help="topk_adj, addD_rvR")
-  parser.add_argument('--rw_addD', type=float, default=0.02, help="percentage of new edges to add")
-  parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
 
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
   parser.add_argument('--pos_enc_type', type=str, default="DW64", help='positional encoder either GDC, DW64, DW128, DW256')
@@ -415,19 +365,11 @@ if __name__ == '__main__':
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
   parser.add_argument('--pos_enc_hidden_dim', type=int, default=32, help="dimension of position in beltrami")
-  parser.add_argument('--rewire_KNN', action='store_true', help='perform KNN rewiring every few epochs')
-  parser.add_argument('--rewire_KNN_T', type=str, default="T0", help="T0, TN")
-  parser.add_argument('--rewire_KNN_epoch', type=int, default=5, help="frequency of epochs to rewire")
-  parser.add_argument('--rewire_KNN_k', type=int, default=64, help="target degree for KNN rewire")
-  parser.add_argument('--rewire_KNN_sym', action='store_true', help='make KNN symmetric')
-  parser.add_argument('--KNN_online', action='store_true', help='perform rewiring online')
-  parser.add_argument('--KNN_online_reps', type=int, default=4, help="how many online KNN its")
+
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
-                      help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
+                      help="scaled_dot,cosine_sim,pearson, exp_kernel")
   parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")
   parser.add_argument('--pos_enc_csv', action='store_true', help="Generate pos encoding as a sparse CSV")
-
-  parser.add_argument('--pos_dist_quantile', type=float, default=0.001, help="percentage of N**2 edges to keep")
 
 
   args = parser.parse_args()

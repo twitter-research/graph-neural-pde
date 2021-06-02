@@ -19,12 +19,10 @@ class ODEFuncTransformerAtt(ODEFunc):
                                                                    fill_value=opt['self_loop_weight'])
     else:
       self.edge_index, self.edge_weight = data.edge_index, data.edge_attr
-    # self.alpha = nn.Parameter(torch.ones([data.num_nodes, 1]))
     self.multihead_att_layer = SpGraphTransAttentionLayer(in_features, out_features, opt,
                                                           device, edge_weights=self.edge_weight).to(device)
 
   def multiply_attention(self, x, attention, v=None):
-    # todo would be nice if this was more efficient
     if self.opt['mix_features']:
       vx = torch.mean(torch.stack(
         [torch_sparse.spmm(self.edge_index, attention[:, idx], v.shape[0], v.shape[0], v[:, :, idx]) for idx in
@@ -34,10 +32,6 @@ class ODEFuncTransformerAtt(ODEFunc):
     else:
       mean_attention = attention.mean(dim=1)
       ax = torch_sparse.spmm(self.edge_index, mean_attention, x.shape[0], x.shape[0], x)
-      # ax = torch.mean(torch.stack(
-      #   [torch_sparse.spmm(self.edge_index, attention[:, idx], x.shape[0], x.shape[0], x) for idx in
-      #    range(self.opt['heads'])], dim=0),
-      #   dim=0)
     return ax
 
   def forward(self, t, x):  # t is needed when called by the integrator
@@ -91,7 +85,6 @@ class SpGraphTransAttentionLayer(nn.Module):
       self.lengthscale_x = nn.Parameter(torch.ones(1))
       self.output_var_p = nn.Parameter(torch.ones(1))
       self.lengthscale_p = nn.Parameter(torch.ones(1))
-      #todo the below is very error prone. Think of a better way when there's time
       self.Qx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
       self.init_weights(self.Qx)
       self.Vx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
@@ -133,7 +126,6 @@ class SpGraphTransAttentionLayer(nn.Module):
     """
     # if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
     if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
-      # todo the below is very error prone. Think of a better way when there's time
       label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
       p = x[:, self.opt['feat_hidden_dim']: label_index]
       x = torch.cat((x[:, :self.opt['feat_hidden_dim']], x[:, label_index:]), dim=1)

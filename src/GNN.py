@@ -24,11 +24,6 @@ class GNN(BaseGNN):
     if self.opt['beltrami']:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
       x = self.mx(x)
-      # if self.opt['dataset'] == 'ogbn-arxiv':
-      #   p = pos_encoding
-      # else:
-      #   p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
-      #   p = self.mp(p)
       p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
       p = self.mp(p)
       x = torch.cat([x, p], dim=1)
@@ -41,9 +36,6 @@ class GNN(BaseGNN):
       x = F.dropout(x + self.m11(F.relu(x)), self.opt['dropout'], training=self.training)
       x = F.dropout(x + self.m12(F.relu(x)), self.opt['dropout'], training=self.training)
 
-    # todo investigate if some input non-linearity solves the problem with smooth deformations identified in the ANODE paper
-    # if True:
-    #   x = F.relu(x)
     if self.opt['use_labels']:
       x = torch.cat([x, y], dim=-1)
 
@@ -65,9 +57,6 @@ class GNN(BaseGNN):
     if self.opt['augment']:
       z = torch.split(z, x.shape[1] // 2, dim=1)[0]
 
-    # if self.opt['batch_norm']:
-    #   z = self.bn_in(z)
-
     # Activation.
     z = F.relu(z)
 
@@ -81,18 +70,3 @@ class GNN(BaseGNN):
     # Decode each node embedding to get node label.
     z = self.m2(z)
     return z
-
-
-class MP(torch.nn.Module):
-  def __init__(self, opt, pos_enc_dim, device=torch.device('cpu')):
-    super(MP, self).__init__()
-    self.opt = opt
-    self.fc = nn.Linear(pos_enc_dim, self.opt['pos_enc_hidden_dim'])
-    # self.relu = torch.nn.ReLU()  # instead of Heaviside step fn
-
-  def forward(self, pos_encoding):
-
-    p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
-    p = self.fc(p)
-    # output = self.relu(x)  # instead of Heaviside step fn
-    return p
