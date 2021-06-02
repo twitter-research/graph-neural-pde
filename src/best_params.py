@@ -9,7 +9,7 @@ best_params_dict = {'Cora':  {'add_source': True, 'adjoint': False, 'adjoint_met
    'jacobian_norm2': None, 'kinetic_energy': None, 'label_rate': 0.5, 'leaky_relu_slope': 0.2,
    'lr': 0.022924849756740397, 'max_epochs': 1000, 'max_iters': 100, 'max_nfe': 2000, 'method': 'dopri5',
    'metric': 'accuracy', 'mix_features': False, 'name': 'cora_beltrami_splits', 'new_edges': 'random',
-   'no_alpha_sigmoid': False, 'not_lcc': True, 'num_init': 1, 'num_samples': 1000, 'num_splits': 2, 'ode_blocks': 1,
+   'no_alpha_sigmoid': False, 'not_lcc': True, 'ode_blocks': 1,
    'optimizer': 'adamax', 'pos_enc_hidden_dim': 16, 'pos_enc_orientation': 'row',
    'pos_enc_type': 'GDC', 'ppr_alpha': 0.05, 'reduction_factor': 10, 'regularise': False, 'reweight_attention': False,
    'rewiring': None, 'self_loop_weight': 1, 'square_plus': True,
