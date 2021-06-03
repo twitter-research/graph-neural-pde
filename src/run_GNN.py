@@ -240,8 +240,6 @@ def main(cmd_opt):
 
   data = dataset.data.to(device)
 
-
-
   parameters = [p for p in model.parameters() if p.requires_grad]
   print_model_params(model)
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
