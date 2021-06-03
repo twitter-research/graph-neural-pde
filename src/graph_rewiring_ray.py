@@ -31,8 +31,8 @@ def set_rewiring_space(opt):
     # DIGL args
     # opt['rewiring'] = None #'gdc'  # tune.choice(['gdc', None])
     # opt['rewiring'] = 'pos_enc_knn'
-    opt['pos_enc_type'] = 'GDC'  # pos_enc_dim #'DW' + str(pos_enc_dim)
-    opt['rewiring'] = 'gdc'
+    # opt['pos_enc_type'] = 'GDC'  # pos_enc_dim #'DW' + str(pos_enc_dim)
+    # opt['rewiring'] = 'gdc'
 
     if opt['rewiring']:
       opt['attention_rewiring'] = False #tune.choice([True, False])

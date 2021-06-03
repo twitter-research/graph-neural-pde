@@ -355,7 +355,7 @@ def mainLoop(opt):
   opt['fa_layer'] = False
 
   datas = ['Citeseer','CoauthorCS'] #['Cora', 'Citeseer']
-  folders = ['Citeseer_final_tune_GDC','CoauthorCS_final_tune_GDC'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
+  folders = ['Citeseer_final_tune_posencGDC','CoauthorCS_final_tune_posencGDC'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
     opt["dataset"] = ds
@@ -863,4 +863,4 @@ if __name__ == "__main__":
   mainLoop(opt)
   # top5_onlineSampling_FAlayer(opt)
   # ES_test(opt)
-  pos_enc_gdc_tune(opt)
+  # pos_enc_gdc_tune(opt)
