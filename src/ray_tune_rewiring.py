@@ -340,22 +340,22 @@ def main(opt):
 def mainLoop(opt):
   opt['epoch'] = 250
   opt['gpus'] = 1
-  opt['num_samples'] = 500
+  opt['num_samples'] = 600
   opt['grace_period'] = 20
   opt['reduction_factor'] = 10
-  opt['num_splits'] = 5
+  opt['num_splits'] = 4
   # opt['num_init'] = 3
   opt['max_nfe'] = 3000
 
-  opt['rewiring'] = 'pos_enc_knn' #'gdc' #None
+  opt['rewiring'] = None #'pos_enc_knn' #'gdc' #None
   opt['beltrami'] = True
   opt['adjoint'] = False
   opt['rewire_KNN'] = False
   opt['edge_sampling'] = False
   opt['fa_layer'] = False
 
-  datas = ['Cora'] #['Cora', 'Citeseer']
-  folders = ['Cora_DW_kNN4'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
+  datas = ['Citeseer','CoauthorCS'] #['Cora', 'Citeseer']
+  folders = ['Citeseer_final_tune','Citeseer_final_tune'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
     opt["dataset"] = ds
@@ -860,7 +860,7 @@ if __name__ == "__main__":
   args = parser.parse_args()
   opt = vars(args)
   # main(opt)
-  # mainLoop(opt)
+  mainLoop(opt)
   # top5_onlineSampling_FAlayer(opt)
   # ES_test(opt)
   pos_enc_gdc_tune(opt)
