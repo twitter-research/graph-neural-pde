@@ -340,7 +340,7 @@ def main(opt):
 def mainLoop(opt):
   opt['epoch'] = 250
   opt['gpus'] = 1
-  opt['num_samples'] = 600
+  opt['num_samples'] = 400
   opt['grace_period'] = 20
   opt['reduction_factor'] = 10
   opt['num_splits'] = 4
@@ -355,7 +355,7 @@ def mainLoop(opt):
   opt['fa_layer'] = False
 
   datas = ['Citeseer','CoauthorCS'] #['Cora', 'Citeseer']
-  folders = ['Citeseer_final_tune2','Citeseer_final_tune'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
+  folders = ['Citeseer_final_tune_GDC','CoauthorCS_final_tune_GDC'] #['Cora_beltrami_5split','Citeseer_beltrami_5split']
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
     opt["dataset"] = ds
