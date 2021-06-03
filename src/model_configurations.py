@@ -2,6 +2,7 @@ from function_transformer_attention import ODEFuncTransformerAtt
 from function_laplacian_diffusion import LaplacianODEFunc
 from block_transformer_attention import AttODEblock
 from block_constant import ConstantODEblock
+from block_transformer_hard_attention import HardAttODEblock
 
 class BlockNotDefined(Exception):
   pass
@@ -16,6 +17,8 @@ def set_block(opt):
     block = AttODEblock
   elif ode_str == 'constant':
     block = ConstantODEblock
+  elif ode_str == 'hard_attention':
+    block = HardAttODEblock
   else:
     raise BlockNotDefined
   return block
