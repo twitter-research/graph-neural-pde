@@ -221,13 +221,6 @@ def test_OGB(model, data, pos_encoding, opt):
 
 
 def main(cmd_opt):
-  # try:
-  #   if opt['use_cora_defaults']:
-  #     opt = get_cora_opt(opt)
-  # except KeyError:
-  #   pass  # not always present when called as lib
-  # opt = set_rewiring_space(opt)
-  opt = best_params_dict[cmd_opt['dataset']]
   best_opt = best_params_dict[cmd_opt['dataset']]
   opt = {**cmd_opt, **best_opt}
 
