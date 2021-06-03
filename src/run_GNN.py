@@ -307,6 +307,9 @@ if __name__ == '__main__':
   parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
   parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
                       help='Add a fully connected layer to the encoder.')
+  parser.add_argument('--add_source', dest='add_source', action='store_true',
+                      help='If try get rid of alpha param and the beta*x0 source term')
+
   # ODE args
   parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
   parser.add_argument('--augment', action='store_true',
@@ -316,10 +319,8 @@ if __name__ == '__main__':
   parser.add_argument('--step_size', type=float, default=1,
                       help='fixed step size when using fixed step solvers e.g. rk4')
   parser.add_argument('--max_iters', type=float, default=100, help='maximum number of integration steps')
-  parser.add_argument(
-    "--adjoint_method", type=str, default="adaptive_heun",
-    help="set the numerical solver for the backward pass: dopri5, euler, rk4, midpoint"
-  )
+  parser.add_argument("--adjoint_method", type=str, default="adaptive_heun",
+    help="set the numerical solver for the backward pass: dopri5, euler, rk4, midpoint")
   parser.add_argument('--adjoint', dest='adjoint', action='store_true',
                       help='use the adjoint ODE method to reduce memory footprint')
   parser.add_argument('--adjoint_step_size', type=float, default=1,
@@ -328,8 +329,9 @@ if __name__ == '__main__':
   parser.add_argument("--tol_scale_adjoint", type=float, default=1.0,
                       help="multiplier for adjoint_atol and adjoint_rtol")
   parser.add_argument('--ode_blocks', type=int, default=1, help='number of ode blocks to run')
-  parser.add_argument('--add_source', dest='add_source', action='store_true',
-                      help='If try get rid of alpha param and the beta*x0 source term')
+  parser.add_argument("--max_nfe", type=int, default=1000,
+                      help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
+
   # Attention args
   parser.add_argument('--leaky_relu_slope', type=float, default=0.2,
                       help='slope of the negative part of the leaky relu used in attention')
@@ -340,8 +342,6 @@ if __name__ == '__main__':
                       help='the size to project x to before calculating att scores')
   parser.add_argument('--mix_features', dest='mix_features', action='store_true',
                       help='apply a feature transformation xW to the ODE')
-  parser.add_argument("--max_nfe", type=int, default=1000,
-                      help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
   parser.add_argument('--reweight_attention', dest='reweight_attention', action='store_true',
                       help="multiply attention scores by edge weights before softmax")
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
