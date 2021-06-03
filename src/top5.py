@@ -49,13 +49,12 @@ top5 = {
 # arxiv	72.56 pm 0.1	ben_dev	0
 BLEND_indexes = {
   'Cora': 0,
-  'Citeseer': 1,
+  'Citeseer': 4,
   # 'Pubmed': 0,
   # 'CoauthorCS: 3'
   'Computers': 1,
   'Photo': 0,
   'ogbn-arxiv': 0}
-
 
 required_fields = ['add_source',
 'adjoint',
@@ -139,11 +138,6 @@ def main():
   for i, (dataset,top5params) in enumerate(top5.items()):
     print(dataset)
     best_params_dict[dataset] = top5params[str(BLEND_indexes[dataset])]
-    # temp_params = top5params[str(BLEND_indexes[dataset])]
-    # for field in required_fields:
-    #   if 'pos_enc_orientation'
-    #
-    #   best_params_dict[dataset][field] = temp_params[field]
   print(best_params_dict)
 
 if __name__ == "__main__":

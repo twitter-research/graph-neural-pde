@@ -242,7 +242,7 @@ def main(cmd_opt):
 
   model = GNN(opt, dataset, device).to(device)
 
-  if opt['random_split']:
+  if not opt['planetoid_split']:
     dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
   data = dataset.data.to(device)
@@ -285,8 +285,8 @@ if __name__ == '__main__':
   parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
   parser.add_argument('--label_rate', type=float, default=0.5,
                       help='% of training labels to use when --use_labels is set.')
-  parser.add_argument('--random_split', action='store_true',
-                      help='Whether to random split the train/val/test masks')
+  parser.add_argument('--planetoid_split', action='store_true',
+                      help='use planetoid splits for Cora/Citeseer/Pubmed')
   # GNN args
   parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
   parser.add_argument('--fc_out', dest='fc_out', action='store_true',
