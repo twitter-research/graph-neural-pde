@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from GNN import GNN
+from GNN_early import GNNEarly
 import time
 from data import get_dataset, set_train_val_test_split
 from ogb.nodeproppred import Evaluator
@@ -233,7 +234,7 @@ def main(cmd_opt):
   else:
     pos_encoding = None
 
-  model = GNN(opt, dataset, device).to(device)
+  model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
 
   if not opt['planetoid_split'] and opt['dataset'] in ['Cora','Citeseer','Pubmed']:
     dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
@@ -243,24 +244,41 @@ def main(cmd_opt):
   parameters = [p for p in model.parameters() if p.requires_grad]
   print_model_params(model)
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-  best_val_acc = test_acc = train_acc = best_epoch = 0
+  best_time = best_epoch = train_acc = val_acc = test_acc = 0
 
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
     this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
     loss = train(model, optimizer, data, pos_encoding)
-    train_acc, val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
 
-    if val_acc > best_val_acc:
-      best_val_acc = val_acc
-      test_acc = tmp_test_acc
-      best_epoch = epoch
+    if opt["no_early"]:
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
+      best_time = opt['time']
+      if tmp_val_acc > val_acc:
+        best_epoch = epoch
+        train_acc = tmp_train_acc
+        val_acc = tmp_val_acc
+        test_acc = tmp_test_acc
+    else:
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
+      if tmp_val_acc > val_acc:
+        best_epoch = epoch
+        train_acc = tmp_train_acc
+        val_acc = tmp_val_acc
+        test_acc = tmp_test_acc
+        best_time = opt['time']
+      if model.odeblock.test_integrator.solver.best_val > val_acc:
+        best_epoch = epoch
+        val_acc = model.odeblock.test_integrator.solver.best_val
+        test_acc = model.odeblock.test_integrator.solver.best_test
+        train_acc = model.odeblock.test_integrator.solver.best_train
+        best_time = model.odeblock.test_integrator.solver.best_time
+
     log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-    print(
-      log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, best_val_acc, test_acc))
-  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
 
-  return train_acc, best_val_acc, test_acc
+    print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, val_acc, test_acc))
+  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(val_acc, test_acc, best_epoch))
+  return train_acc, val_acc, test_acc
 
 
 if __name__ == '__main__':
@@ -322,6 +340,10 @@ if __name__ == '__main__':
   parser.add_argument('--ode_blocks', type=int, default=1, help='number of ode blocks to run')
   parser.add_argument("--max_nfe", type=int, default=1000,
                       help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
+  parser.add_argument("--no_early", action="store_true", help="Whether or not to use early stopping of the ODE integrator when testing.")
+  parser.add_argument('--earlystopxT', type=float, default=3, help='multiplier for T used to evaluate best model')
+  parser.add_argument("--max_test_steps", type=int, default=100,help="Maximum number steps for the dopri5Early test integrator. "
+                           "used if getting OOM errors at test time")
 
   # Attention args
   parser.add_argument('--leaky_relu_slope', type=float, default=0.2,
@@ -371,7 +393,6 @@ if __name__ == '__main__':
   parser.add_argument('--pos_enc_orientation', type=str, default="row", help="row, col")
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
   parser.add_argument('--pos_enc_hidden_dim', type=int, default=32, help="dimension of position in beltrami")
-
 
   parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")
   parser.add_argument('--pos_enc_csv', action='store_true', help="Generate pos encoding as a sparse CSV")
