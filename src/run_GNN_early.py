@@ -252,7 +252,7 @@ def main(cmd_opt):
     start_time = time.time()
     this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
     loss = train(model, optimizer, data, pos_encoding)
-    train_acc, val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
+    # train_acc, val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
 
     # if val_acc > best_val_acc:
     #   best_val_acc = val_acc
