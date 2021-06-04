@@ -234,7 +234,7 @@ def main(cmd_opt):
   else:
     pos_encoding = None
 
-  model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
+  model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
   # model = GNN(opt, dataset, device).to(device)
 
   if not opt['planetoid_split'] and opt['dataset'] in ['Cora','Citeseer','Pubmed']:
