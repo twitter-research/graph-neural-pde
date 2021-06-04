@@ -26,8 +26,3 @@ For example to run for Cora:
 ```
 python run_GNN.py --dataset Cora 
 ```
-optional --random_split, to run on randomized data splits
-
-## Security Issues?
-Please report sensitive security issues via Twitter's bug-bounty program (https://hackerone.com/twitter) rather than GitHub.
-
