@@ -10,50 +10,6 @@ from ogb.nodeproppred import Evaluator
 from graph_rewiring import apply_gdc, apply_beltrami
 from best_params import  best_params_dict
 
-def get_cora_opt(opt):
-  opt['dataset'] = 'Cora'
-  opt['data'] = 'Planetoid'
-  opt['hidden_dim'] = 16
-  opt['input_dropout'] = 0.5
-  opt['dropout'] = 0
-  opt['optimizer'] = 'rmsprop'
-  opt['lr'] = 0.0047
-  opt['decay'] = 5e-4
-  opt['self_loop_weight'] = 0.555
-  if opt['self_loop_weight'] > 0.0:
-    opt['exact'] = True  # for GDC, need exact if selp loop weight >0
-  opt['alpha'] = 0.918
-  opt['time'] = 12.1
-  opt['num_feature'] = 1433
-  opt['num_class'] = 7
-  opt['num_nodes'] = 2708
-  opt['epoch'] = 50
-  opt['attention_dropout'] = 0
-  opt['adjoint'] = False
-  opt['block'] = 'attention'
-
-  return opt
-
-
-def get_computers_opt(opt):
-  opt['dataset'] = 'Computers'
-  opt['hidden_dim'] = 16
-  opt['input_dropout'] = 0.5
-  opt['dropout'] = 0
-  opt['optimizer'] = 'adam'
-  opt['lr'] = 0.01
-  opt['decay'] = 5e-4
-  opt['self_loop_weight'] = 0.555
-  opt['alpha'] = 0.918
-  opt['epoch'] = 400
-  opt['time'] = 12.1
-  opt['num_feature'] = 1433
-  opt['num_class'] = 7
-  opt['num_nodes'] = 2708
-  opt['epoch'] = 50
-  opt['attention_dropout'] = 0
-  opt['ode'] = 'ode'
-  return opt
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
   if name == 'sgd':
