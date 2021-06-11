@@ -208,6 +208,8 @@ def main(cmd_opt):
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
   best_time = best_epoch = train_acc = val_acc = test_acc = 0
 
+  this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
 
@@ -215,36 +217,27 @@ def main(cmd_opt):
       ei = apply_KNN(data, pos_encoding, model, opt)
       model.odeblock.odefunc.edge_index = ei
 
-    this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
     loss = train(model, optimizer, data, pos_encoding)
+    tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
 
-    if opt["no_early"]:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
-      best_time = opt['time']
-      if tmp_val_acc > val_acc:
-        best_epoch = epoch
-        train_acc = tmp_train_acc
-        val_acc = tmp_val_acc
-        test_acc = tmp_test_acc
-    else:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
-      if tmp_val_acc > val_acc:
-        best_epoch = epoch
-        train_acc = tmp_train_acc
-        val_acc = tmp_val_acc
-        test_acc = tmp_test_acc
-        best_time = opt['time']
-      if model.odeblock.test_integrator.solver.best_val > val_acc:
-        best_epoch = epoch
-        val_acc = model.odeblock.test_integrator.solver.best_val
-        test_acc = model.odeblock.test_integrator.solver.best_test
-        train_acc = model.odeblock.test_integrator.solver.best_train
-        best_time = model.odeblock.test_integrator.solver.best_time
+    best_time = opt['time']
+    if tmp_val_acc > val_acc:
+      best_epoch = epoch
+      train_acc = tmp_train_acc
+      val_acc = tmp_val_acc
+      test_acc = tmp_test_acc
+
+    if not opt["no_early"] and model.odeblock.test_integrator.solver.best_val > val_acc:
+      best_epoch = epoch
+      val_acc = model.odeblock.test_integrator.solver.best_val
+      test_acc = model.odeblock.test_integrator.solver.best_test
+      train_acc = model.odeblock.test_integrator.solver.best_train
+      best_time = model.odeblock.test_integrator.solver.best_time
 
     log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
 
     print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, val_acc, test_acc))
-  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(val_acc, test_acc, best_epoch))
+  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d} and best time {:d}'.format(val_acc, test_acc,best_epoch,best_time))
   return train_acc, val_acc, test_acc
 
 
