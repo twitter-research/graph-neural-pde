@@ -99,13 +99,6 @@ def make_symmetric(data):
     ApAT_index = torch.cat([data.edge_index, data.edge_index[[1, 0], :]], dim=1)
     ApAT_value = torch.cat([data.edge_attr, data.edge_attr], dim=0)
     ei, ew = torch_sparse.coalesce(ApAT_index, ApAT_value, n, n, op="add")
-
-    # A = torch.sparse_coo_tensor(data.edge_index, data.edge_attr, (n, n)).coalesce()
-    # AT_ei, AT_ew = torch_sparse.transpose(data.edge_index, data.edge_attr, n, n)
-    # AT = torch.sparse_coo_tensor(AT_ei, AT_ew, (n, n)).coalesce()
-    # A_sym = (0.5 * A + 0.5 * AT).coalesce()
-    # ei = A_sym.indices()
-    # ew = A_sym.values()
   else:
     ei = to_undirected(data.edge_index)
     ew = None
@@ -131,20 +124,11 @@ def KNN(x, opt):
   X_j = LazyTensor(x[None, :, :])  # (1, N, hd)
 
   # distance between all the grid points and all the random data points
-  D_ij = ((X_i - X_j) ** 2).sum(-1)  # (N**2, hd) symbolic matrix of squared distances
-  # H_ij = D_ij / (X_i[:,:,0] * X_j[:,:,0])
-  # indKNN = H_ij.argKmin(k, dim=1)
-  # D_ij = (-((X_i - X_j) ** 2).sum(-1)).exp()
-  # todo split into feature and pos with scale params
-  # self.output_var_p ** 2 * torch.exp(-torch.sum((src_p - dst_p) ** 2, dim=1) / (2 * self.lengthscale_p ** 2))
-
+  D_ij = ((X_i - X_j) ** 2).sum(-1)
   # take the indices of the K closest neighbours measured in euclidean distance
   indKNN = D_ij.argKmin(k, dim=1)
-  # LS = torch.linspace(0, len(indKNN.view(-1)), len(indKNN.view(-1)) + 1)[:-1].unsqueeze(0) // k
   LS = torch.linspace(0, len(indKNN.view(-1)), len(indKNN.view(-1)) + 1, dtype=torch.int64, device=indKNN.device)[
        :-1].unsqueeze(0) // k
-  # LS     = torch.linspace(0, len(indKNN.view(-1)), len(indKNN.view(-1)) + 1, device=indKNN.device)[:-1].unsqueeze(0) // k
-
   ei = torch.cat([LS, indKNN.view(1, -1)], dim=0)
 
   if opt['rewire_KNN_sym']:
@@ -223,7 +207,6 @@ def add_edges(model, opt):
   M = int(num_edges * opt['edge_sampling_add'])
   # generate new edges and add to edge_index
   if opt['edge_sampling_add_type'] == 'random':
-    # np.random.seed(0)
     new_edges = np.random.choice(num_nodes, size=(2, M), replace=True, p=None)
     new_edges = torch.tensor(new_edges, device=model.device)
     new_edges2 = new_edges[[1, 0], :]
