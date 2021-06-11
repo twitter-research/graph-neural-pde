@@ -1,7 +1,7 @@
 import torch
 from function_transformer_attention import SpGraphTransAttentionLayer
 from base_classes import ODEblock
-from utils import get_rw_adj
+from utils import get_rw_adj, make_norm
 from torch_scatter import scatter
 
 class HardAttODEblock(ODEblock):

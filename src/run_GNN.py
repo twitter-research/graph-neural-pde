@@ -1,59 +1,17 @@
 import argparse
+import numpy as np
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
 import torch.nn.functional as F
-from GNN import GNN, MP
+from GNN import GNN
+from GNN_early import GNNEarly
 from GNN_KNN import GNN_KNN
+from GNN_KNN_early import GNNKNNEarly
 import time
-from data import get_dataset
+from data import get_dataset, set_train_val_test_split
 from ogb.nodeproppred import Evaluator
-from graph_rewiring import apply_gdc, KNN, apply_KNN, apply_beltrami, apply_edge_sampling
-
-
-def get_cora_opt(opt):
-  opt['dataset'] = 'Cora'
-  opt['data'] = 'Planetoid'
-  opt['hidden_dim'] = 16
-  opt['input_dropout'] = 0.5
-  opt['dropout'] = 0
-  opt['optimizer'] = 'rmsprop'
-  opt['lr'] = 0.0047
-  opt['decay'] = 5e-4
-  opt['self_loop_weight'] = 0.555
-  if opt['self_loop_weight'] > 0.0:
-    opt['exact'] = True  # for GDC, need exact if selp loop weight >0
-  opt['alpha'] = 0.918
-  opt['time'] = 12.1
-  opt['num_feature'] = 1433
-  opt['num_class'] = 7
-  opt['num_nodes'] = 2708
-  opt['epoch'] = 50
-  opt['attention_dropout'] = 0
-  opt['adjoint'] = False
-  opt['block'] = 'attention'
-
-  return opt
-
-
-def get_computers_opt(opt):
-  opt['dataset'] = 'Computers'
-  opt['hidden_dim'] = 16
-  opt['input_dropout'] = 0.5
-  opt['dropout'] = 0
-  opt['optimizer'] = 'adam'
-  opt['lr'] = 0.01
-  opt['decay'] = 5e-4
-  opt['self_loop_weight'] = 0.555
-  opt['alpha'] = 0.918
-  opt['epoch'] = 400
-  opt['time'] = 12.1
-  opt['num_feature'] = 1433
-  opt['num_class'] = 7
-  opt['num_nodes'] = 2708
-  opt['epoch'] = 50
-  opt['attention_dropout'] = 0
-  opt['ode'] = 'ode'
-  return opt
+from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling
+from best_params import  best_params_dict
 
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
@@ -76,6 +34,7 @@ def add_labels(feat, labels, idx, num_classes, device):
   if idx.dtype == torch.bool:
     idx = torch.where(idx)[0]  # convert mask to linear index
   onehot[idx, labels.squeeze()[idx]] = 1
+
   return torch.cat([feat, onehot], dim=-1)
 
 
@@ -102,11 +61,6 @@ def train(model, optimizer, data, pos_encoding=None):
 
     feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
   else:
-    # todo in the DGL code from OGB, they seem to apply an additional mask to the training data - currently commented
-    # mask_rate = 0.5
-    # mask = torch.rand(data.train_index.shape) < mask_rate
-    #
-    # train_pred_idx = data.train_idx[mask]
     train_pred_idx = data.train_mask
 
   out = model(feat, pos_encoding)
@@ -144,11 +98,6 @@ def train_OGB(model, mp, optimizer, data, pos_encoding=None):
 
     feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
   else:
-    # todo in the DGL code from OGB, they seem to apply an additional mask to the training data - currently commented
-    # mask_rate = 0.5
-    # mask = torch.rand(data.train_index.shape) < mask_rate
-    #
-    # train_pred_idx = data.train_idx[mask]
     train_pred_idx = data.train_mask
 
   pos_encoding = mp(pos_encoding).to(model.device)
@@ -211,8 +160,6 @@ def test_OGB(model, data, pos_encoding, opt):
 
   evaluator = Evaluator(name=name)
   model.eval()
-  # mp.eval()
-  # pos_encoding = mp(pos_encoding).to(model.device)
 
   out = model(feat, pos_encoding).log_softmax(dim=-1)
   y_pred = out.argmax(dim=-1, keepdim=True)
@@ -233,12 +180,10 @@ def test_OGB(model, data, pos_encoding, opt):
   return train_acc, valid_acc, test_acc
 
 
-def main(opt):
-  try:
-    if opt['use_cora_defaults']:
-      opt = get_cora_opt(opt)
-  except KeyError:
-    pass  # not always present when called as lib
+def main(cmd_opt):
+  best_opt = best_params_dict[cmd_opt['dataset']]
+  opt = {**cmd_opt, **best_opt}
+
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -249,17 +194,19 @@ def main(opt):
     pos_encoding = None
 
   if opt['rewire_KNN'] or opt['fa_layer']:
-    model = GNN_KNN(opt, dataset, device).to(device)
+    model = GNN_KNN(opt, dataset, device).to(device) if opt["no_early"] else GNNKNNEarly(opt, dataset, device).to(device)
   else:
-    model = GNN(opt, dataset, device).to(device)
+    model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
+
+  if not opt['planetoid_split'] and opt['dataset'] in ['Cora','Citeseer','Pubmed']:
+    dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
   data = dataset.data.to(device)
 
-  # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
   parameters = [p for p in model.parameters() if p.requires_grad]
   print_model_params(model)
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-  best_val_acc = test_acc = train_acc = best_epoch = 0
+  best_time = best_epoch = train_acc = val_acc = test_acc = 0
 
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
@@ -270,18 +217,35 @@ def main(opt):
 
     this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
     loss = train(model, optimizer, data, pos_encoding)
-    train_acc, val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
 
-    if val_acc > best_val_acc:
-      best_val_acc = val_acc
-      test_acc = tmp_test_acc
-      best_epoch = epoch
+    if opt["no_early"]:
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
+      best_time = opt['time']
+      if tmp_val_acc > val_acc:
+        best_epoch = epoch
+        train_acc = tmp_train_acc
+        val_acc = tmp_val_acc
+        test_acc = tmp_test_acc
+    else:
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
+      if tmp_val_acc > val_acc:
+        best_epoch = epoch
+        train_acc = tmp_train_acc
+        val_acc = tmp_val_acc
+        test_acc = tmp_test_acc
+        best_time = opt['time']
+      if model.odeblock.test_integrator.solver.best_val > val_acc:
+        best_epoch = epoch
+        val_acc = model.odeblock.test_integrator.solver.best_val
+        test_acc = model.odeblock.test_integrator.solver.best_test
+        train_acc = model.odeblock.test_integrator.solver.best_train
+        best_time = model.odeblock.test_integrator.solver.best_time
+
     log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-    print(
-      log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, best_val_acc, test_acc))
-  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
 
-  return train_acc, best_val_acc, test_acc
+    print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, val_acc, test_acc))
+  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(val_acc, test_acc, best_epoch))
+  return train_acc, val_acc, test_acc
 
 
 if __name__ == '__main__':
@@ -297,6 +261,8 @@ if __name__ == '__main__':
   parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
   parser.add_argument('--label_rate', type=float, default=0.5,
                       help='% of training labels to use when --use_labels is set.')
+  parser.add_argument('--planetoid_split', action='store_true',
+                      help='use planetoid splits for Cora/Citeseer/Pubmed')
   # GNN args
   parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
   parser.add_argument('--fc_out', dest='fc_out', action='store_true',
@@ -317,6 +283,9 @@ if __name__ == '__main__':
   parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
   parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
                       help='Add a fully connected layer to the encoder.')
+  parser.add_argument('--add_source', dest='add_source', action='store_true',
+                      help='If try get rid of alpha param and the beta*x0 source term')
+
   # ODE args
   parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
   parser.add_argument('--augment', action='store_true',
@@ -326,10 +295,8 @@ if __name__ == '__main__':
   parser.add_argument('--step_size', type=float, default=1,
                       help='fixed step size when using fixed step solvers e.g. rk4')
   parser.add_argument('--max_iters', type=float, default=100, help='maximum number of integration steps')
-  parser.add_argument(
-    "--adjoint_method", type=str, default="adaptive_heun",
-    help="set the numerical solver for the backward pass: dopri5, euler, rk4, midpoint"
-  )
+  parser.add_argument("--adjoint_method", type=str, default="adaptive_heun",
+    help="set the numerical solver for the backward pass: dopri5, euler, rk4, midpoint")
   parser.add_argument('--adjoint', dest='adjoint', action='store_true',
                       help='use the adjoint ODE method to reduce memory footprint')
   parser.add_argument('--adjoint_step_size', type=float, default=1,
@@ -338,12 +305,13 @@ if __name__ == '__main__':
   parser.add_argument("--tol_scale_adjoint", type=float, default=1.0,
                       help="multiplier for adjoint_atol and adjoint_rtol")
   parser.add_argument('--ode_blocks', type=int, default=1, help='number of ode blocks to run')
-  parser.add_argument('--add_source', dest='add_source', action='store_true',
-                      help='If try get rid of alpha param and the beta*x0 source term')
-  # SDE args
-  parser.add_argument('--dt_min', type=float, default=1e-5, help='minimum timestep for the SDE solver')
-  parser.add_argument('--dt', type=float, default=1e-3, help='fixed step size')
-  parser.add_argument('--adaptive', dest='adaptive', action='store_true', help='use adaptive step sizes')
+  parser.add_argument("--max_nfe", type=int, default=1000,
+                      help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
+  parser.add_argument("--no_early", action="store_true", help="Whether or not to use early stopping of the ODE integrator when testing.")
+  parser.add_argument('--earlystopxT', type=float, default=3, help='multiplier for T used to evaluate best model')
+  parser.add_argument("--max_test_steps", type=int, default=100,help="Maximum number steps for the dopri5Early test integrator. "
+                           "used if getting OOM errors at test time")
+
   # Attention args
   parser.add_argument('--leaky_relu_slope', type=float, default=0.2,
                       help='slope of the negative part of the leaky relu used in attention')
@@ -354,10 +322,12 @@ if __name__ == '__main__':
                       help='the size to project x to before calculating att scores')
   parser.add_argument('--mix_features', dest='mix_features', action='store_true',
                       help='apply a feature transformation xW to the ODE')
-  parser.add_argument("--max_nfe", type=int, default=1000,
-                      help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
   parser.add_argument('--reweight_attention', dest='reweight_attention', action='store_true',
                       help="multiply attention scores by edge weights before softmax")
+  parser.add_argument('--attention_type', type=str, default="scaled_dot",
+                      help="scaled_dot,cosine_sim,pearson, exp_kernel")
+  parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
+
   # regularisation args
   parser.add_argument('--jacobian_norm2', type=float, default=None, help="int_t ||df/dx||_F^2")
   parser.add_argument('--total_deriv', type=float, default=None, help="int_t ||df/dt||^2")
@@ -394,7 +364,6 @@ if __name__ == '__main__':
   parser.add_argument('--fa_layer', action='store_true', help='add a bottleneck paper style layer with more edges')
   parser.add_argument('--pos_enc_type', type=str, default="DW64", help='positional encoder either GDC, DW64, DW128, DW256')
   parser.add_argument('--pos_enc_orientation', type=str, default="row", help="row, col")
-  parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
   parser.add_argument('--pos_enc_hidden_dim', type=int, default=32, help="dimension of position in beltrami")
   parser.add_argument('--rewire_KNN', action='store_true', help='perform KNN rewiring every few epochs')
@@ -421,8 +390,6 @@ if __name__ == '__main__':
 
 
   parser.add_argument('--fa_layer_edge_sampling_rmv', type=float, default=0.8, help="percentage of edges to remove")
-  parser.add_argument('--attention_type', type=str, default="scaled_dot",
-                      help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
   parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")
   parser.add_argument('--pos_enc_csv', action='store_true', help="Generate pos encoding as a sparse CSV")
 

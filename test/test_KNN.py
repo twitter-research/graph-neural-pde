@@ -28,7 +28,7 @@ class KNNTests(unittest.TestCase):
     self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     opt = {'beltrami': True}
     self.opt = {**OPT, **opt}
-    self.dataset = get_dataset(self.opt, '../data', False)
+    self.dataset = get_dataset(self.opt, '../data', True)
 
   def tearDown(self) -> None:
     pass

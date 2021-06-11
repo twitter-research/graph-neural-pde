@@ -25,7 +25,7 @@ class RewiringTests(unittest.TestCase):
       'block': 'attention'
     }
     self.opt = {**OPT, **opt}
-    self.dataset = get_dataset(self.opt, '../data', False)
+    self.dataset = get_dataset(self.opt, '../data', True)
 
   def tearDown(self) -> None:
     pass
