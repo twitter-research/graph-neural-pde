@@ -8,7 +8,7 @@ from GNN_early import GNNEarly
 import time
 from data import get_dataset, set_train_val_test_split
 from ogb.nodeproppred import Evaluator
-from best_params import  best_params_dict
+from best_params import best_params_dict
 
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
@@ -141,13 +141,13 @@ def test_OGB(model, data, opt):
 def main(cmd_opt):
   best_opt = best_params_dict[cmd_opt['dataset']]
   opt = {**cmd_opt, **best_opt}
-
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
   print(opt)
-  if not opt['planetoid_split'] and opt['dataset'] in ['Cora','Citeseer','Pubmed']:
-    dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
+  if not opt['planetoid_split'] and opt['dataset'] in ['Cora', 'Citeseer', 'Pubmed']:
+    dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data,
+                                            num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
   # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
   data = dataset.data.to(device)
   parameters = [p for p in model.parameters() if p.requires_grad]
@@ -158,34 +158,28 @@ def main(cmd_opt):
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
 
+    tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
     loss = train(model, optimizer, data)
-    if opt["no_early"]:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
+
+    if tmp_val_acc > val_acc:
+      best_epoch = epoch
+      train_acc = tmp_train_acc
+      val_acc = tmp_val_acc
+      test_acc = tmp_test_acc
       best_time = opt['time']
-      if tmp_val_acc > val_acc:
-        best_epoch = epoch
-        train_acc = tmp_train_acc
-        val_acc = tmp_val_acc
-        test_acc = tmp_test_acc
-    else:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
-      if tmp_val_acc > val_acc:
-        best_epoch = epoch
-        train_acc = tmp_train_acc
-        val_acc = tmp_val_acc
-        test_acc = tmp_test_acc
-        best_time = opt['time']
-      if model.odeblock.test_integrator.solver.best_val > val_acc:
-        best_epoch = epoch
-        val_acc = model.odeblock.test_integrator.solver.best_val
-        test_acc = model.odeblock.test_integrator.solver.best_test
-        train_acc = model.odeblock.test_integrator.solver.best_train
-        best_time = model.odeblock.test_integrator.solver.best_time
+    if not opt['no_early'] and model.odeblock.test_integrator.solver.best_val > val_acc:
+      best_epoch = epoch
+      val_acc = model.odeblock.test_integrator.solver.best_val
+      test_acc = model.odeblock.test_integrator.solver.best_test
+      train_acc = model.odeblock.test_integrator.solver.best_train
+      best_time = model.odeblock.test_integrator.solver.best_time
 
     log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
 
     print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, val_acc, test_acc))
-  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d} and best time {:d}'.format(val_acc, test_acc, best_epoch, best_time))
+  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d} and best time {:d}'.format(val_acc, test_acc,
+                                                                                                     best_epoch,
+                                                                                                     best_time))
   return train_acc, val_acc, test_acc
 
 
@@ -237,7 +231,7 @@ if __name__ == '__main__':
                       help='fixed step size when using fixed step solvers e.g. rk4')
   parser.add_argument('--max_iters', type=float, default=100, help='maximum number of integration steps')
   parser.add_argument("--adjoint_method", type=str, default="adaptive_heun",
-    help="set the numerical solver for the backward pass: dopri5, euler, rk4, midpoint")
+                      help="set the numerical solver for the backward pass: dopri5, euler, rk4, midpoint")
   parser.add_argument('--adjoint', dest='adjoint', action='store_true',
                       help='use the adjoint ODE method to reduce memory footprint')
   parser.add_argument('--adjoint_step_size', type=float, default=1,
@@ -248,9 +242,11 @@ if __name__ == '__main__':
   parser.add_argument('--ode_blocks', type=int, default=1, help='number of ode blocks to run')
   parser.add_argument("--max_nfe", type=int, default=1000,
                       help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
-  parser.add_argument("--no_early", action="store_true", help="Whether or not to use early stopping of the ODE integrator when testing.")
+  parser.add_argument("--no_early", action="store_true",
+                      help="Whether or not to use early stopping of the ODE integrator when testing.")
   parser.add_argument('--earlystopxT', type=float, default=3, help='multiplier for T used to evaluate best model')
-  parser.add_argument("--max_test_steps", type=int, default=100,help="Maximum number steps for the dopri5Early test integrator. "
+  parser.add_argument("--max_test_steps", type=int, default=100,
+                      help="Maximum number steps for the dopri5Early test integrator. "
                            "used if getting OOM errors at test time")
 
   # Attention args
