@@ -5,19 +5,11 @@ Test the graph rewiring
 """
 import unittest
 import torch
-from torch import tensor
-from torch import nn
-from torch.optim import Adam, Optimizer
 from data import get_dataset
-from DIGL_data import PPRDataset, set_train_val_test_split, get_dataset as DIGL_get_dataset, train as DIGL_train, \
-  evaluate as DIGL_evaluate
 from test_params import OPT
 from GNN import GNN
 from GNN_KNN import GNN_KNN
 from graph_rewiring import apply_edge_sampling, edge_sampling, apply_KNN, apply_beltrami, add_edges, add_outgoing_attention_edges
-
-from GNN_GCN import GCN
-import copy
 
 
 class RewiringTests(unittest.TestCase):
@@ -34,27 +26,9 @@ class RewiringTests(unittest.TestCase):
     }
     self.opt = {**OPT, **opt}
     self.dataset = get_dataset(self.opt, '../data', False)
-    # self.n = self.dataset.data.num_nodes
 
   def tearDown(self) -> None:
     pass
-
-  # def test_edge_sampling(self):
-  #   print(self.opt)
-  #   self.opt['beltrami'] = False
-  #   self.opt['block'] = 'attention'
-  #   # pos_encoding = apply_beltrami(self.dataset.data, self.opt)
-  #   # self.opt['pos_enc_dim'] = pos_encoding.shape[1]
-  #   gnn = GNN(self.opt, self.dataset, device=self.device)
-  #   out = gnn(self.dataset.data.x)
-  #   self.opt['edge_sampling_rmv'] = 1
-  #   self.opt['edge_sampling_add'] = 0
-  #   edge_count = gnn.odeblock.odefunc.edge_index.shape[1]
-  #   print(f"input edge count {edge_count}")
-  #   ei = edge_sampling(gnn, z, self.opt)
-  #   edge_count = gnn.odeblock.odefunc.edge_index.shape[1]
-  #   print(f"output edge count {edge_count}")
-  #   self.assertTrue(len(gnn.odeblock.odefunc.edge_index) == 0)
 
   def test_add_outgoing_attention_edges(self):
     self.opt['beltrami'] = False
