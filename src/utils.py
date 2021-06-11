@@ -5,7 +5,6 @@ utility functions
 import scipy
 from scipy.stats import sem
 import numpy as np
-import torch
 from torch_scatter import scatter_add
 from torch_geometric.utils import add_remaining_self_loops
 from torch_geometric.utils.num_nodes import maybe_num_nodes

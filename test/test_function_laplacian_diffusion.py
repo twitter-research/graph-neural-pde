@@ -73,7 +73,6 @@ class FunctionLaplacianDiffusionTests(unittest.TestCase):
     test_sym_adj = np.divide(np.divide(augmented_input, sqr_degree[:, None]), sqr_degree[None, :])
 
     test_rw_adj = normalize(augmented_input, norm='l1', axis=0)
-    # rw_adj = rw_adj.to_dense()
     sym_adj = sym_adj.to_dense()
     print('rw adjacency', rw_adj)
     print('test rw adjacency', test_rw_adj)
