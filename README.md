@@ -15,6 +15,14 @@ versions of GRAND, which achieve competitive results on many standard graph benc
 
 ### Requirements
 Dependencies (with python >= 3.7):
+Main dependencies are
+torch==1.8.1
+torch-cluster==1.5.9
+torch-geometric==1.7.0
+torch-scatter==2.0.6
+torch-sparse==0.6.9
+torch-spline-conv==1.2.1
+torchdiffeq==0.2.1
 To create the required environment run
 ```
 python3 -m venv env
