@@ -246,16 +246,6 @@ def main(opt):
     pass  # not always present when called as lib
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  # device = f"cuda:{opt['gpu']}" if torch.cuda.is_available() else 'cpu'
-
-  # if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
-  #   pos_encoding = apply_beltrami(dataset.data, opt)
-  #   mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
-  # elif opt['beltrami']:
-  #   pos_encoding = apply_beltrami(dataset.data, opt).to(device)
-  #   opt['pos_enc_dim'] = pos_encoding.shape[1]
-  # else:
-  #   pos_encoding = None
 
   if opt['beltrami']:
     pos_encoding = apply_beltrami(dataset.data, opt).to(device)
@@ -263,7 +253,7 @@ def main(opt):
   else:
     pos_encoding = None
 
-  if opt['rewire_KNN']:
+  if opt['rewire_KNN'] or opt['fa_layer']:
     model = GNN_KNN(opt, dataset, device).to(device)
   else:
     model = GNN(opt, dataset, device).to(device)
@@ -275,7 +265,6 @@ def main(opt):
   print_model_params(model)
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
   best_val_acc = test_acc = train_acc = best_epoch = 0
-  # test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
 
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
@@ -283,11 +272,7 @@ def main(opt):
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
       ei = apply_KNN(data, pos_encoding, model, opt)
       model.odeblock.odefunc.edge_index = ei
-    #
-    # if opt['dataset'] == 'ogbn-arxiv':  # this is a proxy for 'external encoder'
-    #   loss = train_OGB(model, mp, optimizer, data, pos_encoding)
-    #   train_acc, val_acc, tmp_test_acc = test_OGB(model, mp, data, pos_encoding, opt)
-    # else:
+
     this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
     loss = train(model, optimizer, data, pos_encoding)
     train_acc, val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
@@ -411,6 +396,7 @@ if __name__ == '__main__':
   parser.add_argument('--rw_rmvR', type=float, default=0.02, help="percentage of edges to remove")
 
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
+  parser.add_argument('--fa_layer', action='store_true', help='add a bottleneck paper style layer with more edges')
   parser.add_argument('--pos_enc_type', type=str, default="DW64", help='positional encoder either GDC, DW64, DW128, DW256')
   parser.add_argument('--pos_enc_orientation', type=str, default="row", help="row, col")
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
@@ -423,6 +409,23 @@ if __name__ == '__main__':
   parser.add_argument('--rewire_KNN_sym', action='store_true', help='make KNN symmetric')
   parser.add_argument('--KNN_online', action='store_true', help='perform rewiring online')
   parser.add_argument('--KNN_online_reps', type=int, default=4, help="how many online KNN its")
+  parser.add_argument('--KNN_space', type=str, default="pos_distance", help="Z,P,QKZ,QKp")
+
+
+  parser.add_argument('--edge_sampling', action='store_true', help='perform edge sampling rewiring')
+  parser.add_argument('--edge_sampling_T', type=str, default="T0", help="T0, TN")
+  parser.add_argument('--edge_sampling_epoch', type=int, default=5, help="frequency of epochs to rewire")
+  parser.add_argument('--edge_sampling_add', type=float, default=0.64, help="percentage of new edges to add")
+  parser.add_argument('--edge_sampling_add_type', type=str, default="importance", help="random, ,anchored, importance, degree")
+  parser.add_argument('--edge_sampling_rmv', type=float, default=0.32, help="percentage of edges to remove")
+  parser.add_argument('--edge_sampling_sym', action='store_true', help='make KNN symmetric')
+  parser.add_argument('--edge_sampling_online', action='store_true', help='perform rewiring online')
+  parser.add_argument('--edge_sampling_online_reps', type=int, default=4, help="how many online KNN its")
+  parser.add_argument('--edge_sampling_space', type=str, default="attention", help="attention,pos_distance, z_distance, pos_distance_QK, z_distance_QK")
+  parser.add_argument('--symmetric_attention', action='store_true', help='maks the attention symmetric for rewring in QK space')
+
+
+  parser.add_argument('--fa_layer_edge_sampling_rmv', type=float, default=0.8, help="percentage of edges to remove")
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
   parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")
