@@ -155,6 +155,27 @@ class GNN_KNN(BaseGNN):
     else:
       z = self.odeblock(x)
 
+    if self.opt['fa_layer']:
+      temp_time = self.opt['time']
+      temp_method = self.opt['method']
+      temp_step_size = self.opt['step_size']
+
+      self.opt['time'] = 1 # self.opt['fa_layer_time'] #1.0
+      self.opt['method'] = 'rk4' # self.opt['fa_layer_method']#'rk4'
+      self.opt['step_size'] = 1 # self.opt['fa_layer_step_size']#1.0
+      self.odeblock.set_x0(z)
+      self.odeblock.odefunc.edge_index = add_edges(self, self.opt)
+      if self.opt['edge_sampling_rmv'] != 0:
+        edge_sampling(self, z, self.opt)
+
+      z = self.odeblock(z)
+      self.odeblock.odefunc.edge_index = self.data_edge_index
+
+      self.opt['time'] = temp_time
+      self.opt['method'] = temp_method
+      self.opt['step_size'] = temp_step_size
+
+
     if self.opt['augment']:
       z = torch.split(z, x.shape[1] // 2, dim=1)[0]
 
