@@ -20,7 +20,6 @@ class GNNKNNEarly(BaseGNN):
     self.f = set_function(opt)
     block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
-    # self.regularization_fns = ()
     self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
     # overwrite the test integrator with this custom one
     with torch.no_grad():
@@ -99,19 +98,14 @@ class GNNKNNEarly(BaseGNN):
       x = x[:, :-self.num_classes]
 
     if self.opt['beltrami']:
-      # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-      # p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
       x = self.mx(x)
       p = self.mp(pos_encoding)
       x = torch.cat([x, p], dim=1)
     else:
-      # x = F.dropout(x, self.opt['input_dropout'], training=self.training)
       x = self.m1(x)
 
     if self.opt['use_mlp']:
       x = F.dropout(x, self.opt['dropout'], training=self.training)
-      # x = F.dropout(x + self.m11(F.relu(x)), self.opt['dropout'], training=self.training)
-      # x = F.dropout(x + self.m12(F.relu(x)), self.opt['dropout'], training=self.training)
       x = x + self.m11(F.relu(x))
       x = x + self.m12(F.relu(x))
 
