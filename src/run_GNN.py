@@ -177,7 +177,7 @@ def main(cmd_opt):
     log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
 
     print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, val_acc, test_acc))
-  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d} and best time {:d}'.format(val_acc, test_acc,
+  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d} and best time {:03f}'.format(val_acc, test_acc,
                                                                                                      best_epoch,
                                                                                                      best_time))
   return train_acc, val_acc, test_acc
