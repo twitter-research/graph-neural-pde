@@ -3,7 +3,6 @@ import os
 import torch
 import argparse
 from torch import nn
-from torch import Tensor
 import torch.nn.functional as F
 from data import get_dataset
 from run_GNN import get_optimizer, test
@@ -69,7 +68,6 @@ class ODEblock(nn.Module):
     self.odefunc.x0 = x0.clone().detach()
 
   def forward(self, x):
-    # self.nfe += 1
 
     t = self.t.type_as(x)
     z = odeint(self.odefunc, x, t)[1]
@@ -98,9 +96,6 @@ class ICML_GNN(nn.Module):
                              t=torch.tensor([0, self.T]))
 
     self.m2 = nn.Linear(opt['hidden_dim'], opt['num_class'])
-
-    # if opt['cuda']:
-    #   self.cuda()
 
   def getNFE(self):
     return self.odeblock.odefunc.nfe
