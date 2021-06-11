@@ -26,8 +26,7 @@ class GNN(BaseGNN):
       x = F.dropout(x + self.m11(F.relu(x)), self.opt['dropout'], training=self.training)
       x = F.dropout(x + self.m12(F.relu(x)), self.opt['dropout'], training=self.training)
     # todo investigate if some input non-linearity solves the problem with smooth deformations identified in the ANODE paper
-    # if True:
-    #   x = F.relu(x)
+
     if self.opt['use_labels']:
       x = torch.cat([x, y], dim=-1)
 
@@ -48,9 +47,6 @@ class GNN(BaseGNN):
 
     if self.opt['augment']:
       z = torch.split(z, x.shape[1] // 2, dim=1)[0]
-
-    # if self.opt['batch_norm']:
-    #   z = self.bn_in(z)
 
     # Activation.
     z = F.relu(z)
