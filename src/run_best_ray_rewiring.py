@@ -55,10 +55,15 @@ def run_best_params(opt):
     best_params_ret['pos_enc_csv']
   except KeyError:
     best_params_ret['pos_enc_csv'] = False
-  try:
-    best_params_ret['pos_enc_type']
-  except KeyError:
-    best_params_ret['pos_enc_type'] = 'GDC'
+
+  if opt['pos_enc_type'] is None:
+    try:
+      best_params_ret['pos_enc_type']
+    except KeyError:
+      best_params_ret['pos_enc_type'] = 'GDC'
+  else:
+    best_params_ret['pos_enc_type'] = opt['pos_enc_type']
+
   # the exception is number of epochs as we want to use more here than we would for hyperparameter tuning.
   best_params_ret['epoch'] = opt['epoch']
   best_params_ret['max_nfe'] = opt['max_nfe']
@@ -162,6 +167,7 @@ if __name__ == '__main__':
                       help="Whether or not to use early stopping of the ODE integrator when testing.")
 
   parser.add_argument('--earlystopxT', type=float, default=3, help='multiplier for T used to evaluate best model')
+  parser.add_argument('--pos_enc_type', type=str, default=None, help='positional encoder either GDC, DW64, DW128, DW256')
 
   args = parser.parse_args()
 
