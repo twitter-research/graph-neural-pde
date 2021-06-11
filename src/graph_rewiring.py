@@ -1,19 +1,15 @@
 """
 functions to generate a graph from the input graph and features
 """
-import argparse
-import numpy as np
-import torch
 import torch.nn.functional as F
 import torch_sparse
 from torch_scatter import scatter
 from torch_geometric.transforms.two_hop import TwoHop
 from utils import get_rw_adj, get_full_adjacency
-# from torch_geometric.transforms import GDC
 from pykeops.torch import LazyTensor
 import os
 import pickle
-from distances_kNN import apply_dist_KNN, apply_dist_threshold
+from distances_kNN import apply_dist_KNN, apply_dist_threshold, get_distances, apply_feat_KNN
 from hyperbolic_distances import hyperbolize
 
 
@@ -23,7 +19,7 @@ import numba
 import numpy as np
 from scipy.linalg import expm
 from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, \
-  remove_self_loops, dense_to_sparse, to_undirected
+   dense_to_sparse, to_undirected
 from torch_sparse import coalesce
 from torch_scatter import scatter_add
 
@@ -152,7 +148,7 @@ def KNN(x, opt):
   ei = torch.cat([LS, indKNN.view(1, -1)], dim=0)
 
   if opt['rewire_KNN_sym']:
-    ei, _ = to_undirected(ei)
+    ei = to_undirected(ei)
 
   return ei
 
@@ -161,16 +157,12 @@ def KNN(x, opt):
 def apply_KNN(data, pos_encoding, model, opt):
   if opt['rewire_KNN_T'] == "raw":
     ei = KNN(data.x, opt)  # rewiring on raw features here
-
   elif opt['rewire_KNN_T'] == "T0":
     ei = KNN(model.forward_encoder(data.x, pos_encoding), opt)
-
   elif opt['rewire_KNN_T'] == 'TN':
     ei = KNN(model.forward_ODE(data.x, pos_encoding), opt)
-
   else:
     raise Exception("Need to set rewire_KNN_T")
-
   return ei
 
 
@@ -308,60 +300,65 @@ def apply_beltrami(data, opt, data_dir='../data'):
       pickle.dump(pos_encoding, f)
 
   return pos_encoding
-  # data.x = torch.cat([data.x, pos_encoding], dim=1)
-  # return data
-
 
 
 def apply_pos_dist_rewire(data, opt, data_dir='../data'):
-  pos_enc_dir = os.path.join(f"{data_dir}", "pos_encodings")
-  # generate new positional encodings distances
-  # do encodings already exist on disk?
-  fname = os.path.join(pos_enc_dir, f"{opt['dataset']}_{opt['pos_enc_type']}_dists.pkl")
-  print(f"[i] Looking for positional encoding DISTANCES in {fname}...")
+  if opt['pos_enc_type'].startswith("HYP"):
+    pos_enc_dir = os.path.join(f"{data_dir}", "pos_encodings")
+    # generate new positional encodings distances
+    # do encodings already exist on disk?
+    fname = os.path.join(pos_enc_dir, f"{opt['dataset']}_{opt['pos_enc_type']}_dists.pkl")
+    print(f"[i] Looking for positional encoding DISTANCES in {fname}...")
 
-  # - if so, just load them
-  if os.path.exists(fname):
-    print("    Found them! Loading cached version")
-    with open(fname, "rb") as f:
-      pos_dist = pickle.load(f)
-    # if opt['pos_enc_type'].startswith("DW"):
-    #   pos_dist = pos_dist['data']
+    # - if so, just load them
+    if os.path.exists(fname):
+      print("    Found them! Loading cached version")
+      with open(fname, "rb") as f:
+        pos_dist = pickle.load(f)
+      # if opt['pos_enc_type'].startswith("DW"):
+      #   pos_dist = pos_dist['data']
 
-  # - otherwise, calculate...
-  else:
-    print("    Encodings not found! Calculating and caching them")
-    # choose different functions for different positional encodings
-    if opt['pos_enc_type'].startswith("HYP"):
-      pos_encoding = apply_beltrami(data, opt)
-      pos_dist = hyperbolize(pos_encoding)
-
-
+    # - otherwise, calculate...
     else:
-      print(f"[x] The positional encoding type you specified ({opt['pos_enc_type']}) does not exist")
-      quit()
-    # - ... and store them on disk
-    POS_ENC_PATH = os.path.join(data_dir, "pos_encodings")
-    if not os.path.exists(POS_ENC_PATH):
-      os.makedirs(POS_ENC_PATH)
-
-    # if opt['pos_enc_csv']:
-    #   sp = pos_encoding.to_sparse()
-    #   table_mat = np.concatenate([sp.indices(), np.atleast_2d(sp.values())], axis=0).T
-    #   np.savetxt(f"{fname[:-4]}.csv", table_mat, delimiter=",")
-
-    with open(fname, "wb") as f:
-      pickle.dump(pos_dist, f)
+      print("    Encodings not found! Calculating and caching them")
+      # choose different functions for different positional encodings
+      if opt['pos_enc_type'].startswith("HYP"):
+        pos_encoding = apply_beltrami(data, opt)
+        pos_dist = hyperbolize(pos_encoding)
 
 
-  if opt['gdc_sparsification'] == 'topk':
-    ei = apply_dist_KNN(pos_dist, opt['gdc_k'])
-  elif opt['gdc_sparsification'] == 'threshold':
-    ei = apply_dist_threshold(pos_dist, opt['pos_dist_quantile'])
-  # elif opt['pos_dist_type'] == 'DW_pos_dist_thresh':
-  #   ei = apply_dist_threshold(pos_dist, opt['pos_dist_quantile'])
+      else:
+        print(f"[x] The positional encoding type you specified ({opt['pos_enc_type']}) does not exist")
+        quit()
+      # - ... and store them on disk
+      POS_ENC_PATH = os.path.join(data_dir, "pos_encodings")
+      if not os.path.exists(POS_ENC_PATH):
+        os.makedirs(POS_ENC_PATH)
 
-  data.edge_index = ei
+      # if opt['pos_enc_csv']:
+      #   sp = pos_encoding.to_sparse()
+      #   table_mat = np.concatenate([sp.indices(), np.atleast_2d(sp.values())], axis=0).T
+      #   np.savetxt(f"{fname[:-4]}.csv", table_mat, delimiter=",")
+
+      with open(fname, "wb") as f:
+        pickle.dump(pos_dist, f)
+
+
+      if opt['gdc_sparsification'] == 'topk':
+        ei = apply_dist_KNN(pos_dist, opt['gdc_k'])
+      elif opt['gdc_sparsification'] == 'threshold':
+        ei = apply_dist_threshold(pos_dist, opt['pos_dist_quantile'])
+
+  elif opt['pos_enc_type'].startswith("DW"):
+    pos_encoding = apply_beltrami(data, opt, data_dir)
+    if opt['gdc_sparsification'] == 'topk':
+      ei = apply_feat_KNN(pos_encoding,  opt['gdc_k'])
+      # ei = KNN(pos_encoding, opt)
+    elif opt['gdc_sparsification'] == 'threshold':
+      dist = get_distances(pos_encoding)
+      ei = apply_dist_threshold(dist)
+
+  data.edge_index = torch.from_numpy(ei).type(torch.LongTensor)
 
   return data
 

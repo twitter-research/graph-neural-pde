@@ -9,7 +9,6 @@ class AttODEblock(ODEblock):
     super(AttODEblock, self).__init__(odefunc, regularization_fns, opt, data, device, t)
 
     self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, data, device)
-    # self.odefunc.edge_index, self.odefunc.edge_weight = data.edge_index, edge_weight=data.edge_attr
     edge_index, edge_weight = get_rw_adj(data.edge_index, edge_weight=data.edge_attr, norm_dim=1,
                                          fill_value=opt['self_loop_weight'],
                                          num_nodes=data.num_nodes,
