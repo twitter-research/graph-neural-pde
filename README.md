@@ -1,25 +1,45 @@
 ## Introduction
 
-We provide a new perspective on graph neural networks (GNNs) by formulating them as 
-discretizations of the diffusion PDE. This framework provides a rich class of models 
-that encompasses various forms of graph rewiring and GNNs with both explicit and implicit layers
-
+We present Graph Neural Diffusion (GRAND)
+that approaches deep learning on graphs as a continuous diffusion process and treats Graph Neural
+Networks (GNNs) as discretisations of an underlying PDE. In our model, the layer structure and
+topology correspond to the discretisation choices
+of temporal and spatial operators. Our approach allows a principled development of a broad new
+class of GNNs that are able to address the common plights of graph learning models such as
+depth, oversmoothing, and bottlenecks. Key to
+the success of our models are stability with respect to perturbations in the data and this is addressed for both 
+implicit and explicit discretisation schemes. We develop linear and nonlinear
+versions of GRAND, which achieve competitive results on many standard graph benchmarks.
 
 ## Running the experiments
 
 ### Requirements
-
 Dependencies (with python >= 3.7):
-Edit the first line of environment.yml to your desired conda environment name
+To create the required environment run
 ```
-conda env create -f environment.yml
+python3 -m venv env
+source env/bin/activate
+pip install -r requirements.txt
 ```
 
 ### Dataset and Preprocessing
+create a root level ./data folder. This will be automatically populated the first time each experiment is run.
+in the case of using deep walk or hyperbolic positional encodings upload provided positional encodings to ./data/pos_encodings
+For example to run for Cora:
+```
+python run_GNN.py --dataset Cora 
+```
 
-create a root level data folder. This will be automatically populated the first time each experiment is run.
+## Cite us
+@article{chamberlain2021grand,
+  title={GRAND: Graph Neural Diffusion},
+  author={Chamberlain, Benjamin Paul and Rowbottom, James and Goronova, Maria and Webb, Stefan and Rossi, 
+  Emanuele and Bronstein, Michael},
+  journal={Proceedings of the 38th International Conference on Machine Learning,
+               {ICML} 2021, 13-18 July 2020, Virtual Event},
+  year={2020}
+}
 
-python run_GNN --dataset Cora
 
 ## Security Issues?
 Please report sensitive security issues via Twitter's bug-bounty program (https://hackerone.com/twitter) rather than GitHub.
