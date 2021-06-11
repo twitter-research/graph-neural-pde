@@ -12,6 +12,7 @@ from block_mixed import MixedODEblock
 from torch_geometric.data import Data
 from torch_geometric.utils import to_dense_adj
 import numpy as np
+from test_params import OPT
 
 
 class DummyDataset():
@@ -32,12 +33,13 @@ class MixedODEBlockTests(unittest.TestCase):
 
     self.leakyrelu = nn.LeakyReLU(0.2)
     self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    self.opt = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'sc', 'heads': 2,
+    opt = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'sc', 'heads': 2,
                 'K': 10, 'attention_norm_idx': 0, 'add_source': False, 'alpha': 1, 'alpha_dim': 'vc',
                 'hidden_dim': 6, 'block': 'mixed', 'function': 'laplacian', 'augment': False, 'adjoint': False,
                 'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler',
                 'rewiring': None, 'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None,
-                'total_deriv': None, 'directional_penalty': None, 'jacobian_norm2': None, 'step_size':1, 'max_iter': 10}
+                'total_deriv': None, 'directional_penalty': None, 'jacobian_norm2': None, 'step_size':1, 'max_iter': 10, 'beltrami': False}
+    self.opt = {**OPT, **opt}
 
     self.dataset = get_dataset(self.opt, '../data', False)
 
@@ -70,8 +72,6 @@ class MixedODEBlockTests(unittest.TestCase):
     att_arr = to_dense_adj(odeblock.odefunc.edge_index, edge_attr=attention).detach().numpy().squeeze()
     gamma = torch.sigmoid(odeblock.gamma).detach().numpy()
     mixed_att_test = (1 - gamma) * att_arr + gamma * rw_arr
-    # print('mixed_att_test', mixed_att_test)
-    # print('mixed_att', mixed_att)
     self.assertTrue(np.allclose(mixed_att, mixed_att_test))
 
   def test_block_cora(self):
@@ -89,7 +89,6 @@ class MixedODEBlockTests(unittest.TestCase):
     self.assertTrue(data.x.shape == out.shape)
     gnn.eval()
     out = odeblock(data.x)
-    # print('ode block out', out)
     self.assertTrue(data.x.shape == out.shape)
     self.opt['heads'] = 2
     try:

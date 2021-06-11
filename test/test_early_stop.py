@@ -12,6 +12,7 @@ from function_laplacian_diffusion import LaplacianODEFunc
 from GNN_early import GNNEarly
 from block_constant import ConstantODEblock
 from utils import get_rw_adj
+from test_params import OPT
 
 
 class EarlyStopTests(unittest.TestCase):
@@ -25,13 +26,14 @@ class EarlyStopTests(unittest.TestCase):
 
     self.leakyrelu = nn.LeakyReLU(0.2)
     self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    self.opt = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2, 'K': 10,
+    opt = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2, 'K': 10,
                 'attention_norm_idx': 0, 'add_source': False, 'alpha': 1, 'alpha_dim': 'vc', 'beta_dim': 'vc',
                 'hidden_dim': 6, 'block': 'constant', 'function': 'laplacian', 'augment': False, 'adjoint': False,
-                'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler',
+                'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'dopri5',
                 'rewiring': None, 'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None,
                 'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None, 'step_size': 1, 'data_norm': 'rw',
-                'earlystopxT': 3, 'max_iters': 10}
+                'earlystopxT': 3, 'max_iters': 10, 'beltrami': False}
+    self.opt = {**OPT, **opt}
     self.dataset = get_dataset(self.opt, '../data', False)
 
   def tearDown(self) -> None:

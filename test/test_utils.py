@@ -6,14 +6,12 @@ import torch
 from torch import tensor
 from torch import nn
 from data import get_dataset
-from function_laplacian_diffusion import LaplacianODEFunc
-from GNN import GNN
-from block_mixed import MixedODEblock
 from torch_geometric.data import Data
 from torch_geometric.utils import to_dense_adj
 import numpy as np
-from utils import sparse_dense_mul, get_rw_adj, get_rw_adj_old, gcn_norm_fill_val
+from utils import get_rw_adj, gcn_norm_fill_val
 from sklearn.preprocessing import normalize
+from test_params import OPT
 
 
 class DummyDataset():
@@ -40,14 +38,14 @@ class UtilsTests(unittest.TestCase):
 
     self.leakyrelu = nn.LeakyReLU(0.2)
     self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    self.opt = {'dataset': 'Cora', 'self_loop_weight': 0, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2,
+    opt = {'dataset': 'Cora', 'self_loop_weight': 0, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2,
                 'K': 10,
                 'attention_norm_idx': 0, 'add_source': False, 'alpha': 1, 'alpha_dim': 'vc', 'beta_dim': 'vc',
                 'hidden_dim': 6, 'linear_attention': True, 'augment': False, 'adjoint': False,
                 'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler',
                 'rewiring': None, 'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None,
-                'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None}
-
+                'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None, 'beltrami': False}
+    self.opt = {**OPT, **opt}
     self.dataset = get_dataset(self.opt, '../data', False)
 
   def tearDown(self) -> None:
@@ -73,44 +71,6 @@ class UtilsTests(unittest.TestCase):
     for self_loop in self_loops:
       self.self_loop_test(base_adj, self_loop, norm_dim=0)
       self.self_loop_test(base_adj, self_loop, norm_dim=1)
-
-    # edge_index, edge_weight = get_rw_adj(self.edge, norm_dim=1, fill_value=self.opt['self_loop_weight'],
-    #                                      num_nodes=self.x.shape[0])
-    # dense_rw_adj = to_dense_adj(edge_index, edge_attr=edge_weight)
-    # print('dense rw adj', dense_rw_adj)
-    # rw_adj_old_scipy = get_rw_adj_old(self.data, self.opt).to_dense().numpy().squeeze()
-    # print('dense rw adj scipy', rw_adj_old_scipy)
-    # self.assertTrue(np.allclose(rw_adj_old_scipy, dense_rw_adj.numpy().squeeze()))
-    #
-    # self.opt['self_loop_weight'] = 1
-    # edge_index, edge_weight = get_rw_adj(self.edge, norm_dim=1, fill_value=self.opt['self_loop_weight'],
-    #                                      num_nodes=self.x.shape[0])
-    # dense_rw_adj = to_dense_adj(edge_index, edge_attr=edge_weight)
-    # rw_adj_old_scipy = get_rw_adj_old(self.data, self.opt).to_dense().numpy().squeeze()
-    # print('dense rw adj', dense_rw_adj)
-    # print('dense rw adj scipy', rw_adj_old_scipy)
-    # self.assertTrue(np.allclose(rw_adj_old_scipy, dense_rw_adj.numpy().squeeze()))
-    # self.opt['self_loop_weight'] = 0.3
-    # edge_index, edge_weight = get_rw_adj(self.edge, norm_dim=1, fill_value=self.opt['self_loop_weight'],
-    #                                      num_nodes=self.x.shape[0])
-    # dense_rw_adj = to_dense_adj(edge_index, edge_attr=edge_weight)
-    # rw_adj_old_scipy = get_rw_adj_old(self.data, self.opt).to_dense().numpy().squeeze()
-    # print('dense rw adj', dense_rw_adj)
-    # print('dense rw adj scipy', rw_adj_old_scipy)
-    # self.assertTrue(np.allclose(rw_adj_old_scipy, dense_rw_adj.numpy().squeeze()))
-    # self.opt['self_loop_weight'] = 2.1
-    # edge_index, edge_weight = get_rw_adj(self.edge, norm_dim=1, fill_value=self.opt['self_loop_weight'],
-    #                                      num_nodes=self.x.shape[0])
-    # dense_rw_adj = to_dense_adj(edge_index, edge_attr=edge_weight)
-    # rw_adj_old_scipy = get_rw_adj_old(self.data, self.opt).to_dense().numpy().squeeze()
-    # self.assertTrue(np.allclose(rw_adj_old_scipy, dense_rw_adj.numpy().squeeze()))
-    # self.opt['self_loop_weight'] = -3.2
-    # edge_index, edge_weight = get_rw_adj(self.edge, norm_dim=1, fill_value=self.opt['self_loop_weight'],
-    #                                      num_nodes=self.x.shape[0])
-    # dense_rw_adj = to_dense_adj(edge_index, edge_attr=edge_weight)
-    # rw_adj_old_scipy = get_rw_adj_old(self.data, self.opt).to_dense().numpy().squeeze()
-    # self.assertTrue(np.allclose(rw_adj_old_scipy, dense_rw_adj.numpy().squeeze()))
-
 
 if __name__ == '__main__':
   tests = UtilsTests()

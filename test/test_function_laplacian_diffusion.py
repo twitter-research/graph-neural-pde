@@ -14,6 +14,7 @@ from torch_geometric.utils import to_dense_adj
 import numpy as np
 from sklearn.preprocessing import normalize
 from utils import get_rw_adj, get_sym_adj
+from test_params import OPT
 
 
 class DummyDataset():
@@ -34,7 +35,7 @@ class FunctionLaplacianDiffusionTests(unittest.TestCase):
 
     self.leakyrelu = nn.LeakyReLU(0.2)
     self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    self.opt = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2,
+    opt = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2,
                 'K': 10,
                 'attention_norm_idx': 0, 'add_source': False, 'alpha': 1, 'alpha_dim': 'vc', 'beta_dim': 'vc',
                 'hidden_dim': 6, 'augment': False, 'adjoint': False,
@@ -42,7 +43,8 @@ class FunctionLaplacianDiffusionTests(unittest.TestCase):
                 'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler',
                 'rewiring': None, 'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None,
                 'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None, 'step_size': 1, 'data_norm': 'rw',
-                'max_iters': 10}
+                'max_iters': 10, 'beltrami': False}
+    self.opt = {**OPT, **opt}
 
     self.dataset = get_dataset(self.opt, '../data', False)
 
@@ -71,7 +73,6 @@ class FunctionLaplacianDiffusionTests(unittest.TestCase):
     test_sym_adj = np.divide(np.divide(augmented_input, sqr_degree[:, None]), sqr_degree[None, :])
 
     test_rw_adj = normalize(augmented_input, norm='l1', axis=0)
-    # rw_adj = rw_adj.to_dense()
     sym_adj = sym_adj.to_dense()
     print('rw adjacency', rw_adj)
     print('test rw adjacency', test_rw_adj)
