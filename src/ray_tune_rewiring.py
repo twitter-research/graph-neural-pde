@@ -71,8 +71,7 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
       model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
       train_this = train_icml
     else:
-      # model = GNN(opt, dataset, device)
-      if opt['rewire_KNN']:
+      if opt['rewire_KNN'] or opt['fa_layer']:
         model = GNN_KNN(opt, dataset, device).to(device)
       else:
         model = GNN(opt, dataset, device).to(device)
@@ -122,12 +121,8 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
   models = []
-  mps = []
   optimizers = []
 
-  # if opt['beltrami'] and opt['dataset'] == 'ogbn-arxiv':
-  #   pos_encoding = apply_beltrami(dataset.data, opt)
-  #   mp = MP(opt, pos_encoding.shape[1], device=torch.device('cpu'))
   if opt['beltrami']:
     pos_encoding = apply_beltrami(dataset.data, opt, data_dir).to(device)
     opt['pos_enc_dim'] = pos_encoding.shape[1]
@@ -145,7 +140,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
       train_this = train_icml
     else:
-      if opt['rewire_KNN']:
+      if opt['rewire_KNN'] or opt['fa_layer']:
         model = GNN_KNN(opt, dataset, device).to(device)
       else:
         model = GNN(opt, dataset, device).to(device)
@@ -177,11 +172,6 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
       ei = apply_KNN(data, pos_encoding, model, opt)
       model.odeblock.odefunc.edge_index = ei
 
-    # if opt['dataset'] == 'ogbn-arxiv':
-    #   loss = np.mean([train_OGB(model, mp, optimizer, data, pos_encoding) for model, optimizer, data in
-    #                   zip(models, mps, optimizers, datas)])
-    #   train_accs, val_accs, tmp_test_accs = average_test_OGB(models, mps, datas, pos_encoding)
-    # else:
     loss = np.mean(
       [train_this(model, optimizer, data, pos_encoding) for model, optimizer, data in zip(models, optimizers, datas)])
     train_accs, val_accs, tmp_test_accs = average_test(models, datas, pos_encoding, opt)
@@ -212,7 +202,7 @@ def train_ray_int(opt, checkpoint_dir=None, data_dir="../data"):
   else:
     pos_encoding = None
 
-  if opt['rewire_KNN']:
+  if opt['rewire_KNN'] or opt['fa_layer']:
     model = GNN_KNN(opt, dataset, device) if opt["no_early"] else GNNKNNEarly(opt, dataset, device)
   else:
     model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
@@ -307,18 +297,24 @@ def main(opt):
 
 
 def mainLoop(opt):
-  # opt['rewire_KNN'] = False
-  datas = ['Photo']  # ['Citeseer', 'Photo']
-  # folders = ['Photo_beltrami_1'] #['Citeseer_beltrami_1', 'Photo_beltrami_1']
-  # for i, ds in enumerate(datas):
-  #   print(f"Running Tuning for {ds}")
-  #   opt["dataset"] = ds
-  #   opt["name"] = folders[i]
-  #   main(opt)
+  opt['epoch'] = 100
+  opt['gpus'] = 1
+  opt['num_samples'] = 400
+  opt['grace_period'] = 20
+  opt['reduction_factor'] = 10
+  opt['num_splits'] = 3
+  opt['max_nfe'] = 500
+  opt['block'] = 'attention'
 
-  opt['rewire_KNN'] = True
-  # datas = ['Cora', 'Citeseer', 'Photo']
-  folders = ['Photo_beltrami_1_KNN']  # ['Cora_beltrami_1_KNN', 'Citeseer_beltrami_1_KNN', 'Photo_beltrami_1_KNN']
+  opt['rewiring'] = None
+  opt['beltrami'] = True
+
+  opt['rewire_KNN'] = False
+  opt['edge_sampling'] = False
+  datas = ['Cora', 'Citeseer', 'Pubmed', 'Computers', 'Photo', 'CoauthorCS']  #
+
+  folders = ['cora_hypS_encs_att', 'citeseer_hypS_encs_att',
+             'pubmed_hypS_encs_att', 'Computers_hypS_encs_att', 'Photo_hypS_encs_att', 'CoauthorCS_hypS_encs_att']  # ['Pubmed_beltrami_planetoid'] #
   for i, ds in enumerate(datas):
     print(f"Running Tuning for {ds}")
     opt["dataset"] = ds
@@ -459,6 +455,7 @@ if __name__ == "__main__":
                       help='perform DIGL using precalcualted GRAND attention')
 
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
+  parser.add_argument('--fa_layer', action='store_true', help='add a bottleneck paper style layer with more edges')
   parser.add_argument('--pos_enc_type', type=str, default="GDC", help='positional encoder (default: GDC)')
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
@@ -468,6 +465,7 @@ if __name__ == "__main__":
   parser.add_argument('--rewire_KNN_k', type=int, default=64, help="target degree for KNN rewire")
   parser.add_argument('--rewire_KNN_sym', action='store_true', help='make KNN symmetric')
   parser.add_argument('--rewire_KNN_T', type=str, default="T0", help="T0, TN")
+  parser.add_argument('--edge_sampling_space', type=str, default="attention", help="attention,pos_distance, z_distance, pos_distance_QK, z_distance_QK")
   parser.add_argument('--attention_type', type=str, default="scaled_dot",
                       help="scaled_dot,cosine_sim,cosine_power,pearson,rank_pearson")
   parser.add_argument('--max_epochs', type=int, default=1000, help="max epochs to train before patience")
