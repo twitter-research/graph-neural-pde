@@ -1,55 +1,14 @@
 import argparse
-
+import numpy as np
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
+import torch.nn.functional as F
 from GNN import GNN
+from GNN_early import GNNEarly
 import time
-from data import get_dataset
+from data import get_dataset, set_train_val_test_split
 from ogb.nodeproppred import Evaluator
-
-def get_cora_opt(opt):
-  opt['dataset'] = 'Cora'
-  opt['data'] = 'Planetoid'
-  opt['hidden_dim'] = 16
-  opt['input_dropout'] = 0.5
-  opt['dropout'] = 0
-  opt['optimizer'] = 'rmsprop'
-  opt['lr'] = 0.0047
-  opt['decay'] = 5e-4
-  opt['self_loop_weight'] = 0.555
-  opt['alpha'] = 0.918
-  opt['epoch'] = 400
-  opt['time'] = 12.1
-  opt['num_feature'] = 1433
-  opt['num_class'] = 7
-  opt['num_nodes'] = 2708
-  opt['epoch'] = 50
-  opt['augment'] = True
-  opt['attention_dropout'] = 0
-  opt['adjoint'] = False
-  opt['ode'] = 'ode'
-  return opt
-
-
-def get_computers_opt(opt):
-  opt['dataset'] = 'Computers'
-  opt['hidden_dim'] = 16
-  opt['input_dropout'] = 0.5
-  opt['dropout'] = 0
-  opt['optimizer'] = 'adam'
-  opt['lr'] = 0.01
-  opt['decay'] = 5e-4
-  opt['self_loop_weight'] = 0.555
-  opt['alpha'] = 0.918
-  opt['epoch'] = 400
-  opt['time'] = 12.1
-  opt['num_feature'] = 1433
-  opt['num_class'] = 7
-  opt['num_nodes'] = 2708
-  opt['epoch'] = 50
-  opt['attention_dropout'] = 0
-  opt['ode'] = 'ode'
-  return opt
+from best_params import  best_params_dict
 
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
@@ -72,7 +31,7 @@ def add_labels(feat, labels, idx, num_classes, device):
   if idx.dtype == torch.bool:
     idx = torch.where(idx)[0]  # convert mask to linear index
   onehot[idx, labels.squeeze()[idx]] = 1
-  # onehot[idx, labels[idx, 0]] = 1
+
   return torch.cat([feat, onehot], dim=-1)
 
 
@@ -99,11 +58,6 @@ def train(model, optimizer, data):
 
     feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
   else:
-    # todo in the DGL code from OGB, they seem to apply an additional mask to the training data - currently commented
-    # mask_rate = 0.5
-    # mask = torch.rand(data.train_index.shape) < mask_rate
-    #
-    # train_pred_idx = data.train_idx[mask]
     train_pred_idx = data.train_mask
 
   out = model(feat)
@@ -184,38 +138,55 @@ def test_OGB(model, data, opt):
   return train_acc, valid_acc, test_acc
 
 
-def main(opt):
-  try:
-    if opt['use_cora_defaults']:
-      opt = get_cora_opt(opt)
-  except KeyError:
-    pass  # not always present when called as lib
-  dataset = get_dataset(opt, '../data', False)
+def main(cmd_opt):
+  best_opt = best_params_dict[cmd_opt['dataset']]
+  opt = {**cmd_opt, **best_opt}
+
+  dataset = get_dataset(opt, '../data', opt['not_lcc'])
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  model, data = GNN(opt, dataset, device).to(device), dataset.data.to(device)
+  model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
   print(opt)
+  if not opt['planetoid_split'] and opt['dataset'] in ['Cora','Citeseer','Pubmed']:
+    dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
   # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
+  data = dataset.data.to(device)
   parameters = [p for p in model.parameters() if p.requires_grad]
   print_model_params(model)
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-  best_val_acc = test_acc = train_acc = best_epoch = 0
-  test_fn = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+  best_time = val_acc = test_acc = train_acc = best_epoch = 0
+  this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
 
     loss = train(model, optimizer, data)
-    train_acc, val_acc, tmp_test_acc = test_fn(model, data, opt)
+    if opt["no_early"]:
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
+      best_time = opt['time']
+      if tmp_val_acc > val_acc:
+        best_epoch = epoch
+        train_acc = tmp_train_acc
+        val_acc = tmp_val_acc
+        test_acc = tmp_test_acc
+    else:
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
+      if tmp_val_acc > val_acc:
+        best_epoch = epoch
+        train_acc = tmp_train_acc
+        val_acc = tmp_val_acc
+        test_acc = tmp_test_acc
+        best_time = opt['time']
+      if model.odeblock.test_integrator.solver.best_val > val_acc:
+        best_epoch = epoch
+        val_acc = model.odeblock.test_integrator.solver.best_val
+        test_acc = model.odeblock.test_integrator.solver.best_test
+        train_acc = model.odeblock.test_integrator.solver.best_train
+        best_time = model.odeblock.test_integrator.solver.best_time
 
-    if val_acc > best_val_acc:
-      best_val_acc = val_acc
-      test_acc = tmp_test_acc
-      best_epoch = epoch
     log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-    print(
-      log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, best_val_acc, test_acc))
-  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(best_val_acc, test_acc, best_epoch))
 
-  return train_acc, best_val_acc, test_acc
+    print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, val_acc, test_acc))
+  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d} and best time {:d}'.format(val_acc, test_acc, best_epoch, best_time))
+  return train_acc, val_acc, test_acc
 
 
 if __name__ == '__main__':
@@ -224,22 +195,26 @@ if __name__ == '__main__':
                       help='Whether to run with best params for cora. Overrides the choice of dataset')
   # data args
   parser.add_argument('--dataset', type=str, default='Cora',
-                      help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS')
+                      help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS, ogbn-arxiv')
   parser.add_argument('--data_norm', type=str, default='rw',
                       help='rw for random walk, gcn for symmetric gcn norm')
   parser.add_argument('--self_loop_weight', type=float, default=1.0, help='Weight of self-loops.')
   parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
-  parser.add_argument('--label_rate', type=float, default=0.5, help='% of training labels to use when --use_labels is set.')
+  parser.add_argument('--label_rate', type=float, default=0.5,
+                      help='% of training labels to use when --use_labels is set.')
+  parser.add_argument('--planetoid_split', action='store_true',
+                      help='use planetoid splits for Cora/Citeseer/Pubmed')
   # GNN args
   parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
-  parser.add_argument('--fc_out', dest='fc_out', action='store_true', help='Add a fully connected layer to the decoder.')
+  parser.add_argument('--fc_out', dest='fc_out', action='store_true',
+                      help='Add a fully connected layer to the decoder.')
   parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')
   parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
   parser.add_argument("--batch_norm", dest='batch_norm', action='store_true', help='search over reg params')
   parser.add_argument('--optimizer', type=str, default='adam', help='One from sgd, rmsprop, adam, adagrad, adamax.')
   parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
   parser.add_argument('--decay', type=float, default=5e-4, help='Weight decay for optimization')
-  parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')
+  parser.add_argument('--epoch', type=int, default=100, help='Number of training epochs per iteration.')
   parser.add_argument('--alpha', type=float, default=1.0, help='Factor in front matrix A.')
   parser.add_argument('--alpha_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) alpha')
   parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true',
@@ -249,6 +224,9 @@ if __name__ == '__main__':
   parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
   parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
                       help='Add a fully connected layer to the encoder.')
+  parser.add_argument('--add_source', dest='add_source', action='store_true',
+                      help='If try get rid of alpha param and the beta*x0 source term')
+
   # ODE args
   parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
   parser.add_argument('--augment', action='store_true',
@@ -258,10 +236,8 @@ if __name__ == '__main__':
   parser.add_argument('--step_size', type=float, default=1,
                       help='fixed step size when using fixed step solvers e.g. rk4')
   parser.add_argument('--max_iters', type=float, default=100, help='maximum number of integration steps')
-  parser.add_argument(
-    "--adjoint_method", type=str, default="adaptive_heun",
-    help="set the numerical solver for the backward pass: dopri5, euler, rk4, midpoint"
-  )
+  parser.add_argument("--adjoint_method", type=str, default="adaptive_heun",
+    help="set the numerical solver for the backward pass: dopri5, euler, rk4, midpoint")
   parser.add_argument('--adjoint', dest='adjoint', action='store_true',
                       help='use the adjoint ODE method to reduce memory footprint')
   parser.add_argument('--adjoint_step_size', type=float, default=1,
@@ -270,12 +246,13 @@ if __name__ == '__main__':
   parser.add_argument("--tol_scale_adjoint", type=float, default=1.0,
                       help="multiplier for adjoint_atol and adjoint_rtol")
   parser.add_argument('--ode_blocks', type=int, default=1, help='number of ode blocks to run')
-  parser.add_argument('--add_source', dest='add_source', action='store_true',
-                      help='If try get rid of alpha param and the beta*x0 source term')
-  # SDE args
-  parser.add_argument('--dt_min', type=float, default=1e-5, help='minimum timestep for the SDE solver')
-  parser.add_argument('--dt', type=float, default=1e-3, help='fixed step size')
-  parser.add_argument('--adaptive', dest='adaptive', action='store_true', help='use adaptive step sizes')
+  parser.add_argument("--max_nfe", type=int, default=1000,
+                      help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
+  parser.add_argument("--no_early", action="store_true", help="Whether or not to use early stopping of the ODE integrator when testing.")
+  parser.add_argument('--earlystopxT', type=float, default=3, help='multiplier for T used to evaluate best model')
+  parser.add_argument("--max_test_steps", type=int, default=100,help="Maximum number steps for the dopri5Early test integrator. "
+                           "used if getting OOM errors at test time")
+
   # Attention args
   parser.add_argument('--leaky_relu_slope', type=float, default=0.2,
                       help='slope of the negative part of the leaky relu used in attention')
@@ -286,8 +263,6 @@ if __name__ == '__main__':
                       help='the size to project x to before calculating att scores')
   parser.add_argument('--mix_features', dest='mix_features', action='store_true',
                       help='apply a feature transformation xW to the ODE')
-  parser.add_argument("--max_nfe", type=int, default=1000,
-                      help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
   parser.add_argument('--reweight_attention', dest='reweight_attention', action='store_true',
                       help="multiply attention scores by edge weights before softmax")
   # regularisation args
@@ -298,6 +273,7 @@ if __name__ == '__main__':
   parser.add_argument('--directional_penalty', type=float, default=None, help="int_t ||(df/dx)^T f||^2")
 
   # rewiring args
+  parser.add_argument("--not_lcc", action="store_false", help="don't use the largest connected component")
   parser.add_argument('--rewiring', type=str, default=None, help="two_hop, gdc")
   parser.add_argument('--gdc_method', type=str, default='ppr', help="ppr, heat, coeff")
   parser.add_argument('--gdc_sparsification', type=str, default='topk', help="threshold, topk")
