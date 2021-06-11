@@ -117,8 +117,9 @@ class BaseGNN(MessagePassing):
     if opt['fc_out']:
       self.fc = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
     self.m2 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
-    self.bn_in = torch.nn.BatchNorm1d(opt['hidden_dim'])
-    self.bn_out = torch.nn.BatchNorm1d(opt['hidden_dim'])
+    if self.opt['batch_norm']:
+      self.bn_in = torch.nn.BatchNorm1d(opt['hidden_dim'])
+      self.bn_out = torch.nn.BatchNorm1d(opt['hidden_dim'])
 
     self.regularization_fns, self.regularization_coeffs = create_regularization_fns(self.opt)
 

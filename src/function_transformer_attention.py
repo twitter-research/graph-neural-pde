@@ -19,7 +19,6 @@ class ODEFuncTransformerAtt(ODEFunc):
                                                                    fill_value=opt['self_loop_weight'])
     else:
       self.edge_index, self.edge_weight = data.edge_index, data.edge_attr
-    # self.alpha = nn.Parameter(torch.ones([data.num_nodes, 1]))
     self.multihead_att_layer = SpGraphTransAttentionLayer(in_features, out_features, opt,
                                                           device, edge_weights=self.edge_weight).to(device)
 
@@ -34,10 +33,6 @@ class ODEFuncTransformerAtt(ODEFunc):
     else:
       mean_attention = attention.mean(dim=1)
       ax = torch_sparse.spmm(self.edge_index, mean_attention, x.shape[0], x.shape[0], x)
-      # ax = torch.mean(torch.stack(
-      #   [torch_sparse.spmm(self.edge_index, attention[:, idx], x.shape[0], x.shape[0], x) for idx in
-      #    range(self.opt['heads'])], dim=0),
-      #   dim=0)
     return ax
 
   def forward(self, t, x):  # t is needed when called by the integrator

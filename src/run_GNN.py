@@ -124,7 +124,6 @@ def train(model, optimizer, data):
 
   model.fm.update(model.getNFE())
   model.resetNFE()
-  # F.nll_loss(out[data.train_mask], data.y[data.train_mask]).backward()
   loss.backward()
   optimizer.step()
   model.bm.update(model.getNFE())
