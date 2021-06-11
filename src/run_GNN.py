@@ -28,12 +28,8 @@ def get_cora_opt(opt):
   opt['num_class'] = 7
   opt['num_nodes'] = 2708
   opt['epoch'] = 50
-  # opt['augment'] = True
   opt['attention_dropout'] = 0
   opt['adjoint'] = False
-  # opt['ode'] = 'ode'
-
-  # opt['block'] = 'rewire_attention'
   opt['block'] = 'attention'
 
   return opt
@@ -80,7 +76,6 @@ def add_labels(feat, labels, idx, num_classes, device):
   if idx.dtype == torch.bool:
     idx = torch.where(idx)[0]  # convert mask to linear index
   onehot[idx, labels.squeeze()[idx]] = 1
-  # onehot[idx, labels[idx, 0]] = 1
   return torch.cat([feat, onehot], dim=-1)
 
 

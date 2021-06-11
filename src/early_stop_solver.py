@@ -76,7 +76,6 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
     """
     n_steps = 0
     while next_t > self.rk_state.t1 and n_steps < self.max_test_steps:
-      # assert n_steps < self.max_num_steps, 'max_num_steps exceeded ({}>={})'.format(n_steps, self.max_num_steps)
       self.rk_state = self._adaptive_step(self.rk_state)
       n_steps += 1
       train_acc, val_acc, test_acc = self.evaluate(self.rk_state)
