@@ -1,15 +1,11 @@
 """
 functions to generate a graph from the input graph and features
 """
-import argparse
-import numpy as np
-import torch
 import torch.nn.functional as F
 import torch_sparse
 from torch_scatter import scatter
 from torch_geometric.transforms.two_hop import TwoHop
 from utils import get_rw_adj, get_full_adjacency
-# from torch_geometric.transforms import GDC
 from pykeops.torch import LazyTensor
 import os
 import pickle
@@ -23,7 +19,7 @@ import numba
 import numpy as np
 from scipy.linalg import expm
 from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, \
-  remove_self_loops, dense_to_sparse, to_undirected
+   dense_to_sparse, to_undirected
 from torch_sparse import coalesce
 from torch_scatter import scatter_add
 
@@ -159,19 +155,14 @@ def KNN(x, opt):
 
 @torch.no_grad()
 def apply_KNN(data, pos_encoding, model, opt):
-
   if opt['rewire_KNN_T'] == "raw":
     ei = KNN(data.x, opt)  # rewiring on raw features here
-
   elif opt['rewire_KNN_T'] == "T0":
     ei = KNN(model.forward_encoder(data.x, pos_encoding), opt)
-
   elif opt['rewire_KNN_T'] == 'TN':
     ei = KNN(model.forward_ODE(data.x, pos_encoding), opt)
-
   else:
     raise Exception("Need to set rewire_KNN_T")
-
   return ei
 
 
