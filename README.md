@@ -39,7 +39,8 @@ python run_GNN.py --dataset Cora
 ```
 
 ## Cite us
-'''
+If you found this work useful, please consider citing
+```
 @article
 {chamberlain2021grand,
   title={GRAND: Graph Neural Diffusion},
@@ -49,7 +50,7 @@ python run_GNN.py --dataset Cora
                {ICML} 2021, 18-24 July 2021, Virtual Event},
   year={2021}
 }
-'''
+```
 
 
 ## Security Issues?
