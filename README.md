@@ -39,13 +39,14 @@ python run_GNN.py --dataset Cora
 ```
 
 ## Cite us
-@article{chamberlain2021grand,
+@article
+{chamberlain2021grand,
   title={GRAND: Graph Neural Diffusion},
   author={Chamberlain, Benjamin Paul and Rowbottom, James and Goronova, Maria and Webb, Stefan and Rossi, 
   Emanuele and Bronstein, Michael},
   journal={Proceedings of the 38th International Conference on Machine Learning,
-               {ICML} 2021, 13-18 July 2020, Virtual Event},
-  year={2020}
+               {ICML} 2021, 18-24 July 2021, Virtual Event},
+  year={2021}
 }
 
 
