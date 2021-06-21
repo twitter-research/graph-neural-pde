@@ -32,9 +32,9 @@ pip install -r requirements.txt
 
 ### Dataset and Preprocessing
 create a root level ./data folder. This will be automatically populated the first time each experiment is run.
-in the case of using deep walk or hyperbolic positional encodings upload provided positional encodings to ./data/pos_encodings
 For example to run for Cora:
 ```
+cd src
 python run_GNN.py --dataset Cora 
 ```
 
