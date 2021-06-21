@@ -45,7 +45,7 @@ If you found this work useful, please consider citing
 {chamberlain2021grand,
   title={GRAND: Graph Neural Diffusion},
   author={Chamberlain, Benjamin Paul and Rowbottom, James and Goronova, Maria and Webb, Stefan and Rossi, 
-  Emanuele and Bronstein, Michael},
+  Emanuele and Bronstein, Michael M},
   journal={Proceedings of the 38th International Conference on Machine Learning,
                {ICML} 2021, 18-24 July 2021, Virtual Event},
   year={2021}
