@@ -38,6 +38,15 @@ cd src
 python run_GNN.py --dataset Cora 
 ```
 
+## Troubleshooting 
+
+Most problems installing the dependencies are caused by Cuda version mismatches with pytorch geometric. We recommend checking your cuda version
+```
+nvcc --version
+```
+and then following instructions here to install pytorch geometric
+https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html
+
 ## Cite us
 If you found this work useful, please consider citing
 ```
