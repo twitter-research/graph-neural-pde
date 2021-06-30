@@ -248,6 +248,7 @@ if __name__ == '__main__':
   parser.add_argument("--max_test_steps", type=int, default=100,
                       help="Maximum number steps for the dopri5Early test integrator. "
                            "used if getting OOM errors at test time")
+  parser.add_argument("--event_fn", type=str, default=None, help='Define event function')
 
   # Attention args
   parser.add_argument('--leaky_relu_slope', type=float, default=0.2,

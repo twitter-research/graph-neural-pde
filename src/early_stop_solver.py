@@ -274,8 +274,8 @@ class EarlyStopInt(torch.nn.Module):
     """
     method = self.opt['method']
     assert method in ['rk4', 'dopri5'], "Only dopri5 and rk4 implemented with early stopping"
-    shapes, func, y0, t, rtol, atol, method, options = _check_inputs(func, y0, self.t, rtol, atol, method, options,
-                                                                     SOLVERS)
+    event_fn = self.opt["event_fn"]
+    shapes, func, y0, t, rtol, atol, method, options, event_fn, t_is_reversed = _check_inputs(func, y0, self.t, rtol, atol, method, options, event_fn, SOLVERS)
 
     self.solver = SOLVERS[method](func, y0, rtol=rtol, atol=atol, opt=self.opt, **options)
     if self.solver.data is None:
