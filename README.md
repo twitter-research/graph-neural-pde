@@ -32,21 +32,35 @@ pip install -r requirements.txt
 
 ### Dataset and Preprocessing
 create a root level ./data folder. This will be automatically populated the first time each experiment is run.
-in the case of using deep walk or hyperbolic positional encodings upload provided positional encodings to ./data/pos_encodings
 For example to run for Cora:
 ```
+cd src
 python run_GNN.py --dataset Cora 
 ```
 
+## Troubleshooting 
+
+Most problems installing the dependencies are caused by Cuda version mismatches with pytorch geometric. We recommend checking your cuda and pytorch versions
+```
+nvcc --version
+python -c "import torch; print(torch.__version__)"
+```
+and then following instructions here to install pytorch geometric
+https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html
+
 ## Cite us
-@article{chamberlain2021grand,
+If you found this work useful, please consider citing
+```
+@article
+{chamberlain2021grand,
   title={GRAND: Graph Neural Diffusion},
   author={Chamberlain, Benjamin Paul and Rowbottom, James and Goronova, Maria and Webb, Stefan and Rossi, 
-  Emanuele and Bronstein, Michael},
+  Emanuele and Bronstein, Michael M},
   journal={Proceedings of the 38th International Conference on Machine Learning,
-               {ICML} 2021, 13-18 July 2020, Virtual Event},
-  year={2020}
+               {ICML} 2021, 18-24 July 2021, Virtual Event},
+  year={2021}
 }
+```
 
 
 ## Security Issues?
