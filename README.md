@@ -23,11 +23,24 @@ torch-scatter==2.0.6
 torch-sparse==0.6.9
 torch-spline-conv==1.2.1
 torchdiffeq==0.2.1
-To create the required environment run
+Commands to install all the dependencies on a new conda environment
 ```
-python3 -m venv env
-source env/bin/activate
-pip install -r requirements.txt
+%python3 -m venv env
+%source env/bin/activate
+%pip install -r requirements.txt
+conda create --name grand python=3.7
+conda activate grand
+
+pip install ogb pykeops
+pip install torch==1.8.1
+pip install git+https://github.com/google-research/torchsde.git
+pip install torchdiffeq -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
+
+pip install torch-scatter -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
+pip install torch-sparse -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
+pip install torch-cluster -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
+pip install torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
+pip install torch-geometric
 ```
 
 ### Dataset and Preprocessing
