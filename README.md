@@ -23,11 +23,8 @@ torch-scatter==2.0.6
 torch-sparse==0.6.9
 torch-spline-conv==1.2.1
 torchdiffeq==0.2.1
-Commands to install all the dependencies on a new conda environment
+Commands to install all the dependencies in a new conda environment
 ```
-%python3 -m venv env
-%source env/bin/activate
-%pip install -r requirements.txt
 conda create --name grand python=3.7
 conda activate grand
 
