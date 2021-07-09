@@ -89,14 +89,6 @@ def train(epoch, model, optimizer, dataset):
   for batch_idx, batch in enumerate(loader):
     optimizer.zero_grad()
     start_time = time.time()
-    # if batch_idx == 0 and epoch==0: # only do this for 1st batch/epoch
-    #   break
-      #need to rebuild the adjacency with the batch_size
-      #requires every batch loop the same size
-      # model.data = batch #loader.dataset  #adding this to reset the data
-      # model.odeblock.data = batch #loader.dataset.data #why do I need to do this? duplicating data from model to ODE block?
-      # model.odeblock.odefunc.adj = model.odeblock.odefunc.get_rw_adj(model.data) #to reset adj matrix
-      # model.odeblock.odefunc.adj = get_rw_adj(model.data.edge_index) #to reset adj matrix
 
     if batch_idx > model.opt['train_size']//model.opt['batch_size']: # only do this for 1st batch/epoch
       break
@@ -104,12 +96,10 @@ def train(epoch, model, optimizer, dataset):
     out = model(batch.x)
 
     lf = torch.nn.CrossEntropyLoss()
-    # loss = lf(out, torch.squeeze(batch.y))  #squeeze now needed
     loss = lf(out, batch.y.view(-1))  #squeeze now needed
 
     model.fm.update(model.getNFE())
     model.resetNFE()
-    # F.nll_loss(out[data.train_mask], data.y[data.train_mask]).backward()
     loss.backward()
     optimizer.step()
     model.bm.update(model.getNFE())
@@ -117,10 +107,6 @@ def train(epoch, model, optimizer, dataset):
     if batch_idx % 1 == 0:
       print("Batch Index {}, number of function evals {} in time {}".format(batch_idx, model.fm.sum, time.time() - start_time))
 
-    # if batch_idx % args.log_interval == 0:
-    #   print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-    #     epoch, batch_idx * len(data), len(train_loader.dataset),
-    #            100. * batch_idx / len(train_loader), loss.item()))
   return loss.item()
 
 
@@ -136,13 +122,8 @@ def test(model, dataset):
       break
     model.eval()
     logits, accs = model(batch.x), []
-    # for _, mask in data('train_mask', 'val_mask', 'test_mask'):
-    #   pred = logits[mask].max(1)[1]
-    #   acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
     pred = logits.max(1)[1]
-    # acc = pred.eq(data.y.T).sum().item() / len(data.y)
     total_correct += pred.eq(batch.y.T).sum().item()
-    # accs.append(acc)
   accs = total_correct / test_size
   return accs
 
@@ -156,12 +137,6 @@ def print_model_params(model):
 
 
 def main(opt):
-  # try:
-  #   os.rename('../models/models.xlsx','../models/temp_models.xlsx')
-  #   os.rename('../models/temp_models.xlsx','../models/models.xlsx')
-  # except OSError:
-  #   print('Error ../models/models.xlsx is still open, please close and rerun.')
-  #   sys.exit(1)
 
   try:
     if opt['use_image_defaults']:
