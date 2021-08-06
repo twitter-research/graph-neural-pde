@@ -1,7 +1,11 @@
+import os.path as osp
+
 import argparse
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch import nn
+from torch_geometric.nn import GATConv
 import time
 import json
 import pandas as pd
@@ -10,166 +14,149 @@ from GNN_early import GNNEarly
 from data import get_dataset, set_train_val_test_split
 from ogb.nodeproppred import Evaluator
 from graph_rewiring import apply_gdc, apply_beltrami
-from best_params import  best_params_dict
-from run_GNN import print_model_params, get_optimizer, test, test_OGB, train
+from best_params import best_params_dict
+from run_GNN import print_model_params, get_optimizer, test, test_OGB
+
+
+class GAT(torch.nn.Module):
+    def __init__(self, opt, dataset):
+        super(GAT, self).__init__()
+        self.opt = opt
+        self.dataset = dataset
+        self.data = dataset[0]
+        self.conv1 = GATConv(self.dataset.num_features, 8, heads=8, dropout=0.6)
+        # On the Pubmed dataset, use heads=8 in conv2.
+        self.conv2 = GATConv(8 * 8, self.dataset.num_classes, heads=1, concat=False,
+                             dropout=0.6)
+
+    def forward(self, x):
+        x = F.dropout(x, p=0.6, training=self.training)
+        x = F.elu(self.conv1(x, self.data.edge_index))
+        x = F.dropout(x, p=0.6, training=self.training)
+        x = self.conv2(x, self.data.edge_index)
+        return F.log_softmax(x, dim=-1)
+
+
+class GATPOS(torch.nn.Module):
+    def __init__(self, opt, dataset):
+        super(GATPOS, self).__init__()
+        self.opt = opt
+        self.dataset = dataset
+        self.data = dataset[0]
+        self.mp = nn.Linear(opt['pos_enc_dim'], opt['pos_enc_hidden_dim'])
+
+        self.conv1 = GATConv(self.dataset.num_features + opt['pos_enc_hidden_dim'], 8, heads=8, dropout=0.6)
+        # On the Pubmed dataset, use heads=8 in conv2.
+        self.conv2 = GATConv(8 * 8, self.dataset.num_classes, heads=1, concat=False,
+                             dropout=0.6)
+
+    def forward(self, x, pos_encoding):
+        x = F.dropout(x, p=0.6, training=self.training)
+        p = F.dropout(pos_encoding, p=0.6, training=self.training)
+        p = self.mp(p)
+        x = torch.cat([x, p], dim=1)
+
+        x = F.elu(self.conv1(x, self.data.edge_index))
+        x = F.dropout(x, p=0.6, training=self.training)
+        x = self.conv2(x, self.data.edge_index)
+        return F.log_softmax(x, dim=-1)
+
+def GATPOS_args(opt):
+    opt['beltrami'] = True
+    opt['pos_enc_type'] = 'GDC'
+    return opt
+
+def train(model, optimizer, data, pos_encoding):
+    model.train()
+    optimizer.zero_grad()
+    out = model(data.x, pos_encoding)
+    loss = F.nll_loss(out[data.train_mask], data.y[data.train_mask])
+    loss.backward()
+    optimizer.step()
+    return loss
 
 def main(opt):
 
-  dataset = get_dataset(opt, '../data', opt['not_lcc'])
-  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    opt = GATPOS_args(opt)
+    dataset = get_dataset(opt, '../data', opt['not_lcc'])
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-  if opt['beltrami']:
-    pos_encoding = apply_beltrami(dataset.data, opt).to(device)
-    opt['pos_enc_dim'] = pos_encoding.shape[1]
-  else:
-    pos_encoding = None
-
-  model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
-
-  if not opt['planetoid_split'] and opt['dataset'] in ['Cora','Citeseer','Pubmed']:
-    dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
-
-  data = dataset.data.to(device)
-
-  parameters = [p for p in model.parameters() if p.requires_grad]
-  print_model_params(model)
-  optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-  best_time = best_epoch = train_acc = val_acc = test_acc = 0
-
-  patience_counter = 0
-  patience = 100
-  for epoch in range(1, opt['epoch']):
-    if patience_counter == patience:
-        break
-    start_time = time.time()
-    this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
-    loss = train(model, optimizer, data, pos_encoding)
-
-    if opt["no_early"]:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
-      best_time = opt['time']
-      if tmp_val_acc > val_acc:
-        best_epoch = epoch
-        train_acc = tmp_train_acc
-        val_acc = tmp_val_acc
-        test_acc = tmp_test_acc
-      else:
-        patience_counter += 1
-
+    if opt['beltrami']:
+        pos_encoding = apply_beltrami(dataset.data, opt).to(device)
+        opt['pos_enc_dim'] = pos_encoding.shape[1]
     else:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
-      if tmp_val_acc > val_acc:
-        best_epoch = epoch
-        train_acc = tmp_train_acc
-        val_acc = tmp_val_acc
-        test_acc = tmp_test_acc
+        pos_encoding = None
+
+    model = GATPOS(opt, dataset).to(device)
+
+    if not opt['planetoid_split'] and opt['dataset'] in ['Cora', 'Citeseer', 'Pubmed']:
+        dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data,
+                                                num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
+
+    data = dataset.data.to(device)
+
+    parameters = [p for p in model.parameters() if p.requires_grad]
+    print_model_params(model)
+    optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
+    best_time = best_epoch = train_acc = val_acc = test_acc = 0
+
+    patience_counter = 0
+    patience = 100
+    for epoch in range(1, opt['epoch']):
+        if patience_counter == patience:
+            break
+        start_time = time.time()
+        this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+        loss = train(model, optimizer, data, pos_encoding)
+
+        tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
         best_time = opt['time']
-      else:
-        patience_counter += 1
+        if tmp_val_acc > val_acc:
+            best_epoch = epoch
+            train_acc = tmp_train_acc
+            val_acc = tmp_val_acc
+            test_acc = tmp_test_acc
+        else:
+            patience_counter += 1
 
-      if model.odeblock.test_integrator.solver.best_val > val_acc:
-        best_epoch = epoch
-        val_acc = model.odeblock.test_integrator.solver.best_val
-        test_acc = model.odeblock.test_integrator.solver.best_test
-        train_acc = model.odeblock.test_integrator.solver.best_train
-        best_time = model.odeblock.test_integrator.solver.best_time
-
-    log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
-
-    print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, val_acc, test_acc))
-  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(val_acc, test_acc, best_epoch))
-  return train_acc, val_acc, test_acc
+        log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+        print(log.format(epoch, time.time() - start_time, loss, train_acc, val_acc, test_acc))
+    print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(val_acc, test_acc, best_epoch))
+    return train_acc, val_acc, test_acc
 
 
-def ODE_solver_ablation(cmd_opt):
-    datas = ['Cora','Citeseer','Pubmed','CoauthorCS','Computers','Photo']
-    # datas = ['Pubmed','CoauthorCS','Computers','Photo']
-    methods = ['best', 'euler']
-
-    rows = []
-    for i, ds in enumerate(datas):
-        best_opt = best_params_dict[ds]
-        opt = {**cmd_opt, **best_opt}
-        opt['no_early'] = True #no implementation of early stop solver for explicit euler
-
-        best_method = opt['method']
-        best_step = opt['step_size']
-        best_adj_method = opt['adjoint_method']
-        best_step_adj = opt['adjoint_step_size']
-
-        for method in methods:
-            if method == 'best':
-                opt['method'] = best_method
-                opt['step_size'] = best_step
-                opt['adjoint_method'] = best_adj_method
-                opt['adjoint_step_size'] = best_step_adj
-            elif method == 'euler':
-                opt['method'] = 'euler'
-                opt['step_size'] = 1.0
-                opt['adjoint_method'] = 'euler'
-                opt['adjoint_step_size'] = 1.0
-
-            for it in range(8):
-                print(f"Running Best Params for {ds}")
-                train_acc, val_acc, test_acc = main(opt)
-                row = [ds, it, opt['method'], opt['step_size'], opt['adjoint_method'], opt['adjoint_step_size'], train_acc, val_acc, test_acc]
-                rows.append(row)
-
-        df = pd.DataFrame(rows, columns = ['dataset','iteration','method','step_size','adjoint_method','adjoint_step_size', 'train_acc', 'val_acc', 'test_acc'])
-        pd.set_option('display.max_columns', None)
-        df.to_csv(f"../ablations/ODE_solver_data_{ds}.csv")
-
-        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=["dataset","method"],
-                               aggfunc={'train_acc': np.mean, 'val_acc': np.mean, 'test_acc': np.mean}, margins=True)
-        mean_table.to_csv(f"../ablations/ODE_solver_mean_{ds}.csv")
-
-        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=["dataset","method"],
-                               aggfunc={'train_acc': np.std,'val_acc': np.std,'test_acc': np.std}, margins=True)
-        std_table.to_csv(f"../ablations/ODE_solver_std_{ds}.csv")
-
-        print(df)
-        print(mean_table)
-        print(std_table)
-
-
-def attention_ablation(cmd_opt):
+def GAT_ablation(cmd_opt):
     datas = ['Cora']#,'Citeseer','Pubmed','CoauthorCS','Computers','Photo']
-    attentions = ['scaled_dot','cosine_sim','pearson', 'exp_kernel']
+    gat_types = ['GAT','GATPOS']
 
     rows = []
     for i, ds in enumerate(datas):
         best_opt = best_params_dict[ds]
         opt = {**cmd_opt, **best_opt}
 
-        for attention in attentions:
-            opt['attention_type'] = attention
+        for gat_type in gat_types:
+            opt['gat_type'] = gat_type
             for it in range(8):
                 print(f"Running Best Params for {ds}")
                 train_acc, val_acc, test_acc = main(opt)
-                row = [ds, it, opt['attention_type'], train_acc, val_acc, test_acc]
+                row = [ds, it, opt['gat_type'], train_acc, val_acc, test_acc]
                 rows.append(row)
 
-        df = pd.DataFrame(rows, columns = ['dataset','iteration','attention_type','train_acc', 'val_acc', 'test_acc'])
+        df = pd.DataFrame(rows, columns = ['dataset','iteration','gat_type','train_acc', 'val_acc', 'test_acc'])
         pd.set_option('display.max_columns', None)
-        df.to_csv(f"../ablations/attention_data_{ds}.csv")
+        df.to_csv(f"../ablations/GAT_data_{ds}.csv")
 
-        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=["dataset","attention_type"],
+        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=["dataset","gat_type"],
                                aggfunc={'train_acc': np.mean, 'val_acc': np.mean, 'test_acc': np.mean}, margins=True)
-        mean_table.to_csv(f"../ablations/attention_mean_{ds}.csv")
+        mean_table.to_csv(f"../ablations/GAT_mean_{ds}.csv")
 
-        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=["dataset","attention_type"],
+        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=["dataset","gat_type"],
                                aggfunc={'train_acc': np.std,'val_acc': np.std,'test_acc': np.std}, margins=True)
-        std_table.to_csv(f"../ablations/attention_std_{ds}.csv")
+        std_table.to_csv(f"../ablations/GAT_std_{ds}.csv")
 
         print(df)
         print(mean_table)
         print(std_table)
-
-
-def GAT_ablation():
-    pass
-
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -293,6 +280,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     opt = vars(args)
-
-    # ODE_solver_ablation(opt)
-    attention_ablation(opt)
+    GAT_ablation(opt)
