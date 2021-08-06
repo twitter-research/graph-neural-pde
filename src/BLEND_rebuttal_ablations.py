@@ -73,7 +73,8 @@ def main(opt):
 
 #ODE solver ablation
 def ODE_solver_ablation(cmd_opt):
-    datas = ['Cora','Citeseer']#,'Pubmed','CoauthorCS','Computers','Photo']
+    datas = ['Cora','Citeseer','Pubmed','CoauthorCS','Computers','Photo']
+    # datas = ['Pubmed','CoauthorCS','Computers','Photo']
     methods = ['best', 'euler']
 
     rows = []
@@ -101,7 +102,6 @@ def ODE_solver_ablation(cmd_opt):
 
             for it in range(8):
                 print(f"Running Best Params for {ds}")
-                opt["dataset"] = ds
                 train_acc, val_acc, test_acc = main(opt)
                 row = [ds, it, opt['method'], opt['step_size'], opt['adjoint_method'], opt['adjoint_step_size'], train_acc, val_acc, test_acc]
                 rows.append(row)
@@ -248,4 +248,3 @@ if __name__ == '__main__':
     opt = vars(args)
 
     ODE_solver_ablation(opt)
-    # ODE_stats()
