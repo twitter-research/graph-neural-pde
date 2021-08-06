@@ -37,7 +37,11 @@ def main(opt):
   optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
   best_time = best_epoch = train_acc = val_acc = test_acc = 0
 
+  patience_counter = 0
+  patience = 100
   for epoch in range(1, opt['epoch']):
+    if patience_counter == patience:
+        break
     start_time = time.time()
     this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
     loss = train(model, optimizer, data, pos_encoding)
@@ -50,6 +54,9 @@ def main(opt):
         train_acc = tmp_train_acc
         val_acc = tmp_val_acc
         test_acc = tmp_test_acc
+      else:
+        patience_counter += 1
+
     else:
       tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
       if tmp_val_acc > val_acc:
@@ -58,6 +65,9 @@ def main(opt):
         val_acc = tmp_val_acc
         test_acc = tmp_test_acc
         best_time = opt['time']
+      else:
+        patience_counter += 1
+
       if model.odeblock.test_integrator.solver.best_val > val_acc:
         best_epoch = epoch
         val_acc = model.odeblock.test_integrator.solver.best_val
@@ -100,7 +110,8 @@ def ODE_solver_ablation(cmd_opt):
                 opt['adjoint_method'] = 'euler'
                 opt['adjoint_step_size'] = 1.0
 
-            for it in range(8):
+            for it in range(2):
+                opt['epoch'] = 5
                 print(f"Running Best Params for {ds}")
                 train_acc, val_acc, test_acc = main(opt)
                 row = [ds, it, opt['method'], opt['step_size'], opt['adjoint_method'], opt['adjoint_step_size'], train_acc, val_acc, test_acc]
@@ -122,7 +133,37 @@ def ODE_solver_ablation(cmd_opt):
         std_table.to_csv(f"../ablations/ODE_solver_std_{ds}.csv")
 
 #attention type ablation
+def attention_ablation(cmd_opt):
+    datas = ['Cora']#,'Citeseer','Pubmed','CoauthorCS','Computers','Photo']
+    attentions = ['scaled_dot','cosine_sim','pearson', 'exp_kernel']
 
+    rows = []
+    for i, ds in enumerate(datas):
+        best_opt = best_params_dict[ds]
+        opt = {**cmd_opt, **best_opt}
+
+        for attention in attentions:
+            opt['attention_type'] = attention
+            for it in range(8):
+                print(f"Running Best Params for {ds}")
+                train_acc, val_acc, test_acc = main(opt)
+                row = [ds, it, opt['attention_type'], train_acc, val_acc, test_acc]
+                rows.append(row)
+
+        df = pd.DataFrame(rows, columns = ['dataset','iteration','attention_type','train_acc', 'val_acc', 'test_acc'])
+        pd.set_option('display.max_columns', None)
+        print(df)
+        df.to_csv(f"../ablations/attention_data_{ds}.csv")
+
+        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=["dataset","attention_type"],
+                               aggfunc={'train_acc': np.mean, 'val_acc': np.mean, 'test_acc': np.mean}, margins=True)
+        print(mean_table)
+        mean_table.to_csv(f"../ablations/attention_mean_{ds}.csv")
+
+        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=["dataset","attention_type"],
+                               aggfunc={'train_acc': np.std,'val_acc': np.std,'test_acc': np.std}, margins=True)
+        print(std_table)
+        std_table.to_csv(f"../ablations/attention_std_{ds}.csv")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -247,4 +288,5 @@ if __name__ == '__main__':
 
     opt = vars(args)
 
-    ODE_solver_ablation(opt)
+    # ODE_solver_ablation(opt)
+    attention_ablation(opt)
