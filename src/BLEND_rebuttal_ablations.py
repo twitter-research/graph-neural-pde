@@ -10,79 +10,145 @@ from GNN_early import GNNEarly
 from data import get_dataset, set_train_val_test_split
 from ogb.nodeproppred import Evaluator
 from graph_rewiring import apply_gdc, apply_beltrami
-from best_params import  best_params_dict
-from run_GNN import print_model_params, get_optimizer, test, test_OGB, train
+from best_params import best_params_dict
+from run_GNN import print_model_params, get_optimizer, test, test_OGB, train, get_label_masks, add_labels
+
 
 def main(opt):
+    meta_dict = {}
+    dataset = get_dataset(opt, '../data', opt['not_lcc'])
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-  dataset = get_dataset(opt, '../data', opt['not_lcc'])
-  device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-  if opt['beltrami']:
-    pos_encoding = apply_beltrami(dataset.data, opt).to(device)
-    opt['pos_enc_dim'] = pos_encoding.shape[1]
-  else:
-    pos_encoding = None
-
-  model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
-
-  if not opt['planetoid_split'] and opt['dataset'] in ['Cora','Citeseer','Pubmed']:
-    dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
-
-  data = dataset.data.to(device)
-
-  parameters = [p for p in model.parameters() if p.requires_grad]
-  print_model_params(model)
-  optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-  best_time = best_epoch = train_acc = val_acc = test_acc = 0
-
-  patience_counter = 0
-  patience = 100
-  for epoch in range(1, opt['epoch']):
-    if patience_counter == patience:
-        break
-    start_time = time.time()
-    this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
-    loss = train(model, optimizer, data, pos_encoding)
-
-    if opt["no_early"]:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
-      best_time = opt['time']
-      if tmp_val_acc > val_acc:
-        best_epoch = epoch
-        train_acc = tmp_train_acc
-        val_acc = tmp_val_acc
-        test_acc = tmp_test_acc
-      else:
-        patience_counter += 1
-
+    if opt['beltrami']:
+        pos_encoding = apply_beltrami(dataset.data, opt).to(device)
+        opt['pos_enc_dim'] = pos_encoding.shape[1]
     else:
-      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
-      if tmp_val_acc > val_acc:
-        best_epoch = epoch
-        train_acc = tmp_train_acc
-        val_acc = tmp_val_acc
-        test_acc = tmp_test_acc
-        best_time = opt['time']
-      else:
-        patience_counter += 1
+        pos_encoding = None
 
-      if model.odeblock.test_integrator.solver.best_val > val_acc:
-        best_epoch = epoch
-        val_acc = model.odeblock.test_integrator.solver.best_val
-        test_acc = model.odeblock.test_integrator.solver.best_test
-        train_acc = model.odeblock.test_integrator.solver.best_train
-        best_time = model.odeblock.test_integrator.solver.best_time
+    model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
 
-    log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+    if not opt['planetoid_split'] and opt['dataset'] in ['Cora', 'Citeseer', 'Pubmed']:
+        dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data,
+                                                num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
-    print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, val_acc, test_acc))
-  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(val_acc, test_acc, best_epoch))
-  return train_acc, val_acc, test_acc
+    data = dataset.data.to(device)
+
+    parameters = [p for p in model.parameters() if p.requires_grad]
+    print_model_params(model)
+    optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
+    best_time = best_epoch = train_acc = val_acc = test_acc = 0
+
+    patience_counter = 0
+    patience = 100
+    prev_fwd_nfe = 0
+    prev_back_nfe = 0
+    fwd_time = 0
+    back_time = 0
+    for epoch in range(1, opt['epoch']):
+        if patience_counter == patience:
+            meta_dict['last_epoch'] = {'epoch': epoch, 'fwd_nfe': prev_fwd_nfe - prev2_fwd_nfe, 'back_nfe': prev_back_nfe - prev2_back_nfe,
+                                       'fwd_time': fwd_time, 'back_time': back_time}
+            break
+
+        start_time = time.time()
+        this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+        loss, fwd_time, back_time = train(model, optimizer, data, pos_encoding)
+
+        if opt["no_early"]:
+            tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
+            best_time = opt['time']
+            if tmp_val_acc > val_acc:
+                best_epoch = epoch
+                train_acc = tmp_train_acc
+                val_acc = tmp_val_acc
+                test_acc = tmp_test_acc
+            else:
+                patience_counter += 1
+
+        else:
+            tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
+            if tmp_val_acc > val_acc:
+                best_epoch = epoch
+                train_acc = tmp_train_acc
+                val_acc = tmp_val_acc
+                test_acc = tmp_test_acc
+                best_time = opt['time']
+            else:
+                patience_counter += 1
+
+            if model.odeblock.test_integrator.solver.best_val > val_acc:
+                best_epoch = epoch
+                val_acc = model.odeblock.test_integrator.solver.best_val
+                test_acc = model.odeblock.test_integrator.solver.best_test
+                train_acc = model.odeblock.test_integrator.solver.best_train
+                best_time = model.odeblock.test_integrator.solver.best_time
+
+        log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+        print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, val_acc, test_acc))
+        if epoch in opt['epoch_snapshots']:
+            meta_dict[epoch] = {'epoch': epoch, 'fwd_nfe':model.fm.sum - prev_fwd_nfe, 'back_nfe': model.bm.sum - prev_back_nfe,
+                                'fwd_time': fwd_time, 'back_time': back_time}
+
+        prev2_fwd_nfe = prev_fwd_nfe
+        prev2_back_nfe = prev_back_nfe
+        prev_fwd_nfe = model.fm.sum
+        prev_back_nfe = model.bm.sum
+
+
+    if epoch != opt['epoch']:
+        meta_dict['last_epoch'] = {'epoch': epoch, 'fwd_nfe': prev_fwd_nfe - prev2_fwd_nfe,
+                                   'back_nfe': prev_back_nfe - prev2_back_nfe,
+                                   'fwd_time': fwd_time, 'back_time': back_time}
+
+    print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(val_acc, test_acc, best_epoch))
+    return train_acc, val_acc, test_acc, meta_dict
+
+
+def train(model, optimizer, data, pos_encoding=None):
+    model.train()
+    optimizer.zero_grad()
+    feat = data.x
+    if model.opt['use_labels']:
+        train_label_idx, train_pred_idx = get_label_masks(data, model.opt['label_rate'])
+
+        feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
+    else:
+        train_pred_idx = data.train_mask
+
+    start_fwd = time.time()
+    out = model(feat, pos_encoding)
+    fwd_time = time.time() - start_fwd
+
+    if model.opt['dataset'] == 'ogbn-arxiv':
+        lf = torch.nn.functional.nll_loss
+        loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
+    else:
+        lf = torch.nn.CrossEntropyLoss()
+        loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
+    if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
+        reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
+        regularization_coeffs = model.regularization_coeffs
+
+        reg_loss = sum(
+            reg_state * coeff for reg_state, coeff in zip(reg_states, regularization_coeffs) if coeff != 0
+        )
+        loss = loss + reg_loss
+
+    model.fm.update(model.getNFE())
+    model.resetNFE()
+    start_back = time.time()
+    loss.backward()
+    back_time = time.time() - start_back
+
+    optimizer.step()
+    model.bm.update(model.getNFE())
+    model.resetNFE()
+
+    return loss.item(), fwd_time, back_time
 
 
 def ODE_solver_ablation(cmd_opt):
-    datas = ['Cora','Citeseer']#,'Pubmed','CoauthorCS','Computers','Photo']
+    datas = ['Cora', 'Citeseer' ,'Pubmed','CoauthorCS','Computers','Photo']
     # datas = ['Pubmed','CoauthorCS','Computers','Photo']
     steps = [1.0, 2.0, 4.0, 8.0]
     methods = ['best', 'euler']
@@ -91,7 +157,8 @@ def ODE_solver_ablation(cmd_opt):
     for i, ds in enumerate(datas):
         best_opt = best_params_dict[ds]
         opt = {**cmd_opt, **best_opt}
-        opt['no_early'] = True #no implementation of early stop solver for explicit euler
+
+        opt['no_early'] = True  # no implementation of early stop solver for explicit euler
 
         best_method = opt['method']
         best_step = opt['step_size']
@@ -107,8 +174,18 @@ def ODE_solver_ablation(cmd_opt):
 
                 for it in range(opt['ablation_its']):
                     print(f"Running Best Params for {ds}")
-                    train_acc, val_acc, test_acc = main(opt)
-                    row = [ds, it, opt['method'], opt['step_size'], opt['adjoint_method'], opt['adjoint_step_size'], train_acc, val_acc, test_acc]
+                    train_acc, val_acc, test_acc, meta_dict = main(opt)
+                    row = [ds, opt['time'], it, opt['method'], opt['step_size'], opt['adjoint_method'],
+                           opt['adjoint_step_size'],
+                           meta_dict[1]['epoch'], meta_dict[1]['fwd_nfe'], meta_dict[1]['back_nfe'],
+                           meta_dict[1]['fwd_time'], meta_dict[1]['back_time'],
+                           meta_dict[11]['epoch'], meta_dict[11]['fwd_nfe'], meta_dict[11]['back_nfe'],
+                           meta_dict[11]['fwd_time'], meta_dict[11]['back_time'],
+                           opt['epoch'],
+                           meta_dict['last_epoch']['epoch'], meta_dict['last_epoch']['fwd_nfe'],
+                           meta_dict['last_epoch']['back_nfe'], meta_dict['last_epoch']['fwd_time'],
+                           meta_dict['last_epoch']['back_time'],
+                           train_acc, val_acc, test_acc, ]
                     rows.append(row)
 
             elif method == 'euler':
@@ -120,21 +197,77 @@ def ODE_solver_ablation(cmd_opt):
 
                     for it in range(opt['ablation_its']):
                         print(f"Running Best Params for {ds}")
-                        train_acc, val_acc, test_acc = main(opt)
-                        row = [ds, it, opt['method'], opt['step_size'], opt['adjoint_method'], opt['adjoint_step_size'], train_acc, val_acc, test_acc]
+                        train_acc, val_acc, test_acc, meta_dict = main(opt)
+                        # row = [ds, opt['time'], it, opt['method'], opt['step_size'], opt['adjoint_method'],
+                        #        opt['adjoint_step_size'], train_acc, val_acc, test_acc]
+                        row = [ds, opt['time'], it, opt['method'], opt['step_size'], opt['adjoint_method'],
+                               opt['adjoint_step_size'],
+                               meta_dict[1]['epoch'], meta_dict[1]['fwd_nfe'], meta_dict[1]['back_nfe'],
+                               meta_dict[1]['fwd_time'], meta_dict[1]['back_time'],
+                               meta_dict[11]['epoch'], meta_dict[11]['fwd_nfe'], meta_dict[11]['back_nfe'],
+                               meta_dict[11]['fwd_time'], meta_dict[11]['back_time'],
+                               opt['epoch'],
+                               meta_dict['last_epoch']['epoch'], meta_dict['last_epoch']['fwd_nfe'],
+                               meta_dict['last_epoch']['back_nfe'], meta_dict['last_epoch']['fwd_time'],
+                               meta_dict['last_epoch']['back_time'],
+                               train_acc, val_acc, test_acc, ]
+
                         rows.append(row)
 
-        df = pd.DataFrame(rows, columns = ['dataset','iteration','method','step_size','adjoint_method','adjoint_step_size', 'train_acc', 'val_acc', 'test_acc'])
+        df = pd.DataFrame(rows, columns=['dataset', 'time', 'iteration', 'method', 'step_size', 'adjoint_method','adjoint_step_size',
+                                         'epoch1','epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
+                                         'epoch11', 'epoch11_fwd_nfe', 'epoch11_back_nfe', 'epoch11_fwd_time','epoch11_back_time',
+                                         'max_epoch',
+                                         'epochlast', 'epochlast_fwd_nfe', 'epochlast_back_nfe', 'epochlast_fwd_time','epochlast_back_time',
+                                         'train_acc', 'val_acc', 'test_acc'])
+
         pd.set_option('display.max_columns', None)
+
+        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'],
+                                    index=['dataset', 'time', 'method', 'step_size'],
+                                    aggfunc=np.mean,
+                                    margins=True)
+
+        mean_table_details = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc',
+                                                        'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
+                                                        'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
+                                                        'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time'],
+                                    index=['dataset', 'time', 'method', 'step_size','epoch1','epoch11','max_epoch'],
+                                    aggfunc=np.mean,
+                                    margins=True)
+
+
+        mean_table_details = mean_table_details.reindex(labels=[
+        # 'dataset','time','method','step_size','epoch1','epoch11','max_epoch',
+        'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
+        'epoch11','epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
+        'max_epoch','epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time',
+        'train_acc','val_acc','test_acc'], axis=1)
+
+        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'],
+                                   index=['dataset', 'time', 'method', 'step_size'],
+                                   aggfunc=np.std, margins=True)
+
+        std_table_details = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc',
+                                                        'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
+                                                        'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
+                                                        'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time'],
+                                    index=['dataset', 'time', 'method', 'step_size','epoch1','epoch11','max_epoch'],
+                                    aggfunc=np.std,
+                                    margins=True)
+
+        std_table_details = std_table_details.reindex(labels=[
+        # 'dataset','time','method','step_size','epoch1','epoch11','max_epoch',
+        'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
+        'epoch11','epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
+        'max_epoch','epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time',
+        'train_acc','val_acc','test_acc'], axis=1)
+
         df.to_csv(f"../ablations/ODE_solver_data_{ds}.csv")
-
-        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=['dataset','method','step_size'],
-                               aggfunc={'train_acc': np.mean, 'val_acc': np.mean, 'test_acc': np.mean}, margins=True)
         mean_table.to_csv(f"../ablations/ODE_solver_mean_{ds}.csv")
-
-        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=['dataset','method','step_size'],
-                               aggfunc={'train_acc': np.std,'val_acc': np.std,'test_acc': np.std}, margins=True)
+        mean_table_details.to_csv(f"../ablations/ODE_solver_mean_{ds}_details.csv")
         std_table.to_csv(f"../ablations/ODE_solver_std_{ds}.csv")
+        std_table_details.to_csv(f"../ablations/ODE_solver_std_{ds}_details.csv")
 
         print(df)
         print(mean_table)
@@ -142,8 +275,8 @@ def ODE_solver_ablation(cmd_opt):
 
 
 def attention_ablation(cmd_opt):
-    datas = ['Cora']#,'Citeseer','Pubmed','CoauthorCS','Computers','Photo']
-    attentions = ['scaled_dot','cosine_sim','pearson', 'exp_kernel']
+    datas = ['Cora']  # ,'Citeseer','Pubmed','CoauthorCS','Computers','Photo']
+    attentions = ['scaled_dot', 'cosine_sim', 'pearson', 'exp_kernel']
 
     rows = []
     for i, ds in enumerate(datas):
@@ -158,26 +291,23 @@ def attention_ablation(cmd_opt):
                 row = [ds, it, opt['attention_type'], train_acc, val_acc, test_acc]
                 rows.append(row)
 
-        df = pd.DataFrame(rows, columns = ['dataset','iteration','attention_type','train_acc', 'val_acc', 'test_acc'])
+        df = pd.DataFrame(rows, columns=['dataset', 'iteration', 'attention_type', 'train_acc', 'val_acc', 'test_acc'])
         pd.set_option('display.max_columns', None)
         df.to_csv(f"../ablations/attention_data_{ds}.csv")
 
-        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=["dataset","attention_type"],
-                               aggfunc={'train_acc': np.mean, 'val_acc': np.mean, 'test_acc': np.mean}, margins=True)
+        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'],
+                                    index=["dataset", "attention_type"],
+                                    aggfunc={'train_acc': np.mean, 'val_acc': np.mean, 'test_acc': np.mean},
+                                    margins=True)
         mean_table.to_csv(f"../ablations/attention_mean_{ds}.csv")
 
-        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=["dataset","attention_type"],
-                               aggfunc={'train_acc': np.std,'val_acc': np.std,'test_acc': np.std}, margins=True)
+        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=["dataset", "attention_type"],
+                                   aggfunc={'train_acc': np.std, 'val_acc': np.std, 'test_acc': np.std}, margins=True)
         std_table.to_csv(f"../ablations/attention_std_{ds}.csv")
 
         print(df)
         print(mean_table)
         print(std_table)
-
-
-def GAT_ablation():
-    pass
-
 
 
 if __name__ == '__main__':
@@ -299,11 +429,19 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")
     parser.add_argument('--pos_enc_csv', action='store_true', help="Generate pos encoding as a sparse CSV")
 
-    #ablation args
+    # ablation args
     parser.add_argument('--ablation_its', type=int, default=8, help="number of iterations to average over")
 
-    args = parser.parse_args()
+    def arg_as_list(s):
+        import ast
+        v = ast.literal_eval(s)
+        if type(v) is not list:
+            raise argparse.ArgumentTypeError("Argument \"%s\" is not a list" % (s))
+        return v
 
+    parser.add_argument("--epoch_snapshots", type=arg_as_list, default='[1,11]', help="List of values")
+
+    args = parser.parse_args()
     opt = vars(args)
 
     ODE_solver_ablation(opt)
