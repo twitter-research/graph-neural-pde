@@ -240,8 +240,8 @@ def ODE_solver_ablation(cmd_opt):
         mean_table_details = mean_table_details.reindex(labels=[
         # 'dataset','time','method','step_size','epoch1','epoch11','max_epoch',
         'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
-        'epoch11','epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
-        'max_epoch','epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time',
+        'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
+        'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time',
         'train_acc','val_acc','test_acc'], axis=1)
 
         std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'],
@@ -259,8 +259,8 @@ def ODE_solver_ablation(cmd_opt):
         std_table_details = std_table_details.reindex(labels=[
         # 'dataset','time','method','step_size','epoch1','epoch11','max_epoch',
         'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
-        'epoch11','epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
-        'max_epoch','epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time',
+        'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
+        'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time',
         'train_acc','val_acc','test_acc'], axis=1)
 
         df.to_csv(f"../ablations/ODE_solver_data_{ds}.csv")
