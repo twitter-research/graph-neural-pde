@@ -82,7 +82,7 @@ def main(opt):
 
 
 def ODE_solver_ablation(cmd_opt):
-    datas = ['Cora','Citeseer','Pubmed','CoauthorCS','Computers','Photo']
+    datas = ['Cora','Citeseer']#,'Pubmed','CoauthorCS','Computers','Photo']
     # datas = ['Pubmed','CoauthorCS','Computers','Photo']
     methods = ['best', 'euler']
 
@@ -105,9 +105,9 @@ def ODE_solver_ablation(cmd_opt):
                 opt['adjoint_step_size'] = best_step_adj
             elif method == 'euler':
                 opt['method'] = 'euler'
-                opt['step_size'] = 1.0
+                opt['step_size'] = 10.0
                 opt['adjoint_method'] = 'euler'
-                opt['adjoint_step_size'] = 1.0
+                opt['adjoint_step_size'] = 10.0
 
             for it in range(8):
                 print(f"Running Best Params for {ds}")
