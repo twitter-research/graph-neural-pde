@@ -84,6 +84,7 @@ def main(opt):
 def ODE_solver_ablation(cmd_opt):
     datas = ['Cora','Citeseer']#,'Pubmed','CoauthorCS','Computers','Photo']
     # datas = ['Pubmed','CoauthorCS','Computers','Photo']
+    steps = [1.0, 2.0, 4.0, 8.0]
     methods = ['best', 'euler']
 
     rows = []
@@ -103,27 +104,35 @@ def ODE_solver_ablation(cmd_opt):
                 opt['step_size'] = best_step
                 opt['adjoint_method'] = best_adj_method
                 opt['adjoint_step_size'] = best_step_adj
-            elif method == 'euler':
-                opt['method'] = 'euler'
-                opt['step_size'] = 10.0
-                opt['adjoint_method'] = 'euler'
-                opt['adjoint_step_size'] = 10.0
 
-            for it in range(8):
-                print(f"Running Best Params for {ds}")
-                train_acc, val_acc, test_acc = main(opt)
-                row = [ds, it, opt['method'], opt['step_size'], opt['adjoint_method'], opt['adjoint_step_size'], train_acc, val_acc, test_acc]
-                rows.append(row)
+                for it in range(opt['ablation_its']):
+                    print(f"Running Best Params for {ds}")
+                    train_acc, val_acc, test_acc = main(opt)
+                    row = [ds, it, opt['method'], opt['step_size'], opt['adjoint_method'], opt['adjoint_step_size'], train_acc, val_acc, test_acc]
+                    rows.append(row)
+
+            elif method == 'euler':
+                for step in steps:
+                    opt['method'] = 'euler'
+                    opt['step_size'] = step
+                    opt['adjoint_method'] = 'euler'
+                    opt['adjoint_step_size'] = step
+
+                    for it in range(opt['ablation_its']):
+                        print(f"Running Best Params for {ds}")
+                        train_acc, val_acc, test_acc = main(opt)
+                        row = [ds, it, opt['method'], opt['step_size'], opt['adjoint_method'], opt['adjoint_step_size'], train_acc, val_acc, test_acc]
+                        rows.append(row)
 
         df = pd.DataFrame(rows, columns = ['dataset','iteration','method','step_size','adjoint_method','adjoint_step_size', 'train_acc', 'val_acc', 'test_acc'])
         pd.set_option('display.max_columns', None)
         df.to_csv(f"../ablations/ODE_solver_data_{ds}.csv")
 
-        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=["dataset","method"],
+        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=['dataset','method','step_size'],
                                aggfunc={'train_acc': np.mean, 'val_acc': np.mean, 'test_acc': np.mean}, margins=True)
         mean_table.to_csv(f"../ablations/ODE_solver_mean_{ds}.csv")
 
-        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=["dataset","method"],
+        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=['dataset','method','step_size'],
                                aggfunc={'train_acc': np.std,'val_acc': np.std,'test_acc': np.std}, margins=True)
         std_table.to_csv(f"../ablations/ODE_solver_std_{ds}.csv")
 
@@ -143,7 +152,7 @@ def attention_ablation(cmd_opt):
 
         for attention in attentions:
             opt['attention_type'] = attention
-            for it in range(8):
+            for it in range(opt['ablation_its']):
                 print(f"Running Best Params for {ds}")
                 train_acc, val_acc, test_acc = main(opt)
                 row = [ds, it, opt['attention_type'], train_acc, val_acc, test_acc]
@@ -290,9 +299,12 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")
     parser.add_argument('--pos_enc_csv', action='store_true', help="Generate pos encoding as a sparse CSV")
 
+    #ablation args
+    parser.add_argument('--ablation_its', type=int, default=8, help="number of iterations to average over")
+
     args = parser.parse_args()
 
     opt = vars(args)
 
-    # ODE_solver_ablation(opt)
-    attention_ablation(opt)
+    ODE_solver_ablation(opt)
+    # attention_ablation(opt)
