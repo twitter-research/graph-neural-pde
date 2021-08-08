@@ -275,7 +275,7 @@ def ODE_solver_ablation(cmd_opt):
 
 
 def attention_ablation(cmd_opt):
-    datas = ['Cora']  # ,'Citeseer','Pubmed','CoauthorCS','Computers','Photo']
+    datas = ['Cora' ,'Citeseer','Pubmed','CoauthorCS','Computers','Photo']
     attentions = ['scaled_dot', 'cosine_sim', 'pearson', 'exp_kernel']
 
     rows = []
@@ -283,25 +283,26 @@ def attention_ablation(cmd_opt):
         best_opt = best_params_dict[ds]
         opt = {**cmd_opt, **best_opt}
 
+        hp_attention = opt['attention_type']
         for attention in attentions:
             opt['attention_type'] = attention
             for it in range(opt['ablation_its']):
                 print(f"Running Best Params for {ds}")
-                train_acc, val_acc, test_acc = main(opt)
-                row = [ds, it, opt['attention_type'], train_acc, val_acc, test_acc]
+                train_acc, val_acc, test_acc, meta_dict = main(opt)
+                row = [ds, it, hp_attention, opt['attention_type'], train_acc, val_acc, test_acc]
                 rows.append(row)
 
-        df = pd.DataFrame(rows, columns=['dataset', 'iteration', 'attention_type', 'train_acc', 'val_acc', 'test_acc'])
+        df = pd.DataFrame(rows, columns=['dataset', 'iteration', 'hp_attention', 'attention_type', 'train_acc', 'val_acc', 'test_acc'])
         pd.set_option('display.max_columns', None)
         df.to_csv(f"../ablations/attention_data_{ds}.csv")
 
         mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'],
-                                    index=["dataset", "attention_type"],
+                                    index=["dataset", 'hp_attention', "attention_type"],
                                     aggfunc={'train_acc': np.mean, 'val_acc': np.mean, 'test_acc': np.mean},
                                     margins=True)
         mean_table.to_csv(f"../ablations/attention_mean_{ds}.csv")
 
-        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=["dataset", "attention_type"],
+        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc'], index=["dataset", 'hp_attention', "attention_type"],
                                    aggfunc={'train_acc': np.std, 'val_acc': np.std, 'test_acc': np.std}, margins=True)
         std_table.to_csv(f"../ablations/attention_std_{ds}.csv")
 
@@ -444,5 +445,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     opt = vars(args)
 
-    ODE_solver_ablation(opt)
-    # attention_ablation(opt)
+    # ODE_solver_ablation(opt)
+    attention_ablation(opt)
