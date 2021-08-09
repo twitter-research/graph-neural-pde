@@ -30,7 +30,7 @@ class GAT(torch.nn.Module):
         self.conv2 = GATConv(8 * 8, self.dataset.num_classes, heads=1, concat=False,
                              dropout=0.6)
 
-    def forward(self, x):
+    def forward(self, x, pos_encoding=None):
         x = F.dropout(x, p=0.6, training=self.training)
         x = F.elu(self.conv1(x, self.data.edge_index))
         x = F.dropout(x, p=0.6, training=self.training)
