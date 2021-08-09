@@ -19,11 +19,11 @@ from run_GNN import print_model_params, get_optimizer, test, test_OGB
 
 
 class GAT(torch.nn.Module):
-    def __init__(self, opt, dataset):
+    def __init__(self, opt, dataset, device):
         super(GAT, self).__init__()
         self.opt = opt
-        self.dataset = dataset
-        self.data = dataset[0]
+        self.dataset = dataset.to(device)
+        self.data = dataset[0].to(device)
         self.conv1 = GATConv(self.dataset.num_features, 8, heads=8, dropout=0.6)
         # On the Pubmed dataset, use heads=8 in conv2.
         self.conv2 = GATConv(8 * 8, self.dataset.num_classes, heads=1, concat=False,
@@ -38,11 +38,11 @@ class GAT(torch.nn.Module):
 
 
 class GATPOS(torch.nn.Module):
-    def __init__(self, opt, dataset):
+    def __init__(self, opt, dataset, device):
         super(GATPOS, self).__init__()
         self.opt = opt
-        self.dataset = dataset
-        self.data = dataset[0]
+        self.dataset = dataset.to(device)
+        self.data = dataset[0].to(device)
         self.mp = nn.Linear(opt['pos_enc_dim'], opt['pos_enc_hidden_dim'])
 
         self.conv1 = GATConv(self.dataset.num_features + opt['pos_enc_hidden_dim'], 8, heads=8, dropout=0.6)
@@ -98,7 +98,7 @@ def main(opt):
     else:
         pos_encoding = None
 
-    model = GATPOS(opt, dataset).to(device)
+    model = GATPOS(opt, dataset, device).to(device) if opt['gat_type'] == 'GATPOS' else model = GAT(opt, dataset, device).to(device)
 
     if not opt['planetoid_split'] and opt['dataset'] in ['Cora', 'Citeseer', 'Pubmed']:
         dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data,
@@ -203,6 +203,7 @@ def GAT_runtime_ablation(cmd_opt):
         opt['no_early'] = True  # no implementation of early stop solver for explicit euler //also not a neccessary comparison against GAT
         opt['epoch'] = 100
         opt['ablation_its'] = 2
+        opt['gat_type'] = 'GAT'
 
         for it in range(opt['ablation_its']):
             total_time_start = time.time()
