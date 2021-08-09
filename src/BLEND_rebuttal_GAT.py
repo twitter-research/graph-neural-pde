@@ -114,7 +114,7 @@ def main(opt):
     best_time = best_epoch = train_acc = val_acc = test_acc = 0
 
     patience_counter = 0
-    patience = 100
+    patience = 500
     prev_fwd_nfe = 0
     prev_back_nfe = 0
     fwd_time = 0
@@ -207,7 +207,7 @@ def GAT_runtime_ablation(cmd_opt):
         opt = {**cmd_opt, **best_opt}
 
         opt['no_early'] = True  # no implementation of early stop solver for explicit euler //also not a neccessary comparison against GAT
-        opt['epoch'] = 100
+        opt['epoch'] = 500
         opt['ablation_its'] = 2
         opt['gat_type'] = 'GAT'
         opt['self_loop_weight'] = 1.0
