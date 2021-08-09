@@ -23,9 +23,9 @@ class GAT(torch.nn.Module):
         super(GAT, self).__init__()
         self.opt = opt
         self.dataset = dataset
-        self.data = dataset.data.to(device)
+        self.data = dataset.data
         self.edge_index = self.data.edge_index.to(device)
-        self.conv1 = GATConv(self.dataset.num_features, 8, heads=8, dropout=0.6)
+        self.conv1 = GATConv(self.data.num_features, 8, heads=8, dropout=0.6)
         # On the Pubmed dataset, use heads=8 in conv2.
         self.conv2 = GATConv(8 * 8, self.dataset.num_classes, heads=1, concat=False,
                              dropout=0.6)
@@ -43,11 +43,11 @@ class GATPOS(torch.nn.Module):
         super(GATPOS, self).__init__()
         self.opt = opt
         self.dataset = dataset
-        self.data = dataset.data.to(device)
+        self.data = dataset.data
         self.edge_index = self.data.edge_index.to(device)
         self.mp = nn.Linear(opt['pos_enc_dim'], opt['pos_enc_hidden_dim'])
 
-        self.conv1 = GATConv(self.dataset.num_features + opt['pos_enc_hidden_dim'], 8, heads=8, dropout=0.6)
+        self.conv1 = GATConv(self.data.num_features + opt['pos_enc_hidden_dim'], 8, heads=8, dropout=0.6)
         # On the Pubmed dataset, use heads=8 in conv2.
         self.conv2 = GATConv(8 * 8, self.dataset.num_classes, heads=1, concat=False,
                              dropout=0.6)
@@ -157,7 +157,8 @@ def main(opt):
 
 
 def GAT_ablation(cmd_opt):
-    datas = ['Cora','Citeseer','Pubmed','CoauthorCS','Computers','Photo']
+    # datas = ['Cora','Citeseer','Pubmed','CoauthorCS','Computers','Photo']
+    datas = ['CoauthorCS', 'Computers', 'Photo']
     gat_types = ['GAT','GATPOS']
 
     rows = []
