@@ -23,7 +23,7 @@ class GAT(torch.nn.Module):
         super(GAT, self).__init__()
         self.opt = opt
         self.dataset = dataset
-        self.data = dataset[0]
+        self.data = dataset[0].to(device)
         self.edge_index = self.data.edge_index.to(device)
         self.conv1 = GATConv(self.dataset.num_features, 8, heads=8, dropout=0.6)
         # On the Pubmed dataset, use heads=8 in conv2.
@@ -43,7 +43,7 @@ class GATPOS(torch.nn.Module):
         super(GATPOS, self).__init__()
         self.opt = opt
         self.dataset = dataset
-        self.data = dataset[0]
+        self.data = dataset[0].to(device)
         self.edge_index = self.data.edge_index.to(device)
         self.mp = nn.Linear(opt['pos_enc_dim'], opt['pos_enc_hidden_dim'])
 
