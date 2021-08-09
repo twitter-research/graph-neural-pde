@@ -52,7 +52,7 @@ def main(opt):
     best_time = best_epoch = train_acc = val_acc = test_acc = 0
 
     patience_counter = 0
-    patience = 100
+    patience = 500
     prev_fwd_nfe = 0
     prev_back_nfe = 0
     fwd_time = 0
@@ -112,6 +112,8 @@ def main(opt):
         meta_dict['last_epoch'] = {'epoch': epoch, 'fwd_nfe': prev_fwd_nfe - prev2_fwd_nfe,
                                    'back_nfe': prev_back_nfe - prev2_back_nfe,
                                    'fwd_time': fwd_time, 'back_time': back_time}
+
+    meta_dict['best_epoch'] = best_epoch
 
     print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(val_acc, test_acc, best_epoch))
     return train_acc, val_acc, test_acc, meta_dict
@@ -198,7 +200,7 @@ def ODE_solver_ablation(cmd_opt):
                            meta_dict['last_epoch']['epoch'], meta_dict['last_epoch']['fwd_nfe'],
                            meta_dict['last_epoch']['back_nfe'], meta_dict['last_epoch']['fwd_time'],
                            meta_dict['last_epoch']['back_time'],
-                           train_acc, val_acc, test_acc, ]
+                           train_acc, val_acc, test_acc]
                     rows.append(row)
 
             elif method == 'euler':
@@ -325,8 +327,8 @@ def attention_ablation(cmd_opt):
 
 
 def runtime_ablation(cmd_opt):
-    # datas = ['Cora', 'Citeseer', 'Pubmed','CoauthorCS','Computers','Photo']
-    datas = ['Computers','Photo']
+    datas = ['Cora', 'Citeseer', 'Pubmed','CoauthorCS','Computers','Photo']
+    # datas = ['Computers','Photo']
     methods = ['BLEND', 'BLEND_kNN']
 
     knn_dict = {'Cora':
@@ -354,7 +356,7 @@ def runtime_ablation(cmd_opt):
         opt = {**cmd_opt, **best_opt}
 
         opt['no_early'] = True  # no implementation of early stop solver for explicit euler //also not a neccessary comparison against GAT
-        opt['epoch'] = 100
+        opt['epoch'] = 500
         opt['ablation_its'] = 2
         opt['self_loop_weight'] = 1.0
 
@@ -374,7 +376,7 @@ def runtime_ablation(cmd_opt):
                            meta_dict['last_epoch']['epoch'], meta_dict['last_epoch']['fwd_nfe'],
                            meta_dict['last_epoch']['back_nfe'], meta_dict['last_epoch']['fwd_time'],
                            meta_dict['last_epoch']['back_time'],
-                           train_acc, val_acc, test_acc, time.time() - total_time_start]
+                           train_acc, val_acc, test_acc, time.time() - total_time_start, meta_dict['best_epoch']]
                     rows.append(row)
 
             elif method == 'BLEND_kNN':
@@ -401,7 +403,7 @@ def runtime_ablation(cmd_opt):
                            meta_dict['last_epoch']['epoch'], meta_dict['last_epoch']['fwd_nfe'],
                            meta_dict['last_epoch']['back_nfe'], meta_dict['last_epoch']['fwd_time'],
                            meta_dict['last_epoch']['back_time'],
-                           train_acc, val_acc, test_acc, time.time() - total_time_start]
+                           train_acc, val_acc, test_acc, time.time() - total_time_start, meta_dict['best_epoch']]
                     rows.append(row)
 
 
@@ -411,16 +413,16 @@ def runtime_ablation(cmd_opt):
                                          'epoch11', 'epoch11_fwd_nfe', 'epoch11_back_nfe', 'epoch11_fwd_time','epoch11_back_time',
                                          'max_epoch',
                                          'epochlast', 'epochlast_fwd_nfe', 'epochlast_back_nfe', 'epochlast_fwd_time','epochlast_back_time',
-                                         'train_acc', 'val_acc', 'test_acc','total_time'])
+                                         'train_acc', 'val_acc', 'test_acc','total_time', 'best_epoch'])
 
         pd.set_option('display.max_columns', None)
 
-        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time'],
+        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time', 'best_epoch'],
                                     index=['dataset', 'time', 'method', 'step_size', 'data_num_edges', 'data_num_nodes'],
                                     aggfunc=np.mean,
                                     margins=True)
 
-        mean_table_details = pd.pivot_table(df, values=['data_num_edges', 'data_num_nodes', 'train_acc', 'val_acc', 'test_acc', 'total_time',
+        mean_table_details = pd.pivot_table(df, values=['data_num_edges', 'data_num_nodes', 'train_acc', 'val_acc', 'test_acc', 'total_time', 'best_epoch',
                                                         'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
                                                         'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
                                                         'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time'],
@@ -433,13 +435,13 @@ def runtime_ablation(cmd_opt):
         'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
         'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
         'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time',
-        'train_acc','val_acc','test_acc','total_time'], axis=1)
+        'train_acc','val_acc','test_acc','total_time', 'best_epoch'], axis=1)
 
-        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time'],
+        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time', 'best_epoch'],
                                    index=['dataset', 'time', 'method', 'step_size'],
                                    aggfunc=np.std, margins=True)
 
-        std_table_details = pd.pivot_table(df, values=['data_num_edges', 'data_num_nodes', 'train_acc', 'val_acc', 'test_acc', 'total_time',
+        std_table_details = pd.pivot_table(df, values=['data_num_edges', 'data_num_nodes', 'train_acc', 'val_acc', 'test_acc', 'total_time', 'best_epoch',
                                                         'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
                                                         'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
                                                         'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time'],
@@ -452,7 +454,7 @@ def runtime_ablation(cmd_opt):
         'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
         'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
         'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time',
-        'train_acc','val_acc','test_acc','total_time'], axis=1)
+        'train_acc','val_acc','test_acc','total_time', 'best_epoch'], axis=1)
 
         df.to_csv(f"../ablations/run_time_data_{ds}.csv")
         mean_table.to_csv(f"../ablations/run_time_mean_{ds}.csv")
@@ -602,5 +604,7 @@ if __name__ == '__main__':
     # ODE_solver_ablation(opt)
     # attention_ablation(opt)
 
-    # runtime_ablation(opt)
-    av_degree()
+    runtime_ablation(opt)
+    # av_degree()
+    from BLEND_rebuttal_GAT import GAT_runtime_ablation
+    GAT_runtime_ablation(opt)

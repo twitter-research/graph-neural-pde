@@ -152,6 +152,8 @@ def main(opt):
                                    'back_nfe': 'na',
                                    'fwd_time': fwd_time, 'back_time': back_time}
 
+    meta_dict['best_epoch'] = best_epoch
+
     print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(val_acc, test_acc, best_epoch))
     return train_acc, val_acc, test_acc, meta_dict
 
@@ -224,7 +226,7 @@ def GAT_runtime_ablation(cmd_opt):
                    meta_dict['last_epoch']['epoch'], meta_dict['last_epoch']['fwd_nfe'],
                    meta_dict['last_epoch']['back_nfe'], meta_dict['last_epoch']['fwd_time'],
                    meta_dict['last_epoch']['back_time'],
-                   train_acc, val_acc, test_acc, time.time() - total_time_start]
+                   train_acc, val_acc, test_acc, time.time() - total_time_start, meta_dict['best_epoch']]
             rows.append(row)
 
         df = pd.DataFrame(rows, columns=['dataset', 'time', 'iteration', 'method', 'step_size', 'adjoint_method','adjoint_step_size',
@@ -232,16 +234,16 @@ def GAT_runtime_ablation(cmd_opt):
                                          'epoch11', 'epoch11_fwd_nfe', 'epoch11_back_nfe', 'epoch11_fwd_time','epoch11_back_time',
                                          'max_epoch',
                                          'epochlast', 'epochlast_fwd_nfe', 'epochlast_back_nfe', 'epochlast_fwd_time','epochlast_back_time',
-                                         'train_acc', 'val_acc', 'test_acc','total_time'])
+                                         'train_acc', 'val_acc', 'test_acc','total_time', 'best_epoch'])
 
         pd.set_option('display.max_columns', None)
 
-        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time'],
+        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time', 'best_epoch'],
                                     index=['dataset', 'time', 'method', 'step_size'],
                                     aggfunc=np.mean,
                                     margins=True)
 
-        mean_table_details = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time',
+        mean_table_details = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time', 'best_epoch',
                                                         'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
                                                         'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
                                                         'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time'],
@@ -254,13 +256,13 @@ def GAT_runtime_ablation(cmd_opt):
         'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
         'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
         'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time',
-        'train_acc','val_acc','test_acc','total_time'], axis=1)
+        'train_acc','val_acc','test_acc','total_time', 'best_epoch'], axis=1)
 
-        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time'],
+        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time', 'best_epoch'],
                                    index=['dataset', 'time', 'method', 'step_size'],
                                    aggfunc=np.std, margins=True)
 
-        std_table_details = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time',
+        std_table_details = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time', 'best_epoch',
                                                         'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
                                                         'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
                                                         'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time'],
@@ -273,7 +275,7 @@ def GAT_runtime_ablation(cmd_opt):
         'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
         'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
         'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time',
-        'train_acc','val_acc','test_acc','total_time'], axis=1)
+        'train_acc','val_acc','test_acc','total_time', 'best_epoch'], axis=1)
 
         df.to_csv(f"../ablations/GAT_run_time_data_{ds}.csv")
         mean_table.to_csv(f"../ablations/GAT_run_time_mean_{ds}.csv")
