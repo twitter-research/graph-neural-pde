@@ -158,6 +158,147 @@ def GAT_ablation(cmd_opt):
         print(mean_table)
         print(std_table)
 
+
+def GAT_runtime_ablation(cmd_opt):
+    datas = ['Cora', 'Citeseer', 'Pubmed','CoauthorCS','Computers','Photo']
+    methods = ['BLEND', 'BLEND_kNN']
+
+    knn_dict = {'Cora':
+                    {'rewiring': 'gdc', 'gdc_method': 'ppr', 'ppr_alpha': 0.15,
+                      'gdc_sparsification': 'topk', 'gdc_k': 32},
+                'Citeseer':
+                    {'rewiring': 'gdc', 'gdc_method': 'ppr', 'ppr_alpha': 0.15,
+                      'gdc_sparsification': 'topk', 'gdc_k': 64},
+                'Pubmed':
+                    {'rewiring': 'gdc', 'gdc_method': 'ppr', 'ppr_alpha': 0.15,
+                    'gdc_sparsification': 'threshold', 'gdc_threshold': 0.00037260592724232223},
+                'CoauthorCS':
+                    {'rewiring': 'gdc', 'gdc_method': 'ppr', 'ppr_alpha': 0.15,
+                    'gdc_sparsification': 'threshold', 'gdc_threshold': 0.002608137444765515},
+                'Computers':
+                    {'rewiring': 'gdc', 'gdc_method': 'ppr', 'ppr_alpha': 0.15,
+                    'gdc_sparsification': 'threshold', 'gdc_threshold': 0.00037260592724232223},
+                'Photo':
+                    {'rewiring': 'gdc', 'gdc_method': 'ppr', 'ppr_alpha': 0.15,
+                    'gdc_sparsification': 'threshold', 'gdc_threshold': 0.0002589973811782757}}
+
+    rows = []
+    for i, ds in enumerate(datas):
+        best_opt = best_params_dict[ds]
+        opt = {**cmd_opt, **best_opt}
+
+        opt['no_early'] = True  # no implementation of early stop solver for explicit euler //also not a neccessary comparison against GAT
+        opt['epoch'] = 100
+        opt['ablation_its'] = 2
+
+        for method in methods:
+            if method == 'BLEND':
+                for it in range(opt['ablation_its']):
+                    total_time_start = time.time()
+                    print(f"Running Best Params for {ds}")
+                    train_acc, val_acc, test_acc, meta_dict = main(opt)
+                    row = [ds, opt['time'], it, method, opt['step_size'], opt['adjoint_method'],
+                           opt['adjoint_step_size'],
+                           meta_dict[1]['epoch'], meta_dict[1]['fwd_nfe'], meta_dict[1]['back_nfe'],
+                           meta_dict[1]['fwd_time'], meta_dict[1]['back_time'],
+                           meta_dict[11]['epoch'], meta_dict[11]['fwd_nfe'], meta_dict[11]['back_nfe'],
+                           meta_dict[11]['fwd_time'], meta_dict[11]['back_time'],
+                           opt['epoch'],
+                           meta_dict['last_epoch']['epoch'], meta_dict['last_epoch']['fwd_nfe'],
+                           meta_dict['last_epoch']['back_nfe'], meta_dict['last_epoch']['fwd_time'],
+                           meta_dict['last_epoch']['back_time'],
+                           train_acc, val_acc, test_acc, time.time() - total_time_start]
+                    rows.append(row)
+
+            elif method == 'BLEND_kNN':
+                opt['rewiring'] = 'gdc'
+                opt['gdc_method'] = 'ppr'
+                opt['ppr_alpha'] = 0.15
+                opt['gdc_sparsification'] = knn_dict[ds]['gdc_sparsification']
+                if knn_dict[ds]['gdc_sparsification'] == 'threshold':
+                    opt['gdc_threshold'] = knn_dict[ds]['gdc_threshold']
+                elif knn_dict[ds]['gdc_sparsification'] == 'topk':
+                    opt['gdc_k'] = knn_dict[ds]['gdc_k']
+
+                for it in range(opt['ablation_its']):
+                    total_time_start = time.time()
+                    print(f"Running Best Params for {ds}")
+                    train_acc, val_acc, test_acc, meta_dict = main(opt)
+                    row = [ds, opt['time'], it, method, opt['step_size'], opt['adjoint_method'],
+                           opt['adjoint_step_size'],
+                           meta_dict[1]['epoch'], meta_dict[1]['fwd_nfe'], meta_dict[1]['back_nfe'],
+                           meta_dict[1]['fwd_time'], meta_dict[1]['back_time'],
+                           meta_dict[11]['epoch'], meta_dict[11]['fwd_nfe'], meta_dict[11]['back_nfe'],
+                           meta_dict[11]['fwd_time'], meta_dict[11]['back_time'],
+                           opt['epoch'],
+                           meta_dict['last_epoch']['epoch'], meta_dict['last_epoch']['fwd_nfe'],
+                           meta_dict['last_epoch']['back_nfe'], meta_dict['last_epoch']['fwd_time'],
+                           meta_dict['last_epoch']['back_time'],
+                           train_acc, val_acc, test_acc, time.time() - total_time_start]
+                    rows.append(row)
+
+
+        df = pd.DataFrame(rows, columns=['dataset', 'time', 'iteration', 'method', 'step_size', 'adjoint_method','adjoint_step_size',
+                                         'epoch1','epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
+                                         'epoch11', 'epoch11_fwd_nfe', 'epoch11_back_nfe', 'epoch11_fwd_time','epoch11_back_time',
+                                         'max_epoch',
+                                         'epochlast', 'epochlast_fwd_nfe', 'epochlast_back_nfe', 'epochlast_fwd_time','epochlast_back_time',
+                                         'train_acc', 'val_acc', 'test_acc','total_time'])
+
+        pd.set_option('display.max_columns', None)
+
+        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time'],
+                                    index=['dataset', 'time', 'method', 'step_size'],
+                                    aggfunc=np.mean,
+                                    margins=True)
+
+        mean_table_details = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time',
+                                                        'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
+                                                        'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
+                                                        'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time'],
+                                    index=['dataset', 'time', 'method', 'step_size','epoch1','epoch11','max_epoch'],
+                                    aggfunc=np.mean,
+                                    margins=True)
+
+        mean_table_details = mean_table_details.reindex(labels=[
+        # 'dataset','time','method','step_size','epoch1','epoch11','max_epoch',
+        'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
+        'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
+        'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time',
+        'train_acc','val_acc','test_acc','total_time'], axis=1)
+
+        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time'],
+                                   index=['dataset', 'time', 'method', 'step_size'],
+                                   aggfunc=np.std, margins=True)
+
+        std_table_details = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time',
+                                                        'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
+                                                        'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
+                                                        'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time'],
+                                    index=['dataset', 'time', 'method', 'step_size','epoch1','epoch11','max_epoch'],
+                                    aggfunc=np.std,
+                                    margins=True)
+
+        std_table_details = std_table_details.reindex(labels=[
+        # 'dataset','time','method','step_size','epoch1','epoch11','max_epoch',
+        'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
+        'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
+        'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time',
+        'train_acc','val_acc','test_acc','total_time'], axis=1)
+
+        df.to_csv(f"../ablations/run_time_data_{ds}.csv")
+        mean_table.to_csv(f"../ablations/run_time_mean_{ds}.csv")
+        mean_table_details.to_csv(f"../ablations/run_time_mean_{ds}_details.csv")
+        std_table.to_csv(f"../ablations/run_time_std_{ds}.csv")
+        std_table_details.to_csv(f"../ablations/run_time_std_{ds}_details.csv")
+
+        print(df)
+        print(mean_table)
+        print(std_table)
+
+
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--use_cora_defaults', action='store_true',

@@ -19,6 +19,10 @@ def main(opt):
     dataset = get_dataset(opt, '../data', opt['not_lcc'])
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+    meta_dict['data_num_edges'] = dataset.data.edge_index.shape[1]
+    meta_dict['data_num_nodes'] = dataset.data.y.shape[0]
+
+
     if opt['beltrami']:
         pos_encoding = apply_beltrami(dataset.data, opt).to(device)
         opt['pos_enc_dim'] = pos_encoding.shape[1]
@@ -349,8 +353,8 @@ def runtime_ablation(cmd_opt):
                     total_time_start = time.time()
                     print(f"Running Best Params for {ds}")
                     train_acc, val_acc, test_acc, meta_dict = main(opt)
-                    row = [ds, opt['time'], it, method, opt['step_size'], opt['adjoint_method'],
-                           opt['adjoint_step_size'],
+                    row = [ds, opt['time'], it, method, opt['step_size'], opt['adjoint_method'], opt['adjoint_step_size'],
+                           meta_dict['data_num_edges'], meta_dict['data_num_nodes'],
                            meta_dict[1]['epoch'], meta_dict[1]['fwd_nfe'], meta_dict[1]['back_nfe'],
                            meta_dict[1]['fwd_time'], meta_dict[1]['back_time'],
                            meta_dict[11]['epoch'], meta_dict[11]['fwd_nfe'], meta_dict[11]['back_nfe'],
@@ -376,8 +380,8 @@ def runtime_ablation(cmd_opt):
                     total_time_start = time.time()
                     print(f"Running Best Params for {ds}")
                     train_acc, val_acc, test_acc, meta_dict = main(opt)
-                    row = [ds, opt['time'], it, method, opt['step_size'], opt['adjoint_method'],
-                           opt['adjoint_step_size'],
+                    row = [ds, opt['time'], it, method, opt['step_size'], opt['adjoint_method'], opt['adjoint_step_size'],
+                           meta_dict['data_num_edges'], meta_dict['data_num_nodes'],
                            meta_dict[1]['epoch'], meta_dict[1]['fwd_nfe'], meta_dict[1]['back_nfe'],
                            meta_dict[1]['fwd_time'], meta_dict[1]['back_time'],
                            meta_dict[11]['epoch'], meta_dict[11]['fwd_nfe'], meta_dict[11]['back_nfe'],
@@ -391,6 +395,7 @@ def runtime_ablation(cmd_opt):
 
 
         df = pd.DataFrame(rows, columns=['dataset', 'time', 'iteration', 'method', 'step_size', 'adjoint_method','adjoint_step_size',
+                                         'data_num_edges', 'data_num_nodes',
                                          'epoch1','epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
                                          'epoch11', 'epoch11_fwd_nfe', 'epoch11_back_nfe', 'epoch11_fwd_time','epoch11_back_time',
                                          'max_epoch',
@@ -400,11 +405,11 @@ def runtime_ablation(cmd_opt):
         pd.set_option('display.max_columns', None)
 
         mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time'],
-                                    index=['dataset', 'time', 'method', 'step_size'],
+                                    index=['dataset', 'time', 'method', 'step_size', 'data_num_edges', 'data_num_nodes'],
                                     aggfunc=np.mean,
                                     margins=True)
 
-        mean_table_details = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time',
+        mean_table_details = pd.pivot_table(df, values=['data_num_edges', 'data_num_nodes', 'train_acc', 'val_acc', 'test_acc', 'total_time',
                                                         'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
                                                         'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
                                                         'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time'],
@@ -412,7 +417,7 @@ def runtime_ablation(cmd_opt):
                                     aggfunc=np.mean,
                                     margins=True)
 
-        mean_table_details = mean_table_details.reindex(labels=[
+        mean_table_details = mean_table_details.reindex(labels=['data_num_edges', 'data_num_nodes',
         # 'dataset','time','method','step_size','epoch1','epoch11','max_epoch',
         'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
         'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
@@ -423,7 +428,7 @@ def runtime_ablation(cmd_opt):
                                    index=['dataset', 'time', 'method', 'step_size'],
                                    aggfunc=np.std, margins=True)
 
-        std_table_details = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time',
+        std_table_details = pd.pivot_table(df, values=['data_num_edges', 'data_num_nodes', 'train_acc', 'val_acc', 'test_acc', 'total_time',
                                                         'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
                                                         'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
                                                         'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time'],
@@ -431,7 +436,7 @@ def runtime_ablation(cmd_opt):
                                     aggfunc=np.std,
                                     margins=True)
 
-        std_table_details = std_table_details.reindex(labels=[
+        std_table_details = std_table_details.reindex(labels=['data_num_edges', 'data_num_nodes',
         # 'dataset','time','method','step_size','epoch1','epoch11','max_epoch',
         'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
         'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
@@ -447,8 +452,6 @@ def runtime_ablation(cmd_opt):
         print(df)
         print(mean_table)
         print(std_table)
-
-
 
 
 if __name__ == '__main__':
