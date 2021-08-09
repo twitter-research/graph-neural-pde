@@ -173,7 +173,7 @@ def GAT_ablation(cmd_opt):
             opt['gat_type'] = gat_type
             for it in range(8):
                 print(f"Running Best Params for {ds}")
-                train_acc, val_acc, test_acc = main(opt)
+                train_acc, val_acc, test_acc, meta_dict = main(opt)
                 row = [ds, it, opt['gat_type'], train_acc, val_acc, test_acc]
                 rows.append(row)
 
