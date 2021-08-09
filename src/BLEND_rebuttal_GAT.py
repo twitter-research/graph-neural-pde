@@ -69,17 +69,28 @@ def GATPOS_args(opt):
 def train(model, optimizer, data, pos_encoding):
     model.train()
     optimizer.zero_grad()
+
+    start_fwd = time.time()
     out = model(data.x, pos_encoding)
+    fwd_time = time.time() - start_fwd
+
     loss = F.nll_loss(out[data.train_mask], data.y[data.train_mask])
+
+    start_back = time.time()
     loss.backward()
+    back_time = time.time() - start_back
+
     optimizer.step()
-    return loss
+    return loss.item(), fwd_time, back_time
 
 def main(opt):
-
+    meta_dict = {}
     opt = GATPOS_args(opt)
     dataset = get_dataset(opt, '../data', opt['not_lcc'])
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    meta_dict['data_num_edges'] = dataset.data.edge_index.shape[1]
+    meta_dict['data_num_nodes'] = dataset.data.y.shape[0]
 
     if opt['beltrami']:
         pos_encoding = apply_beltrami(dataset.data, opt).to(device)
@@ -102,12 +113,19 @@ def main(opt):
 
     patience_counter = 0
     patience = 100
+    prev_fwd_nfe = 0
+    prev_back_nfe = 0
+    fwd_time = 0
+    back_time = 0
     for epoch in range(1, opt['epoch']):
         if patience_counter == patience:
+            meta_dict['last_epoch'] = {'epoch': epoch, 'fwd_nfe': 'na', 'back_nfe': 'na',
+                                       'fwd_time': fwd_time, 'back_time': back_time}
             break
+
         start_time = time.time()
         this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
-        loss = train(model, optimizer, data, pos_encoding)
+        loss, fwd_time, back_time = train(model, optimizer, data, pos_encoding)
 
         tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
         best_time = opt['time']
@@ -121,18 +139,33 @@ def main(opt):
 
         log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
         print(log.format(epoch, time.time() - start_time, loss, train_acc, val_acc, test_acc))
+
+        if epoch in opt['epoch_snapshots']:
+            meta_dict[epoch] = {'epoch': epoch, 'fwd_nfe': 'na',
+                                'back_nfe': 'na',
+                                'fwd_time': fwd_time, 'back_time': back_time}
+
+    if epoch != opt['epoch']:
+        meta_dict['last_epoch'] = {'epoch': epoch, 'fwd_nfe': 'na',
+                                   'back_nfe': 'na',
+                                   'fwd_time': fwd_time, 'back_time': back_time}
+
     print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(val_acc, test_acc, best_epoch))
-    return train_acc, val_acc, test_acc
+    return train_acc, val_acc, test_acc, meta_dict
 
 
 def GAT_ablation(cmd_opt):
-    datas = ['Cora']#,'Citeseer','Pubmed','CoauthorCS','Computers','Photo']
+    datas = ['Cora','Citeseer','Pubmed','CoauthorCS','Computers','Photo']
     gat_types = ['GAT','GATPOS']
 
     rows = []
     for i, ds in enumerate(datas):
         best_opt = best_params_dict[ds]
         opt = {**cmd_opt, **best_opt}
+
+        opt['no_early'] = True  # no implementation of early stop solver for explicit euler //also not a neccessary comparison against GAT
+        opt['epoch'] = 100
+        opt['ablation_its'] = 2
 
         for gat_type in gat_types:
             opt['gat_type'] = gat_type
@@ -161,26 +194,6 @@ def GAT_ablation(cmd_opt):
 
 def GAT_runtime_ablation(cmd_opt):
     datas = ['Cora', 'Citeseer', 'Pubmed','CoauthorCS','Computers','Photo']
-    methods = ['BLEND', 'BLEND_kNN']
-
-    knn_dict = {'Cora':
-                    {'rewiring': 'gdc', 'gdc_method': 'ppr', 'ppr_alpha': 0.15,
-                      'gdc_sparsification': 'topk', 'gdc_k': 32},
-                'Citeseer':
-                    {'rewiring': 'gdc', 'gdc_method': 'ppr', 'ppr_alpha': 0.15,
-                      'gdc_sparsification': 'topk', 'gdc_k': 64},
-                'Pubmed':
-                    {'rewiring': 'gdc', 'gdc_method': 'ppr', 'ppr_alpha': 0.15,
-                    'gdc_sparsification': 'threshold', 'gdc_threshold': 0.00037260592724232223},
-                'CoauthorCS':
-                    {'rewiring': 'gdc', 'gdc_method': 'ppr', 'ppr_alpha': 0.15,
-                    'gdc_sparsification': 'threshold', 'gdc_threshold': 0.002608137444765515},
-                'Computers':
-                    {'rewiring': 'gdc', 'gdc_method': 'ppr', 'ppr_alpha': 0.15,
-                    'gdc_sparsification': 'threshold', 'gdc_threshold': 0.00037260592724232223},
-                'Photo':
-                    {'rewiring': 'gdc', 'gdc_method': 'ppr', 'ppr_alpha': 0.15,
-                    'gdc_sparsification': 'threshold', 'gdc_threshold': 0.0002589973811782757}}
 
     rows = []
     for i, ds in enumerate(datas):
@@ -191,52 +204,22 @@ def GAT_runtime_ablation(cmd_opt):
         opt['epoch'] = 100
         opt['ablation_its'] = 2
 
-        for method in methods:
-            if method == 'BLEND':
-                for it in range(opt['ablation_its']):
-                    total_time_start = time.time()
-                    print(f"Running Best Params for {ds}")
-                    train_acc, val_acc, test_acc, meta_dict = main(opt)
-                    row = [ds, opt['time'], it, method, opt['step_size'], opt['adjoint_method'],
-                           opt['adjoint_step_size'],
-                           meta_dict[1]['epoch'], meta_dict[1]['fwd_nfe'], meta_dict[1]['back_nfe'],
-                           meta_dict[1]['fwd_time'], meta_dict[1]['back_time'],
-                           meta_dict[11]['epoch'], meta_dict[11]['fwd_nfe'], meta_dict[11]['back_nfe'],
-                           meta_dict[11]['fwd_time'], meta_dict[11]['back_time'],
-                           opt['epoch'],
-                           meta_dict['last_epoch']['epoch'], meta_dict['last_epoch']['fwd_nfe'],
-                           meta_dict['last_epoch']['back_nfe'], meta_dict['last_epoch']['fwd_time'],
-                           meta_dict['last_epoch']['back_time'],
-                           train_acc, val_acc, test_acc, time.time() - total_time_start]
-                    rows.append(row)
-
-            elif method == 'BLEND_kNN':
-                opt['rewiring'] = 'gdc'
-                opt['gdc_method'] = 'ppr'
-                opt['ppr_alpha'] = 0.15
-                opt['gdc_sparsification'] = knn_dict[ds]['gdc_sparsification']
-                if knn_dict[ds]['gdc_sparsification'] == 'threshold':
-                    opt['gdc_threshold'] = knn_dict[ds]['gdc_threshold']
-                elif knn_dict[ds]['gdc_sparsification'] == 'topk':
-                    opt['gdc_k'] = knn_dict[ds]['gdc_k']
-
-                for it in range(opt['ablation_its']):
-                    total_time_start = time.time()
-                    print(f"Running Best Params for {ds}")
-                    train_acc, val_acc, test_acc, meta_dict = main(opt)
-                    row = [ds, opt['time'], it, method, opt['step_size'], opt['adjoint_method'],
-                           opt['adjoint_step_size'],
-                           meta_dict[1]['epoch'], meta_dict[1]['fwd_nfe'], meta_dict[1]['back_nfe'],
-                           meta_dict[1]['fwd_time'], meta_dict[1]['back_time'],
-                           meta_dict[11]['epoch'], meta_dict[11]['fwd_nfe'], meta_dict[11]['back_nfe'],
-                           meta_dict[11]['fwd_time'], meta_dict[11]['back_time'],
-                           opt['epoch'],
-                           meta_dict['last_epoch']['epoch'], meta_dict['last_epoch']['fwd_nfe'],
-                           meta_dict['last_epoch']['back_nfe'], meta_dict['last_epoch']['fwd_time'],
-                           meta_dict['last_epoch']['back_time'],
-                           train_acc, val_acc, test_acc, time.time() - total_time_start]
-                    rows.append(row)
-
+        for it in range(opt['ablation_its']):
+            total_time_start = time.time()
+            print(f"Running Best Params for {ds}")
+            train_acc, val_acc, test_acc, meta_dict = main(opt)
+            row = [ds, opt['time'], it, "GAT", opt['step_size'], opt['adjoint_method'],
+                   opt['adjoint_step_size'],
+                   meta_dict[1]['epoch'], meta_dict[1]['fwd_nfe'], meta_dict[1]['back_nfe'],
+                   meta_dict[1]['fwd_time'], meta_dict[1]['back_time'],
+                   meta_dict[11]['epoch'], meta_dict[11]['fwd_nfe'], meta_dict[11]['back_nfe'],
+                   meta_dict[11]['fwd_time'], meta_dict[11]['back_time'],
+                   opt['epoch'],
+                   meta_dict['last_epoch']['epoch'], meta_dict['last_epoch']['fwd_nfe'],
+                   meta_dict['last_epoch']['back_nfe'], meta_dict['last_epoch']['fwd_time'],
+                   meta_dict['last_epoch']['back_time'],
+                   train_acc, val_acc, test_acc, time.time() - total_time_start]
+            rows.append(row)
 
         df = pd.DataFrame(rows, columns=['dataset', 'time', 'iteration', 'method', 'step_size', 'adjoint_method','adjoint_step_size',
                                          'epoch1','epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
@@ -286,11 +269,11 @@ def GAT_runtime_ablation(cmd_opt):
         'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time',
         'train_acc','val_acc','test_acc','total_time'], axis=1)
 
-        df.to_csv(f"../ablations/run_time_data_{ds}.csv")
-        mean_table.to_csv(f"../ablations/run_time_mean_{ds}.csv")
-        mean_table_details.to_csv(f"../ablations/run_time_mean_{ds}_details.csv")
-        std_table.to_csv(f"../ablations/run_time_std_{ds}.csv")
-        std_table_details.to_csv(f"../ablations/run_time_std_{ds}_details.csv")
+        df.to_csv(f"../ablations/GAT_run_time_data_{ds}.csv")
+        mean_table.to_csv(f"../ablations/GAT_run_time_mean_{ds}.csv")
+        mean_table_details.to_csv(f"../ablations/GAT_run_time_mean_{ds}_details.csv")
+        std_table.to_csv(f"../ablations/GAT_run_time_std_{ds}.csv")
+        std_table_details.to_csv(f"../ablations/GAT_run_time_std_{ds}_details.csv")
 
         print(df)
         print(mean_table)
@@ -418,7 +401,20 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")
     parser.add_argument('--pos_enc_csv', action='store_true', help="Generate pos encoding as a sparse CSV")
 
-    args = parser.parse_args()
+    # ablation args
+    parser.add_argument('--ablation_its', type=int, default=8, help="number of iterations to average over")
 
+    def arg_as_list(s):
+        import ast
+        v = ast.literal_eval(s)
+        if type(v) is not list:
+            raise argparse.ArgumentTypeError("Argument \"%s\" is not a list" % (s))
+        return v
+
+    parser.add_argument("--epoch_snapshots", type=arg_as_list, default='[1,11]', help="List of values")
+
+    args = parser.parse_args()
     opt = vars(args)
+
     GAT_ablation(opt)
+    GAT_runtime_ablation(opt)

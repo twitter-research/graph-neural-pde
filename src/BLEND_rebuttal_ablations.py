@@ -22,7 +22,6 @@ def main(opt):
     meta_dict['data_num_edges'] = dataset.data.edge_index.shape[1]
     meta_dict['data_num_nodes'] = dataset.data.y.shape[0]
 
-
     if opt['beltrami']:
         pos_encoding = apply_beltrami(dataset.data, opt).to(device)
         opt['pos_enc_dim'] = pos_encoding.shape[1]
