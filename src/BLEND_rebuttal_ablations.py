@@ -315,7 +315,8 @@ def attention_ablation(cmd_opt):
 
 
 def runtime_ablation(cmd_opt):
-    datas = ['Cora', 'Citeseer', 'Pubmed','CoauthorCS','Computers','Photo']
+    # datas = ['Cora', 'Citeseer', 'Pubmed','CoauthorCS','Computers','Photo']
+    datas = ['Computers','Photo']
     methods = ['BLEND', 'BLEND_kNN']
 
     knn_dict = {'Cora':
@@ -345,6 +346,7 @@ def runtime_ablation(cmd_opt):
         opt['no_early'] = True  # no implementation of early stop solver for explicit euler //also not a neccessary comparison against GAT
         opt['epoch'] = 100
         opt['ablation_its'] = 2
+        opt['self_loop_weight'] = 1.0
 
         for method in methods:
             if method == 'BLEND':
