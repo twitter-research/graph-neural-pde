@@ -168,7 +168,7 @@ def GAT_ablation(cmd_opt):
 
         opt['no_early'] = True  # no implementation of early stop solver for explicit euler //also not a neccessary comparison against GAT
         opt['epoch'] = 100
-        opt['ablation_its'] = 2
+        opt['ablation_its'] = 8
         opt['self_loop_weight'] = 1.0
 
         for gat_type in gat_types:
@@ -423,4 +423,4 @@ if __name__ == '__main__':
     opt = vars(args)
 
     GAT_ablation(opt)
-    GAT_runtime_ablation(opt)
+    # GAT_runtime_ablation(opt)
