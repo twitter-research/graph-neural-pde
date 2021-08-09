@@ -98,7 +98,7 @@ def main(opt):
     else:
         pos_encoding = None
 
-    model = GATPOS(opt, dataset, device).to(device) if opt['gat_type'] == 'GATPOS' else model = GAT(opt, dataset, device).to(device)
+    model = GATPOS(opt, dataset, device).to(device) if opt['gat_type'] == 'GATPOS' else GAT(opt, dataset, device).to(device)
 
     if not opt['planetoid_split'] and opt['dataset'] in ['Cora', 'Citeseer', 'Pubmed']:
         dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data,
