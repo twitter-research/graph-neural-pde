@@ -312,7 +312,7 @@ def attention_ablation(cmd_opt):
 
 
 def runtime_ablation(cmd_opt):
-    datas = ['Cora', 'Citeseer'] # ,'Pubmed','CoauthorCS','Computers','Photo']
+    datas = ['Cora', 'Citeseer', 'Pubmed','CoauthorCS','Computers','Photo']
     methods = ['BLEND', 'BLEND_kNN']
 
     knn_dict = {'Cora':
@@ -339,17 +339,17 @@ def runtime_ablation(cmd_opt):
         best_opt = best_params_dict[ds]
         opt = {**cmd_opt, **best_opt}
 
-        opt['no_early'] = True  # no implementation of early stop solver for explicit euler
+        opt['no_early'] = True  # no implementation of early stop solver for explicit euler //also not a neccessary comparison against GAT
         opt['epoch'] = 100
-        opt['ablation_its'] = 4
+        opt['ablation_its'] = 2
 
         for method in methods:
-            total_time_start = time.time()
             if method == 'BLEND':
                 for it in range(opt['ablation_its']):
+                    total_time_start = time.time()
                     print(f"Running Best Params for {ds}")
                     train_acc, val_acc, test_acc, meta_dict = main(opt)
-                    row = [ds, opt['time'], it, opt['method'], opt['step_size'], opt['adjoint_method'],
+                    row = [ds, opt['time'], it, method, opt['step_size'], opt['adjoint_method'],
                            opt['adjoint_step_size'],
                            meta_dict[1]['epoch'], meta_dict[1]['fwd_nfe'], meta_dict[1]['back_nfe'],
                            meta_dict[1]['fwd_time'], meta_dict[1]['back_time'],
@@ -366,16 +366,17 @@ def runtime_ablation(cmd_opt):
                 opt['rewiring'] = 'gdc'
                 opt['gdc_method'] = 'ppr'
                 opt['ppr_alpha'] = 0.15
-                opt['gdc_sparsification'] = knn_dict['gdc_sparsification']
-                if knn_dict['gdc_sparsification'] == 'threshold':
-                    opt['gdc_threshold'] = knn_dict['gdc_threshold']
-                elif knn_dict['gdc_sparsification'] == 'topk':
-                    opt['gdc_k'] = knn_dict['gdc_k']
+                opt['gdc_sparsification'] = knn_dict[ds]['gdc_sparsification']
+                if knn_dict[ds]['gdc_sparsification'] == 'threshold':
+                    opt['gdc_threshold'] = knn_dict[ds]['gdc_threshold']
+                elif knn_dict[ds]['gdc_sparsification'] == 'topk':
+                    opt['gdc_k'] = knn_dict[ds]['gdc_k']
 
                 for it in range(opt['ablation_its']):
+                    total_time_start = time.time()
                     print(f"Running Best Params for {ds}")
                     train_acc, val_acc, test_acc, meta_dict = main(opt)
-                    row = [ds, opt['time'], it, opt['method'], opt['step_size'], opt['adjoint_method'],
+                    row = [ds, opt['time'], it, method, opt['step_size'], opt['adjoint_method'],
                            opt['adjoint_step_size'],
                            meta_dict[1]['epoch'], meta_dict[1]['fwd_nfe'], meta_dict[1]['back_nfe'],
                            meta_dict[1]['fwd_time'], meta_dict[1]['back_time'],
