@@ -14,6 +14,16 @@ from best_params import best_params_dict
 from run_GNN import print_model_params, get_optimizer, test, test_OGB, train, get_label_masks, add_labels
 
 
+def av_degree():
+    datas = ['Cora', 'Citeseer', 'Pubmed', 'CoauthorCS', 'Computers', 'Photo']
+
+    for data in datas:
+        print(data)
+        dataset = get_dataset(opt, '../data', opt['not_lcc'])
+        print(f"data_num_edges {dataset.data.edge_index.shape[1]}")
+        print(f"data_num_nodes {dataset.data.y.shape[0]}")
+
+
 def main(opt):
     meta_dict = {}
     dataset = get_dataset(opt, '../data', opt['not_lcc'])
@@ -592,4 +602,5 @@ if __name__ == '__main__':
     # ODE_solver_ablation(opt)
     # attention_ablation(opt)
 
-    runtime_ablation(opt)
+    # runtime_ablation(opt)
+    av_degree()
