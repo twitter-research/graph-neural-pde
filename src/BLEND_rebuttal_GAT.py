@@ -159,8 +159,8 @@ def main(opt):
 
 
 def GAT_ablation(cmd_opt):
-    # datas = ['Cora','Citeseer','Pubmed']#,'CoauthorCS','Computers','Photo']
-    datas = ['CoauthorCS', 'Computers', 'Photo']
+    datas = ['Cora','Citeseer','Pubmed']#,'CoauthorCS','Computers','Photo']
+    # datas = ['CoauthorCS', 'Computers', 'Photo']
     gat_types = ['GAT','GATPOS']
 
     rows = []

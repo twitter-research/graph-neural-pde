@@ -26,6 +26,9 @@ def av_degree():
 
 def main(opt):
     meta_dict = {}
+    time_array = []
+    test_array = []
+
     dataset = get_dataset(opt, '../data', opt['not_lcc'])
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -98,6 +101,10 @@ def main(opt):
 
         log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
         print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, val_acc, test_acc))
+
+        time_array.append(time.time() - start_time)
+        test_array.append(test_acc)
+
         if epoch in opt['epoch_snapshots']:
             meta_dict[epoch] = {'epoch': epoch, 'fwd_nfe':model.fm.sum - prev_fwd_nfe, 'back_nfe': model.bm.sum - prev_back_nfe,
                                 'fwd_time': fwd_time, 'back_time': back_time}
@@ -114,6 +121,8 @@ def main(opt):
                                    'fwd_time': fwd_time, 'back_time': back_time}
 
     meta_dict['best_epoch'] = best_epoch
+    meta_dict['time_array'] = time_array
+    meta_dict['test_acc'] = test_acc
 
     print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(val_acc, test_acc, best_epoch))
     return train_acc, val_acc, test_acc, meta_dict
@@ -465,6 +474,97 @@ def runtime_ablation(cmd_opt):
         print(df)
         print(mean_table)
         print(std_table)
+
+
+def loss_curve(cmd_opt):
+    datas = ['Cora', 'Citeseer', 'Pubmed','CoauthorCS','Computers','Photo']
+
+    rows = []
+    for i, ds in enumerate(datas):
+        best_opt = best_params_dict[ds]
+        opt = {**cmd_opt, **best_opt}
+
+        opt['no_early'] = True  # no implementation of early stop solver for explicit euler //also not a neccessary comparison against GAT
+        opt['epoch'] = 500
+        opt['ablation_its'] = 2
+        opt['self_loop_weight'] = 1.0
+
+        for it in range(opt['ablation_its']):
+            total_time_start = time.time()
+            print(f"Running Best Params for {ds}")
+            train_acc, val_acc, test_acc, meta_dict = main(opt)
+            row = [ds, opt['time'], it, "BLEND", opt['step_size'], opt['adjoint_method'], opt['adjoint_step_size'],
+                   meta_dict['data_num_edges'], meta_dict['data_num_nodes'],
+                   meta_dict[1]['epoch'], meta_dict[1]['fwd_nfe'], meta_dict[1]['back_nfe'],
+                   meta_dict[1]['fwd_time'], meta_dict[1]['back_time'],
+                   meta_dict[11]['epoch'], meta_dict[11]['fwd_nfe'], meta_dict[11]['back_nfe'],
+                   meta_dict[11]['fwd_time'], meta_dict[11]['back_time'],
+                   opt['epoch'],
+                   meta_dict['last_epoch']['epoch'], meta_dict['last_epoch']['fwd_nfe'],
+                   meta_dict['last_epoch']['back_nfe'], meta_dict['last_epoch']['fwd_time'],
+                   meta_dict['last_epoch']['back_time'],
+                   train_acc, val_acc, test_acc, time.time() - total_time_start, meta_dict['best_epoch']]
+            rows.append(row)
+
+        df = pd.DataFrame(rows, columns=['dataset', 'time', 'iteration', 'method', 'step_size', 'adjoint_method','adjoint_step_size',
+                                         'data_num_edges', 'data_num_nodes',
+                                         'epoch1','epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
+                                         'epoch11', 'epoch11_fwd_nfe', 'epoch11_back_nfe', 'epoch11_fwd_time','epoch11_back_time',
+                                         'max_epoch',
+                                         'epochlast', 'epochlast_fwd_nfe', 'epochlast_back_nfe', 'epochlast_fwd_time','epochlast_back_time',
+                                         'train_acc', 'val_acc', 'test_acc','total_time', 'best_epoch'])
+
+        pd.set_option('display.max_columns', None)
+
+        mean_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time', 'best_epoch'],
+                                    index=['dataset', 'time', 'method', 'step_size', 'data_num_edges', 'data_num_nodes'],
+                                    aggfunc=np.mean,
+                                    margins=True)
+
+        mean_table_details = pd.pivot_table(df, values=['data_num_edges', 'data_num_nodes', 'train_acc', 'val_acc', 'test_acc', 'total_time', 'best_epoch',
+                                                        'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
+                                                        'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
+                                                        'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time'],
+                                    index=['dataset', 'time', 'method', 'step_size','epoch1','epoch11','max_epoch'],
+                                    aggfunc=np.mean,
+                                    margins=True)
+
+        mean_table_details = mean_table_details.reindex(labels=['data_num_edges', 'data_num_nodes',
+        # 'dataset','time','method','step_size','epoch1','epoch11','max_epoch',
+        'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
+        'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
+        'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time',
+        'train_acc','val_acc','test_acc','total_time', 'best_epoch'], axis=1)
+
+        std_table = pd.pivot_table(df, values=['train_acc', 'val_acc', 'test_acc', 'total_time', 'best_epoch'],
+                                   index=['dataset', 'time', 'method', 'step_size'],
+                                   aggfunc=np.std, margins=True)
+
+        std_table_details = pd.pivot_table(df, values=['data_num_edges', 'data_num_nodes', 'train_acc', 'val_acc', 'test_acc', 'total_time', 'best_epoch',
+                                                        'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
+                                                        'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
+                                                        'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time'],
+                                    index=['dataset', 'time', 'method', 'step_size','epoch1','epoch11','max_epoch'],
+                                    aggfunc=np.std,
+                                    margins=True)
+
+        std_table_details = std_table_details.reindex(labels=['data_num_edges', 'data_num_nodes',
+        # 'dataset','time','method','step_size','epoch1','epoch11','max_epoch',
+        'epoch1_fwd_nfe','epoch1_back_nfe','epoch1_fwd_time','epoch1_back_time',
+        'epoch11_fwd_nfe','epoch11_back_nfe','epoch11_fwd_time','epoch11_back_time',
+        'epochlast','epochlast_fwd_nfe','epochlast_back_nfe','epochlast_fwd_time','epochlast_back_time',
+        'train_acc','val_acc','test_acc','total_time', 'best_epoch'], axis=1)
+
+        df.to_csv(f"../ablations/curve_data_{ds}.csv")
+        mean_table.to_csv(f"../ablations/curve_mean_{ds}.csv")
+        mean_table_details.to_csv(f"../ablations/curve_mean_{ds}_details.csv")
+        std_table.to_csv(f"../ablations/curve_std_{ds}.csv")
+        std_table_details.to_csv(f"../ablations/curve_std_{ds}_details.csv")
+
+        print(df)
+        print(mean_table)
+        print(std_table)
+
 
 
 if __name__ == '__main__':
