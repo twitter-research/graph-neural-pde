@@ -27,6 +27,7 @@ def av_degree():
 def main(opt):
     meta_dict = {}
     time_array = []
+    loss_array = []
     test_array = []
 
     dataset = get_dataset(opt, '../data', opt['not_lcc'])
@@ -103,6 +104,7 @@ def main(opt):
         print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, val_acc, test_acc))
 
         time_array.append(time.time() - start_time)
+        loss_array.append(loss)
         test_array.append(test_acc)
 
         if epoch in opt['epoch_snapshots']:
@@ -122,7 +124,8 @@ def main(opt):
 
     meta_dict['best_epoch'] = best_epoch
     meta_dict['time_array'] = time_array
-    meta_dict['test_acc'] = test_acc
+    meta_dict['loss_array'] = loss_array
+    meta_dict['test_array'] = test_acc
 
     print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d}'.format(val_acc, test_acc, best_epoch))
     return train_acc, val_acc, test_acc, meta_dict
@@ -480,12 +483,16 @@ def loss_curve(cmd_opt):
     datas = ['Cora', 'Citeseer', 'Pubmed','CoauthorCS','Computers','Photo']
 
     rows = []
+    time_mat = []
+    loss_mat = []
+    test_mat = []
+
     for i, ds in enumerate(datas):
         best_opt = best_params_dict[ds]
         opt = {**cmd_opt, **best_opt}
 
         opt['no_early'] = True  # no implementation of early stop solver for explicit euler //also not a neccessary comparison against GAT
-        opt['epoch'] = 500
+        opt['epoch'] = 12 #500
         opt['ablation_its'] = 2
         opt['self_loop_weight'] = 1.0
 
@@ -505,6 +512,13 @@ def loss_curve(cmd_opt):
                    meta_dict['last_epoch']['back_time'],
                    train_acc, val_acc, test_acc, time.time() - total_time_start, meta_dict['best_epoch']]
             rows.append(row)
+            time_mat.append(meta_dict['time_array'])
+            loss_mat.append(meta_dict['loss_array'])
+            test_mat.append(meta_dict['test_array'])
+
+        pd.DataFrame(np.array(time_mat)).to_csv(f"../ablations/curve_times_{ds}.csv")
+        pd.DataFrame(np.array(loss_mat)).to_csv(f"../ablations/curve_loss_{ds}.csv")
+        pd.DataFrame(np.array(test_mat)).to_csv(f"../ablations/curve_test_{ds}.csv")
 
         df = pd.DataFrame(rows, columns=['dataset', 'time', 'iteration', 'method', 'step_size', 'adjoint_method','adjoint_step_size',
                                          'data_num_edges', 'data_num_nodes',
@@ -704,7 +718,9 @@ if __name__ == '__main__':
     # ODE_solver_ablation(opt)
     # attention_ablation(opt)
 
-    runtime_ablation(opt)
+    # runtime_ablation(opt)
     # av_degree()
-    from BLEND_rebuttal_GAT import GAT_runtime_ablation
-    GAT_runtime_ablation(opt)
+    # from BLEND_rebuttal_GAT import GAT_runtime_ablation
+    # GAT_runtime_ablation(opt)
+
+    loss_curve(opt)
