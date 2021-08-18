@@ -177,8 +177,8 @@ def train(model, optimizer, data, pos_encoding=None):
 def ODE_solver_ablation(cmd_opt):
     datas = ['Cora', 'Citeseer' ,'Pubmed','CoauthorCS','Computers','Photo']
     # datas = ['Pubmed','CoauthorCS','Computers','Photo']
-    steps = [1.0, 2.0, 4.0, 8.0]
-    methods = ['best', 'euler']
+    steps = [0.25, 0.5] # 1.0, 2.0, 4.0, 8.0]
+    methods = ['euler'] #'best', 'euler']
 
     rows = []
     for i, ds in enumerate(datas):
@@ -715,7 +715,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     opt = vars(args)
 
-    # ODE_solver_ablation(opt)
+    ODE_solver_ablation(opt)
     # attention_ablation(opt)
 
     # runtime_ablation(opt)
@@ -723,4 +723,4 @@ if __name__ == '__main__':
     # from BLEND_rebuttal_GAT import GAT_runtime_ablation
     # GAT_runtime_ablation(opt)
 
-    loss_curve(opt)
+    # loss_curve(opt)
