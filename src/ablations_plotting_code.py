@@ -127,8 +127,9 @@ def fig2():
     ax.bar_label(rects2, padding=3, fontsize=11, color=sns.color_palette()[1])
 
     fig.tight_layout()
+    plt.savefig('../ablations/Neurips_plots/blend_hyp.pdf')
     plt.show()
-    #RHS - might not be needed
+    #RHS - might not be needed hyp plot
     #build_ablation_fig.ipynb
     #'../ablations/Neurips_plots/pos_emb_dim.pdf'
 
@@ -327,9 +328,10 @@ def fig6():
     plt.show()
 
 if __name__ == "__main__":
-    # fig1a()
-    fig1b()
-    # fig2()
+    # fig1a() #With/without positional coordinates ablation
+    fig1b() #With/without positional coordinates and GAT
+    fig2() # Euclidean and hyperbolic positional embeddings
+    # Step size ablation
     # fig3()
     # fig4()
     # fig5()
