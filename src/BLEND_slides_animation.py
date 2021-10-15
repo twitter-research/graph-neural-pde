@@ -8,7 +8,8 @@ import networkx as nx
 from torch_geometric.utils.convert import to_networkx
 from torch_geometric.utils import to_dense_adj
 from torch_geometric.data import Data
-
+from torch_geometric.nn import knn_graph
+from networkx.classes.function import create_empty_copy
 
 # loop through data and update plot
 def update(ii, pos_t, x_t, ax, NXgraph, params):
@@ -21,8 +22,13 @@ def update(ii, pos_t, x_t, ax, NXgraph, params):
   pos_i = pos_t[:, :, ii].detach().numpy()
   pos_i_dict = {i: pos_i[i, :].tolist() for i in range(pos_0.shape[0])}
 
-  ax.set_xlim([-5, 5])
-  ax.set_xlim([-5, 5])
+  # ax.set_xlim([-3, 3])
+  # ax.set_ylim([-3, 3])
+  if params['kNN']:
+    edge_index = knn_graph(torch.tensor(pos_i), k=5, loop=False)
+    graph = Data(edge_index=edge_index)
+    NXgraph = to_networkx(graph)
+
   nx.draw(NXgraph, pos=pos_i_dict, ax=ax, node_size=params['node_size'],
           node_color=x_i, cmap=plt.get_cmap('Spectral'), arrows=False, width=0.25) #=params['edge_with'] )
 
@@ -30,8 +36,8 @@ def update(ii, pos_t, x_t, ax, NXgraph, params):
   ax.patch.set_edgecolor('black')
   ax.patch.set_linewidth('1')
   ax.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
-  # ax.set_xticks([])
-  # ax.set_yticks([])
+  ax.set_xticks([])
+  ax.set_yticks([])
   plt.title(f"Beltrami Flow, diffusion time={ii//10}", fontsize=16)
 
 

@@ -13,7 +13,7 @@ data = dataset[0]
 
 N = len(data.y)
 params = {'T':100, 'fps':10, 'end_feat_sd_scale':0.1, 'end_pos_sd_scale':0.05,
-          'node_size': 500, 'edge_width':0.25, 'im_height':8, 'im_width':16}
+          'node_size': 500, 'edge_width':0.25, 'im_height':8, 'im_width':16, 'kNN':True}
 
 T = params['T']
 
