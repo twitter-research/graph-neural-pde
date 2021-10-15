@@ -11,8 +11,8 @@ from torch_geometric.data import Data
 
 
 # loop through data and update plot
-def update(ii, pos_t, x_t, ax):
-  # plt.tight_layout()
+def update(ii, pos_t, x_t, ax, NXgraph):
+  plt.tight_layout()
   pos_0 = pos_t[:, :, 0].detach().numpy()
   ax.clear()
   x_i = x_t[:, ii].detach().numpy()
@@ -20,13 +20,13 @@ def update(ii, pos_t, x_t, ax):
   pos_i_dict = {i: pos_i[i, :].tolist() for i in range(pos_0.shape[0])}
   # ax.set_xlim([-5, 5])
   # ax.set_xlim([-5, 5])
-  nx.draw(NXgraph, pos= pos_i_dict, ax=ax, node_size=300 / 4,
+  nx.draw(NXgraph, pos=pos_i_dict, ax=ax, node_size=300 / 4,
           node_color=x_i, cmap=plt.get_cmap('Spectral'))
 
   plt.title(f"t={ii}  Beltrami Flow")
 
 
-def create_animation(x_t, pos_t, NXgraph, im_height, im_width):
+def create_animation(x_t, pos_t, NXgraph, filepath, im_height=16, im_width=16, frames=3, fps=1.5):
   # # draw initial graph
   # time = 0
   # x_0 = x_t[:, time].detach().numpy()
@@ -36,19 +36,14 @@ def create_animation(x_t, pos_t, NXgraph, im_height, im_width):
   ax.set_xlim([-5, 5])
   ax.set_xlim([-5, 5])
   # ax.axis('off')
-
   # nx.draw(NXgraph, pos= pos_0_dict, ax=ax, node_size=300 / 4,
   #         node_color=x, cmap=plt.get_cmap('Spectral'))
   # plt.title(f"t={time} Beltrami Flow")
   # plt.show()
 
   fig = plt.gcf()
-  frames = 3
-  fps = 1.5
-  animation = FuncAnimation(fig, func=update, frames=frames, fargs=(pos_t, x_t, ax))
-  animation.save(f"../BLEND_animation/BLEND_animation.gif", writer='imagemagick')
-
-                 # fps=fps)  # , writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=fps)
+  animation = FuncAnimation(fig, func=update, frames=frames, fargs=(pos_t, x_t, ax, NXgraph))
+  animation.save(filepath, fps=fps)  # , writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=fps)
 
 
 if __name__ == "__main__":
@@ -85,4 +80,7 @@ if __name__ == "__main__":
   # pos_t = pos_t / (2 * max_pos) + torch.tensor([0.5])
   im_height = 16
   im_width = 16
-  create_animation(x_t, pos_t, NXgraph, im_height, im_width)
+  frames = 3
+  fps = 1.5
+  filepath = f"../BLEND_animation/BLEND_animation.gif"
+  create_animation(x_t, pos_t, NXgraph, filepath, im_height, im_width, frames, fps)
