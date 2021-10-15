@@ -25,7 +25,7 @@ def update(ii, pos_t, x_t, ax, NXgraph, params):
   # ax.set_xlim([-3, 3])
   # ax.set_ylim([-3, 3])
   if params['kNN']:
-    edge_index = knn_graph(torch.tensor(pos_i), k=5, loop=False)
+    edge_index = knn_graph(torch.tensor(pos_i), k=params['kNN'], loop=False)
     graph = Data(edge_index=edge_index)
     NXgraph = to_networkx(graph)
 
