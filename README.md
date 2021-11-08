@@ -55,7 +55,7 @@ python run_GNN.py --dataset Cora
 For example to run for Cora with random splits:
 ```
 cd src
-python run_GNN.py --dataset Cora --blend
+python run_GNN.py --dataset Cora --beltrami
 ```
 
 ## Troubleshooting 
