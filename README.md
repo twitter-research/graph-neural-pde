@@ -59,7 +59,7 @@ and then following instructions here to install pytorch geometric
 https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html
 
 ## Cite us
-If you found this work useful, please consider citing
+If you found this work useful, please consider citing our papers
 ```
 @article
 {chamberlain2021grand,
@@ -71,6 +71,18 @@ If you found this work useful, please consider citing
   year={2021}
 }
 ```
+and
+```
+@article
+{chamberlain2021blend,
+  title={Beltrami Flow and Neural Diffusion on Graphs},
+  author={Chamberlain, Benjamin Paul and Rowbottom, James and Eynard, Davide and Di Giovanni, Francesco and Dong Xiaowen and Bronstein, Michael M},
+  journal={Proceedings of the Thirty-fifth Conference on Neural Information Processing Systems (NeurIPS) 2021, Virtual Event},
+  year={2021}
+}
+```
+
+
 
 
 ## Security Issues?
