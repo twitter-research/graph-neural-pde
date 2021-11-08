@@ -14,8 +14,8 @@ from ray.tune.schedulers import ASHAScheduler
 from ray.tune.suggest.ax import AxSearch
 from run_GNN import get_optimizer, test, test_OGB, train
 from torch import nn
-from GNN_ICML20 import ICML_GNN, get_sym_adj
-from GNN_ICML20 import train as train_icml
+from CGNN import ICML_GNN, get_sym_adj
+from CGNN import train as train_icml
 
 """
 python3 ray_tune.py --dataset ogbn-arxiv --lr 0.005 --add_source --function transformer --attention_dim 16 --hidden_dim 128 --heads 4 --input_dropout 0 --decay 0 --adjoint --adjoint_method rk4 --method rk4 --time 5.08 --epoch 500 --num_samples 1 --name ogbn-arxiv-test --gpus 1 --grace_period 50 

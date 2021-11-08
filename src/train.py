@@ -4,7 +4,7 @@ import argparse
 import torch
 
 from trainer import Trainer
-from GNN_ICML20 import ICML_GNN
+from CGNN import ICML_GNN
 from wgnn import WGNN
 from GNN import GNN
 import loader

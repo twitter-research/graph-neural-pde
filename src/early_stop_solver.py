@@ -228,7 +228,9 @@ class EarlyStopInt(torch.nn.Module):
     self.device = device
     self.solver = None
     self.data = None
-    self.m2 = None
+    self.max_test_steps = opt['max_test_steps']
+    self.m2_weight = None
+    self.m2_bias = None
     self.opt = opt
     self.t = torch.tensor([0, opt['earlystopxT'] * t], dtype=torch.float).to(self.device)
 
@@ -276,8 +278,8 @@ class EarlyStopInt(torch.nn.Module):
     method = self.opt['method']
     assert method in ['rk4', 'dopri5'], "Only dopri5 and rk4 implemented with early stopping"
 
-    ver = torchdiffeq.__version__[0] + torchdiffeq.__version__[2] + torchdiffeq.__version__[4]
-    if int(ver) >= 22: #'0.2.2'
+    ver = torchdiffeq.__version__
+    if int(ver[0] + ver[2] + ver[4]) >= 22:  # 0.2.2 change of signature *around* this release
       event_fn = None
       shapes, func, y0, t, rtol, atol, method, options, event_fn, t_is_reversed = _check_inputs(func, y0, self.t, rtol,
                                                                                                 atol, method, options,
@@ -289,7 +291,8 @@ class EarlyStopInt(torch.nn.Module):
     self.solver = SOLVERS[method](func, y0, rtol=rtol, atol=atol, opt=self.opt, **options)
     if self.solver.data is None:
       self.solver.data = self.data
-    self.solver.m2 = self.m2
+    self.solver.m2_weight = self.m2_weight
+    self.solver.m2_bias = self.m2_bias
     t, solution = self.solver.integrate(t)
     if shapes is not None:
       solution = _flat_to_shape(solution, (len(t),), shapes)

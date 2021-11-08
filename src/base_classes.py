@@ -102,10 +102,18 @@ class BaseGNN(MessagePassing):
     self.T = opt['time']
     self.num_classes = dataset.num_classes
     self.num_features = dataset.data.num_features
+    self.num_nodes = dataset.data.num_nodes
     self.device = device
     self.fm = Meter()
     self.bm = Meter()
-    self.m1 = nn.Linear(dataset.data.num_features, opt['hidden_dim'])
+
+    if opt['beltrami']:
+      self.mx = nn.Linear(self.num_features, opt['feat_hidden_dim'])
+      self.mp = nn.Linear(opt['pos_enc_dim'], opt['pos_enc_hidden_dim'])
+      opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
+    else:
+      self.m1 = nn.Linear(self.num_features, opt['hidden_dim'])
+
     if self.opt['use_mlp']:
       self.m11 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
       self.m12 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])

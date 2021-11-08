@@ -7,7 +7,7 @@ import unittest
 import torch
 from torch import tensor
 from torch import nn
-from GNN_ICML20 import gcn_norm_fill_val, coo2tensor, train_ray
+from CGNN import gcn_norm_fill_val, coo2tensor, train_ray
 from data import get_dataset
 from torch_geometric.nn.conv.gcn_conv import gcn_norm
 from torch_geometric.utils.convert import to_scipy_sparse_matrix

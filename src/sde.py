@@ -1,11 +1,8 @@
 import torch
 from torch import nn
-import torch.nn.functional as F
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils.convert import to_scipy_sparse_matrix
 import numpy as np
-from torch_geometric.nn.conv.gcn_conv import gcn_norm
-from function_GAT_attention import ODEFuncAtt
 from sklearn.preprocessing import normalize
 import scipy
 adjoint = True
