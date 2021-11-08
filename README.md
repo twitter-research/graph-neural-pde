@@ -42,10 +42,20 @@ pip install torch-geometric
 
 ### Dataset and Preprocessing
 create a root level ./data folder. This will be automatically populated the first time each experiment is run.
-For example to run for Cora:
+
+
+### Experiments for GRAND
+For example to run for Cora with random splits:
 ```
 cd src
 python run_GNN.py --dataset Cora 
+```
+
+### Experiments for BLEND (Beltrami Flow and Neural Diffusion on Graphs)
+For example to run for Cora with random splits:
+```
+cd src
+python run_GNN.py --dataset Cora --blend
 ```
 
 ## Troubleshooting 
