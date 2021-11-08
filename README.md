@@ -67,7 +67,7 @@ If you found this work useful, please consider citing our papers
   author={Chamberlain, Benjamin Paul and Rowbottom, James and Goronova, Maria and Webb, Stefan and Rossi, 
   Emanuele and Bronstein, Michael M},
   journal={Proceedings of the 38th International Conference on Machine Learning,
-               {ICML} 2021, 18-24 July 2021, Virtual Event},
+               (ICML) 2021, 18-24 July 2021, Virtual Event},
   year={2021}
 }
 ```
