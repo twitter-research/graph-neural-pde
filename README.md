@@ -40,16 +40,19 @@ pip install torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.8.1+c
 pip install torch-geometric
 ```
 
-### Dataset and Preprocessing
+### Dataset and Preprocessing for GRAND (Graph Neural Diffusion)
 create a root level ./data folder. This will be automatically populated the first time each experiment is run.
 
-
-### Experiments for GRAND
+### Experiments for GRAND (Graph Neural Diffusion)
 For example to run for Cora with random splits:
 ```
 cd src
 python run_GNN.py --dataset Cora 
 ```
+
+### Dataset and Preprocessing for BLEND (Beltrami Flow and Neural Diffusion on Graphs)
+create a root level ./data folder. This will be automatically populated the first time each experiment is run.
+create a root level ./data/pos_encodings folder. If using DeepWalk or Hyperbollic type positional encodings these will need generating using the relevant generator scripts.
 
 ### Experiments for BLEND (Beltrami Flow and Neural Diffusion on Graphs)
 For example to run for Cora with random splits:
