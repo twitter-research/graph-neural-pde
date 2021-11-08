@@ -85,7 +85,7 @@ def Cora():
     N = len(data.y)
     categories = dataset.num_classes
     params = {'T': 100, 'fps': 10, 'end_feat_sd_scale': 0.1, 'end_pos_sd_scale': 0.05,
-              'node_size': 200, 'edge_width': 0.25, 'im_height': 8, 'im_width': 16, 'kNN': 16}
+              'node_size': 200, 'edge_width': 0.25, 'im_height': 8, 'im_width': 16, 'kNN': 32}
     filepath = f"../BLEND_animation/Cora_animation.gif"
 
     T = params['T']
@@ -100,7 +100,7 @@ def Cora():
     MN = MultivariateNormal(pos_zero, pos_sd)
     start_pos = pos_means + MN.rsample(sample_shape=[N])
     MN_end = MultivariateNormal(pos_zero, pos_sd*params['end_pos_sd_scale'])
-    end_pos = pos_means + MN_end.rsample(sample_shape=[N])
+    end_pos = pos_means * torch.tensor([0.7,0.8]) + MN_end.rsample(sample_shape=[N])
 
     # features
     feat_zero = torch.zeros((N))
