@@ -47,8 +47,6 @@ class ODEFunc(nn.Module):
     self.w = nn.Parameter(torch.eye(opt['hidden_dim']))
     self.d = nn.Parameter(torch.zeros(opt['hidden_dim']) + 1)
 
-    # print('adjacency matrix generated with shape {}'.format(adj.shape))
-
   def forward(self, t, x):
     self.nfe += 1
     alph = torch.sigmoid(self.alpha_train).unsqueeze(dim=1)
@@ -81,9 +79,9 @@ class ODEblock(nn.Module):
 
 
 # Define the GNN model.
-class ICML_GNN(nn.Module):
+class CGNN(nn.Module):
   def __init__(self, opt, adj, time, device):
-    super(ICML_GNN, self).__init__()
+    super(CGNN, self).__init__()
     self.opt = opt
     self.adj = adj
     self.T = time
@@ -113,7 +111,6 @@ class ICML_GNN(nn.Module):
     x = self.m1(x)
 
     # Solve the initial value problem of the ODE.
-    # c_aux = torch.zeros(x.shape).cuda()
     c_aux = torch.zeros(x.shape).to(self.device)
     x = torch.cat([x, c_aux], dim=1)
     self.odeblock.set_x0(x)
@@ -272,7 +269,7 @@ def main(opt):
   dataset = get_dataset(opt, '../data', False)
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   adj = get_sym_adj(dataset.data, opt, device)
-  model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
+  model, data = CGNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
   print(opt)
 
   parameters = [p for p in model.parameters() if p.requires_grad]
@@ -300,7 +297,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir='../data', opt_val=False):
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   dataset = get_dataset(opt, data_dir, False)
   adj = get_sym_adj(dataset.data, opt, device)
-  model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
+  model, data = CGNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
   if torch.cuda.device_count() > 1:
     model = nn.DataParallel(model)
   model, data = model.to(device), dataset.data.to(device)
@@ -338,7 +335,7 @@ def train_ray_icml(opt, checkpoint_dir=None, data_dir="../data", opt_val=False):
       num_development = 5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
   adj = get_sym_adj(dataset.data, opt, device)
-  model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
+  model, data = CGNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
   if torch.cuda.device_count() > 1:
     model = nn.DataParallel(model)
   model, data = model.to(device), dataset.data.to(device)

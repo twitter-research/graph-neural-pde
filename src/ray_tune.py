@@ -1,6 +1,5 @@
 import argparse
 import os
-import time
 from functools import partial
 
 import numpy as np
@@ -14,8 +13,8 @@ from ray.tune.schedulers import ASHAScheduler
 from ray.tune.suggest.ax import AxSearch
 from run_GNN import get_optimizer, test, test_OGB, train
 from torch import nn
-from CGNN import ICML_GNN, get_sym_adj
-from CGNN import train as train_icml
+from CGNN import CGNN, get_sym_adj
+from CGNN import train as train_cgnn
 
 """
 python3 ray_tune.py --dataset ogbn-arxiv --lr 0.005 --add_source --function transformer --attention_dim 16 --hidden_dim 128 --heads 4 --input_dropout 0 --decay 0 --adjoint --adjoint_method rk4 --method rk4 --time 5.08 --epoch 500 --num_samples 1 --name ogbn-arxiv-test --gpus 1 --grace_period 50 
@@ -55,8 +54,8 @@ def train_ray_rand(opt, checkpoint_dir=None, data_dir="../data"):
             opt['num_feature'] = dataset.num_node_features
             opt['num_class'] = dataset.num_classes
             adj = get_sym_adj(dataset.data, opt, device)
-            model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
-            train_this = train_icml
+            model, data = CGNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
+            train_this = train_cgnn
         else:
             model = GNN(opt, dataset, device)
             train_this = train
@@ -109,8 +108,8 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
             opt['num_feature'] = dataset.num_node_features
             opt['num_class'] = dataset.num_classes
             adj = get_sym_adj(dataset.data, opt, device)
-            model, data = ICML_GNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
-            train_this = train_icml
+            model, data = CGNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
+            train_this = train_cgnn
         else:
             model = GNN(opt, dataset, device)
             train_this = train
@@ -581,31 +580,6 @@ def main(opt):
         progress_reporter=reporter,
         raise_on_failed_trial=False,
     )
-
-    # df = result.dataframe(metric='accuracy', mode='max')
-    # best_trial = result.get_best_trial("accuracy", "max", "all")
-    # print("Best trial config: {}".format(best_trial.config))
-    # print("Best trial final validation loss: {}".format(best_trial.best_result["loss"]))
-    # print("Best trial final validation accuracy: {}".format(best_trial.best_result["accuracy"]))
-    #
-    # dataset = get_dataset(opt, data_dir, opt['not_lcc'])
-    # best_trained_model = GNN(best_trial.config, dataset, device)
-    # if opt["gpus"] > 1:
-    #   best_trained_model = nn.DataParallel(best_trained_model)
-    # best_trained_model.to(device)
-    #
-    # checkpoint_path = os.path.join(best_trial.checkpoint.value, "checkpoint")
-    #
-    # model_state, optimizer_state = torch.load(checkpoint_path)
-    # best_trained_model.load_state_dict(model_state)
-    #
-    # test_acc = test(best_trained_model, best_trained_model.data.to(device))
-    # print("Best trial test set accuracy: {}".format(test_acc))
-    # df = result.dataframe(metric="accuracy", mode="max").sort_values(
-    #   "accuracy", ascending=False
-    # )  # get max accuracy for each trial
-    # timestr = time.strftime("%Y%m%d-%H%M%S")
-    # df.to_csv("../hyperopt_results/result_{}.csv".format(timestr))
 
 
 if __name__ == "__main__":
