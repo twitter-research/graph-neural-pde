@@ -1,3 +1,17 @@
+"""
+A reimplementation of Continous Graph Neural Networks https://github.com/DeepGraphLearning/ContinuousGNN
+@misc{xhonneux2019continuous,
+    title={Continuous Graph Neural Networks},
+    author={Louis-Pascal A. C. Xhonneux and Meng Qu and Jian Tang},
+    year={2019},
+    eprint={1912.00967},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG}
+}
+to use pytorch geometric data pipelines
+"""
+
+
 import time
 import os
 import torch
