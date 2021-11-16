@@ -55,6 +55,7 @@ create a root level ./data folder. This will be automatically populated the firs
 create a root level ./data/pos_encodings folder. If using DeepWalk or Hyperbollic type positional encodings these will need generating using the relevant generator scripts.
 
 ### Experiments for BLEND (Beltrami Flow and Neural Diffusion on Graphs)
+**Please note that we are still merging the code from the Twitter private BLEND repository (as of Nov 16th 21) and currently only the DIGL positional encodings are supported. This will change shortly.**
 For example to run for Cora with random splits:
 ```
 cd src
