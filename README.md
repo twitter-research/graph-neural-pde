@@ -87,10 +87,12 @@ python deepwalk_gen_symlinks.py
 ```
 However, this process is slow and so we also provide downloadable precomputed positional encodings [here](https://www.dropbox.com/sh/wfktgbfiueikcp0/AABrIjyhR6Yi4EcirnryRXjja?dl=0)
 Specifically, the positional encodings required to run the default settings for Computers, Phota and ogbn-arxiv at at the following links.
+- [Citeseer](https://www.dropbox.com/sh/wfktgbfiueikcp0/AAB9HypMFO3QCeDFojRYuQoDa/Citeseer_DW64.pkl?dl=0)
 - [Computers](https://www.dropbox.com/sh/wfktgbfiueikcp0/AAD_evlqcwQFLL6MVyGeiKiha/Computers_DW128.pkl?dl=0)
 - [Photo](https://www.dropbox.com/sh/wfktgbfiueikcp0/AAAAhsxAcHWB5OGTHLNMXR5-a/Photo_DW128.pkl?dl=0)
 - [ogbn-arxiv](https://www.dropbox.com/sh/wfktgbfiueikcp0/AADcRPI5pLrx3iUvUjGBcqD0a/ogbn-arxiv_DW64.pkl?dl=0)
-Download them and place into the folder
+
+Download them and place into
 ```
 ./data/pos_encodings
 ```
@@ -136,9 +138,6 @@ and
   year={2021}
 }
 ```
-
-
-
 
 ## Security Issues?
 Please report sensitive security issues via Twitter's bug-bounty program (https://hackerone.com/twitter) rather than GitHub.
