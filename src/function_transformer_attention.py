@@ -171,20 +171,20 @@ class SpGraphTransAttentionLayer(nn.Module):
       k = self.K(x)
       v = self.V(x)
 
-    # perform linear operation and split into h heads
+      # perform linear operation and split into h heads
 
-    k = k.view(-1, self.h, self.d_k)
-    q = q.view(-1, self.h, self.d_k)
-    v = v.view(-1, self.h, self.d_k)
+      k = k.view(-1, self.h, self.d_k)
+      q = q.view(-1, self.h, self.d_k)
+      v = v.view(-1, self.h, self.d_k)
 
-    # transpose to get dimensions [n_nodes, attention_dim, n_heads]
+      # transpose to get dimensions [n_nodes, attention_dim, n_heads]
 
-    k = k.transpose(1, 2)
-    q = q.transpose(1, 2)
-    v = v.transpose(1, 2)
+      k = k.transpose(1, 2)
+      q = q.transpose(1, 2)
+      v = v.transpose(1, 2)
 
-    src = q[edge[0, :], :, :]
-    dst_k = k[edge[1, :], :, :]
+      src = q[edge[0, :], :, :]
+      dst_k = k[edge[1, :], :, :]
 
     if self.opt['attention_type'] == "scaled_dot":
       prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
