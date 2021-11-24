@@ -78,7 +78,7 @@ then create symlinks to them with
 ```
 python deepwalk_gen_symlinks.py
 ```
-However, this process is slow and we also provide downloadable precomputed positional encodings [here] (https://www.dropbox.com/sh/wfktgbfiueikcp0/AABrIjyhR6Yi4EcirnryRXjja?dl=0)
+However, this process is slow and we also provide downloadable precomputed positional encodings [here](https://www.dropbox.com/sh/wfktgbfiueikcp0/AABrIjyhR6Yi4EcirnryRXjja?dl=0)
 Specifically, the positional encodings required to run the default settings for Computers, Phota and ogbn-arxiv at at the following links.
 - [Computers](https://www.dropbox.com/sh/wfktgbfiueikcp0/AAD_evlqcwQFLL6MVyGeiKiha/Computers_DW128.pkl?dl=0)
 - [Photo](https://www.dropbox.com/sh/wfktgbfiueikcp0/AAAAhsxAcHWB5OGTHLNMXR5-a/Photo_DW128.pkl?dl=0)
@@ -86,7 +86,8 @@ Specifically, the positional encodings required to run the default settings for 
 Download them and place into the 
 ```
 ./data/pos_encodings
-``` folder
+```
+folder
 
 ### Experiments for BLEND (Beltrami Flow and Neural Diffusion on Graphs)
  
