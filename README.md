@@ -48,29 +48,36 @@ There is a bug in pandas==1.3.1 that could produce the error ImportError: cannot
 If encountered, then the fix is 
 pip install pandas==1.3.0 -U
 
-### Dataset and Preprocessing for GRAND (Graph Neural Diffusion)
-create a root level ./data folder. This will be automatically populated the first time each experiment is run.
+## GRAND (Graph Neural Diffusion)
 
-### Experiments for GRAND (Graph Neural Diffusion)
+### Dataset and Preprocessing
+create a root level folder
+```
+./data
+```
+This will be automatically populated the first time each experiment is run.
+
+### Experiments
 For example to run for Cora with random splits:
 ```
 cd src
 python run_GNN.py --dataset Cora 
 ```
 
-### Dataset and Preprocessing for BLEND (Beltrami Flow and Neural Diffusion on Graphs)
+## BLEND (Beltrami Flow and Neural Diffusion on Graphs)
+
+### Dataset and Preprocessing
 
 Create a root level 
 ```
 ./data folder
 ``` 
 This will be automatically populated the first time each experiment is run.
-create a root level 
+create a root level folder
 ```
 ./data/pos_encodings
 ```
-folder. DIGL positional encodings will build automatically, but DeepWalk or Hyperbollic positional encodings will need generating using the relevant generator scripts or downloading. We include a shell script to do this:
-generate all embeddings with 
+DIGL positional encodings will build automatically and populate this folder, but DeepWalk or Hyperbollic positional encodings will need generating using the relevant generator scripts or downloading. We include a shell script to do this: 
 ```
 sh deepwalk_gen.sh
 ```
@@ -78,18 +85,17 @@ then create symlinks to them with
 ```
 python deepwalk_gen_symlinks.py
 ```
-However, this process is slow and we also provide downloadable precomputed positional encodings [here](https://www.dropbox.com/sh/wfktgbfiueikcp0/AABrIjyhR6Yi4EcirnryRXjja?dl=0)
+However, this process is slow and so we also provide downloadable precomputed positional encodings [here](https://www.dropbox.com/sh/wfktgbfiueikcp0/AABrIjyhR6Yi4EcirnryRXjja?dl=0)
 Specifically, the positional encodings required to run the default settings for Computers, Phota and ogbn-arxiv at at the following links.
 - [Computers](https://www.dropbox.com/sh/wfktgbfiueikcp0/AAD_evlqcwQFLL6MVyGeiKiha/Computers_DW128.pkl?dl=0)
 - [Photo](https://www.dropbox.com/sh/wfktgbfiueikcp0/AAAAhsxAcHWB5OGTHLNMXR5-a/Photo_DW128.pkl?dl=0)
 - [ogbn-arxiv](https://www.dropbox.com/sh/wfktgbfiueikcp0/AADcRPI5pLrx3iUvUjGBcqD0a/ogbn-arxiv_DW64.pkl?dl=0)
-Download them and place into the 
+Download them and place into the folder
 ```
 ./data/pos_encodings
 ```
-folder
 
-### Experiments for BLEND (Beltrami Flow and Neural Diffusion on Graphs)
+### Experiments
  
 For example to run for Cora with random splits:
 ```
