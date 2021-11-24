@@ -15,12 +15,10 @@ def main(opt):
     dataset_name = opt['dataset']
 
     print(f"[i] Generating embeddings for dataset: {dataset_name}")
-    #path = osp.join(osp.dirname(osp.realpath(__file__)), '..', 'data', dataset_name)
-    #dataset = Planetoid(path, dataset_name)
-    dataset = get_dataset(opt, '../data', False)
+    dataset = get_dataset(opt, '../data', opt['not_lcc'])
     data = dataset.data
 
-    device = f"cuda:{opt['gpu']}" if torch.cuda.is_available() else 'cpu'
+    device = torch.device(f"cuda:{opt['gpu']}" if torch.cuda.is_available() else 'cpu')
 
     model = Node2Vec(data.edge_index, embedding_dim=opt['embedding_dim'], walk_length=opt['walk_length'],
                      context_size=opt['context_size'], walks_per_node=opt['walks_per_node'],
@@ -72,7 +70,8 @@ def main(opt):
     print(f"[i] Storing embeddings in {fname}")
     
     with open(osp.join("../data/pos_encodings", fname), 'wb') as f:
-      pickle.dump({"data": z.data, "acc": acc}, f)
+      # make sure the pickle is not bound to any gpu, and store test acc with data
+      pickle.dump({"data": z.data.to(torch.device("cpu")), "acc": acc}, f)
 
 
 
@@ -95,6 +94,7 @@ if __name__ == "__main__":
                         help='Number of epochs')
   parser.add_argument('--gpu', type=int, default=0, 
                         help='GPU id (default 0)')
+  parser.add_argument("--not_lcc", action="store_false", help="don't use the largest connected component")
 
 
   args = parser.parse_args()
