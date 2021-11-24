@@ -67,7 +67,8 @@ Create a root level
 This will be automatically populated the first time each experiment is run.
 create a root level 
 ```
-./data/pos_encodings```
+./data/pos_encodings
+```
 folder. DIGL positional encodings will build automatically, but DeepWalk or Hyperbollic positional encodings will need generating using the relevant generator scripts or downloading. We include a shell script to do this:
 generate all embeddings with 
 ```
@@ -77,13 +78,15 @@ then create symlinks to them with
 ```
 python deepwalk_gen_symlinks.py
 ```
-However, this process is slow and we also provide downloadable precomputed positional encodings at 
-https://www.dropbox.com/sh/wfktgbfiueikcp0/AABrIjyhR6Yi4EcirnryRXjja?dl=0
-To run the default settings for 
+However, this process is slow and we also provide downloadable precomputed positional encodings [here] (https://www.dropbox.com/sh/wfktgbfiueikcp0/AABrIjyhR6Yi4EcirnryRXjja?dl=0)
+Specifically, the positional encodings required to run the default settings for Computers, Phota and ogbn-arxiv at at the following links.
 - [Computers](https://www.dropbox.com/sh/wfktgbfiueikcp0/AAD_evlqcwQFLL6MVyGeiKiha/Computers_DW128.pkl?dl=0)
 - [Photo](https://www.dropbox.com/sh/wfktgbfiueikcp0/AAAAhsxAcHWB5OGTHLNMXR5-a/Photo_DW128.pkl?dl=0)
 - [ogbn-arxiv](https://www.dropbox.com/sh/wfktgbfiueikcp0/AADcRPI5pLrx3iUvUjGBcqD0a/ogbn-arxiv_DW64.pkl?dl=0)
-and place into the ./data/pos_encodings folder
+Download them and place into the 
+```
+./data/pos_encodings
+``` folder
 
 ### Experiments for BLEND (Beltrami Flow and Neural Diffusion on Graphs)
  
