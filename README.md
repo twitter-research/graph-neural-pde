@@ -40,6 +40,12 @@ pip install torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.8.1+c
 pip install torch-geometric
 ```
 
+### Troubleshooting
+
+There is a bug in pandas==1.3.1 that could produce the error ImportError: cannot import name 'DtypeObj' from 'pandas._typing'
+If encountered, then the fix is 
+pip install pandas==1.3.0 -U
+
 ### Dataset and Preprocessing for GRAND (Graph Neural Diffusion)
 create a root level ./data folder. This will be automatically populated the first time each experiment is run.
 
