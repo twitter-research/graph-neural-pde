@@ -32,7 +32,6 @@ conda activate grand
 
 pip install ogb pykeops
 pip install torch==1.8.1
-pip install git+https://github.com/google-research/torchsde.git
 pip install torchdiffeq -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
 
 pip install torch-scatter -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
