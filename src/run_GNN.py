@@ -277,8 +277,8 @@ if __name__ == '__main__':
   parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true',
                       help='apply sigmoid before multiplying by alpha')
   parser.add_argument('--beta_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) beta')
-  parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention, hard_attention, SDE')
-  parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
+  parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention, hard_attention')
+  parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT')
   parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
                       help='Add a fully connected layer to the encoder.')
   parser.add_argument('--add_source', dest='add_source', action='store_true',

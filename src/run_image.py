@@ -255,8 +255,8 @@ if __name__ == '__main__':
   parser.add_argument('--alpha_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) alpha')
   parser.add_argument('--alpha_sigmoid', type=bool, default=True, help='apply sigmoid before multiplying by alpha')
   parser.add_argument('--beta_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) beta')
-  parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention, SDE')
-  parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
+  parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention')
+  parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT')
   # ODE args
   parser.add_argument('--method', type=str, default='dopri5',
                       help="set the numerical solver: dopri5, euler, rk4, midpoint")
