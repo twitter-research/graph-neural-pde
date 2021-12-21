@@ -4,19 +4,19 @@ Implementation of the functions proposed in Graph embedding energies and diffusi
 
 import torch
 from torch import nn
-from torch_geometric.utils import softmax
 import torch_sparse
+import torch_scatter
 from torch_geometric.utils.loop import add_remaining_self_loops
-import numpy as np
-from data import get_dataset
-from utils import MaxNFEException, squareplus
+from torch_geometric.nn.inits import glorot, zeros
+from torch.nn import Parameter
+
+from utils import MaxNFEException
 from base_classes import ODEFunc
-from function_transformer_attention import SpGraphTransAttentionLayer
 
 
 class ODEFuncGreed(ODEFunc):
 
-  def __init__(self, in_features, out_features, opt, data, device):
+  def __init__(self, in_features, out_features, opt, data, device, bias=False):
     super(ODEFuncGreed, self).__init__(opt, data, device)
 
     if opt['self_loop_weight'] > 0:
@@ -25,134 +25,110 @@ class ODEFuncGreed(ODEFunc):
     else:
       self.edge_index, self.edge_weight = data.edge_index, data.edge_attr
 
-    # todo write the correct form on the greed attention
-    self.multihead_att_layer = SpGraphGreedAttentionLayer(in_features, out_features, opt,
-                                                          device, edge_weights=self.edge_weight).to(device)
+    self.n_nodes = data.x.shape[0]
 
-    def multiply_attention(self, x, attention, v=None):
-      # todo would be nice if this was more efficient
-      if self.opt['mix_features']:
-        vx = torch.mean(torch.stack(
-          [torch_sparse.spmm(self.edge_index, attention[:, idx], v.shape[0], v.shape[0], v[:, :, idx]) for idx in
-           range(self.opt['heads'])], dim=0),
-          dim=0)
-        ax = self.multihead_att_layer.Wout(vx)
-      else:
-        mean_attention = attention.mean(dim=1)
-        ax = torch_sparse.spmm(self.edge_index, mean_attention, x.shape[0], x.shape[0], x)
-      return ax
+    self.K = Parameter(torch.Tensor(out_features, 1))
+    self.Q = Parameter(torch.Tensor(out_features, 1))
 
-    def forward(self, t, x):  # t is needed when called by the integrator
-      if self.nfe > self.opt["max_nfe"]:
-        raise MaxNFEException
+    self.deg_inv_sqrt = self.get_inv_root_degree(data)
+    self.deg_inv = self.deg_inv_sqrt * self.deg_inv_sqrt
 
-      self.nfe += 1
-      attention, values = self.multihead_att_layer(x, self.edge_index)
-      ax = self.multiply_attention(x, attention, values)
+    self.weight = Parameter(torch.Tensor(in_features, out_features))
 
-      if not self.opt['no_alpha_sigmoid']:
-        alpha = torch.sigmoid(self.alpha_train)
-      else:
-        alpha = self.alpha_train
-      f = alpha * (ax - x)
-      if self.opt['add_source']:
-        f = f + self.beta_train * self.x0
-      return f
+    if bias:
+      self.bias = Parameter(torch.Tensor(out_features))
+    else:
+      self.register_parameter('bias', None)
 
-    def __repr__(self):
-      return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'
+    self.mu = nn.Parameter(torch.ones(1))
 
+    self.reset_parameters()
 
-class SpGraphGreedAttentionLayer(nn.Module):
-  """
-  Probably generating the tau from GREED
-  """
+  def get_deg_inv_sqrt(self, data):
+    deg = torch_sparse.sum(data.edge_index, dim=1)
+    deg_inv_sqrt = deg.pow_(-0.5)
+    deg_inv_sqrt = deg_inv_sqrt.masked_fill_(deg_inv_sqrt == float('inf'), 0.)
+    return deg_inv_sqrt
 
-  def __init__(self, in_features, out_features, opt, device, concat=True, edge_weights=None):
-    super(SpGraphGreedAttentionLayer, self).__init__()
-    self.in_features = in_features
-    self.out_features = out_features
-    self.concat = concat
-    self.device = device
-    self.opt = opt
-    self.h = int(opt['heads'])
-    self.edge_weights = edge_weights
+  def reset_parameters(self):
+    glorot(self.weight)
+    zeros(self.bias)
 
-    try:
-      self.attention_dim = opt['attention_dim']
-    except KeyError:
-      self.attention_dim = out_features
+  def symmetrically_normalise(self, M):
+    """
+    D^{-1/2}MD^{-1/2}
+    where D is the degree matrix
+    """
+    M = torch_sparse.mul(M, self.deg_inv_sqrt.view(-1, 1))
+    M = torch_sparse.mul(M, self.deg_inv_sqrt.view(1, -1))
+    return M
 
-    assert self.attention_dim % self.h == 0, "Number of heads ({}) must be a factor of the dimension size ({})".format(
-      self.h, self.attention_dim)
-    self.d_k = self.attention_dim // self.h
+  def get_tau(self, x, edge):
+    src = x[edge[0, :]]
+    dst = x[edge[1, :]]
+    tau = torch.tanh(src.t @ self.K + dst.t @ self.Q)
+    # todo check this is the correct transpose
+    tau_transpose = torch.tanh(dst.t @ self.K + src.t @ self.Q)
+    return tau, tau_transpose
 
-    self.Q = nn.Linear(in_features, self.attention_dim)
-    self.init_weights(self.Q)
-
-    self.V = nn.Linear(in_features, self.attention_dim)
-    self.init_weights(self.V)
-
-    self.K = nn.Linear(in_features, self.attention_dim)
-    self.init_weights(self.K)
-
-    self.activation = nn.Sigmoid()  # nn.LeakyReLU(self.alpha)
-
-    self.Wout = nn.Linear(self.d_k, in_features)
-    self.init_weights(self.Wout)
-
-  def init_weights(self, m):
-    if type(m) == nn.Linear:
-      # nn.init.xavier_uniform_(m.weight, gain=1.414)
-      # m.bias.data.fill_(0.01)
-      nn.init.constant_(m.weight, 1e-5)
-
-  def forward(self, x, edge):
-
-    q = self.Q(x)
-    k = self.K(x)
-    v = self.V(x)
-
-    # perform linear operation and split into h heads
-
-    k = k.view(-1, self.h, self.d_k)
-    q = q.view(-1, self.h, self.d_k)
-    v = v.view(-1, self.h, self.d_k)
-
-    # transpose to get dimensions [n_nodes, attention_dim, n_heads]
-
-    k = k.transpose(1, 2)
-    q = q.transpose(1, 2)
-    v = v.transpose(1, 2)
-
-    src = q[edge[0, :], :, :]
-    dst_k = k[edge[1, :], :, :]
-
-    # todo check this with Francesco
-    tau = torch.tanh(src + dst_k)
-    return tau
-
-  def get_gamma(self, epsilon=10e-6):
+  def get_gamma(self, x, edge, tau, tau_transpose, epsilon=10e-6):
     """
     get gamma_ij = |Z_ij|^2
     get eta(i) = \prod_{j \in N(i)} gamma_{ij}}^{1/d_i}
     """
-
-  def get_tau(f, K, Q):
-    """
-
-    """
-    return torch.tanh()
-
-  def get_Z(self, x, edge):
-    """
-    W (tau(f_i,f_j)f_i/\sqrt{d_i} - tau(f_j,f_i)f_j/\sqrt(d_j))
-    """
+    # todo break up this function
     src = x[edge[0, :]]
     dst = x[edge[1, :]]
+    src_degree = self.deg_inv_sqrt[edge[0, :]]
+    dst_degree = self.deg_inv_sqrt[edge[1, :]]
+
+    src_term = torch.div(tau * src, src_degree)
+    src_term.masked_fill_(src_term == float('inf'), 0.)
+    dst_term = torch.div(tau_transpose * dst, dst_degree)
+    dst_term.masked_fill_(dst_term == float('inf'), 0.)
+    unormalised_gamma = self.W @ (src_term - dst_term)
+    sml_gamma = torch.sum(unormalised_gamma * unormalised_gamma, dim=1)
+    # todo check this
+    eta = torch.pow(torch_scatter.scatter_mul(sml_gamma, edge[1, :]), self.deg_inv)
+    src_eta = eta[edge[0, :]]
+    dst_eta = eta[edge[1, :]]
+    big_gamma = -torch.div(src_eta + dst_eta, 2 * sml_gamma)
+    with torch.no_grad:
+      mask = sml_gamma < epsilon
+    big_gamma[mask] = 0
+    return big_gamma
+
+  def get_dynamics(self, f, gamma, tau, Ws):
+    tau_square = tau * tau
+    tau2 = tau_square @ f
+    tau3 = tau * tau_square @ f
+    T0 = gamma * tau2
+    # todo tau is probably sparse so this won't work
+    T1 = gamma * tau * tau.T
+    T2 = gamma * (tau - tau3)
+    T3 = gamma * (tau.T - tau.T * tau2)
+    T4 = self.symmetrically_normalise(torch.diag(torch.sum(T2, dim=1)) - T3)
+    T5 = self.symmetrically_normalise(T3.T)
+    L = self.symmetrically_normalise(torch.diag(torch.sum(T0, dim=1)) - T1)
+    fWs = torch.matmul(f, Ws)
+    R1 = torch.sum(f * (T4 @ fWs), dim=1)
+    # todo check that this is the same as what Francesco wrote
+    R2 = T2.T @ torch.sum(self.symmetrically_normalise(f @ fWs), dim=1) - torch.sum(f * T5 @ fWs)
+    return L, R1, R2
+
+  def forward(self, t, x):  # t is needed when called by the integrator
+    if self.nfe > self.opt["max_nfe"]:
+      raise MaxNFEException
+
+    self.nfe += 1
+    gamma, tau = self.multihead_att_layer(x, self.edge_index)
+    Ws = self.weight.T @ self.weight
+    L, R1, R2 = self.get_dynamics(x, gamma, tau, Ws)
+    f = L @ x
+    f = torch.matmul(f, self.Ws)
+    f = f + R1 @ self.K.T + R2 @ self.Q.T
+    f = f - self.mu(f - self.x0)
+    return f
 
   def __repr__(self):
     return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'
-
-
-
