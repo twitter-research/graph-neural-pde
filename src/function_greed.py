@@ -26,6 +26,7 @@ class ODEFuncGreed(ODEFunc):
       self.edge_index, self.edge_weight = data.edge_index, data.edge_attr
 
     self.n_nodes = data.x.shape[0]
+    self.self_loops = self.get_self_loops()
 
     self.K = Parameter(torch.Tensor(out_features, 1))
     self.Q = Parameter(torch.Tensor(out_features, 1))
@@ -33,7 +34,7 @@ class ODEFuncGreed(ODEFunc):
     self.deg_inv_sqrt = self.get_deg_inv_sqrt(data)
     self.deg_inv = self.deg_inv_sqrt * self.deg_inv_sqrt
 
-    self.W = Parameter(torch.Tensor(in_features, out_features))
+    self.W = Parameter(torch.Tensor(in_features, opt['attention_dim']))
 
     if bias:
       self.bias = Parameter(torch.Tensor(out_features))
@@ -41,6 +42,7 @@ class ODEFuncGreed(ODEFunc):
       self.register_parameter('bias', None)
 
     self.mu = nn.Parameter(torch.ones(1))
+    self.alpha = nn.Parameter(torch.ones(1))
 
     self.reset_parameters()
 
@@ -60,14 +62,18 @@ class ODEFuncGreed(ODEFunc):
     glorot(self.Q)
     zeros(self.bias)
 
-  def symmetrically_normalise(self, M):
+  def symmetrically_normalise(self, x, edge):
     """
     D^{-1/2}MD^{-1/2}
     where D is the degree matrix
     """
-    M = torch_sparse.mul(M, self.deg_inv_sqrt.view(-1, 1))
-    M = torch_sparse.mul(M, self.deg_inv_sqrt.view(1, -1))
-    return M
+    assert x.shape[0] == edge.shape[
+      1], "can only symmetrically normalise a sparse matrix with the same number of edges " \
+          "as edge"
+    row, col = edge[0], edge[1]
+    dis = self.deg_inv_sqrt
+    normed_x = dis[row] * x * dis[col]
+    return normed_x
 
   def get_tau(self, x):
     """
@@ -93,9 +99,8 @@ class ODEFuncGreed(ODEFunc):
     dst = x[self.edge_index[1, :]]
     return src, dst
 
-  def get_gamma(self, x, tau, tau_transpose, epsilon=1e-6):
+  def get_metric(self, x, tau, tau_transpose):
     """
-
     @param x:
     @param edge:
     @param tau:
@@ -110,19 +115,72 @@ class ODEFuncGreed(ODEFunc):
     src_term.masked_fill_(src_term == float('inf'), 0.)
     dst_term = torch.div(tau_transpose * dst_x, dst_degree.unsqueeze(dim=1))
     dst_term.masked_fill_(dst_term == float('inf'), 0.)
+    # W is [d,p]
     temp = (src_term - dst_term) @ self.W
-    edge_weight = torch.sum(temp * temp, dim=1)
+    metric = torch.sum(temp * temp, dim=1)
+    return metric
+
+  def get_gamma(self, metric, epsilon=1e-6):
     # The degree is the thing that provides a notion of dimension on a graph
     # eta is the determinant of the ego graph. This should slow down diffusion where the grad is large
-    eta = torch.pow(scatter_mul(edge_weight, self.edge_index[1, :]), self.deg_inv)
+    eta = torch.pow(scatter_mul(metric, self.edge_index[1, :]), self.deg_inv)
     src_eta, dst_eta = self.get_src_dst(eta)
-    big_gamma = -torch.div(src_eta + dst_eta, 2 * edge_weight)
+    gamma = -torch.div(src_eta + dst_eta, 2 * metric)
     with torch.no_grad():
-      mask = edge_weight < epsilon
-      big_gamma[mask] = 0
-    return big_gamma
+      mask = metric < epsilon
+      gamma[mask] = 0
+    return gamma
 
-  def get_dynamics(self, f, gamma, tau, Ws):
+  def get_self_loops(self):
+    # todo maybe just do this once and store in the init
+    loop_index = torch.arange(0, self.n_nodes, dtype=self.edge_index.dtype, device=self.edge_index.device)
+    loop_index = loop_index.unsqueeze(0).repeat(2, 1)
+    return loop_index
+
+  def get_R1(self, f, T2, T3, fWs):
+
+    T4 = self.get_laplacian_form(T3, T2)
+    # T2_row_sum = scatter_add(T2, self.edge_index[1, :], dim=-1, dim_size=self.n_nodes)
+    # # the next line has the spirit of a Laplacian e.g. D-A. As extra edges are being added (along the diagonal) we must
+    # # add them to the edge_index to be able to perform sparse multiplication etc.
+    # edges = self.add_self_loops()
+    # values = torch.cat([-T3, T2_row_sum], dim=1)
+    # T4 = self.symmetrically_normalise(values, edges)
+    edges = torch.cat([self.edge_index, self.self_loops], dim=1)
+    temp = torch_sparse.spmm(edges, T4, fWs.shape[0], fWs.shape[0], fWs)
+    R1 = torch.sum(f * temp, dim=1)
+    return R1
+
+  def get_R2(self, T2, T5, T5_edge_index, f, fWs):
+    temp = torch_sparse.spmm(self.edge_index, T5, fWs.shape[0], fWs.shape[0], fWs)
+    term1 = torch.sum(f * temp, dim=1)
+    transposed_edge_index, T2_transpose = torch_sparse.transpose(self.edge_index, T2, self.n_nodes, self.n_nodes)
+    temp1 = self.deg_inv * torch.sum(f * fWs, dim=1)
+    term2 = torch_sparse.spmm(transposed_edge_index, T2_transpose, temp1.shape[0], temp1.shape[0], temp1)
+    return term2-term1
+
+  def get_laplacian_form(self, A, D):
+    """
+    Takes two sparse matrices A and D and performs sym_norm(D' - A) where D' is the degree matrix from row summing D
+    @param A: Matrix that plays the role of the adjacency
+    @param D: Matrix that is row summed to play the role of the degree matrix
+    @return: A Laplacian form
+    """
+    degree = scatter_add(D, self.edge_index[1, :], dim=-1, dim_size=self.n_nodes)
+    edges = torch.cat([self.edge_index, self.self_loops], dim=1)
+    #todo this is currently failing.
+    values = torch.cat([-A, degree], dim=1)
+    L = self.symmetrically_normalise(values, edges)
+    return L
+
+  # def get_greed_laplacian(self, T0, T1):
+  #   T0_row_sum = scatter_add(T0, self.edge_index[1, :], dim=-1, dim_size=self.n_nodes)
+  #   # todo give this the same treatment as R1
+  #   edges = self.add_self_loops()
+  #   values = torch.cat([-T1, T0_row_sum], dim=1)
+  #   L = self.symmetrically_normalise(torch.diag(T0_row_sum - T1))
+
+  def get_dynamics(self, f, gamma, tau, tau_transpose, Ws):
     """
     These dynamics follow directly from differentiating the energy
     The structure of T0,T1 etc. is a direct result of differentiating the hyperbolic tangent nonlinearity.
@@ -131,21 +189,21 @@ class ODEFuncGreed(ODEFunc):
              R1, R2 are a result of tau being a function of the features and both are zero if tau is not dependent on
              features
     """
-    # todo tau is probably sparse so this won't work
+    tau = tau.flatten()
+    tau_transpose = tau_transpose.flatten()
     tau2 = tau * tau
     tau3 = tau * tau2
     T0 = gamma * tau2
-    T1 = gamma * tau * tau.T
+    T1 = gamma * tau * tau_transpose
     T2 = gamma * (tau - tau3)
-    T3 = gamma * (tau.T - tau.T * tau2)
-    # the next line has the spirit of a Laplacian e.g. D-A
-    T4 = self.symmetrically_normalise(torch.diag(torch.sum(T2, dim=1)) - T3)
-    T5 = self.symmetrically_normalise(T3.T)
-    L = self.symmetrically_normalise(torch.diag(torch.sum(T0, dim=1)) - T1)
+    T3 = gamma * (tau_transpose - tau_transpose * tau2)
+    # sparse transpose changes the edge index instead of the data and this must be carried through
+    transposed_edge_index, T3_transpose = torch_sparse.transpose(self.edge_index, T3, self.n_nodes, self.n_nodes)
+    T5 = self.symmetrically_normalise(T3_transpose, transposed_edge_index)
+    L = self.get_laplacian_form(T1, T0)
     fWs = torch.matmul(f, Ws)
-    R1 = torch.sum(f * (T4 @ fWs), dim=1)
-    # todo check that this is the same as what Francesco wrote
-    R2 = T2.T @ self.deg_inv * torch.sum(f * fWs, dim=1) - torch.sum(f * T5 @ fWs, dim=1)
+    R1 = self.get_R1(self, f, T2, T3, fWs)
+    R2 = self.get_R2(self, T2, T5, transposed_edge_index, f, fWs)
     return L, R1, R2
 
   def forward(self, t, x):  # t is needed when called by the integrator
@@ -153,15 +211,16 @@ class ODEFuncGreed(ODEFunc):
       raise MaxNFEException
 
     self.nfe += 1
-    Ws = self.W.T @ self.W
+    Ws = self.W @ self.W.t()  # output a [d,d] tensor
     tau, tau_transpose = self.get_tau(x)
     gamma = self.get_gamma(x, tau, tau_transpose, epsilon=1e-6)
-    L, R1, R2 = self.get_dynamics(x, gamma, tau, Ws)
+    L, R1, R2 = self.get_dynamics(x, gamma, tau, tau_transpose, Ws)
     f = L @ x
     f = torch.matmul(f, self.Ws)
     f = f + R1 @ self.K.T + R2 @ self.Q.T
     # todo check x0 is the encoded value of features + pos_enc
     f = f - self.mu(f - self.x0)
+    # todo consider adding a term f = f + self.alpha * f
     return f
 
   def __repr__(self):

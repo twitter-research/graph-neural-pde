@@ -14,7 +14,6 @@ from torch_geometric.utils import softmax, to_dense_adj
 from data import get_dataset
 from test_params import OPT
 
-
 class Data:
   def __init__(self, edge_index, x):
     self.x = x
@@ -24,11 +23,8 @@ class Data:
 
 class GreedTests(unittest.TestCase):
   def setUp(self):
-    self.edge = tensor([[0, 2, 2, 1], [1, 0, 1, 2]])
-    self.x = tensor([[1., 2.], [3., 2.], [4., 5.]], dtype=torch.float)
-    self.edge1 = tensor([[0, 0, 1, 1, 2, 2], [1, 2, 0, 2, 0, 1]])
-    self.x1 = torch.ones((3, 2), dtype=torch.float)
-
+    self.edge = tensor([[0, 2, 2, 1, 1, 3, 2, 3], [2, 0, 1, 2, 3, 1, 3, 2]])
+    self.x = tensor([[1., 2.], [3., 2.], [4., 5.], [6, 7]], dtype=torch.float)
     self.W = tensor([[2, 1], [3, 2]], dtype=torch.float)
     self.alpha = tensor([[1, 2, 3, 4]], dtype=torch.float)
     self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -61,10 +57,31 @@ class GreedTests(unittest.TestCase):
     self.assertTrue(tau[2] == tau_transpose[3])
     self.assertTrue(tau[3] == tau_transpose[2])
 
+  def test_metric(self):
+    tau, tau_transpose = self.greed_func.get_tau(self.x)
+    metric = self.greed_func.get_metric(self.x, tau, tau_transpose)
+    self.assertTrue(list(metric.shape) == [self.edge.shape[1]])
+
   def test_get_gamma(self):
     tau, tau_transpose = self.greed_func.get_tau(self.x)
-    gamma = self.greed_func.get_gamma(self.x, tau, tau_transpose, epsilon=1e-6)
+    metric = self.greed_func.get_metric(self.x, tau, tau_transpose)
+    epsilon = 1e-3
+    gamma = self.greed_func.get_gamma(metric, epsilon=epsilon)
     self.assertTrue(list(gamma.shape) == [self.edge.shape[1]])
+    self.assertTrue(torch.all(gamma < 0))
+    dense_gamma = to_dense_adj(self.greed_func.edge_index, edge_attr=gamma).squeeze()
+    self.assertTrue(torch.all(dense_gamma == dense_gamma.t()))
+    # currently an assertion prevents this running
+    # self.opt['self_loop_weight'] = 1
+    # greed_func = ODEFuncGreed(2, 2, self.opt, self.data, torch.device('cpu'))
+    # gamma = greed_func.get_gamma(self.x, tau, tau_transpose, epsilon=1e-6)
+    # self.assertTrue(gamma == torch.zeros(self.edge.shape[1]))
 
   def test_get_dynamics(self):
-    pass
+    tau, tau_transpose = self.greed_func.get_tau(self.x)
+    metric = self.greed_func.get_metric(self.x, tau, tau_transpose)
+    gamma = self.greed_func.get_gamma(metric)
+    W = self.greed_func.W
+    Ws = W.t() @ self.W
+    L, R1, R2 = self.greed_func.get_dynamics(self.x, gamma, tau, tau_transpose, Ws)
+    self.assertTrue(R1.shape == R2.shape)
