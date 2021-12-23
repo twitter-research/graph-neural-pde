@@ -14,6 +14,7 @@ from torch_geometric.utils import softmax, to_dense_adj
 from data import get_dataset
 from test_params import OPT
 
+
 class Data:
   def __init__(self, edge_index, x):
     self.x = x
@@ -33,7 +34,7 @@ class GreedTests(unittest.TestCase):
            'attention_norm_idx': 0, 'add_source': False, 'alpha': 1, 'alpha_dim': 'vc', 'beta_dim': 'vc',
            'hidden_dim': 6, 'linear_attention': True, 'augment': False, 'adjoint': False,
            'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler',
-           'mixed_block': True, 'max_nfe': 1000, 'mix_features': False, 'attention_dim': 32, 'rewiring': None,
+           'mixed_block': True, 'max_nfe': 1000, 'mix_features': False, 'attention_dim': 2, 'rewiring': None,
            'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None, 'jacobian_norm2': None,
            'total_deriv': None, 'directional_penalty': None, 'beltrami': True}
     self.opt = {**OPT, **opt}
@@ -85,3 +86,23 @@ class GreedTests(unittest.TestCase):
     Ws = W.t() @ self.W
     L, R1, R2 = self.greed_func.get_dynamics(self.x, gamma, tau, tau_transpose, Ws)
     self.assertTrue(R1.shape == R2.shape)
+    self.assertTrue(R1.shape[0] == self.greed_func.n_nodes)
+    # the Laplacian has one value for each edge plus one value for each self edge
+    self.assertTrue(L.shape[0] == self.greed_func.n_nodes + self.greed_func.edge_index.shape[1])
+
+  def test_get_R1(self):
+    pass
+
+  def test_get_R2(self):
+    pass
+
+  def test_get_laplacian_form(self):
+    pass
+
+  def test_spvm(self):
+    pass
+
+  def test_greed(self):
+    self.greed_func.x0 = self.x
+    f = self.greed_func(1, self.x)
+    self.assertTrue(f.shape == self.x.shape)

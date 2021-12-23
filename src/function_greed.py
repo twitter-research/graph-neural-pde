@@ -19,6 +19,8 @@ class ODEFuncGreed(ODEFunc):
   def __init__(self, in_features, out_features, opt, data, device, bias=False):
     super(ODEFuncGreed, self).__init__(opt, data, device)
     assert opt['self_loop_weight'] == 0, 'greed does not work with self-loops as eta becomes zero everywhere'
+    self.in_features = in_features
+    self.out_features = out_features
     if opt['self_loop_weight'] > 0:
       self.edge_index, self.edge_weight = add_remaining_self_loops(data.edge_index, data.edge_attr,
                                                                    fill_value=opt['self_loop_weight'])
@@ -41,10 +43,17 @@ class ODEFuncGreed(ODEFunc):
     else:
       self.register_parameter('bias', None)
 
-    self.mu = nn.Parameter(torch.ones(1))
-    self.alpha = nn.Parameter(torch.ones(1))
+    # todo chosen to balance x0 and f in the forward function. May not be optimal
+    self.mu = nn.Parameter(torch.tensor(1.))
+    self.alpha = nn.Parameter(torch.tensor(1.))
 
     self.reset_parameters()
+
+  def reset_parameters(self):
+    glorot(self.W)
+    glorot(self.K)
+    glorot(self.Q)
+    zeros(self.bias)
 
   def get_deg_inv_sqrt(self, data):
     edge_index = data.edge_index
@@ -55,12 +64,6 @@ class ODEFuncGreed(ODEFunc):
     deg_inv_sqrt = deg.pow_(-0.5)
     deg_inv_sqrt = deg_inv_sqrt.masked_fill_(deg_inv_sqrt == float('inf'), 0.)
     return deg_inv_sqrt
-
-  def reset_parameters(self):
-    glorot(self.W)
-    glorot(self.K)
-    glorot(self.Q)
-    zeros(self.bias)
 
   def symmetrically_normalise(self, x, edge):
     """
@@ -108,7 +111,6 @@ class ODEFuncGreed(ODEFunc):
     @param epsilon:
     @return:
     """
-    # todo break up this function
     src_x, dst_x = self.get_src_dst(x)
     src_degree, dst_degree = self.get_src_dst(self.deg_inv_sqrt)
     src_term = torch.div(tau * src_x, src_degree.unsqueeze(dim=1))
@@ -132,32 +134,31 @@ class ODEFuncGreed(ODEFunc):
     return gamma
 
   def get_self_loops(self):
-    # todo maybe just do this once and store in the init
     loop_index = torch.arange(0, self.n_nodes, dtype=self.edge_index.dtype, device=self.edge_index.device)
     loop_index = loop_index.unsqueeze(0).repeat(2, 1)
     return loop_index
 
   def get_R1(self, f, T2, T3, fWs):
-
     T4 = self.get_laplacian_form(T3, T2)
-    # T2_row_sum = scatter_add(T2, self.edge_index[1, :], dim=-1, dim_size=self.n_nodes)
-    # # the next line has the spirit of a Laplacian e.g. D-A. As extra edges are being added (along the diagonal) we must
-    # # add them to the edge_index to be able to perform sparse multiplication etc.
-    # edges = self.add_self_loops()
-    # values = torch.cat([-T3, T2_row_sum], dim=1)
-    # T4 = self.symmetrically_normalise(values, edges)
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
     temp = torch_sparse.spmm(edges, T4, fWs.shape[0], fWs.shape[0], fWs)
     R1 = torch.sum(f * temp, dim=1)
     return R1
 
+  def spvm(self, index, values, vector):
+    row, col = index[0], index[1]
+    out = vector[col]
+    out = out * values
+    out = scatter_add(out, row, dim=-1)
+    return out
+
   def get_R2(self, T2, T5, T5_edge_index, f, fWs):
-    temp = torch_sparse.spmm(self.edge_index, T5, fWs.shape[0], fWs.shape[0], fWs)
+    temp = torch_sparse.spmm(T5_edge_index, T5, fWs.shape[0], fWs.shape[0], fWs)
     term1 = torch.sum(f * temp, dim=1)
     transposed_edge_index, T2_transpose = torch_sparse.transpose(self.edge_index, T2, self.n_nodes, self.n_nodes)
     temp1 = self.deg_inv * torch.sum(f * fWs, dim=1)
-    term2 = torch_sparse.spmm(transposed_edge_index, T2_transpose, temp1.shape[0], temp1.shape[0], temp1)
-    return term2-term1
+    term2 = self.spvm(transposed_edge_index, T2_transpose, temp1)
+    return term2 - term1
 
   def get_laplacian_form(self, A, D):
     """
@@ -168,17 +169,9 @@ class ODEFuncGreed(ODEFunc):
     """
     degree = scatter_add(D, self.edge_index[1, :], dim=-1, dim_size=self.n_nodes)
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
-    #todo this is currently failing.
-    values = torch.cat([-A, degree], dim=1)
+    values = torch.cat([-A, degree], dim=-1)
     L = self.symmetrically_normalise(values, edges)
     return L
-
-  # def get_greed_laplacian(self, T0, T1):
-  #   T0_row_sum = scatter_add(T0, self.edge_index[1, :], dim=-1, dim_size=self.n_nodes)
-  #   # todo give this the same treatment as R1
-  #   edges = self.add_self_loops()
-  #   values = torch.cat([-T1, T0_row_sum], dim=1)
-  #   L = self.symmetrically_normalise(torch.diag(T0_row_sum - T1))
 
   def get_dynamics(self, f, gamma, tau, tau_transpose, Ws):
     """
@@ -202,8 +195,8 @@ class ODEFuncGreed(ODEFunc):
     T5 = self.symmetrically_normalise(T3_transpose, transposed_edge_index)
     L = self.get_laplacian_form(T1, T0)
     fWs = torch.matmul(f, Ws)
-    R1 = self.get_R1(self, f, T2, T3, fWs)
-    R2 = self.get_R2(self, T2, T5, transposed_edge_index, f, fWs)
+    R1 = self.get_R1(f, T2, T3, fWs)
+    R2 = self.get_R2(T2, T5, transposed_edge_index, f, fWs)
     return L, R1, R2
 
   def forward(self, t, x):  # t is needed when called by the integrator
@@ -212,14 +205,17 @@ class ODEFuncGreed(ODEFunc):
 
     self.nfe += 1
     Ws = self.W @ self.W.t()  # output a [d,d] tensor
+    # f = x
     tau, tau_transpose = self.get_tau(x)
-    gamma = self.get_gamma(x, tau, tau_transpose, epsilon=1e-6)
+    metric = self.get_metric(x, tau, tau_transpose)
+    gamma = self.get_gamma(metric)
     L, R1, R2 = self.get_dynamics(x, gamma, tau, tau_transpose, Ws)
-    f = L @ x
-    f = torch.matmul(f, self.Ws)
-    f = f + R1 @ self.K.T + R2 @ self.Q.T
-    # todo check x0 is the encoded value of features + pos_enc
-    f = f - self.mu(f - self.x0)
+    edges = torch.cat([self.edge_index, self.self_loops], dim=1)
+    f = torch_sparse.spmm(edges, L, x.shape[0], x.shape[0], x)
+    f = torch.matmul(f, Ws)
+    f = f + R1.unsqueeze(dim=-1) @ self.K.t() + R2.unsqueeze(dim=-1) @ self.Q.t()
+    f = f - 0.5 * self.mu * (x - self.x0)
+    # f = f + self.x0
     # todo consider adding a term f = f + self.alpha * f
     return f
 
