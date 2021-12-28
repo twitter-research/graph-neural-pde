@@ -16,9 +16,12 @@ from base_classes import ODEFunc
 # REMOVE SOURCES OF RANDOMNESS
 import numpy as np
 import random
+
 torch.manual_seed(0)
 random.seed(0)
 np.random.seed(0)
+
+
 # torch.use_deterministic_algorithms(True)
 
 class ODEFuncGreed(ODEFunc):
@@ -97,6 +100,9 @@ class ODEFuncGreed(ODEFunc):
     @return:
     """
     src_x, dst_x = self.get_src_dst(x)
+    # todo put this back
+    # tau = torch.tanh(src_x @ self.K + dst_x @ self.K)
+    # tau_transpose = torch.tanh(dst_x @ self.K + src_x @ self.K)
     tau = torch.tanh(src_x @ self.K + dst_x @ self.Q)
     tau_transpose = torch.tanh(dst_x @ self.K + src_x @ self.Q)
     return tau, tau_transpose
@@ -120,6 +126,11 @@ class ODEFuncGreed(ODEFunc):
     @param epsilon:
     @return:
     """
+    energy_gradient = self.get_energy_gradient(x, tau, tau_transpose)
+    metric = torch.sum(energy_gradient * energy_gradient, dim=1)
+    return metric
+
+  def get_energy_gradient(self, x, tau, tau_transpose):
     src_x, dst_x = self.get_src_dst(x)
     src_degree, dst_degree = self.get_src_dst(self.deg_inv_sqrt)
     src_term = torch.div(tau * src_x, src_degree.unsqueeze(dim=1))
@@ -127,18 +138,13 @@ class ODEFuncGreed(ODEFunc):
     dst_term = torch.div(tau_transpose * dst_x, dst_degree.unsqueeze(dim=1))
     dst_term.masked_fill_(dst_term == float('inf'), 0.)
     # W is [d,p]
-    temp = (src_term - dst_term) @ self.W
-    metric = torch.sum(temp * temp, dim=1)
-    return metric
+    energy_gradient = (src_term - dst_term) @ self.W
+    return energy_gradient
 
-  def get_gamma(self, metric, epsilon=1e-6):
+  def get_gamma(self, metric, epsilon=1e-2):
     # The degree is the thing that provides a notion of dimension on a graph
     # eta is the determinant of the ego graph. This should slow down diffusion where the grad is large
     row, col = self.edge_index
-    # power = self.deg_inv[row]
-    # metric = torch.pow(metric, power)
-    # eta = scatter_mul(metric, row)
-    # eta = torch.pow(scatter_mul(metric, self.edge_index[1, :]), self.deg_inv)
     log_eta = self.deg_inv * scatter_add(torch.log(metric), row)
     eta = torch.exp(log_eta)
     src_eta, dst_eta = self.get_src_dst(eta)
@@ -146,7 +152,7 @@ class ODEFuncGreed(ODEFunc):
     with torch.no_grad():
       mask = metric < epsilon
       gamma[mask] = 0
-    return gamma
+    return gamma, eta
 
   def get_self_loops(self):
     loop_index = torch.arange(0, self.n_nodes, dtype=self.edge_index.dtype, device=self.edge_index.device)
@@ -214,17 +220,31 @@ class ODEFuncGreed(ODEFunc):
     R2 = self.get_R2(T2, T5, transposed_edge_index, f, fWs)
     return L, R1, R2
 
+  def clipper(self, tensors, threshold=10):
+    for M in tensors:
+      M = M.masked_fill(M > threshold, threshold)
+      M = M.masked_fill(M < -threshold, -threshold)
+    return tensors
+
+  def get_energy(self, x, metric, eta, gamma):
+    temp = torch.div(metric, gamma)
+    temp = temp.masked_fill_(temp == float('inf'), 0.)
+    eta_src = eta[self.edge_index[0, :]]
+    term1 = 0.5 * torch.sum(temp * eta_src)
+    term2 = self.mu * torch.sum((x-self.x0)**2)
+    return term1 + term2
+
   def forward(self, t, x):  # t is needed when called by the integrator
     if self.nfe > self.opt["max_nfe"]:
       raise MaxNFEException
-
     self.nfe += 1
     Ws = self.W @ self.W.t()  # output a [d,d] tensor
-    # f = x
+    # Ws = torch.eye(self.W.shape[0])
     tau, tau_transpose = self.get_tau(x)
     metric = self.get_metric(x, tau, tau_transpose)
-    gamma = self.get_gamma(metric)
+    gamma, eta = self.get_gamma(metric)
     L, R1, R2 = self.get_dynamics(x, gamma, tau, tau_transpose, Ws)
+    # L, R1, R2 = self.clipper([L, R1, R2])
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
     f = torch_sparse.spmm(edges, L, x.shape[0], x.shape[0], x)
     f = torch.matmul(f, Ws)
@@ -232,6 +252,8 @@ class ODEFuncGreed(ODEFunc):
     f = f - 0.5 * self.mu * (x - self.x0)
     # f = f + self.x0
     # todo consider adding a term f = f + self.alpha * f
+    energy = self.get_energy(f, metric, eta, gamma)
+    print(f"energy = {energy} at time {t}")
     return f
 
   def __repr__(self):
