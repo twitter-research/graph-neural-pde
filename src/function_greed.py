@@ -13,6 +13,13 @@ from torch.nn import Parameter
 from utils import MaxNFEException
 from base_classes import ODEFunc
 
+# REMOVE SOURCES OF RANDOMNESS
+import numpy as np
+import random
+torch.manual_seed(0)
+random.seed(0)
+np.random.seed(0)
+# torch.use_deterministic_algorithms(True)
 
 class ODEFuncGreed(ODEFunc):
 
@@ -60,13 +67,15 @@ class ODEFuncGreed(ODEFunc):
     edge_weight = torch.ones((edge_index.size(1),), dtype=data.x.dtype,
                              device=edge_index.device)
     row, col = edge_index[0], edge_index[1]
-    deg = scatter_add(edge_weight, col, dim=0, dim_size=self.n_nodes)
+    deg = scatter_add(edge_weight, row, dim=0, dim_size=self.n_nodes)
     deg_inv_sqrt = deg.pow_(-0.5)
     deg_inv_sqrt = deg_inv_sqrt.masked_fill_(deg_inv_sqrt == float('inf'), 0.)
     return deg_inv_sqrt
 
   def symmetrically_normalise(self, x, edge):
     """
+    symmetrically normalise a sparse matrix with values x and edges edge. Note that edge need not be the edge list
+    of the input graph as we could be normalising a Laplacian, which additionally has values on the diagonal
     D^{-1/2}MD^{-1/2}
     where D is the degree matrix
     """
@@ -125,7 +134,13 @@ class ODEFuncGreed(ODEFunc):
   def get_gamma(self, metric, epsilon=1e-6):
     # The degree is the thing that provides a notion of dimension on a graph
     # eta is the determinant of the ego graph. This should slow down diffusion where the grad is large
-    eta = torch.pow(scatter_mul(metric, self.edge_index[1, :]), self.deg_inv)
+    row, col = self.edge_index
+    # power = self.deg_inv[row]
+    # metric = torch.pow(metric, power)
+    # eta = scatter_mul(metric, row)
+    # eta = torch.pow(scatter_mul(metric, self.edge_index[1, :]), self.deg_inv)
+    log_eta = self.deg_inv * scatter_add(torch.log(metric), row)
+    eta = torch.exp(log_eta)
     src_eta, dst_eta = self.get_src_dst(eta)
     gamma = -torch.div(src_eta + dst_eta, 2 * metric)
     with torch.no_grad():
@@ -167,7 +182,7 @@ class ODEFuncGreed(ODEFunc):
     @param D: Matrix that is row summed to play the role of the degree matrix
     @return: A Laplacian form
     """
-    degree = scatter_add(D, self.edge_index[1, :], dim=-1, dim_size=self.n_nodes)
+    degree = scatter_add(D, self.edge_index[0, :], dim=-1, dim_size=self.n_nodes)
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
     values = torch.cat([-A, degree], dim=-1)
     L = self.symmetrically_normalise(values, edges)
