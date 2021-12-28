@@ -159,19 +159,19 @@ class ODEFuncGreed(ODEFunc):
     loop_index = loop_index.unsqueeze(0).repeat(2, 1)
     return loop_index
 
-  def get_R1(self, f, T2, T3, fWs):
-    T4 = self.get_laplacian_form(T3, T2)
-    edges = torch.cat([self.edge_index, self.self_loops], dim=1)
-    temp = torch_sparse.spmm(edges, T4, fWs.shape[0], fWs.shape[0], fWs)
-    R1 = torch.sum(f * temp, dim=1)
-    return R1
-
   def spvm(self, index, values, vector):
     row, col = index[0], index[1]
     out = vector[col]
     out = out * values
     out = scatter_add(out, row, dim=-1)
     return out
+
+  def get_R1(self, f, T2, T3, fWs):
+    T4 = self.get_laplacian_form(T3, T2)
+    edges = torch.cat([self.edge_index, self.self_loops], dim=1)
+    temp = torch_sparse.spmm(edges, T4, fWs.shape[0], fWs.shape[0], fWs)
+    R1 = torch.sum(f * temp, dim=1)
+    return R1
 
   def get_R2(self, T2, T5, T5_edge_index, f, fWs):
     temp = torch_sparse.spmm(T5_edge_index, T5, fWs.shape[0], fWs.shape[0], fWs)
@@ -227,11 +227,11 @@ class ODEFuncGreed(ODEFunc):
     return tensors
 
   def get_energy(self, x, metric, eta, gamma):
-    temp = torch.div(metric, gamma)
-    temp = temp.masked_fill_(temp == float('inf'), 0.)
+    # temp = torch.div(metric, gamma)
+    # temp = temp.masked_fill_(temp == float('inf'), 0.)
     eta_src = eta[self.edge_index[0, :]]
-    term1 = 0.5 * torch.sum(temp * eta_src)
-    term2 = self.mu * torch.sum((x-self.x0)**2)
+    term1 = 0.5 * torch.sum(eta_src)
+    term2 = self.mu * torch.sum((x - self.x0) ** 2)
     return term1 + term2
 
   def forward(self, t, x):  # t is needed when called by the integrator

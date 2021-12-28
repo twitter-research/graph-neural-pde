@@ -56,10 +56,11 @@ class GreedTests(unittest.TestCase):
     self.assertTrue(torch.all(dense_out == out))
 
   def test_get_R1(self):
+    ei = self.greed_func.edge_index
     x = torch.rand((self.greed_func.n_nodes, 2))
     tau, tau_transpose = self.greed_func.get_tau(x)
     metric = self.greed_func.get_metric(x, tau, tau_transpose)
-    gamma = self.greed_func.get_gamma(metric)
+    gamma, _ = self.greed_func.get_gamma(metric)
     tau = tau.flatten()
     tau_transpose = tau_transpose.flatten()
     tau2 = tau * tau
@@ -70,12 +71,22 @@ class GreedTests(unittest.TestCase):
     fWs = torch.matmul(x, Ws)
     R1 = self.greed_func.get_R1(x, T2, T3, fWs)
     self.assertTrue(R1.shape[0] == self.greed_func.n_nodes)
+    # get dense R1
+    norm = torch.diag(self.greed_func.deg_inv_sqrt)
+    T2_dense = to_dense_adj(ei, edge_attr=T2).squeeze()
+    T3_dense = to_dense_adj(ei, edge_attr=T3).squeeze()
+    temp = torch.diag(T2_dense.sum(dim=1))
+    T4_dense = norm @ (temp - T3_dense) @ norm
+    temp2 = T4_dense @ fWs
+    R1_dense = torch.sum(x * temp2, dim=1)
+    self.assertTrue(torch.all(torch.isclose(R1_dense, R1)))
 
   def test_get_R2(self):
+    ei = self.greed_func.edge_index
     x = torch.rand((self.greed_func.n_nodes, 2))
     tau, tau_transpose = self.greed_func.get_tau(x)
     metric = self.greed_func.get_metric(x, tau, tau_transpose)
-    gamma = self.greed_func.get_gamma(metric)
+    gamma, _ = self.greed_func.get_gamma(metric)
     tau = tau.flatten()
     tau_transpose = tau_transpose.flatten()
     tau2 = tau * tau
@@ -89,6 +100,16 @@ class GreedTests(unittest.TestCase):
     T5 = self.greed_func.symmetrically_normalise(T3_transpose, transposed_edge_index)
     R2 = self.greed_func.get_R2(T2, T5, transposed_edge_index, x, fWs)
     self.assertTrue(R2.shape[0] == self.greed_func.n_nodes)
+    # compare with dense
+    norm = torch.diag(self.greed_func.deg_inv_sqrt)
+    T2_dense = to_dense_adj(ei, edge_attr=T2).squeeze()
+    T3_dense = to_dense_adj(ei, edge_attr=T3).squeeze()
+    T5_dense = norm @ T3_dense.t() @ norm
+    term1 = torch.sum(x * (T5_dense @ fWs), dim=1)
+    norm1 = torch.diag(self.greed_func.deg_inv)
+    term2 = T2_dense.t() @ (norm1 @ torch.sum(x * fWs, dim=1))
+    R2_dense = term2 - term1
+    self.assertTrue(torch.all(torch.isclose(R2_dense, R2)))
 
   def test_get_deg_inv_sqrt(self):
     deg_inv_sqrt = self.greed_func.get_deg_inv_sqrt(self.data)
@@ -103,6 +124,26 @@ class GreedTests(unittest.TestCase):
     self.assertTrue(normed_x.shape == values.shape)
     self.assertTrue(torch.all(normed_x >= 0))
 
+  def test_T1(self):
+    tau, tau_transpose = self.greed_func.get_tau(self.x)
+    temp = tau * tau_transpose
+    dense_tau = to_dense_adj(self.greed_func.edge_index, edge_attr=tau).squeeze()
+    test1 = dense_tau * dense_tau.t()
+    test2 = to_dense_adj(self.greed_func.edge_index, edge_attr=temp).squeeze()
+    self.assertTrue(torch.all(test1 == test2))
+
+  def test_T5(self):
+    ei = self.greed_func.edge_index
+    nn = self.greed_func.n_nodes
+    T3 = torch.rand((ei.shape[1]))
+    transposed_edge_index, T3_transpose = torch_sparse.transpose(ei, T3, nn, nn)
+    dense_T3 = to_dense_adj(ei, edge_attr=T3).squeeze()
+    norm = torch.diag(self.greed_func.deg_inv_sqrt)
+    test1 = norm @ dense_T3.t() @ norm
+    temp = self.greed_func.symmetrically_normalise(T3_transpose, transposed_edge_index)
+    test2 = to_dense_adj(transposed_edge_index, edge_attr=temp).squeeze()
+    self.assertTrue(torch.all(test1 == test2))
+
   def test_get_tau(self):
     tau, tau_transpose = self.greed_func.get_tau(self.x)
     self.assertTrue(tau.shape == torch.Size((self.edge.shape[1], 1)))
@@ -110,6 +151,9 @@ class GreedTests(unittest.TestCase):
     # check that tau(2,1) is  tau_transpose(1,2) and vice versa
     self.assertTrue(tau[2] == tau_transpose[3])
     self.assertTrue(tau[3] == tau_transpose[2])
+    dense_tau = to_dense_adj(self.greed_func.edge_index, edge_attr=tau).squeeze()
+    dense_tau_transpose = to_dense_adj(self.greed_func.edge_index, edge_attr=tau_transpose).squeeze()
+    self.assertTrue(torch.all(dense_tau.t() == dense_tau_transpose))
 
   def test_metric(self):
     tau, tau_transpose = self.greed_func.get_tau(self.x)
@@ -120,7 +164,7 @@ class GreedTests(unittest.TestCase):
     tau, tau_transpose = self.greed_func.get_tau(self.x)
     metric = self.greed_func.get_metric(self.x, tau, tau_transpose)
     epsilon = 1e-3
-    gamma = self.greed_func.get_gamma(metric, epsilon=epsilon)
+    gamma, _ = self.greed_func.get_gamma(metric, epsilon=epsilon)
     self.assertTrue(list(gamma.shape) == [self.edge.shape[1]])
     self.assertTrue(torch.all(gamma < 0))
     dense_gamma = to_dense_adj(self.greed_func.edge_index, edge_attr=gamma).squeeze()
@@ -144,7 +188,7 @@ class GreedTests(unittest.TestCase):
   def test_get_dynamics(self):
     tau, tau_transpose = self.greed_func.get_tau(self.x)
     metric = self.greed_func.get_metric(self.x, tau, tau_transpose)
-    gamma = self.greed_func.get_gamma(metric)
+    gamma, _ = self.greed_func.get_gamma(metric)
     W = self.greed_func.W
     Ws = W.t() @ self.W
     L, R1, R2 = self.greed_func.get_dynamics(self.x, gamma, tau, tau_transpose, Ws)
@@ -162,6 +206,7 @@ class GreedTests(unittest.TestCase):
     self.assertTrue(L.shape[0] == n_edges + n_nodes)
     self.assertTrue(torch.all(L[0:n_edges] <= 0))
     self.assertTrue(torch.all(L[n_edges:] >= 0))
+    # now compare with dense calculations
     dense_A = to_dense_adj(self.greed_func.edge_index, edge_attr=A).squeeze()
     dense_D = to_dense_adj(self.greed_func.edge_index, edge_attr=D).squeeze()
     degree = torch.diag(dense_D.sum(dim=1))
@@ -188,3 +233,9 @@ class GreedTests(unittest.TestCase):
     self.greed_func.x0 = self.x
     f = self.greed_func(1, self.x)
     self.assertTrue(f.shape == self.x.shape)
+
+  def dense_sparse_test(self):
+    """
+    Compare each sparse calculation with its dense equivalent
+    @return:
+    """
