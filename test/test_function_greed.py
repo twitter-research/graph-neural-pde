@@ -49,7 +49,7 @@ class GreedTests(unittest.TestCase):
     opt = {'dataset': 'Citeseer', 'self_loop_weight': 0, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2,
            'K': 1,
            'attention_norm_idx': 0, 'add_source': False, 'alpha': 1, 'alpha_dim': 'vc', 'beta_dim': 'vc',
-           'hidden_dim': 6, 'linear_attention': True, 'augment': False, 'adjoint': False,
+           'hidden_dim': 2, 'linear_attention': True, 'augment': False, 'adjoint': False,
            'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler',
            'mixed_block': False, 'max_nfe': 1000, 'mix_features': False, 'attention_dim': 2, 'rewiring': None,
            'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None, 'jacobian_norm2': None,
@@ -271,8 +271,11 @@ class GreedTests(unittest.TestCase):
     """
     self.opt['function'] = 'greed'
     self.opt['block'] = 'constant'
+    self.opt['time'] = 10
+    self.opt['method'] = 'euler'
+    self.opt['use_early'] = False
     gnn = GNN(self.opt, self.dataset, device=self.device)
-    n_epochs = 100
+    n_epochs = 10
     parameters = [p for p in gnn.parameters() if p.requires_grad]
     optimizer = torch.optim.Adam(parameters, lr=self.opt['lr'], weight_decay=self.opt['decay'])
     for epoch in range(n_epochs):
