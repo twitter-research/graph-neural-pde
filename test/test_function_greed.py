@@ -234,8 +234,16 @@ class GreedTests(unittest.TestCase):
     f = self.greed_func(1, self.x)
     self.assertTrue(f.shape == self.x.shape)
 
-  def dense_sparse_test(self):
-    """
-    Compare each sparse calculation with its dense equivalent
-    @return:
-    """
+  def test_L_goes_to_laplacian(self):
+    gf = self.greed_func
+    lap = gf.get_laplacian_form(torch.ones(gf.edge_index.shape[1]), torch.ones(gf.edge_index.shape[1]))
+    tau, tau_transpose = gf.get_tau(self.x)
+    tau = torch.ones(tau.shape)
+    tau_transpose = torch.ones(tau_transpose.shape)
+    metric = gf.get_metric(self.x, tau, tau_transpose)
+    gamma, eta = gf.get_gamma(metric)
+    gamma = -torch.ones(gamma.shape)
+    W = torch.eye(gf.W.shape[0])
+    Ws = W @ W.t()
+    L, R1, R2 = gf.get_dynamics(self.x, gamma, tau, tau_transpose, Ws)
+    self.assertTrue(torch.all(torch.eq(L, -lap)))

@@ -132,19 +132,21 @@ class ODEFuncGreed(ODEFunc):
 
   def get_energy_gradient(self, x, tau, tau_transpose):
     src_x, dst_x = self.get_src_dst(x)
-    src_degree, dst_degree = self.get_src_dst(self.deg_inv_sqrt)
-    src_term = torch.div(tau * src_x, src_degree.unsqueeze(dim=1))
-    src_term.masked_fill_(src_term == float('inf'), 0.)
-    dst_term = torch.div(tau_transpose * dst_x, dst_degree.unsqueeze(dim=1))
-    dst_term.masked_fill_(dst_term == float('inf'), 0.)
+    src_deg_inv_sqrt, dst_deg_inv_sqrt = self.get_src_dst(self.deg_inv_sqrt)
+    src_term = (tau * src_x * src_deg_inv_sqrt.unsqueeze(dim=-1))
+    # src_term.masked_fill_(src_term == float('inf'), 0.)
+    dst_term = (tau_transpose * dst_x * dst_deg_inv_sqrt.unsqueeze(dim=-1))
+    # dst_term.masked_fill_(dst_term == float('inf'), 0.)
     # W is [d,p]
     energy_gradient = (src_term - dst_term) @ self.W
     return energy_gradient
 
   def get_gamma(self, metric, epsilon=1e-2):
+    # todo make epsilon smaller
     # The degree is the thing that provides a notion of dimension on a graph
     # eta is the determinant of the ego graph. This should slow down diffusion where the grad is large
     row, col = self.edge_index
+    # todo check if there's a function that does all of this in one go that's optimised for autograd
     log_eta = self.deg_inv * scatter_add(torch.log(metric), row)
     eta = torch.exp(log_eta)
     src_eta, dst_eta = self.get_src_dst(eta)
@@ -160,7 +162,7 @@ class ODEFuncGreed(ODEFunc):
     return loop_index
 
   def spvm(self, index, values, vector):
-    row, col = index[0], index[1]
+    row, col = index
     out = vector[col]
     out = out * values
     out = scatter_add(out, row, dim=-1)
@@ -226,11 +228,8 @@ class ODEFuncGreed(ODEFunc):
       M = M.masked_fill(M < -threshold, -threshold)
     return tensors
 
-  def get_energy(self, x, metric, eta, gamma):
-    # temp = torch.div(metric, gamma)
-    # temp = temp.masked_fill_(temp == float('inf'), 0.)
-    eta_src = eta[self.edge_index[0, :]]
-    term1 = 0.5 * torch.sum(eta_src)
+  def get_energy(self, x, eta):
+    term1 = 0.5 * torch.sum(eta)
     term2 = self.mu * torch.sum((x - self.x0) ** 2)
     return term1 + term2
 
@@ -252,8 +251,9 @@ class ODEFuncGreed(ODEFunc):
     f = f - 0.5 * self.mu * (x - self.x0)
     # f = f + self.x0
     # todo consider adding a term f = f + self.alpha * f
-    energy = self.get_energy(f, metric, eta, gamma)
-    print(f"energy = {energy} at time {t}")
+    energy = self.get_energy(x, eta)
+    # energy = 0.5 * torch.sum(metric) + self.mu * torch.sum((x - self.x0) ** 2)
+    print(f"energy = {energy} at time {t} and mu={self.mu}")
     return f
 
   def __repr__(self):
