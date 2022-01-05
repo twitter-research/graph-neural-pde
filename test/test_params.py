@@ -12,4 +12,5 @@ OPT = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'heads
        'feat_hidden_dim': 16, 'pos_enc_hidden_dim': 8, 'gdc_method': 'ppr', 'gdc_sparsification': 'topk', 'gdc_k': 4,
        'gdc_threshold': 1e-5, 'ppr_alpha': 0.05, 'exact': True, 'pos_enc_orientation': 'row', 'pos_enc_type': 'GDC',
        'max_nfe': 1000, 'pos_enc_csv': False, 'max_test_steps': 1000, 'edge_sampling_add_type': 'importance',
-       'fa_layer': False, 'att_samp_pct': 1, 'edge_sampling_sym': False}
+       'fa_layer': False, 'att_samp_pct': 1, 'edge_sampling_sym': False, 'data_norm': 'rw', 'lr': 0.01, 'decay': 0,
+       'max_iters': 1000}

@@ -100,9 +100,6 @@ class ODEFuncGreed(ODEFunc):
     @return:
     """
     src_x, dst_x = self.get_src_dst(x)
-    # todo put this back
-    # tau = torch.tanh(src_x @ self.K + dst_x @ self.K)
-    # tau_transpose = torch.tanh(dst_x @ self.K + src_x @ self.K)
     tau = torch.tanh(src_x @ self.K + dst_x @ self.Q)
     tau_transpose = torch.tanh(dst_x @ self.K + src_x @ self.Q)
     return tau, tau_transpose
@@ -238,7 +235,6 @@ class ODEFuncGreed(ODEFunc):
       raise MaxNFEException
     self.nfe += 1
     Ws = self.W @ self.W.t()  # output a [d,d] tensor
-    # Ws = torch.eye(self.W.shape[0])
     tau, tau_transpose = self.get_tau(x)
     metric = self.get_metric(x, tau, tau_transpose)
     gamma, eta = self.get_gamma(metric)

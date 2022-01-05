@@ -15,32 +15,48 @@ from data import get_dataset
 from test_params import OPT
 import numpy as np
 from torch_scatter import scatter_add, scatter_mul
+from GNN import GNN
+from run_GNN import train
 
 
 class Data:
-  def __init__(self, edge_index, x):
+  def __init__(self, edge_index, x, y=None, train_mask=None):
     self.x = x
     self.edge_index = edge_index
     self.edge_attr = None
+    self.y = y
+    self.train_mask = train_mask
+    self.num_features = x.shape[1]
+    self.num_nodes = x.shape[0]
+
+class DummyDataset():
+  def __init__(self, data, num_classes):
+    self.data = data
+    self.num_classes = num_classes
+    self.num_features = data.num_features
+    self.num_nodes = data.num_nodes
 
 
 class GreedTests(unittest.TestCase):
   def setUp(self):
     self.edge = tensor([[0, 2, 2, 1, 1, 3, 2, 3], [2, 0, 1, 2, 3, 1, 3, 2]])
     self.x = tensor([[1., 2.], [3., 2.], [4., 5.], [6, 7]], dtype=torch.float)
+    self.y = tensor([1, 1, 0, 0])
+    self.train_mask = tensor([1, 1, 1, 1])
     self.W = tensor([[0.2, 0.1], [0.3, 0.2]], dtype=torch.float)
     self.alpha = tensor([[1, 2, 3, 4]], dtype=torch.float)
     self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     opt = {'dataset': 'Citeseer', 'self_loop_weight': 0, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2,
-           'K': 10,
+           'K': 1,
            'attention_norm_idx': 0, 'add_source': False, 'alpha': 1, 'alpha_dim': 'vc', 'beta_dim': 'vc',
            'hidden_dim': 6, 'linear_attention': True, 'augment': False, 'adjoint': False,
            'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler',
-           'mixed_block': True, 'max_nfe': 1000, 'mix_features': False, 'attention_dim': 2, 'rewiring': None,
+           'mixed_block': False, 'max_nfe': 1000, 'mix_features': False, 'attention_dim': 2, 'rewiring': None,
            'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None, 'jacobian_norm2': None,
-           'total_deriv': None, 'directional_penalty': None, 'beltrami': True}
+           'total_deriv': None, 'directional_penalty': None, 'beltrami': False}
     self.opt = {**OPT, **opt}
-    self.data = Data(self.edge, self.x)
+    self.data = Data(self.edge, self.x, self.y, self.train_mask)
+    self.dataset = DummyDataset(self.data, 2)
     self.greed_func = ODEFuncGreed(2, 2, self.opt, self.data, torch.device('cpu'))
 
   def tearDown(self) -> None:
@@ -247,3 +263,18 @@ class GreedTests(unittest.TestCase):
     Ws = W @ W.t()
     L, R1, R2 = gf.get_dynamics(self.x, gamma, tau, tau_transpose, Ws)
     self.assertTrue(torch.all(torch.eq(L, -lap)))
+
+  def test_integration(self):
+    """
+    running the full pipeline on sample data
+    @return:
+    """
+    self.opt['function'] = 'greed'
+    self.opt['block'] = 'constant'
+    gnn = GNN(self.opt, self.dataset, device=self.device)
+    n_epochs = 100
+    parameters = [p for p in gnn.parameters() if p.requires_grad]
+    optimizer = torch.optim.Adam(parameters, lr=self.opt['lr'], weight_decay=self.opt['decay'])
+    for epoch in range(n_epochs):
+      loss = train(gnn, optimizer, self.dataset.data)
+      print(f'loss {loss} at epoch {epoch}')
