@@ -271,6 +271,7 @@ class GreedTests(unittest.TestCase):
     """
     self.opt['function'] = 'greed'
     self.opt['block'] = 'constant'
+    self.opt['step_size'] = 0.5
     self.opt['time'] = 10
     self.opt['method'] = 'euler'
     self.opt['use_early'] = False

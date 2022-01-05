@@ -238,15 +238,22 @@ class ODEFuncGreed(ODEFunc):
     tau, tau_transpose = self.get_tau(x)
     metric = self.get_metric(x, tau, tau_transpose)
     gamma, eta = self.get_gamma(metric)
+    #todo delete
+    # gamma = -torch.ones(gamma.shape)
     L, R1, R2 = self.get_dynamics(x, gamma, tau, tau_transpose, Ws)
     # L, R1, R2 = self.clipper([L, R1, R2])
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
     f = torch_sparse.spmm(edges, L, x.shape[0], x.shape[0], x)
     f = torch.matmul(f, Ws)
+    # print(f'f1: {f}')
     f = f + R1.unsqueeze(dim=-1) @ self.K.t() + R2.unsqueeze(dim=-1) @ self.Q.t()
+    # print(f'f2: {f}')
+    # todo put this back
     f = f - 0.5 * self.mu * (x - self.x0)
     # f = f + self.x0
     # todo consider adding a term f = f + self.alpha * f
+    # todo switch this
+    # energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2)
     energy = self.get_energy(x, eta)
     # energy = 0.5 * torch.sum(metric) + self.mu * torch.sum((x - self.x0) ** 2)
     print(f"energy = {energy} at time {t} and mu={self.mu}")

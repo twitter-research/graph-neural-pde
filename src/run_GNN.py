@@ -191,6 +191,11 @@ def merge_cmd_args(cmd_opt, opt):
     opt['self_loop_weight'] = cmd_opt['self_loop_weight']
   if cmd_opt['method'] is not None:
     opt['method'] = cmd_opt['method']
+  if cmd_opt['step_size'] != 1:
+    opt['step_size'] = cmd_opt['step_size']
+  if cmd_opt['time'] != 1:
+    opt['time'] = cmd_opt['time']
+
 
 
 def main(cmd_opt):
