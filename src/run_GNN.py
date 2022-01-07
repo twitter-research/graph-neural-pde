@@ -12,7 +12,7 @@ from data import get_dataset, set_train_val_test_split
 from ogb.nodeproppred import Evaluator
 from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling
 from best_params import best_params_dict
-
+from greed_params import greed_test_params
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
   if name == 'sgd':
@@ -199,10 +199,12 @@ def merge_cmd_args(cmd_opt, opt):
 
 
 def main(cmd_opt):
-  best_opt = best_params_dict[cmd_opt['dataset']]
+  best_opt = best_params_dict['Cora']#cmd_opt['dataset']]
   opt = {**cmd_opt, **best_opt}
 
   merge_cmd_args(cmd_opt, opt)
+
+  opt = greed_test_params(opt)
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -233,6 +235,7 @@ def main(cmd_opt):
   this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
 
   for epoch in range(1, opt['epoch']):
+    print(f"epoch {epoch}")
     start_time = time.time()
 
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
@@ -240,6 +243,7 @@ def main(cmd_opt):
       model.odeblock.odefunc.edge_index = ei
 
     loss = train(model, optimizer, data, pos_encoding)
+
     tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
 
     best_time = opt['time']

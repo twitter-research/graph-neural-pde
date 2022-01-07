@@ -64,7 +64,7 @@ class ODEFuncGreed(ODEFunc):
 
     # todo chosen to balance x0 and f in the forward function. May not be optimal
     if self.opt['test_mu=0']:
-      self.mu = 0 #nn.Parameter(torch.tensor(1.))
+      self.mu = 0
     else:
       self.mu = nn.Parameter(torch.tensor(1.))
 
@@ -231,7 +231,7 @@ class ODEFuncGreed(ODEFunc):
     tau2 = tau * tau
     tau3 = tau * tau2
 
-    if self.opt['test_omit_metric']:
+    if self.opt['test_tau_remove_tanh']:
       T0 = gamma * tau2
       T1 = gamma * tau * tau_transpose
       T2 = gamma * tau
@@ -272,9 +272,11 @@ class ODEFuncGreed(ODEFunc):
     Ws = self.W @ self.W.t()  # output a [d,d] tensor
     tau, tau_transpose = self.get_tau(x)
     metric = self.get_metric(x, tau, tau_transpose)
+
     gamma, eta = self.get_gamma(metric)
-    #todo delete
-    gamma = -torch.ones(gamma.shape) #setting metric equal to adjacency
+    if self.opt['test_omit_metric']:
+      gamma = -torch.ones(gamma.shape) #setting metric equal to adjacency
+
     L, R1, R2 = self.get_dynamics(x, gamma, tau, tau_transpose, Ws)
     # L, R1, R2 = self.clipper([L, R1, R2])
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
@@ -291,16 +293,16 @@ class ODEFuncGreed(ODEFunc):
     # todo consider adding a term f = f + self.alpha * f
     # todo switch this
 
-    if self.opt['test_omit_metric'] and self.opt['test_mu=0']:
-      energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2) #energy to use when Gamma is -adjacency and not the pullback and mu == 0
-    elif self.opt['test_omit_metric']:
-      energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2) + self.mu * torch.sum((x - self.x0) ** 2) #energy to use when Gamma is -adjacency and not the pullback and mu != 0
+    if self.opt['test_omit_metric'] and self.opt['test_mu=0']: #energy to use when Gamma is -adjacency and not the pullback and mu == 0
+      energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2)
+    elif self.opt['test_omit_metric']: #energy to use when Gamma is -adjacency and not the pullback and mu != 0
+      energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2) + self.mu * torch.sum((x - self.x0) ** 2)
     else:
       energy = self.get_energy(x, eta)
     # energy = 0.5 * torch.sum(metric) + self.mu * torch.sum((x - self.x0) ** 2)
 
     # print(f"energy = {energy} at time {t} and mu={self.mu}")
-    print(f"energy change = {energy - self.energy:.4f}, energy {energy:.4f} at time {t},   SS's  f: {torch.sum(f**2):.4f},  L: {torch.sum(L**2):.4f}, R1: {torch.sum(R1**2):.4f}, R2: {torch.sum(R2**2):.4f}, mu={self.mu}, eta {eta.data}")
+    print(f"energy change = {energy - self.energy:.4f}, energy {energy:.4f} at time {t},   SS's  f: {torch.sum(f**2):.4f},  L: {torch.sum(L**2):.4f}, R1: {torch.sum(R1**2):.4f}, R2: {torch.sum(R2**2):.4f}, mu={self.mu}")#, eta {eta.data}")
     self.energy = energy
 
     return f

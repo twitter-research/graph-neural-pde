@@ -274,20 +274,24 @@ class GreedTests(unittest.TestCase):
     self.opt['step_size'] = 0.1
     self.opt['time'] = 10
     self.opt['method'] = 'euler'
-    self.opt['use_early'] = False
+    self.opt['no_early'] = True
     # self.opt['attention_dim'] = 5
 
     #added to test_params.py
-    self.opt['test_no_chanel_mix'] = True
-    self.opt['test_omit_metric'] = True
-    self.opt['test_mu=0'] = True
+    self.opt['test_no_chanel_mix'] = False
+    self.opt['test_omit_metric'] = False
+    self.opt['test_mu=0'] = False
     self.opt['test_tau_remove_tanh'] = True
-    self.opt['test_tau_remove_tanh_reg'] = 2
-    self.opt['test_tau_symmetric'] = True
-    self.opt['test_tau_remove_tanh_reg'] = 5
+    self.opt['test_tau_remove_tanh_reg'] = 5 #opt['attention_dim']
+
+    if self.opt['test_tau_remove_tanh']:
+      self.opt['test_tau_symmetric'] = False
+      self.opt['test_tau_remove_tanh_reg'] = 5 #opt['attention_dim']
+    else:
+      opt['test_tau_symmetric'] = False
 
     gnn = GNN(self.opt, self.dataset, device=self.device)
-    n_epochs = 3
+    n_epochs = 5
     parameters = [p for p in gnn.parameters() if p.requires_grad]
     optimizer = torch.optim.Adam(parameters, lr=self.opt['lr'], weight_decay=self.opt['decay'])
     for epoch in range(n_epochs):
