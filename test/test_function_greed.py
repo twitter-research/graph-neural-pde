@@ -275,6 +275,8 @@ class GreedTests(unittest.TestCase):
     self.opt['time'] = 10
     self.opt['method'] = 'euler'
     self.opt['use_early'] = False
+    self.opt['attention_dim'] = 4
+
     gnn = GNN(self.opt, self.dataset, device=self.device)
     n_epochs = 10
     parameters = [p for p in gnn.parameters() if p.requires_grad]

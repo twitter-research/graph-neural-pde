@@ -46,7 +46,13 @@ class ODEFuncGreed(ODEFunc):
     self.deg_inv_sqrt = self.get_deg_inv_sqrt(data)
     self.deg_inv = self.deg_inv_sqrt * self.deg_inv_sqrt
 
-    self.W = Parameter(torch.Tensor(in_features, opt['attention_dim']))
+    # self.W = Parameter(torch.Tensor(in_features, opt['attention_dim']))
+    # self.W = Parameter(torch.ones(in_features, opt['attention_dim']) * 0.1) #<- constant init
+    # self.W = Parameter(torch.cat([torch.eye(in_features), torch.zeros(in_features, opt['attention_dim'] - in_features)], dim=1)) #<- initialise W s.t. W_s == I
+    # self.W = torch.cat([torch.eye(in_features), torch.zeros(in_features, opt['attention_dim'] - in_features)], dim=1) #<- fix W s.t. W_s == I
+    self.W = torch.cat([torch.eye(in_features), torch.zeros(in_features, opt['attention_dim'] - in_features)], dim=1) / in_features**(1/2) #<- fix W / sqrt(d) s.t. W_s == I / d
+
+    #to normalise by sqrt(in_features) just: / torch.power(in_features, 1/2) #but this seems trivial
 
     if bias:
       self.bias = Parameter(torch.Tensor(out_features))
@@ -57,6 +63,7 @@ class ODEFuncGreed(ODEFunc):
     self.mu = nn.Parameter(torch.tensor(1.))
     self.alpha = nn.Parameter(torch.tensor(1.))
 
+    self.energy = 0
     self.reset_parameters()
 
   def reset_parameters(self):
@@ -246,6 +253,7 @@ class ODEFuncGreed(ODEFunc):
     f = torch_sparse.spmm(edges, L, x.shape[0], x.shape[0], x)
     f = torch.matmul(f, Ws)
     # print(f'f1: {f}')
+    # print(f'f1: {f}')
     f = f + R1.unsqueeze(dim=-1) @ self.K.t() + R2.unsqueeze(dim=-1) @ self.Q.t()
     # print(f'f2: {f}')
     # todo put this back
@@ -256,7 +264,11 @@ class ODEFuncGreed(ODEFunc):
     # energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2)
     energy = self.get_energy(x, eta)
     # energy = 0.5 * torch.sum(metric) + self.mu * torch.sum((x - self.x0) ** 2)
-    print(f"energy = {energy} at time {t} and mu={self.mu}")
+    # print(f"energy = {energy} at time {t} and mu={self.mu}")
+
+    print(f"energy change = {energy - self.energy:.4f}, energy {energy:.4f} at time {t},   SS's  f: {torch.sum(f**2):.4f},  L: {torch.sum(L**2):.4f}, R1: {torch.sum(R1**2):.4f}, R2: {torch.sum(R2**2):.4f}, mu={self.mu}, eta {eta.data}")
+    self.energy = energy
+
     return f
 
   def __repr__(self):
