@@ -41,18 +41,21 @@ class ODEFuncGreed(ODEFunc):
     self.self_loops = self.get_self_loops()
 
     self.K = Parameter(torch.Tensor(out_features, 1))
-    self.Q = Parameter(torch.Tensor(out_features, 1))
+    if not self.opt['test_tau_symmetric']:
+      self.Q = Parameter(torch.Tensor(out_features, 1))
 
     self.deg_inv_sqrt = self.get_deg_inv_sqrt(data)
     self.deg_inv = self.deg_inv_sqrt * self.deg_inv_sqrt
 
-    # self.W = Parameter(torch.Tensor(in_features, opt['attention_dim']))
+    if opt['test_no_chanel_mix']: #<- fix W s.t. W_s == I
+      self.W = torch.cat([torch.eye(in_features), torch.zeros(in_features, opt['attention_dim'] - in_features)], dim=1)
+    else:
+      self.W = Parameter(torch.Tensor(in_features, opt['attention_dim']))
+
     # self.W = Parameter(torch.ones(in_features, opt['attention_dim']) * 0.1) #<- constant init
     # self.W = Parameter(torch.cat([torch.eye(in_features), torch.zeros(in_features, opt['attention_dim'] - in_features)], dim=1)) #<- initialise W s.t. W_s == I
-    # self.W = torch.cat([torch.eye(in_features), torch.zeros(in_features, opt['attention_dim'] - in_features)], dim=1) #<- fix W s.t. W_s == I
-    self.W = torch.cat([torch.eye(in_features), torch.zeros(in_features, opt['attention_dim'] - in_features)], dim=1) / in_features**(1/2) #<- fix W / sqrt(d) s.t. W_s == I / d
-
-    #to normalise by sqrt(in_features) just: / torch.power(in_features, 1/2) #but this seems trivial
+    # self.W = torch.cat([torch.eye(in_features), torch.zeros(in_features, opt['attention_dim'] - in_features)], dim=1) / in_features**(1/2) #<- fix W / sqrt(d) s.t. W_s == I / d
+    # to normalise by sqrt(in_features) just: / torch.power(in_features, 1/2)
 
     if bias:
       self.bias = Parameter(torch.Tensor(out_features))
@@ -60,7 +63,11 @@ class ODEFuncGreed(ODEFunc):
       self.register_parameter('bias', None)
 
     # todo chosen to balance x0 and f in the forward function. May not be optimal
-    self.mu = nn.Parameter(torch.tensor(1.))
+    if self.opt['test_mu=0']:
+      self.mu = 0 #nn.Parameter(torch.tensor(1.))
+    else:
+      self.mu = nn.Parameter(torch.tensor(1.))
+
     self.alpha = nn.Parameter(torch.tensor(1.))
 
     self.energy = 0
@@ -69,7 +76,8 @@ class ODEFuncGreed(ODEFunc):
   def reset_parameters(self):
     glorot(self.W)
     glorot(self.K)
-    glorot(self.Q)
+    if not self.opt['test_tau_symmetric']:
+      glorot(self.Q)
     zeros(self.bias)
 
   def get_deg_inv_sqrt(self, data):
@@ -107,8 +115,17 @@ class ODEFuncGreed(ODEFunc):
     @return:
     """
     src_x, dst_x = self.get_src_dst(x)
-    tau = torch.tanh(src_x @ self.K + dst_x @ self.Q)
-    tau_transpose = torch.tanh(dst_x @ self.K + src_x @ self.Q)
+
+    if self.opt['test_tau_remove_tanh'] and not self.opt['test_tau_symmetric']:
+      tau = (src_x @ self.K + dst_x @ self.Q) / self.opt['test_tau_remove_tanh_reg']
+      tau_transpose = (dst_x @ self.K + src_x @ self.Q) / self.opt['test_tau_remove_tanh_reg']
+    elif self.opt['test_tau_remove_tanh'] and self.opt['test_tau_symmetric']:
+      tau = (src_x + dst_x) @ self.K / self.opt['test_tau_remove_tanh_reg']
+      tau_transpose = (dst_x + src_x) @ self.K / self.opt['test_tau_remove_tanh_reg']
+    else:
+      tau = torch.tanh(src_x @ self.K + dst_x @ self.Q)
+      tau_transpose = torch.tanh(dst_x @ self.K + src_x @ self.Q)
+
     return tau, tau_transpose
 
   def get_src_dst(self, x):
@@ -213,13 +230,24 @@ class ODEFuncGreed(ODEFunc):
     tau_transpose = tau_transpose.flatten()
     tau2 = tau * tau
     tau3 = tau * tau2
-    T0 = gamma * tau2
-    T1 = gamma * tau * tau_transpose
-    T2 = gamma * (tau - tau3)
-    T3 = gamma * (tau_transpose - tau_transpose * tau2)
-    # sparse transpose changes the edge index instead of the data and this must be carried through
-    transposed_edge_index, T3_transpose = torch_sparse.transpose(self.edge_index, T3, self.n_nodes, self.n_nodes)
-    T5 = self.symmetrically_normalise(T3_transpose, transposed_edge_index)
+
+    if self.opt['test_omit_metric']:
+      T0 = gamma * tau2
+      T1 = gamma * tau * tau_transpose
+      T2 = gamma * tau
+      T3 = gamma * tau_transpose
+      # sparse transpose changes the edge index instead of the data and this must be carried through
+      transposed_edge_index, T3_transpose = torch_sparse.transpose(self.edge_index, T3, self.n_nodes, self.n_nodes)
+      T5 = self.symmetrically_normalise(T3_transpose, transposed_edge_index)
+    else:
+      T0 = gamma * tau2
+      T1 = gamma * tau * tau_transpose
+      T2 = gamma * (tau - tau3)
+      T3 = gamma * (tau_transpose - tau_transpose * tau2)
+      # sparse transpose changes the edge index instead of the data and this must be carried through
+      transposed_edge_index, T3_transpose = torch_sparse.transpose(self.edge_index, T3, self.n_nodes, self.n_nodes)
+      T5 = self.symmetrically_normalise(T3_transpose, transposed_edge_index)
+
     L = self.get_laplacian_form(T1, T0)
     fWs = torch.matmul(f, Ws)
     R1 = self.get_R1(f, T2, T3, fWs)
@@ -246,26 +274,32 @@ class ODEFuncGreed(ODEFunc):
     metric = self.get_metric(x, tau, tau_transpose)
     gamma, eta = self.get_gamma(metric)
     #todo delete
-    # gamma = -torch.ones(gamma.shape)
+    gamma = -torch.ones(gamma.shape) #setting metric equal to adjacency
     L, R1, R2 = self.get_dynamics(x, gamma, tau, tau_transpose, Ws)
     # L, R1, R2 = self.clipper([L, R1, R2])
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
     f = torch_sparse.spmm(edges, L, x.shape[0], x.shape[0], x)
     f = torch.matmul(f, Ws)
-    # print(f'f1: {f}')
-    # print(f'f1: {f}')
-    f = f + R1.unsqueeze(dim=-1) @ self.K.t() + R2.unsqueeze(dim=-1) @ self.Q.t()
-    # print(f'f2: {f}')
-    # todo put this back
+
+    if self.opt['test_tau_symmetric']:
+      f + R1.unsqueeze(dim=-1) @ self.K.t() + R2.unsqueeze(dim=-1) @ self.K.t()
+    else:
+      f = f + R1.unsqueeze(dim=-1) @ self.K.t() + R2.unsqueeze(dim=-1) @ self.Q.t()
+
     f = f - 0.5 * self.mu * (x - self.x0)
     # f = f + self.x0
     # todo consider adding a term f = f + self.alpha * f
     # todo switch this
-    # energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2)
-    energy = self.get_energy(x, eta)
-    # energy = 0.5 * torch.sum(metric) + self.mu * torch.sum((x - self.x0) ** 2)
-    # print(f"energy = {energy} at time {t} and mu={self.mu}")
 
+    if self.opt['test_omit_metric'] and self.opt['test_mu=0']:
+      energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2) #energy to use when Gamma is -adjacency and not the pullback and mu == 0
+    elif self.opt['test_omit_metric']:
+      energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2) + self.mu * torch.sum((x - self.x0) ** 2) #energy to use when Gamma is -adjacency and not the pullback and mu != 0
+    else:
+      energy = self.get_energy(x, eta)
+    # energy = 0.5 * torch.sum(metric) + self.mu * torch.sum((x - self.x0) ** 2)
+
+    # print(f"energy = {energy} at time {t} and mu={self.mu}")
     print(f"energy change = {energy - self.energy:.4f}, energy {energy:.4f} at time {t},   SS's  f: {torch.sum(f**2):.4f},  L: {torch.sum(L**2):.4f}, R1: {torch.sum(R1**2):.4f}, R2: {torch.sum(R2**2):.4f}, mu={self.mu}, eta {eta.data}")
     self.energy = energy
 

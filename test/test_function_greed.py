@@ -271,14 +271,23 @@ class GreedTests(unittest.TestCase):
     """
     self.opt['function'] = 'greed'
     self.opt['block'] = 'constant'
-    self.opt['step_size'] = 0.5
+    self.opt['step_size'] = 0.1
     self.opt['time'] = 10
     self.opt['method'] = 'euler'
     self.opt['use_early'] = False
-    self.opt['attention_dim'] = 4
+    # self.opt['attention_dim'] = 5
+
+    #added to test_params.py
+    self.opt['test_no_chanel_mix'] = True
+    self.opt['test_omit_metric'] = True
+    self.opt['test_mu=0'] = True
+    self.opt['test_tau_remove_tanh'] = True
+    self.opt['test_tau_remove_tanh_reg'] = 2
+    self.opt['test_tau_symmetric'] = True
+    self.opt['test_tau_remove_tanh_reg'] = 5
 
     gnn = GNN(self.opt, self.dataset, device=self.device)
-    n_epochs = 10
+    n_epochs = 3
     parameters = [p for p in gnn.parameters() if p.requires_grad]
     optimizer = torch.optim.Adam(parameters, lr=self.opt['lr'], weight_decay=self.opt['decay'])
     for epoch in range(n_epochs):
