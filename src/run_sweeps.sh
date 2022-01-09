@@ -2,5 +2,5 @@
 
 for i in {0..7}
 do
-    CUDA_VISIBLE_DEVICES=$(($i % 8)) wandb agent graph_neural_diffusion/greed_sweeps/$1 &
+    CUDA_VISIBLE_DEVICES=$(($i % 8)) wandb agent graph-neural-diffusion/graph-neural-pde-src/$1 &
 done
