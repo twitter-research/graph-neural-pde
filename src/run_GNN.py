@@ -8,12 +8,12 @@ from GNN import GNN
 from GNN_early import GNNEarly
 from GNN_KNN import GNN_KNN
 from GNN_KNN_early import GNNKNNEarly
-import time
+import time, datetime
 from data import get_dataset, set_train_val_test_split
 from ogb.nodeproppred import Evaluator
 from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling
 from best_params import best_params_dict
-from greed_params import greed_test_params, greed_run_params
+from greed_params import greed_test_params, greed_run_params, greed_hyper_params, greed_ablation_params, tf_ablation_args
 import wandb
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
@@ -58,11 +58,8 @@ def train(model, optimizer, data, pos_encoding=None):
 
   lf = torch.nn.functional.nll_loss if model.opt['dataset'] == 'ogbn-arxiv' else torch.nn.CrossEntropyLoss()
 
-  try:
-    if model.opt['wandb_watch_grad']: # Tell wandb to watch what the model gets up to: gradients, weights, and more!
-      wandb.watch(model, lf, log="all", log_freq=10)
-  except:
-    pass
+  if model.opt['wandb_watch_grad']: # Tell wandb to watch what the model gets up to: gradients, weights, and more!
+    wandb.watch(model, lf, log="all", log_freq=10)
 
   model.train()
   optimizer.zero_grad()
@@ -221,7 +218,12 @@ def main(cmd_opt):
 
   merge_cmd_args(cmd_opt, opt)
 
-  opt = greed_run_params(opt) ###extra params for testing GREED
+  if opt['function'] == 'greed':
+    opt = tf_ablation_args(opt)
+    opt = greed_run_params(opt) ###extra params for  GREED
+    if not opt['wandb_sweep']:
+      opt = greed_hyper_params(opt)
+      opt = greed_ablation_params(opt)
 
   if opt['wandb']:
     if opt['use_wandb_offline']:
@@ -231,13 +233,22 @@ def main(cmd_opt):
   else:
     os.environ["WANDB_MODE"] = "disabled"  # sets as NOOP, saves keep writing: if opt['wandb']:
 
-  dataset = get_dataset(opt, '../data', opt['not_lcc'])
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   opt['device'] = device
 
-  wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'], name=opt['wandb_run_name'], config=opt)
+  if 'wandb_run_name' in opt.keys():
+    wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
+               name=opt['wandb_run_name'], config=opt)
+  else:
+    wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'], config=opt)
+
+  if opt['wandb_track_grad_flow']:
+    wandb.define_metric("grad_flow_step") #Customize axes - https://docs.wandb.ai/guides/track/log
+    wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
+
   opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
 
+  dataset = get_dataset(opt, '../data', opt['not_lcc'])
   if opt['beltrami']:
     pos_encoding = apply_beltrami(dataset.data, opt).to(device)
     opt['pos_enc_dim'] = pos_encoding.shape[1]
@@ -264,7 +275,6 @@ def main(cmd_opt):
   this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
 
   for epoch in range(1, opt['epoch']):
-    print(f"epoch {epoch}")
     start_time = time.time()
 
     if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
@@ -304,6 +314,7 @@ def main(cmd_opt):
   print(f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
   # https://docs.wandb.ai/guides/track/log
   # https://wandb.ai/wandb/plots/reports/Custom-Multi-Line-Plots--VmlldzozOTMwMjU
+  # https://docs.wandb.ai/ref/app/features/custom-charts/walkthrough
   #todo Customize axes - https://docs.wandb.ai/guides/track/log
 
   # wandb.log({'final_test_accuracy': test_acc, 'final_val_accuracy': val_acc, 'final_loss': loss, 'best_epoch': best_epoch}) #For values that are logged with wandb.log, we automatically set summary to the last value added
@@ -462,25 +473,42 @@ if __name__ == '__main__':
   parser.add_argument('--pos_dist_quantile', type=float, default=0.001, help="percentage of N**2 edges to keep")
 
   parser.add_argument('--wandb', action='store_true')
+  parser.add_argument('--wandb_sweep', action='store_true')
+  parser.add_argument('--wandb_watch_grad', action='store_true', help='allows gradient tracking in train function')
+  parser.add_argument('--wandb_track_grad_flow', action='store_true')
+
   parser.add_argument('--wandb_entity', default="graph_neural_diffusion", type=str,
                       help="jrowbottomwnb, ger__man")  # not used as default set in web browser settings
-  parser.add_argument('--wandb_project', default="my-test-project", type=str)
-  parser.add_argument('--wandb_run_name', default="my-test-run", type=str)
+  parser.add_argument('--wandb_project', default="greed", type=str)
+  parser.add_argument('--wandb_group', default="testing", type=str, help="testing,tuning,eval")
+  parser.add_argument('--wandb_run_name', default=None, type=str)
   parser.add_argument('-wandb_offline', dest='use_wandb_offline',
                       action='store_true')  # https://docs.wandb.ai/guides/technical-faq
   parser.add_argument('--wandb_log_freq', type=int, default=1, help='Frequency to log metrics.')
   parser.add_argument('--wandb_output_dir', default='./wandb_output',
                       help='folder to output results, images and model checkpoints')
-  parser.add_argument('--wandb_watch_grad', action='store_true', help='allows gradient tracking in train function')
   parser.add_argument('--wand_epoch_list', nargs='+',  default=[0, 1, 2, 4, 8, 16], help='list of epochs to log gradient flow')
 
-  args = parser.parse_args()
+  #wandb setup sweep args
+  parser.add_argument('--tau_reg', type=int, default=2)
+  parser.add_argument('--test_mu_0', type=str, default='True') #action='store_true')
+  parser.add_argument('--test_no_chanel_mix', default='True' ) #action='store_true')
+  parser.add_argument('--test_omit_metric', default='True' ) #action='store_true')
+  parser.add_argument('--test_tau_remove_tanh', default='True' ) #action='store_true')
+  parser.add_argument('--test_tau_symmetric', default='True' ) #action='store_true')
 
+
+  args = parser.parse_args()
   opt = vars(args)
 
-  opt['wandb'] = True
-  opt['wandb_project'] = "greed"
-  opt['wandb_group'] = "testing"
-  opt['wandb_run_name'] = "wandb_log_gradflow_test2"  ### + str(time.time())
+  #args for running locally - specified in YAML for tunes
+  # opt['wandb'] = True
+  # opt['wandb_sweep'] = True
+  # opt['wandb_track_grad_flow'] = False # don't plot grad flows when tuning
+  # opt['function'] = 'greed'
+  # opt['wandb_project'] = "greed"
+  # opt['wandb_group'] = "tuning"
+  # DT = datetime.datetime.now()
+  # opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb_log_gradflow_test3"  ### + str(time.time())
 
   main(opt)

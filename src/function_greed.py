@@ -65,7 +65,7 @@ class ODEFuncGreed(ODEFunc):
       self.register_parameter('bias', None)
 
     # todo chosen to balance x0 and f in the forward function. May not be optimal
-    if self.opt['test_mu=0']:
+    if self.opt['test_mu_0']:
       self.mu = 0
     else:
       self.mu = nn.Parameter(torch.tensor(1.))
@@ -120,11 +120,11 @@ class ODEFuncGreed(ODEFunc):
     src_x, dst_x = self.get_src_dst(x)
 
     if self.opt['test_tau_remove_tanh'] and not self.opt['test_tau_symmetric']:
-      tau = (src_x @ self.K + dst_x @ self.Q) / self.opt['test_tau_remove_tanh_reg']
-      tau_transpose = (dst_x @ self.K + src_x @ self.Q) / self.opt['test_tau_remove_tanh_reg']
+      tau = (src_x @ self.K + dst_x @ self.Q) / self.opt['tau_reg']
+      tau_transpose = (dst_x @ self.K + src_x @ self.Q) / self.opt['tau_reg']
     elif self.opt['test_tau_remove_tanh'] and self.opt['test_tau_symmetric']:
-      tau = (src_x + dst_x) @ self.K / self.opt['test_tau_remove_tanh_reg']
-      tau_transpose = (dst_x + src_x) @ self.K / self.opt['test_tau_remove_tanh_reg']
+      tau = (src_x + dst_x) @ self.K / self.opt['tau_reg']
+      tau_transpose = (dst_x + src_x) @ self.K / self.opt['tau_reg']
     else:
       tau = torch.tanh(src_x @ self.K + dst_x @ self.Q)
       tau_transpose = torch.tanh(dst_x @ self.K + src_x @ self.Q)
@@ -296,7 +296,7 @@ class ODEFuncGreed(ODEFunc):
     # todo consider adding a term f = f + self.alpha * f
     # todo switch this
 
-    if self.opt['test_omit_metric'] and self.opt['test_mu=0']: #energy to use when Gamma is -adjacency and not the pullback and mu == 0
+    if self.opt['test_omit_metric'] and self.opt['test_mu_0']: #energy to use when Gamma is -adjacency and not the pullback and mu == 0
       energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2)
     elif self.opt['test_omit_metric']: #energy to use when Gamma is -adjacency and not the pullback and mu != 0
       energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2) + self.mu * torch.sum((x - self.x0) ** 2)
@@ -305,11 +305,12 @@ class ODEFuncGreed(ODEFunc):
     # energy = 0.5 * torch.sum(metric) + self.mu * torch.sum((x - self.x0) ** 2)
 
     # print(f"energy = {energy} at time {t} and mu={self.mu}")
-    print(f"energy change = {energy - self.energy:.4f}, energy {energy:.4f} at time {t},   SS's  f: {torch.sum(f**2):.4f},  L: {torch.sum(L**2):.4f}, R1: {torch.sum(R1**2):.4f}, R2: {torch.sum(R2**2):.4f}, mu={self.mu}")#, eta {eta.data}")
+    # print(f"energy change = {energy - self.energy:.4f}, energy {energy:.4f} at time {t},   SS's  f: {torch.sum(f**2):.4f},  L: {torch.sum(L**2):.4f}, R1: {torch.sum(R1**2):.4f}, R2: {torch.sum(R2**2):.4f}, mu={self.mu}")#, eta {eta.data}")
     if self.epoch in self.opt['wand_epoch_list'] and self.training:
-      wandb.log({f"e{self.epoch}_energy_change": energy - self.energy, f"e{self.epoch}_energy": energy,
-                 f"e{self.epoch}_f": f ** 2, f"e{self.epoch}_L": torch.sum(L ** 2),
-                 f"e{self.epoch}_R1": torch.sum(R1 ** 2), f"e{self.epoch}_R2": torch.sum(R2 ** 2), f"e{self.epoch}_mu": self.mu})#, step=self.wandb_step)
+      wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
+                 f"gf_e{self.epoch}_f": f ** 2, f"gf_e{self.epoch}_L": torch.sum(L ** 2),
+                 f"gf_e{self.epoch}_R1": torch.sum(R1 ** 2), f"gf_e{self.epoch}_R2": torch.sum(R2 ** 2), f"gf_e{self.epoch}_mu": self.mu,
+                 "grad_flow_step": self.wandb_step}) #, step=self.wandb_step)
       # todo Customize axes - https://docs.wandb.ai/guides/track/log
       self.wandb_step += 1
 

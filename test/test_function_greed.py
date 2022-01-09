@@ -282,13 +282,15 @@ class GreedTests(unittest.TestCase):
     #added to test_params.py
     self.opt['test_no_chanel_mix'] = False
     self.opt['test_omit_metric'] = False
-    self.opt['test_mu=0'] = False
+    self.opt['test_mu_0'] = False
     self.opt['test_tau_remove_tanh'] = True
-    self.opt['test_tau_remove_tanh_reg'] = 5 #opt['attention_dim']
+    # self.opt['test_tau_remove_tanh_reg'] = 5 #opt['attention_dim']
+    self.opt['tau_reg'] = 5 #opt['attention_dim']
 
     if self.opt['test_tau_remove_tanh']:
       self.opt['test_tau_symmetric'] = False
-      self.opt['test_tau_remove_tanh_reg'] = 5 #opt['attention_dim']
+      # self.opt['test_tau_remove_tanh_reg'] = 5 #opt['attention_dim']
+      self.opt['tau_reg'] = 5 #opt['attention_dim']
     else:
       self.opt['test_tau_symmetric'] = False
 
