@@ -1,0 +1,30 @@
+program: run_GNN.py
+method: grid
+parameters:
+  test_no_chanel_mix:
+    values: [True, False]
+  test_omit_metric:
+    values: [True, False]
+  test_mu_0:
+    values: [True, False]
+  test_tau_remove_tanh:
+    values: [True, False]
+  test_tau_symmetric:
+    values: [True, False]  
+  time:
+    values: [2, 5, 10]
+  step_size:
+    values: [0.1, 0.01]
+  hidden_dim:
+    values: [16, 32, 64]
+  tau_reg:
+    values: [2, 4, 8, 16, 32]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --function greed
+  - --wandb_group testing_tune_AWS
