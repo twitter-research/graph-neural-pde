@@ -706,6 +706,15 @@ if __name__ == "__main__":
     parser.add_argument('--att_samp_pct', type=float, default=1,
                         help="float in [0,1). The percentage of edges to retain based on attention scores")
 
+    # wandb logging and tuning
+    parser.add_argument('--wandb', action='store_true')
+    parser.add_argument('--wandb_entity', default="jrowbottomwnb", type=str, help="jrowbottomwnb, ger__man") #not used as default set in web browser settings
+    parser.add_argument('--wandb_project', default="my-test-project", type=str)
+    parser.add_argument('--wandb_run_name', default="my-test-run", type=str)
+    parser.add_argument('-wandb_offline', dest='use_wandb_offline', action='store_true') #https://docs.wandb.ai/guides/technical-faq
+    parser.add_argument('--wandb_log_freq', type=int, default=1, help='Frequency to log metrics.')
+    parser.add_argument('--wandb_output_dir', default='./wandb_output', help='folder to output results, images and model checkpoints')
+
     args = parser.parse_args()
 
     opt = vars(args)

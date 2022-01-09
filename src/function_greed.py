@@ -12,7 +12,9 @@ from torch.nn import Parameter
 
 from utils import MaxNFEException
 from base_classes import ODEFunc
+import wandb
 
+#todo remove this from the module level
 # REMOVE SOURCES OF RANDOMNESS
 import numpy as np
 import random
@@ -67,10 +69,11 @@ class ODEFuncGreed(ODEFunc):
       self.mu = 0
     else:
       self.mu = nn.Parameter(torch.tensor(1.))
-
     self.alpha = nn.Parameter(torch.tensor(1.))
-
     self.energy = 0
+    self.epoch = 0
+    self.wandb_step = 0
+
     self.reset_parameters()
 
   def reset_parameters(self):
@@ -303,6 +306,13 @@ class ODEFuncGreed(ODEFunc):
 
     # print(f"energy = {energy} at time {t} and mu={self.mu}")
     print(f"energy change = {energy - self.energy:.4f}, energy {energy:.4f} at time {t},   SS's  f: {torch.sum(f**2):.4f},  L: {torch.sum(L**2):.4f}, R1: {torch.sum(R1**2):.4f}, R2: {torch.sum(R2**2):.4f}, mu={self.mu}")#, eta {eta.data}")
+    if self.epoch in self.opt['wand_epoch_list'] and self.training:
+      wandb.log({f"e{self.epoch}_energy_change": energy - self.energy, f"e{self.epoch}_energy": energy,
+                 f"e{self.epoch}_f": f ** 2, f"e{self.epoch}_L": torch.sum(L ** 2),
+                 f"e{self.epoch}_R1": torch.sum(R1 ** 2), f"e{self.epoch}_R2": torch.sum(R2 ** 2), f"e{self.epoch}_mu": self.mu})#, step=self.wandb_step)
+      # todo Customize axes - https://docs.wandb.ai/guides/track/log
+      self.wandb_step += 1
+
     self.energy = energy
 
     return f

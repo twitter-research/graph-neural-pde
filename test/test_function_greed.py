@@ -17,7 +17,7 @@ import numpy as np
 from torch_scatter import scatter_add, scatter_mul
 from GNN import GNN
 from run_GNN import train
-
+from greed_params import greed_test_params
 
 class Data:
   def __init__(self, edge_index, x, y=None, train_mask=None):
@@ -54,6 +54,8 @@ class GreedTests(unittest.TestCase):
            'mixed_block': False, 'max_nfe': 1000, 'mix_features': False, 'attention_dim': 2, 'rewiring': None,
            'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None, 'jacobian_norm2': None,
            'total_deriv': None, 'directional_penalty': None, 'beltrami': False}
+
+    opt = greed_test_params(opt)  ###extra params for testing GREED
     self.opt = {**OPT, **opt}
     self.data = Data(self.edge, self.x, self.y, self.train_mask)
     self.dataset = DummyDataset(self.data, 2)
@@ -288,7 +290,7 @@ class GreedTests(unittest.TestCase):
       self.opt['test_tau_symmetric'] = False
       self.opt['test_tau_remove_tanh_reg'] = 5 #opt['attention_dim']
     else:
-      opt['test_tau_symmetric'] = False
+      self.opt['test_tau_symmetric'] = False
 
     gnn = GNN(self.opt, self.dataset, device=self.device)
     n_epochs = 5
