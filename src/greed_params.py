@@ -1,5 +1,7 @@
 
 def greed_test_params(opt):
+    opt['wandb_track_grad_flow'] = False
+    opt['wandb_watch_grad'] = False
     opt['block'] = 'constant'
     opt['step_size'] = 0.1
     opt['time'] = 10
@@ -22,11 +24,11 @@ def greed_test_params(opt):
 
 def greed_run_params(opt):
     #fixed greed params
-    # opt['function'] = 'greed'
+    opt['function'] = 'greed'
     opt['block'] = 'constant'
     opt['method'] = 'euler'
     opt['no_early'] = True
-    opt['epoch'] = 5 #10
+    opt['epoch'] = 50 #10
     opt['self_loop_weight'] = 0
     return opt
 

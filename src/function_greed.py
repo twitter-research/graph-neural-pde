@@ -16,15 +16,14 @@ import wandb
 
 #todo remove this from the module level
 # REMOVE SOURCES OF RANDOMNESS
-import numpy as np
-import random
-
-torch.manual_seed(0)
-random.seed(0)
-np.random.seed(0)
-
-
-# torch.use_deterministic_algorithms(True)
+# import numpy as np
+# import random
+#
+# torch.manual_seed(0)
+# random.seed(0)
+# np.random.seed(0)
+#
+# # torch.use_deterministic_algorithms(True)
 
 class ODEFuncGreed(ODEFunc):
 
@@ -125,9 +124,12 @@ class ODEFuncGreed(ODEFunc):
     elif self.opt['test_tau_remove_tanh'] and self.opt['test_tau_symmetric']:
       tau = (src_x + dst_x) @ self.K / self.opt['tau_reg']
       tau_transpose = (dst_x + src_x) @ self.K / self.opt['tau_reg']
+    elif not self.opt['test_tau_remove_tanh'] and self.opt['test_tau_symmetric']:
+      tau = torch.tanh((src_x + dst_x) @ self.K / self.opt['tau_reg'])
+      tau_transpose = torch.tanh((dst_x + src_x) @ self.K / self.opt['tau_reg'])
     else:
-      tau = torch.tanh(src_x @ self.K + dst_x @ self.Q)
-      tau_transpose = torch.tanh(dst_x @ self.K + src_x @ self.Q)
+      tau = torch.tanh(src_x @ self.K + dst_x @ self.Q) / self.opt['tau_reg']
+      tau_transpose = torch.tanh(dst_x @ self.K + src_x @ self.Q) / self.opt['tau_reg']
 
     return tau, tau_transpose
 
@@ -306,7 +308,7 @@ class ODEFuncGreed(ODEFunc):
 
     # print(f"energy = {energy} at time {t} and mu={self.mu}")
     # print(f"energy change = {energy - self.energy:.4f}, energy {energy:.4f} at time {t},   SS's  f: {torch.sum(f**2):.4f},  L: {torch.sum(L**2):.4f}, R1: {torch.sum(R1**2):.4f}, R2: {torch.sum(R2**2):.4f}, mu={self.mu}")#, eta {eta.data}")
-    if self.epoch in self.opt['wand_epoch_list'] and self.training:
+    if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wand_epoch_list'] and self.training:
       wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
                  f"gf_e{self.epoch}_f": f ** 2, f"gf_e{self.epoch}_L": torch.sum(L ** 2),
                  f"gf_e{self.epoch}_R1": torch.sum(R1 ** 2), f"gf_e{self.epoch}_R2": torch.sum(R2 ** 2), f"gf_e{self.epoch}_mu": self.mu,

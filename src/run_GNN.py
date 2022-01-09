@@ -213,18 +213,11 @@ def merge_cmd_args(cmd_opt, opt):
 
 
 def main(cmd_opt):
-  best_opt = best_params_dict[cmd_opt['dataset']]
-  opt = {**cmd_opt, **best_opt}
+  # best_opt = best_params_dict[cmd_opt['dataset']]
+  # opt = {**cmd_opt, **best_opt}
+  # merge_cmd_args(cmd_opt, opt)
 
-  merge_cmd_args(cmd_opt, opt)
-
-  if opt['function'] == 'greed':
-    opt = tf_ablation_args(opt)
-    opt = greed_run_params(opt) ###extra params for  GREED
-    if not opt['wandb_sweep']:
-      opt = greed_hyper_params(opt)
-      opt = greed_ablation_params(opt)
-
+  opt = cmd_opt
   if opt['wandb']:
     if opt['use_wandb_offline']:
       os.environ["WANDB_MODE"] = "offline"
@@ -465,15 +458,16 @@ if __name__ == '__main__':
                       help="attention,pos_distance, z_distance, pos_distance_QK, z_distance_QK")
   parser.add_argument('--symmetric_attention', action='store_true',
                       help='maks the attention symmetric for rewring in QK space')
-
-  # wandb logging and tuning
   parser.add_argument('--fa_layer_edge_sampling_rmv', type=float, default=0.8, help="percentage of edges to remove")
   parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")
   parser.add_argument('--pos_enc_csv', action='store_true', help="Generate pos encoding as a sparse CSV")
   parser.add_argument('--pos_dist_quantile', type=float, default=0.001, help="percentage of N**2 edges to keep")
 
-  parser.add_argument('--wandb', action='store_true')
-  parser.add_argument('--wandb_sweep', action='store_true')
+  # wandb logging and tuning
+  parser.add_argument('--wandb', action='store_true', help="flag if logging to wandb")
+  parser.add_argument('-wandb_offline', dest='use_wandb_offline', action='store_true')  # https://docs.wandb.ai/guides/technical-faq
+
+  parser.add_argument('--wandb_sweep', action='store_true', help="flag if sweeping") #if not it picks up params in greed_params
   parser.add_argument('--wandb_watch_grad', action='store_true', help='allows gradient tracking in train function')
   parser.add_argument('--wandb_track_grad_flow', action='store_true')
 
@@ -482,33 +476,40 @@ if __name__ == '__main__':
   parser.add_argument('--wandb_project', default="greed", type=str)
   parser.add_argument('--wandb_group', default="testing", type=str, help="testing,tuning,eval")
   parser.add_argument('--wandb_run_name', default=None, type=str)
-  parser.add_argument('-wandb_offline', dest='use_wandb_offline',
-                      action='store_true')  # https://docs.wandb.ai/guides/technical-faq
-  parser.add_argument('--wandb_log_freq', type=int, default=1, help='Frequency to log metrics.')
   parser.add_argument('--wandb_output_dir', default='./wandb_output',
                       help='folder to output results, images and model checkpoints')
+  parser.add_argument('--wandb_log_freq', type=int, default=1, help='Frequency to log metrics.')
   parser.add_argument('--wand_epoch_list', nargs='+',  default=[0, 1, 2, 4, 8, 16], help='list of epochs to log gradient flow')
 
   #wandb setup sweep args
   parser.add_argument('--tau_reg', type=int, default=2)
   parser.add_argument('--test_mu_0', type=str, default='True') #action='store_true')
-  parser.add_argument('--test_no_chanel_mix', default='True' ) #action='store_true')
-  parser.add_argument('--test_omit_metric', default='True' ) #action='store_true')
-  parser.add_argument('--test_tau_remove_tanh', default='True' ) #action='store_true')
-  parser.add_argument('--test_tau_symmetric', default='True' ) #action='store_true')
-
+  parser.add_argument('--test_no_chanel_mix', type=str, default='True') #action='store_true')
+  parser.add_argument('--test_omit_metric', type=str, default='True') #action='store_true')
+  parser.add_argument('--test_tau_remove_tanh', type=str, default='True') #action='store_true')
+  parser.add_argument('--test_tau_symmetric', type=str, default='True') #action='store_true')
 
   args = parser.parse_args()
   opt = vars(args)
 
-  #args for running locally - specified in YAML for tunes
-  # opt['wandb'] = True
-  # opt['wandb_sweep'] = True
-  # opt['wandb_track_grad_flow'] = False # don't plot grad flows when tuning
-  # opt['function'] = 'greed'
-  # opt['wandb_project'] = "greed"
-  # opt['wandb_group'] = "tuning"
-  # DT = datetime.datetime.now()
-  # opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb_log_gradflow_test3"  ### + str(time.time())
+  opt = greed_run_params(opt)  ###basic params for GREED
+  if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these
+    # args for running locally - specified in YAML for tunes
+    opt['wandb'] = True
+    opt['wandb_track_grad_flow'] = False # don't plot grad flows when tuning
+    opt['function'] = 'greed'
+    opt['wandb_project'] = "greed"
+    opt['wandb_group'] = "testing" #"tuning" eval
+    DT = datetime.datetime.now()
+    opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb_remove_best_params"#"wandb_log_gradflow_test3"
+    #hyper-params
+    opt = greed_hyper_params(opt)
+    opt = greed_ablation_params(opt)
+
+  opt = tf_ablation_args(opt)
 
   main(opt)
+
+#terminal commands for sweeps
+#wandb sweep ../wandb_sweep_configs/greed_sweep.yaml
+#./run_sweeps.sh XXX
