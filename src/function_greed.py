@@ -200,8 +200,9 @@ class ODEFuncGreed(ODEFunc):
     # eta is the determinant of the ego graph. This should slow down diffusion where the grad is large
     row, col = self.edge_index
     # todo check if there's a function that does all of this in one go that's optimised for autograd
-    log_eta = self.deg_inv * scatter_add(torch.log(metric), row)
+    log_eta = self.deg_inv * scatter_add(torch.log(metric).to(self.edge_index.device), row)
     eta = torch.exp(log_eta)
+
     src_eta, dst_eta = self.get_src_dst(eta)
     gamma = -torch.div(src_eta + dst_eta, 2 * metric)
     with torch.no_grad():
