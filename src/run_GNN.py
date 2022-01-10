@@ -522,5 +522,5 @@ if __name__ == '__main__':
   main(opt)
 
 #terminal commands for sweeps
-#wandb sweep ../wandb_sweep_configs/greed_sweep.yaml
+#wandb sweep ../wandb_sweep_configs/greed_sweep_grid.yaml
 #./run_sweeps.sh XXX

@@ -1,5 +1,5 @@
 program: run_GNN.py
-method: grid
+method: random
 parameters:
   test_no_chanel_mix:
     values: [True, False]
