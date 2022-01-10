@@ -201,7 +201,7 @@ class ODEFuncGreed(ODEFunc):
     # eta is the determinant of the ego graph. This should slow down diffusion where the grad is large
     row, col = self.edge_index
     # todo check if there's a function that does all of this in one go that's optimised for autograd
-    log_eta = self.deg_inv * scatter_add(torch.log(metric).to(self.edge_index.device), row)
+    log_eta = self.deg_inv * scatter_add(torch.log(metric).to(self.edge_index.device), row) #fixed pusing to device
     eta = torch.exp(log_eta)
 
     src_eta, dst_eta = self.get_src_dst(eta)
@@ -315,7 +315,7 @@ class ODEFuncGreed(ODEFunc):
 
     gamma, eta = self.get_gamma(metric)
     if self.opt['test_omit_metric']:
-      gamma = -torch.ones(gamma.shape) #setting metric equal to adjacency
+      gamma = -torch.ones(gamma.shape, device=x.device) #setting metric equal to adjacency
 
     L, R1, R2 = self.get_dynamics(x, gamma, tau, tau_transpose, Ws)
     # L, R1, R2 = self.clipper([L, R1, R2])
