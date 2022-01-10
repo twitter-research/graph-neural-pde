@@ -498,6 +498,9 @@ if __name__ == '__main__':
   opt = vars(args)
 
   opt['use_best_params'] = True
+  if opt['wandb_sweep']:
+    opt['function'] = 'greed'
+
   if opt['function'] == 'greed':
     opt['use_best_params'] = False
     opt = greed_run_params(opt)  ###basic params for GREED
