@@ -34,10 +34,10 @@ def greed_run_params(opt):
 
 def greed_hyper_params(opt):
     #tuning params
-    opt['time'] = 5 #10
-    opt['hidden_dim'] = 32 # 50 #60 #64 comment Karate needs a very high dimension to be able to learn
+    # opt['time'] = 5 #10
+    # opt['hidden_dim'] = 32 # 50 #60 #64 comment Karate needs a very high dimension to be able to learn
     opt['step_size'] = 0.1
-    opt['tau_reg'] = 5
+    # opt['tau_reg'] = 5
     return opt
 
 def greed_ablation_params(opt):

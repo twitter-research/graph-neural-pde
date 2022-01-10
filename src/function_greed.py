@@ -74,7 +74,7 @@ class ODEFuncGreed(ODEFunc):
     self.deg_inv = self.deg_inv_sqrt * self.deg_inv_sqrt
 
     if opt['test_no_chanel_mix']: #<- fix W s.t. W_s == I
-      self.W = torch.cat([torch.eye(in_features, device=device), torch.zeros(in_features, opt['attention_dim'] - in_features, device=device)], dim=1) #xxxxxxx
+      self.W = torch.cat([torch.eye(in_features, device=device), torch.zeros(in_features, max(opt['attention_dim'] - in_features, 0), device=device)], dim=1) #xxxxxxx
     else:
       self.W = Parameter(torch.Tensor(in_features, opt['attention_dim']))
 

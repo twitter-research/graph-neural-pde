@@ -498,21 +498,19 @@ if __name__ == '__main__':
   opt = vars(args)
 
   opt['use_best_params'] = True
-  if opt['wandb_sweep']:
-    opt['function'] = 'greed'
 
   if opt['function'] == 'greed':
-    opt['use_best_params'] = False
+    # opt['use_best_params'] = False
     opt = greed_run_params(opt)  ###basic params for GREED
     if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these
       # args for running locally - specified in YAML for tunes
       opt['wandb'] = True
       opt['wandb_track_grad_flow'] = True # don't plot grad flows when tuning
-      opt['function'] = 'greed'
+      # opt['function'] = 'greed'
       opt['wandb_project'] = "greed"
       opt['wandb_group'] = "testing" #"tuning" eval
       DT = datetime.datetime.now()
-      opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb_remove_best_params"#"wandb_log_gradflow_test3"
+      opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb_best_BLEND_params"#"wandb_log_gradflow_test3"
       #hyper-params
       opt = greed_hyper_params(opt)
       opt = greed_ablation_params(opt)

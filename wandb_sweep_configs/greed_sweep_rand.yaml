@@ -28,5 +28,7 @@ command:
   - ${args}
   - --wandb
   - --wandb_sweep
+  - --function
+  - greed
 entity: graph_neural_diffusion
-project: greed_tuning
+project: greed_tuning_1
