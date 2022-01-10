@@ -507,7 +507,7 @@ if __name__ == '__main__':
     if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these
       # args for running locally - specified in YAML for tunes
       opt['wandb'] = True
-      opt['wandb_track_grad_flow'] = False # don't plot grad flows when tuning
+      opt['wandb_track_grad_flow'] = True # don't plot grad flows when tuning
       opt['function'] = 'greed'
       opt['wandb_project'] = "greed"
       opt['wandb_group'] = "testing" #"tuning" eval
