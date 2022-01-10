@@ -64,7 +64,7 @@ class ODEFuncGreed(ODEFunc):
       self.edge_index, self.edge_weight = data.edge_index, data.edge_attr
 
     self.n_nodes = data.x.shape[0]
-    self.self_loops = self.get_self_loops()
+    self.self_loops = self.get_self_loops().to(device) #sending this to device because at initi, data is not yet sent to device
 
     self.K = Parameter(torch.Tensor(out_features, 1))
     if not self.opt['test_tau_symmetric']:
@@ -212,7 +212,7 @@ class ODEFuncGreed(ODEFunc):
     return gamma, eta
 
   def get_self_loops(self):
-    loop_index = torch.arange(0, self.n_nodes, dtype=self.edge_index.dtype, device=self.edge_index.device)  #xxxxxxxxxxxxxxxxxxxxx
+    loop_index = torch.arange(0, self.n_nodes, dtype=self.edge_index.dtype) #, device=self.edge_index.device)  #xxxxxxxxxxxxxxxxxxxxx
     loop_index = loop_index.unsqueeze(0).repeat(2, 1)
     return loop_index
 
@@ -264,12 +264,6 @@ class ODEFuncGreed(ODEFunc):
     tau_transpose = tau_transpose.flatten()
     tau2 = tau * tau
     tau3 = tau * tau2
-
-    print(f"f.device {f.device}")
-    print(f"gamma.device {gamma.device}")
-    print(f"tau.device {tau.device}")
-    print(f"tau_transpose.device {tau_transpose.device}")
-    print(f"Ws.device {Ws.device}")
 
     if self.opt['test_tau_remove_tanh']:
       T0 = gamma * tau2
