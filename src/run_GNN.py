@@ -213,11 +213,14 @@ def merge_cmd_args(cmd_opt, opt):
 
 
 def main(cmd_opt):
-  best_opt = best_params_dict[cmd_opt['dataset']]
-  opt = {**cmd_opt, **best_opt}
-  merge_cmd_args(cmd_opt, opt)
 
-  opt = cmd_opt
+  if cmd_opt['use_best_params']:
+    best_opt = best_params_dict[cmd_opt['dataset']]
+    opt = {**cmd_opt, **best_opt}
+    merge_cmd_args(cmd_opt, opt)
+  else:
+    opt = cmd_opt
+
   if opt['wandb']:
     if opt['use_wandb_offline']:
       os.environ["WANDB_MODE"] = "offline"
@@ -302,7 +305,8 @@ def main(cmd_opt):
     print(f"Epoch: {epoch}, Runtime: {time.time() - start_time:.3f}, Loss: {loss:.3f}, "
           f"forward nfe {model.fm.sum}, backward nfe {model.bm.sum}, "
           f"Train: {train_acc:.4f}, Val: {val_acc:.4f}, Test: {test_acc:.4f}, Best time: {best_time:.4f}")
-    model.odeblock.odefunc.epoch += 1
+    if opt['function'] == 'greed':
+      model.odeblock.odefunc.epoch += 1
 
   print(f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
   # https://docs.wandb.ai/guides/track/log
@@ -492,7 +496,9 @@ if __name__ == '__main__':
   args = parser.parse_args()
   opt = vars(args)
 
+  opt['use_best_params'] = True
   if opt['function'] == 'greed':
+    opt['use_best_params'] = False
     opt = greed_run_params(opt)  ###basic params for GREED
     if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these
       # args for running locally - specified in YAML for tunes
