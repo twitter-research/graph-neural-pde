@@ -31,4 +31,4 @@ command:
   - --function
   - greed
 entity: graph_neural_diffusion
-project: greed_tuning_1
+project: greed_tuning_2
