@@ -160,7 +160,7 @@ class ODEFuncGreed(ODEFunc):
     src_deg_inv_sqrt, dst_deg_inv_sqrt = self.get_src_dst(self.deg_inv_sqrt)
     src_term = (tau * src_x)# * src_deg_inv_sqrt.unsqueeze(dim=-1))
     # src_term.masked_fill_(src_term == float('inf'), 0.)
-    dst_term = (tau_transpose) * dst_x)# * dst_deg_inv_sqrt.unsqueeze(dim=-1))
+    dst_term = (tau_transpose * dst_x)# * dst_deg_inv_sqrt.unsqueeze(dim=-1))
     # dst_term.masked_fill_(dst_term == float('inf'), 0.)
     # W is [d,p]
     energy_gradient = (src_term - dst_term) @ self.W
