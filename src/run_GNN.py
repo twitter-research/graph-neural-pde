@@ -213,9 +213,9 @@ def merge_cmd_args(cmd_opt, opt):
 
 
 def main(cmd_opt):
-  # best_opt = best_params_dict[cmd_opt['dataset']]
-  # opt = {**cmd_opt, **best_opt}
-  # merge_cmd_args(cmd_opt, opt)
+  best_opt = best_params_dict[cmd_opt['dataset']]
+  opt = {**cmd_opt, **best_opt}
+  merge_cmd_args(cmd_opt, opt)
 
   opt = cmd_opt
   if opt['wandb']:
@@ -492,21 +492,22 @@ if __name__ == '__main__':
   args = parser.parse_args()
   opt = vars(args)
 
-  opt = greed_run_params(opt)  ###basic params for GREED
-  if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these
-    # args for running locally - specified in YAML for tunes
-    opt['wandb'] = True
-    opt['wandb_track_grad_flow'] = False # don't plot grad flows when tuning
-    opt['function'] = 'greed'
-    opt['wandb_project'] = "greed"
-    opt['wandb_group'] = "testing" #"tuning" eval
-    DT = datetime.datetime.now()
-    opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb_remove_best_params"#"wandb_log_gradflow_test3"
-    #hyper-params
-    opt = greed_hyper_params(opt)
-    opt = greed_ablation_params(opt)
+  if opt['function'] == 'greed':
+    opt = greed_run_params(opt)  ###basic params for GREED
+    if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these
+      # args for running locally - specified in YAML for tunes
+      opt['wandb'] = True
+      opt['wandb_track_grad_flow'] = False # don't plot grad flows when tuning
+      opt['function'] = 'greed'
+      opt['wandb_project'] = "greed"
+      opt['wandb_group'] = "testing" #"tuning" eval
+      DT = datetime.datetime.now()
+      opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb_remove_best_params"#"wandb_log_gradflow_test3"
+      #hyper-params
+      opt = greed_hyper_params(opt)
+      opt = greed_ablation_params(opt)
 
-  opt = tf_ablation_args(opt)
+    opt = tf_ablation_args(opt)
 
   main(opt)
 
