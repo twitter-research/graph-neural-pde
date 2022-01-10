@@ -265,6 +265,12 @@ class ODEFuncGreed(ODEFunc):
     tau2 = tau * tau
     tau3 = tau * tau2
 
+    print(f"f.device {f.device}")
+    print(f"gamma.device {gamma.device}")
+    print(f"tau.device {tau.device}")
+    print(f"tau_transpose.device {tau_transpose.device}")
+    print(f"Ws.device {Ws.device}")
+
     if self.opt['test_tau_remove_tanh']:
       T0 = gamma * tau2
       T1 = gamma * tau * tau_transpose
