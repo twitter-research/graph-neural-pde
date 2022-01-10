@@ -117,6 +117,10 @@ class ODEFuncGreed(ODEFunc):
 
     deg_inv_sqrt = deg.pow_(-0.5)
     deg_inv_sqrt = deg_inv_sqrt.masked_fill_(deg_inv_sqrt == float('inf'), 0.)
+    print(f"data.edge_index.device {data.edge_index.device}")
+    print(f"deg.device {deg.device}")
+    print(f"deg_inv_sqrt {deg_inv_sqrt}")
+
     return deg_inv_sqrt
 
   def symmetrically_normalise(self, x, edge):
