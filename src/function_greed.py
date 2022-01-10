@@ -7,6 +7,7 @@ from torch import nn
 import torch_sparse
 from torch_scatter import scatter_add, scatter_mul
 from torch_geometric.utils.loop import add_remaining_self_loops
+from torch_geometric.utils import degree
 from torch_geometric.nn.inits import glorot, zeros
 from torch.nn import Parameter
 
@@ -24,6 +25,30 @@ import wandb
 # np.random.seed(0)
 #
 # # torch.use_deterministic_algorithms(True)
+
+from typing import Optional
+import torch
+from torch_geometric.utils.degree import maybe_num_nodes
+
+# def degree(index, num_nodes: Optional[int] = None,
+#            dtype: Optional[int] = None):
+#   r"""Computes the (unweighted) degree of a given one-dimensional index
+#   tensor.
+#
+#   Args:
+#       index (LongTensor): Index tensor.
+#       num_nodes (int, optional): The number of nodes, *i.e.*
+#           :obj:`max_val + 1` of :attr:`index`. (default: :obj:`None`)
+#       dtype (:obj:`torch.dtype`, optional): The desired data type of the
+#           returned tensor.
+#
+#   :rtype: :class:`Tensor`
+#   """
+#   N = maybe_num_nodes(index, num_nodes)
+#   out = torch.zeros((N,N), dtype=dtype, device=index.device)
+#   one = torch.ones((index.size(0),), dtype=out.dtype, device=out.device)
+#   return out.scatter_add_(0, index, one)
+
 
 class ODEFuncGreed(ODEFunc):
 
@@ -83,10 +108,13 @@ class ODEFuncGreed(ODEFunc):
     zeros(self.bias)
 
   def get_deg_inv_sqrt(self, data):
-    edge_index = data.edge_index
-    edge_weight = torch.ones((edge_index.size(1),), dtype=data.x.dtype, device=edge_index.device)
-    row, col = edge_index[0], edge_index[1]
-    deg = scatter_add(edge_weight, row, dim=0, dim_size=self.n_nodes)
+    # edge_index = data.edge_index
+    # edge_weight = torch.ones((edge_index.size(1),), dtype=data.x.dtype, device=edge_index.device)
+    # row, col = edge_index[0], edge_index[1]
+    # deg = scatter_add(edge_weight, row, dim=0, dim_size=self.n_nodes)
+    index_tensor = data.edge_index.view(-1)
+    deg = degree(index_tensor, self.n_nodes)
+
     deg_inv_sqrt = deg.pow_(-0.5)
     deg_inv_sqrt = deg_inv_sqrt.masked_fill_(deg_inv_sqrt == float('inf'), 0.)
     return deg_inv_sqrt
@@ -158,9 +186,9 @@ class ODEFuncGreed(ODEFunc):
   def get_energy_gradient(self, x, tau, tau_transpose):
     src_x, dst_x = self.get_src_dst(x)
     src_deg_inv_sqrt, dst_deg_inv_sqrt = self.get_src_dst(self.deg_inv_sqrt)
-    src_term = (tau * src_x * src_deg_inv_sqrt.unsqueeze(dim=-1)) #xxxxxxxxxxxxxxxxxxxxxxxx
+    src_term = (tau * src_x)# * src_deg_inv_sqrt.unsqueeze(dim=-1)) #xxxxxxxxxxxxxxxxxxxxxxxx
     # src_term.masked_fill_(src_term == float('inf'), 0.)
-    dst_term = (tau_transpose * dst_x * dst_deg_inv_sqrt.unsqueeze(dim=-1)) #xxxxxxxxxxxxxxxxxxxxxxxx
+    dst_term = (tau_transpose * dst_x)# * dst_deg_inv_sqrt.unsqueeze(dim=-1)) #xxxxxxxxxxxxxxxxxxxxxxxx
     # dst_term.masked_fill_(dst_term == float('inf'), 0.)
     # W is [d,p]
     energy_gradient = (src_term - dst_term) @ self.W
