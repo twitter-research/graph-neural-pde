@@ -49,7 +49,7 @@ class ODEFuncGreed(ODEFunc):
     self.deg_inv = self.deg_inv_sqrt * self.deg_inv_sqrt
 
     if opt['test_no_chanel_mix']: #<- fix W s.t. W_s == I
-      self.W = torch.cat([torch.eye(in_features), torch.zeros(in_features, opt['attention_dim'] - in_features)], dim=1)
+      self.W = torch.cat([torch.eye(in_features, device=device), torch.zeros(in_features, opt['attention_dim'] - in_features, device=device)], dim=1) #xxxxxxx
     else:
       self.W = Parameter(torch.Tensor(in_features, opt['attention_dim']))
 
@@ -84,7 +84,7 @@ class ODEFuncGreed(ODEFunc):
 
   def get_deg_inv_sqrt(self, data):
     edge_index = data.edge_index
-    edge_weight = torch.ones((edge_index.size(1),), dtype=data.x.dtype)#, device=edge_index.device)
+    edge_weight = torch.ones((edge_index.size(1),), dtype=data.x.dtype, device=edge_index.device)
     row, col = edge_index[0], edge_index[1]
     deg = scatter_add(edge_weight, row, dim=0, dim_size=self.n_nodes)
     deg_inv_sqrt = deg.pow_(-0.5)
@@ -158,9 +158,9 @@ class ODEFuncGreed(ODEFunc):
   def get_energy_gradient(self, x, tau, tau_transpose):
     src_x, dst_x = self.get_src_dst(x)
     src_deg_inv_sqrt, dst_deg_inv_sqrt = self.get_src_dst(self.deg_inv_sqrt)
-    src_term = (tau * src_x)# * src_deg_inv_sqrt.unsqueeze(dim=-1))
+    src_term = (tau * src_x * src_deg_inv_sqrt.unsqueeze(dim=-1)) #xxxxxxxxxxxxxxxxxxxxxxxx
     # src_term.masked_fill_(src_term == float('inf'), 0.)
-    dst_term = (tau_transpose * dst_x)# * dst_deg_inv_sqrt.unsqueeze(dim=-1))
+    dst_term = (tau_transpose * dst_x * dst_deg_inv_sqrt.unsqueeze(dim=-1)) #xxxxxxxxxxxxxxxxxxxxxxxx
     # dst_term.masked_fill_(dst_term == float('inf'), 0.)
     # W is [d,p]
     energy_gradient = (src_term - dst_term) @ self.W
@@ -182,7 +182,7 @@ class ODEFuncGreed(ODEFunc):
     return gamma, eta
 
   def get_self_loops(self):
-    loop_index = torch.arange(0, self.n_nodes, dtype=self.edge_index.dtype)#, device=self.edge_index.device)
+    loop_index = torch.arange(0, self.n_nodes, dtype=self.edge_index.dtype, device=self.edge_index.device)  #xxxxxxxxxxxxxxxxxxxxx
     loop_index = loop_index.unsqueeze(0).repeat(2, 1)
     return loop_index
 
