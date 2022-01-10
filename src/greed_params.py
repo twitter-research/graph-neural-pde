@@ -26,8 +26,8 @@ def greed_run_params(opt):
     #fixed greed params
     opt['function'] = 'greed'
     opt['block'] = 'constant'
-    opt['method'] = 'euler'
-    opt['no_early'] = True
+    # opt['method'] = 'euler'
+    # opt['no_early'] = True
     opt['epoch'] = 50 #10
     opt['self_loop_weight'] = 0
     return opt
@@ -36,7 +36,7 @@ def greed_hyper_params(opt):
     #tuning params
     # opt['time'] = 5 #10
     # opt['hidden_dim'] = 32 # 50 #60 #64 comment Karate needs a very high dimension to be able to learn
-    opt['step_size'] = 0.1
+    # opt['step_size'] = 0.1
     # opt['tau_reg'] = 5
     return opt
 
