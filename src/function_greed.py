@@ -70,7 +70,7 @@ class ODEFuncGreed(ODEFunc):
     if not self.opt['test_tau_symmetric']:
       self.Q = Parameter(torch.Tensor(out_features, 1))
 
-    self.deg_inv_sqrt = self.get_deg_inv_sqrt(data)
+    self.deg_inv_sqrt = self.get_deg_inv_sqrt(data).to(device) #sending this to device because at initi, data is not yet sent to device
     self.deg_inv = self.deg_inv_sqrt * self.deg_inv_sqrt
 
     if opt['test_no_chanel_mix']: #<- fix W s.t. W_s == I
@@ -117,9 +117,6 @@ class ODEFuncGreed(ODEFunc):
 
     deg_inv_sqrt = deg.pow_(-0.5)
     deg_inv_sqrt = deg_inv_sqrt.masked_fill_(deg_inv_sqrt == float('inf'), 0.)
-    print(f"data.edge_index.device {data.edge_index.device}")
-    print(f"deg.device {deg.device}")
-    print(f"deg_inv_sqrt {deg_inv_sqrt}")
 
     return deg_inv_sqrt
 
