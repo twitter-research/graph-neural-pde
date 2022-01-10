@@ -244,6 +244,7 @@ def main(cmd_opt):
 
   opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
 
+
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
   if opt['beltrami']:
     pos_encoding = apply_beltrami(dataset.data, opt).to(device)
