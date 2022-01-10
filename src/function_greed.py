@@ -84,8 +84,7 @@ class ODEFuncGreed(ODEFunc):
 
   def get_deg_inv_sqrt(self, data):
     edge_index = data.edge_index
-    edge_weight = torch.ones((edge_index.size(1),), dtype=data.x.dtype,
-                             device=edge_index.device)
+    edge_weight = torch.ones((edge_index.size(1),), dtype=data.x.dtype)#, device=edge_index.device)
     row, col = edge_index[0], edge_index[1]
     deg = scatter_add(edge_weight, row, dim=0, dim_size=self.n_nodes)
     deg_inv_sqrt = deg.pow_(-0.5)
@@ -183,7 +182,7 @@ class ODEFuncGreed(ODEFunc):
     return gamma, eta
 
   def get_self_loops(self):
-    loop_index = torch.arange(0, self.n_nodes, dtype=self.edge_index.dtype, device=self.edge_index.device)
+    loop_index = torch.arange(0, self.n_nodes, dtype=self.edge_index.dtype)#, device=self.edge_index.device)
     loop_index = loop_index.unsqueeze(0).repeat(2, 1)
     return loop_index
 
