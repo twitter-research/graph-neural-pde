@@ -87,7 +87,8 @@ def t_or_f(tf_str):
         return False
 
 def tf_ablation_args(opt):
-    for arg in ['test_no_chanel_mix','test_omit_metric','test_mu_0','test_tau_remove_tanh','test_tau_symmetric', 'add_source', 'no_early']:
+    for arg in ['test_no_chanel_mix','test_omit_metric','test_mu_0','test_tau_remove_tanh','test_tau_symmetric',
+                'use_mlp', 'add_source', 'no_early']:
         str_tf = opt[arg]
         bool_tf = t_or_f(str)
         opt[arg] = bool_tf

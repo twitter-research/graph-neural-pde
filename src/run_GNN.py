@@ -380,8 +380,8 @@ if __name__ == '__main__':
   parser.add_argument('--ode_blocks', type=int, default=1, help='number of ode blocks to run')
   parser.add_argument("--max_nfe", type=int, default=1000,
                       help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
-  parser.add_argument("--no_early", action="store_true",
-                      help="Whether or not to use early stopping of the ODE integrator when testing.")
+  # parser.add_argument("--no_early", action="store_true",
+  #                     help="Whether or not to use early stopping of the ODE integrator when testing.")
   parser.add_argument('--earlystopxT', type=float, default=3, help='multiplier for T used to evaluate best model')
   parser.add_argument("--max_test_steps", type=int, default=100,
                       help="Maximum number steps for the dopri5Early test integrator. "
@@ -494,13 +494,18 @@ if __name__ == '__main__':
   parser.add_argument('--test_omit_metric', type=str, default='True') #action='store_true')
   parser.add_argument('--test_tau_remove_tanh', type=str, default='True') #action='store_true')
   parser.add_argument('--test_tau_symmetric', type=str, default='True') #action='store_true')
+
   # Temp changing these to be strings so can tune over
   # parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
   #                     help='Add a fully connected layer to the encoder.')
   # parser.add_argument('--add_source', dest='add_source', action='store_true',
   #                     help='If try get rid of alpha param and the beta*x0 source term')
+  # parser.add_argument("--no_early", action="store_true",
+  #                     help="Whether or not to use early stopping of the ODE integrator when testing.")
+
   parser.add_argument('--use_mlp', type=str, default='False') #action='store_true')
   parser.add_argument('--add_source', type=str, default='False') #action='store_true')
+  parser.add_argument('--no_early', type=str, default='False') #action='store_true')
 
   #greed args
   parser.add_argument('--use_best_params', action='store_true', help="flag to take the best BLEND params")
