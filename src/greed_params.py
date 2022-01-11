@@ -50,6 +50,8 @@ def greed_hyper_params(opt):
     opt["input_dropout"] = 0.5 #parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')
     opt["dropout"] = 0.04687 #tune.uniform(0, 0.15)  # output dropout parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
 
+    # opt["use_mlp"] = True### this was ignored in Sweeep as string from YAML
+
     # alpha = 1
     # heads = 8
     # method = 'dopri5'

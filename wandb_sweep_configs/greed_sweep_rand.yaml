@@ -40,8 +40,6 @@ parameters:
     distribution: uniform
     min: 0.0
     max: 0.5
-  use_mlp:
-      values: [True, False]
 command:
   - ${env}
   - python3
