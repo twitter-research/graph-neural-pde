@@ -355,10 +355,10 @@ if __name__ == '__main__':
   parser.add_argument('--beta_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) beta')
   parser.add_argument('--block', type=str, help='constant, mixed, attention, hard_attention')
   parser.add_argument('--function', type=str, help='laplacian, transformer, greed, GAT')
-  parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
-                      help='Add a fully connected layer to the encoder.')
-  parser.add_argument('--add_source', dest='add_source', action='store_true',
-                      help='If try get rid of alpha param and the beta*x0 source term')
+  # parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
+  #                     help='Add a fully connected layer to the encoder.')
+  # parser.add_argument('--add_source', dest='add_source', action='store_true',
+  #                     help='If try get rid of alpha param and the beta*x0 source term')
 
   # ODE args
   parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
@@ -494,6 +494,13 @@ if __name__ == '__main__':
   parser.add_argument('--test_omit_metric', type=str, default='True') #action='store_true')
   parser.add_argument('--test_tau_remove_tanh', type=str, default='True') #action='store_true')
   parser.add_argument('--test_tau_symmetric', type=str, default='True') #action='store_true')
+  # Temp changing these to be strings so can tune over
+  # parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
+  #                     help='Add a fully connected layer to the encoder.')
+  # parser.add_argument('--add_source', dest='add_source', action='store_true',
+  #                     help='If try get rid of alpha param and the beta*x0 source term')
+  parser.add_argument('--use_mlp', type=str, default='False') #action='store_true')
+  parser.add_argument('--add_source', type=str, default='False') #action='store_true')
 
   #greed args
   parser.add_argument('--use_best_params', action='store_true', help="flag to take the best BLEND params")
