@@ -503,7 +503,6 @@ if __name__ == '__main__':
   args = parser.parse_args()
   opt = vars(args)
 
-
   if opt['function'] == 'greed':
     # opt['use_best_params'] = False
     opt = greed_run_params(opt)  ###basic params for GREED

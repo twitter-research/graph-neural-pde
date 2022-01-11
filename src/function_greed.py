@@ -114,7 +114,7 @@ class ODEFuncGreed(ODEFunc):
     # edge_weight = torch.ones((edge_index.size(1),), dtype=data.x.dtype, device=edge_index.device)
     # row, col = edge_index[0], edge_index[1]
     # deg = scatter_add(edge_weight, row, dim=0, dim_size=self.n_nodes)
-    index_tensor = data.edge_index.view(-1)
+    index_tensor = data.edge_index[0]
     deg = degree(index_tensor, self.n_nodes)
 
     deg_inv_sqrt = deg.pow_(-0.5)

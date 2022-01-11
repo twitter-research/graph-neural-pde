@@ -10,16 +10,20 @@ def greed_test_params(opt):
     opt['epoch'] = 5
     opt['function'] = 'greed'
     opt['self_loop_weight'] = 0
-    opt['test_no_chanel_mix'] = True
-    opt['test_omit_metric'] = True
-    opt['test_mu_0'] = True
-    opt['test_tau_remove_tanh'] = True
+
+    #set all flags to False to hit the tests
+    opt['test_no_chanel_mix'] = False
+    opt['test_omit_metric'] = False
+    opt['test_mu_0'] = False
+    opt['test_tau_remove_tanh'] = False
     opt['tau_reg'] = 5  # opt['attention_dim']
     if opt['test_tau_remove_tanh']:
         opt['test_tau_symmetric'] = True
         opt['tau_reg'] = 5
     else:
         opt['test_tau_symmetric'] = False
+    opt['greed_momentum'] = False
+
     return opt
 
 def greed_run_params(opt):
