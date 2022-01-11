@@ -10,7 +10,11 @@ parameters:
   test_tau_remove_tanh:
     values: [True, False]
   test_tau_symmetric:
-    values: [True, False]  
+    values: [True, False]
+  add_source:
+    values: [True, False]
+  no_early:
+    values: [True, False]
   time:
     values: [2, 5, 10]
   step_size:
@@ -50,4 +54,4 @@ command:
   - --function
   - greed
 entity: graph_neural_diffusion
-project: greed_tuning_3
+project: greed_tuning_4

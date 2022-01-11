@@ -31,16 +31,18 @@ def greed_run_params(opt):
     opt['function'] = 'greed'
     opt['block'] = 'constant'
     opt['self_loop_weight'] = 0
-    opt['method'] = 'dopri5' #'euler'
-    opt['step_size'] = 0.1
-    opt['time'] = 18.295 #10
-    opt['epoch'] = 50 #10
-
-    opt['no_early'] = False #True - this works as only pubmed has this key
+    opt['method'] = 'euler' #'dopri5' #'dopri5' #'euler'
+    # TUNING
+    # opt['step_size'] = 0.1 #have changed this to 0.1  dafault in run_GNN.py
+    # opt['time'] = 10 #18.295 #10
+    opt['epoch'] = 30 #10
+    opt['no_early'] = True #False #- this works as only pubmed has this key
 
     #at some point test these  - not handled by merge_cmd_args so won't overwrite
-    opt['greed_momentum'] = False #new param not in best_params
-    opt['add_source'] = False #this feels important because of design ie keep adding back initial condition of the gradiet descent!
+    # opt['greed_momentum'] = False #new param not in best_params
+
+    # TUNING
+    # opt['add_source'] = False #this feels important because of design, ie keep adding back initial condition of the energy grad flow!
     return opt
 
 def greed_hyper_params(opt):
@@ -85,7 +87,7 @@ def t_or_f(tf_str):
         return False
 
 def tf_ablation_args(opt):
-    for arg in ['test_no_chanel_mix','test_omit_metric','test_mu_0','test_tau_remove_tanh','test_tau_symmetric']:
+    for arg in ['test_no_chanel_mix','test_omit_metric','test_mu_0','test_tau_remove_tanh','test_tau_symmetric', 'add_source', 'no_early']:
         str_tf = opt[arg]
         bool_tf = t_or_f(str)
         opt[arg] = bool_tf

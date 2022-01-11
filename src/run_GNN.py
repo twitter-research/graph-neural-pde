@@ -365,7 +365,7 @@ if __name__ == '__main__':
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilist ODE learning')
   parser.add_argument('--method', type=str, help="set the numerical solver: dopri5, euler, rk4, midpoint")
-  parser.add_argument('--step_size', type=float, default=1,
+  parser.add_argument('--step_size', type=float, default=0.1,
                       help='fixed step size when using fixed step solvers e.g. rk4')
   parser.add_argument('--max_iters', type=float, default=100, help='maximum number of integration steps')
   parser.add_argument("--adjoint_method", type=str, default="adaptive_heun",
@@ -505,7 +505,6 @@ if __name__ == '__main__':
   opt = vars(args)
 
   if opt['function'] == 'greed':
-    # opt['use_best_params'] = False
     opt = greed_run_params(opt)  ###basic params for GREED
 
     if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these
