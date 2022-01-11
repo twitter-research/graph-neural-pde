@@ -13,7 +13,7 @@ parameters:
     values: [True, False]
   add_source:
     values: [True, False]
-  no_early:
+  use_mlp:
     values: [True, False]
   time:
     values: [2, 5, 10]
