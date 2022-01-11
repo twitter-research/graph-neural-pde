@@ -21,6 +21,27 @@ parameters:
     values: [8, 16, 32, 64]
   tau_reg:
     values: [1, 2, 4, 8, 16, 32]
+  optimizer:
+    values: [adam, adamax]
+  decay:
+    distribution: q_log_uniform
+    min: 0.001
+    max: 0.1
+    q: 10
+  lr:
+    distribution: q_log_uniform
+    min: 0.01
+    max: 0.2
+  input_dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.5
+  dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.5
+  use_mlp:
+      values: [True, False]
 command:
   - ${env}
   - python3
@@ -31,4 +52,4 @@ command:
   - --function
   - greed
 entity: graph_neural_diffusion
-project: greed_tuning_2
+project: greed_tuning_3

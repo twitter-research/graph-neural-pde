@@ -26,18 +26,34 @@ def greed_run_params(opt):
     #fixed greed params
     opt['function'] = 'greed'
     opt['block'] = 'constant'
-    opt['method'] = 'euler'
-    opt['no_early'] = True
     opt['epoch'] = 50 #10
     opt['self_loop_weight'] = 0
+
+    #at some point test these
+    opt['no_early'] = True
+    opt['method'] = 'euler'
+    opt['greed_momentum'] = False
+    opt['add_source'] = False
     return opt
 
 def greed_hyper_params(opt):
     #tuning params
-    opt['time'] = 5 #10
-    opt['hidden_dim'] = 32 # 50 #60 #64 comment Karate needs a very high dimension to be able to learn
+    opt['time'] = 10
     opt['step_size'] = 0.1
-    opt['tau_reg'] = 5
+    opt['hidden_dim'] = 32 # 50 #60 #64 comment Karate needs a very high dimension to be able to learn
+    opt['attention_dim'] = 32
+    opt['tau_reg'] = 8
+
+    opt["optimizer"] = 'adamax' #tune.choice(["adam", "adamax"]) #parser.add_argument('--optimizer', type=str, default='adam', help='One from sgd, rmsprop, adam, adagrad, adamax.')
+    opt["decay"] = 0.005 #tune.loguniform(0.001, 0.1)  # parser.add_argument('--decay', type=float, default=5e-4, help='Weight decay for optimization')
+    opt["lr"] = 0.02292 #tune.uniform(0.01, 0.2) parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
+    opt["input_dropout"] = 0.5 #parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')
+    opt["dropout"] = 0.04687 #tune.uniform(0, 0.15)  # output dropout parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
+
+    # alpha = 1
+    # heads = 8
+    # method = 'dopri5'
+    # use_mlp = False
     return opt
 
 def greed_ablation_params(opt):

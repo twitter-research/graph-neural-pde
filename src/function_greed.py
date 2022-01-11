@@ -94,9 +94,11 @@ class ODEFuncGreed(ODEFunc):
     else:
       self.mu = nn.Parameter(torch.tensor(1.))
     self.alpha = nn.Parameter(torch.tensor(1.))
+
     self.energy = 0
     self.epoch = 0
     self.wandb_step = 0
+    self.prev_grad = None
 
     self.reset_parameters()
 
@@ -337,7 +339,7 @@ class ODEFuncGreed(ODEFunc):
 
     # print(f"energy = {energy} at time {t} and mu={self.mu}")
     # print(f"energy change = {energy - self.energy:.4f}, energy {energy:.4f} at time {t},   SS's  f: {torch.sum(f**2):.4f},  L: {torch.sum(L**2):.4f}, R1: {torch.sum(R1**2):.4f}, R2: {torch.sum(R2**2):.4f}, mu={self.mu}")#, eta {eta.data}")
-    if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wand_epoch_list'] and self.training:
+    if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.training:
       wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
                  f"gf_e{self.epoch}_f": f ** 2, f"gf_e{self.epoch}_L": torch.sum(L ** 2),
                  f"gf_e{self.epoch}_R1": torch.sum(R1 ** 2), f"gf_e{self.epoch}_R2": torch.sum(R2 ** 2), f"gf_e{self.epoch}_mu": self.mu,
@@ -347,6 +349,9 @@ class ODEFuncGreed(ODEFunc):
 
     self.energy = energy
 
+    if self.opt['greed_momentum'] and self.prev_grad:
+      f = self.opt['momentum_alpha'] * f + (1 - self.opt['momentum_alpha']) * self.prev_grad
+      self.prev_grad = f
     return f
 
   def __repr__(self):

@@ -209,7 +209,8 @@ def merge_cmd_args(cmd_opt, opt):
     opt['step_size'] = cmd_opt['step_size']
   if cmd_opt['time'] != 1:
     opt['time'] = cmd_opt['time']
-
+  if cmd_opt['epoch'] != 100:
+    opt['time'] = cmd_opt['time']
 
 
 def main(cmd_opt):
@@ -238,12 +239,12 @@ def main(cmd_opt):
   else:
     wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'], config=opt)
 
+  wandb.define_metric("epoch_step") #Customize axes - https://docs.wandb.ai/guides/track/log
   if opt['wandb_track_grad_flow']:
     wandb.define_metric("grad_flow_step") #Customize axes - https://docs.wandb.ai/guides/track/log
     wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
 
   opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
-
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
   if opt['beltrami']:
@@ -301,7 +302,7 @@ def main(cmd_opt):
     if ((epoch) % opt['wandb_log_freq']) == 0:
       wandb.log({"loss": loss,
                  # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
-                 "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc}) #, step=epoch) wandb: WARNING Step must only increase in log calls
+                 "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc, "epoch_step": epoch}) #, step=epoch) wandb: WARNING Step must only increase in log calls
 
     print(f"Epoch: {epoch}, Runtime: {time.time() - start_time:.3f}, Loss: {loss:.3f}, "
           f"forward nfe {model.fm.sum}, backward nfe {model.bm.sum}, "
@@ -316,7 +317,6 @@ def main(cmd_opt):
   #todo Customize axes - https://docs.wandb.ai/guides/track/log
 
   # wandb.log({'final_test_accuracy': test_acc, 'final_val_accuracy': val_acc, 'final_loss': loss, 'best_epoch': best_epoch}) #For values that are logged with wandb.log, we automatically set summary to the last value added
-
 
   return train_acc, val_acc, test_acc
 
@@ -484,7 +484,7 @@ if __name__ == '__main__':
   parser.add_argument('--wandb_output_dir', default='./wandb_output',
                       help='folder to output results, images and model checkpoints')
   parser.add_argument('--wandb_log_freq', type=int, default=1, help='Frequency to log metrics.')
-  parser.add_argument('--wand_epoch_list', nargs='+',  default=[0, 1, 2, 4, 8, 16], help='list of epochs to log gradient flow')
+  parser.add_argument('--wandb_epoch_list', nargs='+',  default=[0, 1, 2, 4, 8, 16], help='list of epochs to log gradient flow')
 
   #wandb setup sweep args
   parser.add_argument('--tau_reg', type=int, default=2)
@@ -494,20 +494,25 @@ if __name__ == '__main__':
   parser.add_argument('--test_tau_remove_tanh', type=str, default='True') #action='store_true')
   parser.add_argument('--test_tau_symmetric', type=str, default='True') #action='store_true')
 
+  #greed args
+  parser.add_argument('--use_best_params', action='store_true', help="flag to take the best BLEND params")
+  parser.add_argument('--greed_momentum', action='store_true', help="flag to use momentum grad flow")
+  parser.add_argument('--momentum_alpha', type=float, default=0.2, help="alpha to use in momentum grad flow")
+
+
   args = parser.parse_args()
   opt = vars(args)
 
-  opt['use_best_params'] = True
 
   if opt['function'] == 'greed':
     # opt['use_best_params'] = False
     opt = greed_run_params(opt)  ###basic params for GREED
+
     if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these
       # args for running locally - specified in YAML for tunes
       opt['wandb'] = True
-      opt['wandb_track_grad_flow'] = True # don't plot grad flows when tuning
-      # opt['function'] = 'greed'
-      opt['wandb_project'] = "greed"
+      opt['wandb_track_grad_flow'] = False # don't plot grad flows when tuning
+      opt['wandb_project'] = "greed_runs"
       opt['wandb_group'] = "testing" #"tuning" eval
       DT = datetime.datetime.now()
       opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb_best_BLEND_params"#"wandb_log_gradflow_test3"
