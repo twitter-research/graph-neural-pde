@@ -27,24 +27,25 @@ def greed_test_params(opt):
     return opt
 
 def greed_run_params(opt):
-    #fixed greed params
+    #fixed greed params - handled by merge_cmd_args
     opt['function'] = 'greed'
     opt['block'] = 'constant'
-    opt['epoch'] = 50 #10
     opt['self_loop_weight'] = 0
+    opt['method'] = 'dopri5' #'euler'
+    opt['step_size'] = 0.1
+    opt['time'] = 18.295 #10
+    opt['epoch'] = 50 #10
 
-    #at some point test these
-    opt['no_early'] = True
-    opt['method'] = 'euler'
-    opt['greed_momentum'] = False
-    opt['add_source'] = False
+    opt['no_early'] = False #True - this works as only pubmed has this key
+
+    #at some point test these  - not handled by merge_cmd_args so won't overwrite
+    opt['greed_momentum'] = False #new param not in best_params
+    opt['add_source'] = False #this feels important because of design ie keep adding back initial condition of the gradiet descent!
     return opt
 
 def greed_hyper_params(opt):
     #tuning params
-    opt['time'] = 10
-    opt['step_size'] = 0.1
-    opt['hidden_dim'] = 32 # 50 #60 #64 comment Karate needs a very high dimension to be able to learn
+    opt['hidden_dim'] = 80 # 50 #60 #64 comment Karate needs a very high dimension to be able to learn
     opt['attention_dim'] = 32
     opt['tau_reg'] = 8
 
@@ -67,14 +68,14 @@ def greed_ablation_params(opt):
     opt['test_no_chanel_mix'] = True
     opt['test_omit_metric'] = True
     opt['test_mu_0'] = True
-    opt['test_tau_remove_tanh'] = False
+    opt['test_tau_remove_tanh'] = True
     # opt['tau_reg'] = 5
     # opt['test_tau_remove_tanh_reg'] = 5  # opt['attention_dim']
     if opt['test_tau_remove_tanh']:
         opt['test_tau_symmetric'] = True
         # opt['test_tau_remove_tanh_reg'] = 5 found this has different tolerances
     else:
-        opt['test_tau_symmetric'] = False
+        opt['test_tau_symmetric'] = True
     return opt
 
 def t_or_f(tf_str):

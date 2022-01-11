@@ -210,8 +210,9 @@ def merge_cmd_args(cmd_opt, opt):
   if cmd_opt['time'] != 1:
     opt['time'] = cmd_opt['time']
   if cmd_opt['epoch'] != 100:
-    opt['time'] = cmd_opt['time']
-
+    opt['epoch'] = cmd_opt['epoch']
+  if cmd_opt['add_source'] != True:
+    opt['add_source'] = cmd_opt['add_source']
 
 def main(cmd_opt):
 
@@ -516,7 +517,8 @@ if __name__ == '__main__':
       DT = datetime.datetime.now()
       opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb_best_BLEND_params"#"wandb_log_gradflow_test3"
       #hyper-params
-      opt = greed_hyper_params(opt)
+      if not opt['use_best_params']:
+        opt = greed_hyper_params(opt)
       opt = greed_ablation_params(opt)
 
     opt = tf_ablation_args(opt)
