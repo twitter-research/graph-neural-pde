@@ -51,7 +51,7 @@ class GreedTests(unittest.TestCase):
            'attention_norm_idx': 0, 'add_source': False, 'alpha': 1, 'alpha_dim': 'vc', 'beta_dim': 'vc',
            'hidden_dim': 2, 'linear_attention': True, 'augment': False, 'adjoint': False,
            'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler',
-           'mixed_block': False, 'max_nfe': 1000, 'mix_features': False, 'attention_dim': 2, 'rewiring': None,
+           'mixed_block': False, 'max_nfe': 1000, 'mix_features': False, 'attention_dim': 3, 'rewiring': None,
            'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None, 'jacobian_norm2': None,
            'total_deriv': None, 'directional_penalty': None, 'beltrami': False}
 

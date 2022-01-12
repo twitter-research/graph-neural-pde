@@ -31,7 +31,7 @@ def greed_run_params(opt):
     opt['function'] = 'greed'
     opt['block'] = 'constant'
     opt['self_loop_weight'] = 0 #needed for greed
-    opt['method'] = 'euler' #'dopri5' #'dopri5' #'euler'
+    # opt['method'] = 'euler' #'dopri5' #'dopri5' #'euler' #need to comment this out for tuning
     # TUNING
     # opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     # opt['time'] = 10 #18.295 #10

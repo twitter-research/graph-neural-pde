@@ -1,0 +1,36 @@
+program: run_GNN.py
+method: random
+parameters:
+  test_no_chanel_mix:
+    values: [True, False]
+  test_omit_metric:
+    values: [True, False]
+  test_mu_0:
+    values: [True, False]
+  test_tau_remove_tanh:
+    values: [True, False]
+  test_tau_symmetric:
+    values: [True, False]
+  add_source:
+    values: [True, False]
+  use_mlp:
+    values: [True, False]
+  method:
+    values: [euler, dopri5]
+  time:
+    values: [5, 10, 18.295]
+  step_size:
+    values: [0.5, 0.1]
+  tau_reg:
+    values: [1, 4, 8, 32]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --function
+  - greed
+entity: graph_neural_diffusion
+project: greed_tuning_6
