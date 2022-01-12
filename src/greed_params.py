@@ -30,18 +30,18 @@ def greed_run_params(opt):
     #fixed greed params - handled by merge_cmd_args
     opt['function'] = 'greed'
     opt['block'] = 'constant'
-    opt['self_loop_weight'] = 0
-    opt['method'] = 'euler' #'dopri5' #'dopri5' #'euler'
+    opt['self_loop_weight'] = 0 #needed for greed
+    # opt['method'] = 'dopri5'#'euler' #'dopri5' #'dopri5' #'euler'
     # TUNING
     # opt['step_size'] = 0.1 #have changed this to 0.1  dafault in run_GNN.py
     # opt['time'] = 10 #18.295 #10
     opt['epoch'] = 30 #10
-    opt['no_early'] = True #False #- this works as only pubmed has this key
+    opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
 
-    #at some point test these  - not handled by merge_cmd_args so won't overwrite
+    #at some point test these  - not  so won't overwrite
+    # not in best aprams
     # opt['greed_momentum'] = False #new param not in best_params
-
-    # TUNING
+    # handled by merge_cmd_args
     # opt['add_source'] = False #this feels important because of design, ie keep adding back initial condition of the energy grad flow!
     return opt
 
@@ -81,7 +81,7 @@ def greed_ablation_params(opt):
     return opt
 
 def t_or_f(tf_str):
-    if tf_str == "True" or tf_str == "true" or tf_str:
+    if tf_str == "True" or tf_str == "true" or (type(tf_str) == bool and tf_str):
         return True
     else:
         return False
