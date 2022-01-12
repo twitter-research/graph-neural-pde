@@ -31,9 +31,9 @@ def greed_run_params(opt):
     opt['function'] = 'greed'
     opt['block'] = 'constant'
     opt['self_loop_weight'] = 0 #needed for greed
-    # opt['method'] = 'dopri5'#'euler' #'dopri5' #'dopri5' #'euler'
+    opt['method'] = 'euler' #'dopri5' #'dopri5' #'euler'
     # TUNING
-    # opt['step_size'] = 0.1 #have changed this to 0.1  dafault in run_GNN.py
+    # opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     # opt['time'] = 10 #18.295 #10
     opt['epoch'] = 30 #10
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
