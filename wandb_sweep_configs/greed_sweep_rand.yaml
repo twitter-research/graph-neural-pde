@@ -11,8 +11,6 @@ parameters:
     values: [True, False]
   test_tau_symmetric:
     values: [True, False]
-  add_source:
-    values: [True, False]
   use_mlp:
     values: [True, False]
   method:

@@ -135,8 +135,8 @@ class ODEFuncGreed(ODEFunc):
       tau = torch.tanh((src_x + dst_x) @ self.K / self.opt['tau_reg'])
       tau_transpose = torch.tanh((dst_x + src_x) @ self.K / self.opt['tau_reg'])
     else:
-      tau = torch.tanh((src_x @ self.K + dst_x @ self.Q) / self.opt['tau_reg'])
-      tau_transpose = torch.tanh((dst_x @ self.K + src_x @ self.Q) / self.opt['tau_reg'])
+      tau = torch.tanh(src_x @ self.K + dst_x @ self.Q) / self.opt['tau_reg']
+      tau_transpose = torch.tanh(dst_x @ self.K + src_x @ self.Q) / self.opt['tau_reg']
 
     return tau, tau_transpose
 
@@ -229,6 +229,17 @@ class ODEFuncGreed(ODEFunc):
     values = torch.cat([-A, degree], dim=-1)
     L = self.symmetrically_normalise(values, edges)
     return L
+
+  def sparse_dense_hadamard(self, A_edge_index, A_values, B):
+    """
+    Takes a sparse matrix A and a dense matrix B and performs a sparse hadamard product
+    Only keeps the rows in A and the columns in B where i,j in E
+    @param A: a sparse Matrix
+    @param B: a dense matrix
+    @return: hp_values, hp_edge_index
+    """
+
+    return hp_values, hp_edge_index
 
   def get_dynamics(self, f, gamma, tau, tau_transpose, Ws):
     """

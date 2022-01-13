@@ -211,8 +211,7 @@ def merge_cmd_args(cmd_opt, opt):
     opt['time'] = cmd_opt['time']
   if cmd_opt['epoch'] != 100:
     opt['epoch'] = cmd_opt['epoch']
-  if cmd_opt['add_source'] != True:
-    opt['add_source'] = cmd_opt['add_source']
+
 
 def main(cmd_opt):
 

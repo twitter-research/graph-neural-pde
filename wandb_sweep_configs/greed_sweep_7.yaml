@@ -2,25 +2,24 @@ program: run_GNN.py
 method: random
 parameters:
   test_no_chanel_mix:
-    values: [True, False]
+    values: [True]
   test_omit_metric:
-    values: [True, False]
+    values: [True]
   test_mu_0:
-    values: [True, False]
+    values: [False]
   test_tau_remove_tanh:
-    values: [True, False]
+    values: [False]
   test_tau_symmetric:
-    values: [True, False]
+    values: [False]
   use_mlp:
     values: [True, False]
   method:
-    values: [euler, dopri5]
+    values: [dopri5]
   time:
     values: [5, 10, 18.295]
-  step_size:
-    values: [0.5, 0.1]
   tau_reg:
     values: [1, 4, 8, 32]
+
 command:
   - ${env}
   - python3
