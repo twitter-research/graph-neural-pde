@@ -31,6 +31,14 @@ parameters:
     distribution: uniform
     min: 0.0
     max: 0.5
+  lr:
+    distribution: uniform
+    min: 0.01
+    max: 0.1
+  decay:
+    distribution: uniform
+    min: 0.001
+    max: 0.1
 command:
   - ${env}
   - python3
