@@ -134,6 +134,9 @@ class ODEFuncGreed(ODEFunc):
     elif not self.opt['test_tau_remove_tanh'] and self.opt['test_tau_symmetric']:
       tau = torch.tanh((src_x + dst_x) @ self.K / self.opt['tau_reg'])
       tau_transpose = torch.tanh((dst_x + src_x) @ self.K / self.opt['tau_reg'])
+    elif  self.opt['test_tau_outside']:
+      tau = torch.tanh(src_x @ self.K + dst_x @ self.Q) / self.opt['tau_reg']
+      tau_transpose = torch.tanh(dst_x @ self.K + src_x @ self.Q) / self.opt['tau_reg']
     else:
       tau = torch.tanh((src_x @ self.K + dst_x @ self.Q) / self.opt['tau_reg'])
       tau_transpose = torch.tanh((dst_x @ self.K + src_x @ self.Q) / self.opt['tau_reg'])

@@ -494,6 +494,7 @@ if __name__ == '__main__':
   parser.add_argument('--test_omit_metric', type=str, default='True') #action='store_true')
   parser.add_argument('--test_tau_remove_tanh', type=str, default='True') #action='store_true')
   parser.add_argument('--test_tau_symmetric', type=str, default='True') #action='store_true')
+  parser.add_argument('--test_tau_outside', type=str, default='True') #action='store_true')
 
   # Temp changing these to be strings so can tune over
   # parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',

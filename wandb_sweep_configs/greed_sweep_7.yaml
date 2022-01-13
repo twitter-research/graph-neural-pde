@@ -11,6 +11,8 @@ parameters:
     values: [False]
   test_tau_symmetric:
     values: [False]
+  test_tau_outside:
+    values: [True, False]
   use_mlp:
     values: [True, False]
   method:
