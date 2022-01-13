@@ -49,4 +49,4 @@ command:
   - --function
   - greed
 entity: graph_neural_diffusion
-project: greed_tuning_6
+project: greed_tuning_7

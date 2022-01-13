@@ -10,10 +10,10 @@ from torch_geometric.utils.loop import add_remaining_self_loops
 from torch_geometric.utils import degree
 from torch_geometric.nn.inits import glorot, zeros
 from torch.nn import Parameter
+import wandb
 
 from utils import MaxNFEException
 from base_classes import ODEFunc
-import wandb
 
 #todo remove this from the module level
 # REMOVE SOURCES OF RANDOMNESS

@@ -18,6 +18,7 @@ from torch_scatter import scatter_add, scatter_mul
 from GNN import GNN
 from run_GNN import train
 from greed_params import greed_test_params
+from function_greed_scaledDPp import ODEFuncGreed_SDB
 
 class Data:
   def __init__(self, edge_index, x, y=None, train_mask=None):
@@ -60,6 +61,7 @@ class GreedTests(unittest.TestCase):
     self.data = Data(self.edge, self.x, self.y, self.train_mask)
     self.dataset = DummyDataset(self.data, 2)
     self.greed_func = ODEFuncGreed(2, 2, self.opt, self.data, torch.device('cpu'))
+    self.greed_func_sdp = ODEFuncGreed_SDB(2, 2, self.opt, self.data, torch.device('cpu'))
 
   def tearDown(self) -> None:
     pass
@@ -194,7 +196,8 @@ class GreedTests(unittest.TestCase):
     eta2 = torch.pow(scatter_mul(metric, row), self.greed_func.deg_inv)
     log_eta = self.greed_func.deg_inv * scatter_add(torch.log(metric), row)
     eta3 = torch.exp(log_eta)
-    self.assertTrue(torch.all(eta1 == eta2))
+    # self.assertTrue(torch.all(eta1 == eta2))
+    self.assertTrue(torch.allclose(eta1.data, eta2.data, rtol=1e-05, atol=1e-08)) #is all close required because epsilon is triggering?
     self.assertTrue(torch.all(torch.isclose(eta1, eta3)))
 
     # currently an assertion prevents this running
@@ -208,7 +211,7 @@ class GreedTests(unittest.TestCase):
     metric = self.greed_func.get_metric(self.x, tau, tau_transpose)
     gamma, _ = self.greed_func.get_gamma(metric)
     W = self.greed_func.W
-    Ws = W.t() @ self.W
+    Ws = self.W @ self.W.t()  # output a [d,d] tensor
     L, R1, R2 = self.greed_func.get_dynamics(self.x, gamma, tau, tau_transpose, Ws)
     self.assertTrue(R1.shape == R2.shape)
     self.assertTrue(R1.shape[0] == self.greed_func.n_nodes)
@@ -265,6 +268,20 @@ class GreedTests(unittest.TestCase):
     Ws = W @ W.t()
     L, R1, R2 = gf.get_dynamics(self.x, gamma, tau, tau_transpose, Ws)
     self.assertTrue(torch.all(torch.eq(L, -lap)))
+
+  def test_sparse_hadamard_bilin(self):
+    gf_sdp = self.greed_func_sdp
+    d = self.opt['hidden_dim']
+    n = self.x.shape[0]
+    A = torch.ones([n, d])  # do arange
+    B = torch.ones([n, d])
+    S_edge_index = self.edge
+    S_edge_values = torch.ones(S_edge_index.shape[1])
+    C = gf_sdp.sparse_hadamard_bilin(A, B, S_edge_index, S_edge_values)
+    sparse_result = to_dense_adj(edge_index=C[0], edge_attr=C[1], max_num_nodes=n)
+    Sd = to_dense_adj(edge_index=S_edge_index, edge_attr=S_edge_values, max_num_nodes=n)
+    dense_result = Sd * (A @ B.T)
+    self.assertTrue(torch.all(torch.eq(sparse_result, dense_result)))
 
   def test_integration(self):
     """
