@@ -5,12 +5,12 @@ parameters:
     values: [True]
   test_omit_metric:
     values: [True]
-  test_mu_0:
-    values: [False]
-  test_tau_remove_tanh:
-    values: [False]
   test_tau_symmetric:
-    values: [False]
+    values: [True]
+  test_mu_0:
+    values: [True, False]
+  test_tau_remove_tanh:
+    values: [True, False]
   test_tau_outside:
     values: [True, False]
   use_mlp:
