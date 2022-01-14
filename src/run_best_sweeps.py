@@ -20,6 +20,7 @@ def run_best(sweep, run_list, project_name, group_name, num_runs):
 
         opt = {**default_params_dict, **not_sweep_dict, **yaml_opt}
         opt['wandb_best_run_id'] = run
+        opt['function'] = 'greed'
 
         for i in range(num_runs):
             main(opt)
