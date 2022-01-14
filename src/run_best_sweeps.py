@@ -1,10 +1,11 @@
 import yaml
-from greed_params import default_params, not_sweep_args
+from greed_params import default_params, not_sweep_args, greed_run_params
 from run_GNN import main
 
 def run_best(sweep, run_list, project_name, group_name, num_runs):
     for run in run_list:
         default_params_dict = default_params()
+        greed_run_dict = greed_run_params(opt)
         not_sweep_dict = not_sweep_args(default_params_dict, project_name, group_name)
 
         yaml_path = f"./wandb/sweep-{sweep}/config-{run}.yaml"
@@ -18,9 +19,8 @@ def run_best(sweep, run_list, project_name, group_name, num_runs):
                 temp_opt[k] = v
         yaml_opt = temp_opt
 
-        opt = {**default_params_dict, **not_sweep_dict, **yaml_opt}
+        opt = {**default_params_dict, **greed_run_dict, **not_sweep_dict, **yaml_opt}
         opt['wandb_best_run_id'] = run
-        opt['function'] = 'greed'
 
         for i in range(num_runs):
             main(opt)
