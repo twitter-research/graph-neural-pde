@@ -13,7 +13,7 @@ from data import get_dataset, set_train_val_test_split
 from ogb.nodeproppred import Evaluator
 from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling
 from best_params import best_params_dict
-from greed_params import greed_test_params, greed_run_params, greed_hyper_params, greed_ablation_params, tf_ablation_args
+from greed_params import greed_test_params, greed_run_params, greed_hyper_params, greed_ablation_params, tf_ablation_args, not_sweep_args
 import wandb
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
@@ -518,17 +518,18 @@ if __name__ == '__main__':
     opt = greed_run_params(opt)  ###basic params for GREED
 
     if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these
-      # args for running locally - specified in YAML for tunes
-      opt['wandb'] = True
-      opt['wandb_track_grad_flow'] = False # don't plot grad flows when tuning
-      opt['wandb_project'] = "greed_runs"
-      opt['wandb_group'] = "testing" #"tuning" eval
-      DT = datetime.datetime.now()
-      opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb_best_BLEND_params"#"wandb_log_gradflow_test3"
-      #hyper-params
-      if not opt['use_best_params']:
-        opt = greed_hyper_params(opt)
-      opt = greed_ablation_params(opt)
+      opt = not_sweep_args(opt, project_name='greed_runs', group_name='testing')
+      # # args for running locally - specified in YAML for tunes
+      # opt['wandb'] = True
+      # opt['wandb_track_grad_flow'] = False # don't plot grad flows when tuning
+      # opt['wandb_project'] = "greed_runs"
+      # opt['wandb_group'] = "testing" #"tuning" eval
+      # DT = datetime.datetime.now()
+      # opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb_best_BLEND_params"#"wandb_log_gradflow_test3"
+      # #hyper-params
+      # if not opt['use_best_params']:
+      #   opt = greed_hyper_params(opt)
+      # opt = greed_ablation_params(opt)
 
     opt = tf_ablation_args(opt)
 
