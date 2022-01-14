@@ -234,10 +234,11 @@ def main(cmd_opt):
   opt['device'] = device
 
   if 'wandb_run_name' in opt.keys():
-    wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
-               name=opt['wandb_run_name'], config=opt)
+    wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
+               name=opt['wandb_run_name'], reinit=True, config=opt)
   else:
-    wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'], config=opt)
+    wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
+               reinit=True, config=opt)
 
   wandb.define_metric("epoch_step") #Customize axes - https://docs.wandb.ai/guides/track/log
   if opt['wandb_track_grad_flow']:
@@ -318,7 +319,7 @@ def main(cmd_opt):
   #todo Customize axes - https://docs.wandb.ai/guides/track/log
 
   # wandb.log({'final_test_accuracy': test_acc, 'final_val_accuracy': val_acc, 'final_loss': loss, 'best_epoch': best_epoch}) #For values that are logged with wandb.log, we automatically set summary to the last value added
-
+  wandb_run.finish()
   return train_acc, val_acc, test_acc
 
 
