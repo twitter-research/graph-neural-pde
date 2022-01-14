@@ -21,8 +21,14 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
   def __init__(self, in_features, out_features, opt, data, device, bias=False):
     super(ODEFuncGreed_SDB, self).__init__(in_features, out_features, opt, data, device, bias=False)
 
+    self.K = Parameter(torch.Tensor(out_features, opt['dim_p_omega']))
+    self.Q = Parameter(torch.Tensor(out_features, opt['dim_p_omega']))
+    self.Omega = self.Q @ self.K.t()  # output a [d,d] tensor
+    self.W = Parameter(torch.Tensor(out_features, opt['dim_p_w']))
+    self.Ws = self.W @ self.W.t()  # output a [d,d] tensor
 
-  def sparse_hadamard_bilin(self, A, B, S_edge_index, S_values=None):
+
+  def sparse_hadamard_bilin(self, A, B, edge_index, values=None):
     """
     Takes a sparse matrix S and, 2 dense matrices A, B and performs a sparse hadamard product
     Keeping only the elements of A @ B.T where S is non-zero
@@ -32,21 +38,72 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
     @param B: a dense matrix dim[n, d]
     @return: hp_edge_index, hp_values
     """
-    if S_values is None:
-      S_values = torch.ones(S_edge_index.shape[1])
-    rows, cols = S_edge_index[0], S_edge_index[1]
+    if values is None:
+      S_values = torch.ones(edge_index.shape[1])
+    rows, cols = edge_index[0], edge_index[1]
     hp_values = torch.sum(A[rows] * B[cols], dim=1)
-    hp_edge_index = S_edge_index
-    return hp_edge_index, hp_values
+    return hp_values
 
-  def D_diagM(self, A, B, C):
+  def D_diagM(self, A, B, D):
     """
-    Takes 3 dense matrices A, B, C and performs Dinv @ diag(A @ B.T)
+    Takes 3 dense matrices A, B, C and performs D @ diag(A @ B.T)
     Keeping only the elements of A @ B where D is non-zero
     @return: values
     """
-    values = self.deg_inv * torch.sum(A * B, dim=1)
+    values = D * torch.sum(A * B, dim=1)
     return values
+
+  def sparse_sym_normalise(self, D, edge_index, values):
+    src_x, dst_x = self.get_src_dst(D)
+    src_x * values * dst_x
+
+  def get_tau(self, x):
+    """
+    Tau plays a role similar to the diffusivity / attention function in BLEND. Here the choice of nonlinearity is not
+    plug and play as everything is defined on the level of the energy and so the derivatives are hardcoded.
+    #todo why do we hardcode the derivatives? Couldn't we just use autograd?
+    @param x:
+    @param edge:
+    @return: a |E| dim vector for Tij and Tji
+    """
+    src_x, dst_x = self.get_src_dst(x)
+
+    tau_arg_values = self.sparse_hadamard_bilin(src_x @ self.Omega, dst_x, self.edge_index)
+    tau_trans_arg_values = self.sparse_hadamard_bilin(dst_x @ self.Omega, src_x, self.edge_index)
+
+    if self.opt['test_tau_remove_tanh'] and not self.opt['test_tau_symmetric']:
+      tau = (tau_arg_values) / self.opt['tau_reg']
+      tau_transpose = (tau_trans_arg_values) / self.opt['tau_reg']
+    elif self.opt['test_tau_remove_tanh'] and self.opt['test_tau_symmetric']:
+      tau = (tau_arg_values) / self.opt['tau_reg']
+      tau_transpose = (tau_trans_arg_values) / self.opt['tau_reg']
+    elif not self.opt['test_tau_remove_tanh'] and self.opt['test_tau_symmetric']:
+      tau = torch.tanh(tau_arg_values / self.opt['tau_reg'])
+      tau_transpose = torch.tanh(tau_trans_arg_values / self.opt['tau_reg'])
+    elif  self.opt['test_tau_outside']:
+      tau = torch.tanh(tau_arg_values) / self.opt['tau_reg']
+      tau_transpose = torch.tanh(tau_trans_arg_values) / self.opt['tau_reg']
+    else:
+      tau = torch.tanh(tau_arg_values / self.opt['tau_reg'])
+      tau_transpose = torch.tanh(tau_trans_arg_values / self.opt['tau_reg'])
+
+    return tau, tau_transpose
+
+
+  def get_R1_term1(self, T2, f, fWs):
+    g = torch.sum(f * fWs, dim=1)
+    return (self.deg_inv * g)[self.edge_index[0, :]] * T2
+
+  def get_R1_term2(self, T3, f, fWs):
+    temp_sparse = self.sparse_sym_normalise(self, self.deg_inv_sqrt, self.edge_index, T3)
+    return self.sparse_hadamard_bilin(f, fWs, self.edge_index, temp_sparse)
+
+  def get_R2_term1(self, T5, f, fWs):
+    return self.sparse_hadamard_bilin(f, fWs, self.edge_index, T5)
+
+  def get_R2_term2(self, T2, f, fWs):
+    return T2 * self.D_diagM(self, f, fWs, self.deg_inv)
+
 
   def get_dynamics(self, f, gamma, tau, tau_transpose, Ws):
     """
@@ -81,9 +138,13 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
 
     L = self.get_laplacian_form(T1, T0)
     fWs = torch.matmul(f, Ws)
-    R1 = self.get_R1(f, T2, T3, fWs)
-    R2 = self.get_R2(T2, T5, transposed_edge_index, f, fWs)
-    return L, R1, R2
+
+    R1_term1 = self.get_R1_term1(T2, f, fWs)
+    R1_term2 = self.get_R1_term2(T3, f, fWs)
+    R2_term1 = self.get_R2_term1(T5, f, fWs)
+    R2_term2 = self.get_R2_term2(T2, f, fWs)
+
+    return L, R1_term1, R1_term2, R2_term1, R2_term2
 
   def forward(self, t, x):  # t is needed when called by the integrator
     if self.nfe > self.opt["max_nfe"]:
@@ -97,18 +158,19 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
     if self.opt['test_omit_metric']:
       gamma = -torch.ones(gamma.shape, device=x.device) #setting metric equal to adjacency
 
-    L, R1, R2 = self.get_dynamics(x, gamma, tau, tau_transpose, Ws)
-    # L, R1, R2 = self.clipper([L, R1, R2])
+    L, R1_term1, R1_term2, R2_term1, R2_term2 = self.get_dynamics(x, gamma, tau, tau_transpose, Ws)
+
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
     f = torch_sparse.spmm(edges, L, x.shape[0], x.shape[0], x)
-    f = torch.matmul(f, Ws)
+    fomegaT = torch.matmul(f, self.omega)
+    fomega = torch.matmul(f, Ws)
 
-    if self.opt['test_tau_symmetric']:
-      f + R1.unsqueeze(dim=-1) @ self.K.t() + R2.unsqueeze(dim=-1) @ self.K.t()
-    else:
-      f = f + R1.unsqueeze(dim=-1) @ self.K.t() + R2.unsqueeze(dim=-1) @ self.Q.t()
-
-    f = f - 0.5 * self.mu * (x - self.x0)
+    f = f + \
+        + torch_sparse.spmm(edges, R1_term1, x.shape[0], x.shape[0], fomegaT) \
+        - torch_sparse.spmm(edges, R1_term2, x.shape[0], x.shape[0], fomegaT) \
+        - torch_sparse.spmm(edges, R2_term1, x.shape[0], x.shape[0], fomega) \
+        + torch_sparse.spmm(edges, R2_term2, x.shape[0], x.shape[0], fomega) \
+        - 0.5 * self.mu * (x - self.x0)
 
     if self.opt['test_omit_metric'] and self.opt['test_mu_0']: #energy to use when Gamma is -adjacency and not the pullback and mu == 0
       energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2)

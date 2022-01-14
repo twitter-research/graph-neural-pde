@@ -24,6 +24,7 @@ def greed_test_params(opt):
         opt['tau_reg'] = 5
     else:
         opt['test_tau_symmetric'] = False
+    opt['test_tau_outside'] = False
     opt['greed_momentum'] = False
 
     return opt

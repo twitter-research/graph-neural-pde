@@ -52,7 +52,9 @@ class GreedTests(unittest.TestCase):
            'attention_norm_idx': 0, 'add_source': False, 'alpha': 1, 'alpha_dim': 'vc', 'beta_dim': 'vc',
            'hidden_dim': 2, 'linear_attention': True, 'augment': False, 'adjoint': False,
            'tol_scale': 1, 'time': 1, 'ode': 'ode', 'input_dropout': 0.5, 'dropout': 0.5, 'method': 'euler',
-           'mixed_block': False, 'max_nfe': 1000, 'mix_features': False, 'attention_dim': 3, 'rewiring': None,
+           'mixed_block': False, 'max_nfe': 1000, 'mix_features': False,
+           'attention_dim': 3, 'dim_p_omega': 4, 'dim_p_w': 3,
+           'rewiring': None,
            'no_alpha_sigmoid': False, 'reweight_attention': False, 'kinetic_energy': None, 'jacobian_norm2': None,
            'total_deriv': None, 'directional_penalty': None, 'beltrami': False}
 
@@ -60,8 +62,8 @@ class GreedTests(unittest.TestCase):
     self.opt = {**OPT, **opt}
     self.data = Data(self.edge, self.x, self.y, self.train_mask)
     self.dataset = DummyDataset(self.data, 2)
-    self.greed_func = ODEFuncGreed(2, 2, self.opt, self.data, torch.device('cpu'))
-    self.greed_func_sdp = ODEFuncGreed_SDB(2, 2, self.opt, self.data, torch.device('cpu'))
+    self.greed_func = ODEFuncGreed(self.opt['hidden_dim'], self.opt['hidden_dim'], self.opt, self.data, torch.device('cpu'))
+    self.greed_func_sdp = ODEFuncGreed_SDB(self.opt['hidden_dim'], self.opt['hidden_dim'], self.opt, self.data, torch.device('cpu'))
 
   def tearDown(self) -> None:
     pass
@@ -278,7 +280,7 @@ class GreedTests(unittest.TestCase):
     S_edge_index = self.edge
     S_edge_values = torch.ones(S_edge_index.shape[1])
     C = gf_sdp.sparse_hadamard_bilin(A, B, S_edge_index, S_edge_values)
-    sparse_result = to_dense_adj(edge_index=C[0], edge_attr=C[1], max_num_nodes=n)
+    sparse_result = to_dense_adj(edge_index=S_edge_index, edge_attr=C, max_num_nodes=n)
     Sd = to_dense_adj(edge_index=S_edge_index, edge_attr=S_edge_values, max_num_nodes=n)
     dense_result = Sd * (A @ B.T)
     self.assertTrue(torch.all(torch.eq(sparse_result, dense_result)))
