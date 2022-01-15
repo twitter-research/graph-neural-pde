@@ -2,6 +2,7 @@ from function_transformer_attention import ODEFuncTransformerAtt
 from function_GAT_attention import ODEFuncAtt
 from function_laplacian_diffusion import LaplacianODEFunc
 from function_greed import ODEFuncGreed
+from function_greed_scaledDP import ODEFuncGreed_SDB
 from block_transformer_attention import AttODEblock
 from block_constant import ConstantODEblock
 from block_mixed import MixedODEblock
@@ -42,6 +43,8 @@ def set_function(opt):
     f = ODEFuncTransformerAtt
   elif ode_str == 'greed':
     f = ODEFuncGreed
+  elif ode_str == 'greed_scaledDP':
+    f = ODEFuncGreed_SDB
   else:
     raise FunctionNotDefined
   return f

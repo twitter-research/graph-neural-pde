@@ -20,12 +20,32 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
 
   def __init__(self, in_features, out_features, opt, data, device, bias=False):
     super(ODEFuncGreed_SDB, self).__init__(in_features, out_features, opt, data, device, bias=False)
-
     self.K = Parameter(torch.Tensor(out_features, opt['dim_p_omega']))
     self.Q = Parameter(torch.Tensor(out_features, opt['dim_p_omega']))
-    self.Omega = self.Q @ self.K.t()  # output a [d,d] tensor
     self.W = Parameter(torch.Tensor(out_features, opt['dim_p_w']))
-    self.Ws = self.W @ self.W.t()  # output a [d,d] tensor
+    # https://discuss.pytorch.org/t/how-to-initialize-weight-with-arbitrary-tensor/3432
+    #https://discuss.pytorch.org/t/initialize-weights-using-the-matrix-multiplication-result-from-two-nn-parameter/120557/8
+
+    # self.K = nn.Linear(out_features, opt['dim_p_omega'])
+    # self.init_weights(self.K)
+    # self.Q = nn.Linear(out_features, opt['dim_p_omega'])
+    # self.init_weights(self.Q)
+    # self.W = nn.Linear(out_features, opt['dim_p_w'])
+    # self.init_weights(self.W)
+
+    self.reset_parameters()
+
+  def reset_parameters(self):
+    glorot(self.K)
+    glorot(self.Q)
+    glorot(self.W)
+    zeros(self.bias)
+
+  # def init_weights(self, m):
+  #   if type(m) == nn.Linear:
+  #     # nn.init.xavier_uniform_(m.weight, gain=1.414)
+  #     # m.bias.data.fill_(0.01)
+  #     nn.init.constant_(m.weight, 1e-5)
 
 
   def sparse_hadamard_bilin(self, A, B, edge_index, values=None):
@@ -39,10 +59,10 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
     @return: hp_edge_index, hp_values
     """
     if values is None:
-      S_values = torch.ones(edge_index.shape[1])
+      values = torch.ones(edge_index.shape[1])
     rows, cols = edge_index[0], edge_index[1]
-    hp_values = torch.sum(A[rows] * B[cols], dim=1)
-    return hp_values
+    product = values * torch.sum(A[rows] * B[cols], dim=1)
+    return product
 
   def D_diagM(self, A, B, D):
     """
@@ -55,9 +75,10 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
 
   def sparse_sym_normalise(self, D, edge_index, values):
     src_x, dst_x = self.get_src_dst(D)
-    src_x * values * dst_x
+    product = src_x * values * dst_x
+    return product
 
-  def get_tau(self, x):
+  def get_tau(self, x, Omega):
     """
     Tau plays a role similar to the diffusivity / attention function in BLEND. Here the choice of nonlinearity is not
     plug and play as everything is defined on the level of the energy and so the derivatives are hardcoded.
@@ -68,8 +89,8 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
     """
     src_x, dst_x = self.get_src_dst(x)
 
-    tau_arg_values = self.sparse_hadamard_bilin(src_x @ self.Omega, dst_x, self.edge_index)
-    tau_trans_arg_values = self.sparse_hadamard_bilin(dst_x @ self.Omega, src_x, self.edge_index)
+    tau_arg_values = self.sparse_hadamard_bilin(src_x @ Omega, dst_x, self.edge_index).unsqueeze(dim=-1) #unsqueeze needed for shape [E x 1]
+    tau_trans_arg_values = self.sparse_hadamard_bilin(dst_x @ Omega, src_x, self.edge_index).unsqueeze(dim=-1)
 
     if self.opt['test_tau_remove_tanh'] and not self.opt['test_tau_symmetric']:
       tau = (tau_arg_values) / self.opt['tau_reg']
@@ -92,17 +113,18 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
 
   def get_R1_term1(self, T2, f, fWs):
     g = torch.sum(f * fWs, dim=1)
-    return (self.deg_inv * g)[self.edge_index[0, :]] * T2
+    return (self.deg_inv * g)[self.edge_index[0, :]] * T2 #todo check edge index
 
   def get_R1_term2(self, T3, f, fWs):
-    temp_sparse = self.sparse_sym_normalise(self, self.deg_inv_sqrt, self.edge_index, T3)
+    temp_sparse = self.sparse_sym_normalise(self.deg_inv_sqrt, self.edge_index, T3)
     return self.sparse_hadamard_bilin(f, fWs, self.edge_index, temp_sparse)
 
   def get_R2_term1(self, T5, f, fWs):
     return self.sparse_hadamard_bilin(f, fWs, self.edge_index, T5)
 
   def get_R2_term2(self, T2, f, fWs):
-    return T2 * self.D_diagM(self, f, fWs, self.deg_inv)
+    product = T2 * self.D_diagM(f, fWs, self.deg_inv)[self.edge_index[1]] #todo this is a massive guess whether it's [0] or [1], went [1] because RHS multiplication
+    return product #ie RHS multiplication with a diagonal matrix broadcasts over columns not rows
 
 
   def get_dynamics(self, f, gamma, tau, tau_transpose, Ws):
@@ -151,7 +173,9 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
       raise MaxNFEException
     self.nfe += 1
     Ws = self.W @ self.W.t()  # output a [d,d] tensor
-    tau, tau_transpose = self.get_tau(x)
+    Omega = self.Q @ self.K.t()  # output a [d,d] tensor
+
+    tau, tau_transpose = self.get_tau(x, Omega)
     metric = self.get_metric(x, tau, tau_transpose)
 
     gamma, eta = self.get_gamma(metric)
@@ -162,15 +186,14 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
 
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
     f = torch_sparse.spmm(edges, L, x.shape[0], x.shape[0], x)
-    fomegaT = torch.matmul(f, self.omega)
-    fomega = torch.matmul(f, Ws)
+    fomegaT = torch.matmul(f, Omega.T)
+    fomega = torch.matmul(f, Omega)
 
-    f = f + \
-        + torch_sparse.spmm(edges, R1_term1, x.shape[0], x.shape[0], fomegaT) \
-        - torch_sparse.spmm(edges, R1_term2, x.shape[0], x.shape[0], fomegaT) \
-        - torch_sparse.spmm(edges, R2_term1, x.shape[0], x.shape[0], fomega) \
-        + torch_sparse.spmm(edges, R2_term2, x.shape[0], x.shape[0], fomega) \
-        - 0.5 * self.mu * (x - self.x0)
+    f = f + torch_sparse.spmm(self.edge_index, R1_term1, x.shape[0], x.shape[0], fomegaT)
+    f = f - torch_sparse.spmm(self.edge_index, R1_term2, x.shape[0], x.shape[0], fomegaT)
+    f = f - torch_sparse.spmm(self.edge_index, R2_term1, x.shape[0], x.shape[0], fomega)
+    f = f + torch_sparse.spmm(self.edge_index, R2_term2, x.shape[0], x.shape[0], fomega)
+    f = f - 0.5 * self.mu * (x - self.x0)
 
     if self.opt['test_omit_metric'] and self.opt['test_mu_0']: #energy to use when Gamma is -adjacency and not the pullback and mu == 0
       energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2)
@@ -182,8 +205,9 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.training:
       wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
                  f"gf_e{self.epoch}_f": f ** 2, f"gf_e{self.epoch}_L": torch.sum(L ** 2),
-                 f"gf_e{self.epoch}_R1": torch.sum(R1 ** 2), f"gf_e{self.epoch}_R2": torch.sum(R2 ** 2), f"gf_e{self.epoch}_mu": self.mu,
-                 "grad_flow_step": self.wandb_step})
+                 f"gf_e{self.epoch}_R1_term1": torch.sum(R1_term1 ** 2), f"gf_e{self.epoch}_R1_term2": torch.sum(R1_term2 ** 2),
+                 f"gf_e{self.epoch}_R2_term1": torch.sum(R2_term1 ** 2), f"gf_e{self.epoch}_R2_term2": torch.sum(R2_term2 ** 2),
+                 f"gf_e{self.epoch}_mu": self.mu, "grad_flow_step": self.wandb_step})
 
       self.wandb_step += 1
 

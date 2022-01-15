@@ -18,7 +18,7 @@ from torch_scatter import scatter_add, scatter_mul
 from GNN import GNN
 from run_GNN import train
 from greed_params import greed_test_params
-from function_greed_scaledDPp import ODEFuncGreed_SDB
+from function_greed_scaledDP import ODEFuncGreed_SDB
 
 class Data:
   def __init__(self, edge_index, x, y=None, train_mask=None):
@@ -290,7 +290,45 @@ class GreedTests(unittest.TestCase):
     running the full pipeline on sample data
     @return:
     """
+    print("test_integration_greed")
     self.opt['function'] = 'greed'
+    self.opt['block'] = 'constant'
+    self.opt['step_size'] = 0.1
+    self.opt['time'] = 10
+    self.opt['method'] = 'euler'
+    self.opt['no_early'] = True
+    # self.opt['attention_dim'] = 5
+
+    #added to test_params.py
+    self.opt['test_no_chanel_mix'] = False
+    self.opt['test_omit_metric'] = True
+    self.opt['test_mu_0'] = False
+    self.opt['test_tau_remove_tanh'] = True
+    # self.opt['test_tau_remove_tanh_reg'] = 5 #opt['attention_dim']
+    self.opt['tau_reg'] = 5 #opt['attention_dim']
+
+    if self.opt['test_tau_remove_tanh']:
+      self.opt['test_tau_symmetric'] = False
+      # self.opt['test_tau_remove_tanh_reg'] = 5 #opt['attention_dim']
+      self.opt['tau_reg'] = 5 #opt['attention_dim']
+    else:
+      self.opt['test_tau_symmetric'] = False
+
+    gnn = GNN(self.opt, self.dataset, device=self.device)
+    n_epochs = 5
+    parameters = [p for p in gnn.parameters() if p.requires_grad]
+    optimizer = torch.optim.Adam(parameters, lr=self.opt['lr'], weight_decay=self.opt['decay'])
+    for epoch in range(n_epochs):
+      loss = train(gnn, optimizer, self.dataset.data)
+      print(f'loss {loss} at epoch {epoch}')
+
+  def test_integration_scaledDP(self):
+    """
+    running the full pipeline on sample data
+    @return
+    """
+    print("test_integration_scaledDP")
+    self.opt['function'] = 'greed_scaledDP'
     self.opt['block'] = 'constant'
     self.opt['step_size'] = 0.1
     self.opt['time'] = 10
@@ -302,7 +340,7 @@ class GreedTests(unittest.TestCase):
     self.opt['test_no_chanel_mix'] = False
     self.opt['test_omit_metric'] = False
     self.opt['test_mu_0'] = False
-    self.opt['test_tau_remove_tanh'] = True
+    self.opt['test_tau_remove_tanh'] = False #True
     # self.opt['test_tau_remove_tanh_reg'] = 5 #opt['attention_dim']
     self.opt['tau_reg'] = 5 #opt['attention_dim']
 
