@@ -510,6 +510,8 @@ if __name__ == '__main__':
   parser.add_argument('--use_best_params', action='store_true', help="flag to take the best BLEND params")
   parser.add_argument('--greed_momentum', action='store_true', help="flag to use momentum grad flow")
   parser.add_argument('--momentum_alpha', type=float, default=0.2, help="alpha to use in momentum grad flow")
+  parser.add_argument('--dim_p_omega', type=int, default=16, help="inner dimension for Omega")
+  parser.add_argument('--dim_p_w', type=int, default=16, help="inner dimension for W")
 
 
   args = parser.parse_args()
