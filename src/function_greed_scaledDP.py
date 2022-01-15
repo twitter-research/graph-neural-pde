@@ -54,7 +54,7 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
     @return: hp_edge_index, hp_values
     """
     if values is None:
-      values = torch.ones(edge_index.shape[1])
+      values = torch.ones(edge_index.shape[1]).to(self.device)
     rows, cols = edge_index[0], edge_index[1]
     product = values * torch.sum(A[rows] * B[cols], dim=1)
     return product
