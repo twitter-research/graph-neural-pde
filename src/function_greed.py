@@ -44,7 +44,7 @@ class ODEFuncGreed(ODEFunc):
     self.self_loops = self.get_self_loops().to(device) #sending this to device because at initi, data is not yet sent to device
 
     self.K = Parameter(torch.Tensor(out_features, 1))
-    if not self.opt['test_tau_symmetric']:
+    if not self.opt['test_tau_symmetric'] or self.opt['function'] == 'greed_scaledDP': #second term is so that scaledDP can inherit`
       self.Q = Parameter(torch.Tensor(out_features, 1))
 
     self.deg_inv_sqrt = self.get_deg_inv_sqrt(data).to(device) #sending this to device because at initi, data is not yet sent to device
@@ -83,7 +83,7 @@ class ODEFuncGreed(ODEFunc):
   def reset_parameters(self):
     glorot(self.W)
     glorot(self.K)
-    if not self.opt['test_tau_symmetric']:
+    if not self.opt['test_tau_symmetric'] or self.opt['function'] == 'greed_scaledDP': #second term is so that scaledDP can inherit
       glorot(self.Q)
     zeros(self.bias)
 

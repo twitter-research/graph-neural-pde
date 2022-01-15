@@ -515,7 +515,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
   opt = vars(args)
 
-  if opt['function'] == 'greed':
+  if opt['function'] == 'greed' or opt['function'] == 'greed_scaledDP':
     opt = greed_run_params(opt)  ###basic params for GREED
 
     if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these

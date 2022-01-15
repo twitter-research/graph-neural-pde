@@ -20,6 +20,7 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
 
   def __init__(self, in_features, out_features, opt, data, device, bias=False):
     super(ODEFuncGreed_SDB, self).__init__(in_features, out_features, opt, data, device, bias=False)
+    #todo this isn't great as it inits the KQW from super first.
     self.K = Parameter(torch.Tensor(out_features, opt['dim_p_omega']))
     self.Q = Parameter(torch.Tensor(out_features, opt['dim_p_omega']))
     self.W = Parameter(torch.Tensor(out_features, opt['dim_p_w']))
@@ -34,12 +35,6 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
     # self.init_weights(self.W)
 
     self.reset_parameters()
-
-  def reset_parameters(self):
-    glorot(self.K)
-    glorot(self.Q)
-    glorot(self.W)
-    zeros(self.bias)
 
   # def init_weights(self, m):
   #   if type(m) == nn.Linear:

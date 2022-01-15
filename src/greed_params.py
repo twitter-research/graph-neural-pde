@@ -31,7 +31,7 @@ def greed_test_params(opt):
 
 def greed_run_params(opt):
     #fixed greed params - handled by merge_cmd_args
-    opt['function'] = 'greed'
+    # opt['function'] = 'greed' or 'greed_scaledDP'
     opt['block'] = 'constant'
     opt['self_loop_weight'] = 0 #needed for greed
     # opt['method'] = 'euler' #'dopri5' #'dopri5' #'euler' #need to comment this out for tuning
@@ -46,6 +46,10 @@ def greed_run_params(opt):
     # opt['greed_momentum'] = False #new param not in best_params
     # handled by merge_cmd_args
     # opt['add_source'] = False #this feels important because of design, ie keep adding back initial condition of the energy grad flow!
+
+    #greed_scaledDP params
+    # opt['dim_p_omega'] = 16
+    # opt['dim_p_w'] = 16
     return opt
 
 def greed_hyper_params(opt):
