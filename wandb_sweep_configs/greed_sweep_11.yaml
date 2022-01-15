@@ -1,0 +1,58 @@
+program: run_GNN.py
+method: random
+parameters:
+  test_no_chanel_mix:
+    values: [True, False]
+  test_omit_metric:
+    values: [True, False]
+  test_tau_symmetric:
+    values: [True, False]
+  test_mu_0:
+    values: [True, False]
+  test_tau_remove_tanh:
+    values: [True, False]
+  test_tau_outside:
+    values: [True, False]
+  use_mlp:
+    values: [True, False]
+  method:
+    values: [dopri5]
+  time:
+    values: [5, 18.295]
+  hidden_dim:
+    values: [8, 16, 32, 64]
+  attention_dim:
+    values: [8, 16, 32, 64]
+  dim_p_omega:
+    values: [8, 16, 32, 64]
+  dim_p_w:
+    values: [8, 16, 32, 64]
+  tau_reg:
+    values: [1, 4, 8, 32]
+  input_dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.5
+  dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.5
+  lr:
+    distribution: uniform
+    min: 0.01
+    max: 0.1
+  decay:
+    distribution: uniform
+    min: 0.001
+    max: 0.1
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --function
+  - greed
+entity: graph_neural_diffusion
+project: greed_tuning_11
