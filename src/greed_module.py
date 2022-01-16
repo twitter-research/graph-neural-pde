@@ -15,23 +15,17 @@ import wandb
 from utils import MaxNFEException
 from base_classes import ODEFunc
 
-#todo remove this from the module level
-# REMOVE SOURCES OF RANDOMNESS
-# import numpy as np
-# import random
-#
-# torch.manual_seed(0)
-# random.seed(0)
-# np.random.seed(0)
-#
-# # torch.use_deterministic_algorithms(True)
+class GREED_module(nn.module):
 
+  # def __init__(self, in_features, out_features, opt, device, concat=True, edge_weights=None):
+  #   super(SpGraphTransAttentionLayer, self).__init__()
 
-class ODEFuncGreed(ODEFunc):
+  def __init__(self, in_features, out_features, opt,device, edge_weights=None, bias=False):
+    super(GREED_module, self).__init__()
 
-  def __init__(self, in_features, out_features, opt, data, device, bias=False):
-    super(ODEFuncGreed, self).__init__(opt, data, device)
     assert opt['self_loop_weight'] == 0, 'greed does not work with self-loops as eta becomes zero everywhere'
+
+
     self.in_features = in_features
     self.out_features = out_features
     if opt['self_loop_weight'] > 0:
@@ -194,8 +188,6 @@ class ODEFuncGreed(ODEFunc):
       gamma[mask] = 0
     return gamma, eta
 
-
-
   def get_self_loops(self):
     loop_index = torch.arange(0, self.n_nodes, dtype=self.edge_index.dtype) #, device=self.edge_index.device)
     loop_index = loop_index.unsqueeze(0).repeat(2, 1)
@@ -293,11 +285,9 @@ class ODEFuncGreed(ODEFunc):
     tau, tau_transpose = self.get_tau(x)
     metric = self.get_metric(x, tau, tau_transpose)
 
+    gamma, eta = self.get_gamma(metric)
     if self.opt['test_omit_metric']:
-      eta = torch.ones(metric.shape, device=x.device)
-      gamma = -torch.ones(metric.shape, device=x.device) #setting metric equal to adjacency
-    else:
-      gamma, eta = self.get_gamma(metric, self.opt['gamma_epsilon'])
+      gamma = -torch.ones(gamma.shape, device=x.device) #setting metric equal to adjacency
 
     L, R1, R2 = self.get_dynamics(x, gamma, tau, tau_transpose, Ws)
     # L, R1, R2 = self.clipper([L, R1, R2])
@@ -342,3 +332,6 @@ class ODEFuncGreed(ODEFunc):
 
   def __repr__(self):
     return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'
+
+
+def cla

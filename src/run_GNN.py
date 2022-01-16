@@ -512,7 +512,7 @@ if __name__ == '__main__':
   parser.add_argument('--momentum_alpha', type=float, default=0.2, help="alpha to use in momentum grad flow")
   parser.add_argument('--dim_p_omega', type=int, default=16, help="inner dimension for Omega")
   parser.add_argument('--dim_p_w', type=int, default=16, help="inner dimension for W")
-
+  parser.add_argument('--gamma_epsilon', type=float, default=0.01, help="epsilon value used for numerical stability in get_gamma")
 
   args = parser.parse_args()
   opt = vars(args)

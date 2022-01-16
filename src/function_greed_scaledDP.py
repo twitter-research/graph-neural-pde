@@ -21,8 +21,8 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
   def __init__(self, in_features, out_features, opt, data, device, bias=False):
     super(ODEFuncGreed_SDB, self).__init__(in_features, out_features, opt, data, device, bias=False)
     #todo this isn't great as it inits the KQW from super first.
-    self.K = Parameter(torch.Tensor(out_features, opt['dim_p_omega']))
-    self.Q = Parameter(torch.Tensor(out_features, opt['dim_p_omega']))
+    self.K = Parameter(torch.Tensor(opt['dim_p_omega'], out_features))
+    self.Q = Parameter(torch.Tensor(opt['dim_p_omega'], out_features))
     self.W = Parameter(torch.Tensor(out_features, opt['dim_p_w']))
     # https://discuss.pytorch.org/t/how-to-initialize-weight-with-arbitrary-tensor/3432
     #https://discuss.pytorch.org/t/initialize-weights-using-the-matrix-multiplication-result-from-two-nn-parameter/120557/8
@@ -168,22 +168,27 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
       raise MaxNFEException
     self.nfe += 1
     Ws = self.W @ self.W.t()  # output a [d,d] tensor
-    Omega = self.Q @ self.K.t()  # output a [d,d] tensor
+    # Omega = self.Q @ self.K.t()  # output a [d,d] tensor
+    Omega = self.K.t() @ self.Q  # output a [d,d] tensor
 
     tau, tau_transpose = self.get_tau(x, Omega)
     metric = self.get_metric(x, tau, tau_transpose)
 
-    gamma, eta = self.get_gamma(metric)
     if self.opt['test_omit_metric']:
-      gamma = -torch.ones(gamma.shape, device=x.device) #setting metric equal to adjacency
+      eta = torch.ones(metric.shape, device=x.device)
+      gamma = -torch.ones(metric.shape, device=x.device) #setting metric equal to adjacency
+    else:
+      gamma, eta = self.get_gamma(metric, self.opt['gamma_epsilon'])
 
     L, R1_term1, R1_term2, R2_term1, R2_term2 = self.get_dynamics(x, gamma, tau, tau_transpose, Ws)
 
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
-    f = torch_sparse.spmm(edges, L, x.shape[0], x.shape[0], x)
-    fomegaT = torch.matmul(f, Omega.T)
-    fomega = torch.matmul(f, Omega)
+    Lf = torch_sparse.spmm(edges, L, x.shape[0], x.shape[0], x)
 
+    fomegaT = torch.matmul(x, Omega.T)
+    fomega = torch.matmul(x, Omega)
+
+    f = torch.matmul(Lf, Ws)
     f = f + torch_sparse.spmm(self.edge_index, R1_term1, x.shape[0], x.shape[0], fomegaT)
     f = f - torch_sparse.spmm(self.edge_index, R1_term2, x.shape[0], x.shape[0], fomegaT)
     f = f - torch_sparse.spmm(self.edge_index, R2_term1, x.shape[0], x.shape[0], fomega)
