@@ -55,6 +55,6 @@ command:
   - --wandb
   - --wandb_sweep
   - --function
-  - greed
+  - greed_scaledDP
 entity: graph_neural_diffusion
 project: greed_tuning_12
