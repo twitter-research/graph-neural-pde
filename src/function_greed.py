@@ -313,7 +313,6 @@ class ODEFuncGreed(ODEFunc):
     f = f - 0.5 * self.mu * (x - self.x0)
     # f = f + self.x0
     # todo consider adding a term f = f + self.alpha * f
-    # todo switch this
 
     if self.opt['test_omit_metric'] and self.opt['test_mu_0']: #energy to use when Gamma is -adjacency and not the pullback and mu == 0
       energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2)
@@ -321,10 +320,7 @@ class ODEFuncGreed(ODEFunc):
       energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2) + self.mu * torch.sum((x - self.x0) ** 2)
     else:
       energy = self.get_energy(x, eta)
-    # energy = 0.5 * torch.sum(metric) + self.mu * torch.sum((x - self.x0) ** 2)
 
-    # print(f"energy = {energy} at time {t} and mu={self.mu}")
-    # print(f"energy change = {energy - self.energy:.4f}, energy {energy:.4f} at time {t},   SS's  f: {torch.sum(f**2):.4f},  L: {torch.sum(L**2):.4f}, R1: {torch.sum(R1**2):.4f}, R2: {torch.sum(R2**2):.4f}, mu={self.mu}")#, eta {eta.data}")
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.training:
       wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
                  f"gf_e{self.epoch}_f": f ** 2, f"gf_e{self.epoch}_L": torch.sum(L ** 2),

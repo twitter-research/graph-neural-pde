@@ -90,7 +90,8 @@ def train(model, optimizer, data, pos_encoding=None):
 
   model.fm.update(model.getNFE())
   model.resetNFE()
-  loss.backward()
+  # torch.autograd.set_detect_anomaly(True)
+  loss.backward()#retain_graph=True)
   optimizer.step()
   model.bm.update(model.getNFE())
   model.resetNFE()
@@ -517,7 +518,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
   opt = vars(args)
 
-  if opt['function'] == 'greed' or opt['function'] == 'greed_scaledDP':
+  if opt['function'] == 'greed' or opt['function'] == 'greed_scaledDP' or opt['function'] == 'greed_linear':
     opt = greed_run_params(opt)  ###basic params for GREED
 
     if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these

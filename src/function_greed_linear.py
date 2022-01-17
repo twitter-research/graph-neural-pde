@@ -15,17 +15,23 @@ import wandb
 from utils import MaxNFEException
 from base_classes import ODEFunc
 
-class GREED_module(nn.module):
+#todo remove this from the module level
+# REMOVE SOURCES OF RANDOMNESS
+# import numpy as np
+# import random
+#
+# torch.manual_seed(0)
+# random.seed(0)
+# np.random.seed(0)
+#
+# # torch.use_deterministic_algorithms(True)
 
-  # def __init__(self, in_features, out_features, opt, device, concat=True, edge_weights=None):
-  #   super(SpGraphTransAttentionLayer, self).__init__()
 
-  def __init__(self, in_features, out_features, opt,device, edge_weights=None, bias=False):
-    super(GREED_module, self).__init__()
+class ODEFuncGreedLinear(ODEFunc):
 
+  def __init__(self, in_features, out_features, opt, data, device, bias=False):
+    super(ODEFuncGreedLinear, self).__init__(opt, data, device)
     assert opt['self_loop_weight'] == 0, 'greed does not work with self-loops as eta becomes zero everywhere'
-
-
     self.in_features = in_features
     self.out_features = out_features
     if opt['self_loop_weight'] > 0:
@@ -71,8 +77,22 @@ class GREED_module(nn.module):
     self.epoch = 0
     self.wandb_step = 0
     self.prev_grad = None
-
+    self.x_0 = None #initial (encoded) conditions of the ODE)
+    self.L_0 = None #static Laplacian form
     self.reset_parameters()
+
+  def set_x0(self, x0):
+    self.x_0 = x0.clone().detach()
+
+  def set_L0(self):
+    tau_0, tau_transpose_0 = self.get_tau(self.x_0)
+    metric_0 = self.get_metric(self.x_0, tau_0, tau_transpose_0)
+    if self.opt['test_omit_metric']:
+      eta_0 = torch.ones(metric_0.shape, device=self.x_0.device)
+      gamma_0 = -torch.ones(metric_0.shape, device=self.x_0.device)  # setting metric equal to adjacency
+    else:
+      gamma_0, eta_0 = self.get_gamma(metric_0, self.opt['gamma_epsilon'])
+    self.L_0 = self.get_laplacian_linear(gamma_0, tau_0, tau_transpose_0)
 
   def reset_parameters(self):
     glorot(self.W)
@@ -188,6 +208,8 @@ class GREED_module(nn.module):
       gamma[mask] = 0
     return gamma, eta
 
+
+
   def get_self_loops(self):
     loop_index = torch.arange(0, self.n_nodes, dtype=self.edge_index.dtype) #, device=self.edge_index.device)
     loop_index = loop_index.unsqueeze(0).repeat(2, 1)
@@ -265,6 +287,28 @@ class GREED_module(nn.module):
     R2 = self.get_R2(T2, T5, transposed_edge_index, f, fWs)
     return L, R1, R2
 
+  def get_laplacian_linear(self, gamma, tau, tau_transpose):
+    """
+    These dynamics follow directly from differentiating the energy
+    The structure of T0,T1 etc. is a direct result of differentiating the hyperbolic tangent nonlinearity.
+    Note: changing the nonlinearity will change the equations
+    Returns: L - a generalisation of the Laplacian, but using attention
+             R1, R2 are a result of tau being a function of the features and both are zero if tau is not dependent on
+             features
+    """
+    tau = tau.flatten()
+    tau_transpose = tau_transpose.flatten()
+    tau2 = tau * tau
+    if self.opt['test_tau_remove_tanh']:
+      T0 = gamma * tau2
+      T1 = gamma * tau * tau_transpose
+    else:
+      T0 = gamma * tau2
+      T1 = gamma * tau * tau_transpose
+    L = self.get_laplacian_form(T1, T0)
+    return L
+
+
   def clipper(self, tensors, threshold=10):
     for M in tensors:
       M = M.masked_fill(M > threshold, threshold)
@@ -282,28 +326,20 @@ class GREED_module(nn.module):
     self.nfe += 1
     Ws = self.W @ self.W.t()  # output a [d,d] tensor
 
-    tau, tau_transpose = self.get_tau(x)
-    metric = self.get_metric(x, tau, tau_transpose)
-
-    gamma, eta = self.get_gamma(metric)
-    if self.opt['test_omit_metric']:
-      gamma = -torch.ones(gamma.shape, device=x.device) #setting metric equal to adjacency
-
-    L, R1, R2 = self.get_dynamics(x, gamma, tau, tau_transpose, Ws)
-    # L, R1, R2 = self.clipper([L, R1, R2])
+    tau_0, tau_transpose_0 = self.get_tau(self.x_0)
+    with torch.no_grad(): #these things go into calculating energy not forward
+      metric_0 = self.get_metric(self.x_0, tau_0, tau_transpose_0)
+      _, eta = self.get_gamma(metric_0, self.opt['gamma_epsilon'])
+      tau, tau_transpose = tau_0, tau_transpose_0 #just resetting for energy calc
+    R1 = 0
+    R2 = 0
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
-    f = torch_sparse.spmm(edges, L, x.shape[0], x.shape[0], x)
+    f = torch_sparse.spmm(edges, self.L_0, x.shape[0], x.shape[0], x)
     f = torch.matmul(f, Ws)
-
-    if self.opt['test_tau_symmetric']:
-      f + R1.unsqueeze(dim=-1) @ self.K.t() + R2.unsqueeze(dim=-1) @ self.K.t()
-    else:
-      f = f + R1.unsqueeze(dim=-1) @ self.K.t() + R2.unsqueeze(dim=-1) @ self.Q.t()
 
     f = f - 0.5 * self.mu * (x - self.x0)
     # f = f + self.x0
     # todo consider adding a term f = f + self.alpha * f
-    # todo switch this
 
     if self.opt['test_omit_metric'] and self.opt['test_mu_0']: #energy to use when Gamma is -adjacency and not the pullback and mu == 0
       energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2)
@@ -311,10 +347,7 @@ class GREED_module(nn.module):
       energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2) + self.mu * torch.sum((x - self.x0) ** 2)
     else:
       energy = self.get_energy(x, eta)
-    # energy = 0.5 * torch.sum(metric) + self.mu * torch.sum((x - self.x0) ** 2)
 
-    # print(f"energy = {energy} at time {t} and mu={self.mu}")
-    # print(f"energy change = {energy - self.energy:.4f}, energy {energy:.4f} at time {t},   SS's  f: {torch.sum(f**2):.4f},  L: {torch.sum(L**2):.4f}, R1: {torch.sum(R1**2):.4f}, R2: {torch.sum(R2**2):.4f}, mu={self.mu}")#, eta {eta.data}")
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.training:
       wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
                  f"gf_e{self.epoch}_f": f ** 2, f"gf_e{self.epoch}_L": torch.sum(L ** 2),
@@ -332,6 +365,3 @@ class GREED_module(nn.module):
 
   def __repr__(self):
     return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'
-
-
-def cla

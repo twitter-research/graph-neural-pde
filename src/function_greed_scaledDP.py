@@ -47,7 +47,7 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
     """
     Takes a sparse matrix S and, 2 dense matrices A, B and performs a sparse hadamard product
     Keeping only the elements of A @ B.T where S is non-zero
-    Only keeps the rows_i in A and the cols_j in B where i,j in S
+    Only keeps the rows_i in A and the cols_j in B.T where i,j in S
     @param S: a sparse Matrix
     @param A: a dense matrix dim[n , d]
     @param B: a dense matrix dim[n, d]
@@ -61,8 +61,8 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
 
   def D_diagM(self, A, B, D):
     """
-    Takes 3 dense matrices A, B, C and performs D @ diag(A @ B.T)
-    Keeping only the elements of A @ B where D is non-zero
+    Takes 2 dense matrices A, B, and a diagonal D and performs D @ diag(A @ B.T)
+    Keeping only the elements of A @ B where D is non-zero ie i==j
     @return: values
     """
     values = D * torch.sum(A * B, dim=1)
@@ -109,6 +109,9 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
   def get_R1_term1(self, T2, f, fWs):
     g = torch.sum(f * fWs, dim=1)
     return (self.deg_inv * g)[self.edge_index[0, :]] * T2 #todo check edge index
+    #indexing needs to match indexing of T2 which comes from Tau.
+    #because Tau comes from sparse haddamard product which takes the rows i of f@Omega and the cols j  of f.T
+    #so I'm happy on the understanding rows == i == src
 
   def get_R1_term2(self, T3, f, fWs):
     temp_sparse = self.sparse_sym_normalise(self.deg_inv_sqrt, self.edge_index, T3)
@@ -120,7 +123,8 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
   def get_R2_term2(self, T2, f, fWs):
     product = T2 * self.D_diagM(f, fWs, self.deg_inv)[self.edge_index[1]] #todo this is a massive guess whether it's [0] or [1], went [1] because RHS multiplication
     return product #ie RHS multiplication with a diagonal matrix broadcasts over columns not rows
-
+    #T2 is again rows == i == src. there are E non zero elements.
+    #the second term is a diagonal matrix, so we scale the columns, ie index cols=j==dst
 
   def get_dynamics(self, f, gamma, tau, tau_transpose, Ws):
     """

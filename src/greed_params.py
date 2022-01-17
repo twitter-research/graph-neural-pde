@@ -85,6 +85,22 @@ def greed_ablation_params(opt):
         # opt['test_tau_remove_tanh_reg'] = 5 found this has different tolerances
     else:
         opt['test_tau_symmetric'] = True
+
+    return opt
+
+def not_sweep_args(opt, project_name, group_name):
+    # args for running locally - specified in YAML for tunes
+    opt['wandb'] = True
+    opt['wandb_track_grad_flow'] = False  # don't plot grad flows when tuning
+    opt['wandb_project'] = project_name #"greed_runs"
+    opt['wandb_group'] = group_name #"testing"  # "tuning" eval
+    DT = datetime.datetime.now()
+    opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb_best_BLEND_params"  # "wandb_log_gradflow_test3"
+    # hyper-params
+    if not opt['use_best_params']:
+        opt = greed_hyper_params(opt)
+    opt = greed_ablation_params(opt)
+
     return opt
 
 def t_or_f(tf_str):
@@ -102,19 +118,6 @@ def tf_ablation_args(opt):
         opt[arg] = bool_tf
     return opt
 
-def not_sweep_args(opt, project_name, group_name):
-    # args for running locally - specified in YAML for tunes
-    opt['wandb'] = True
-    opt['wandb_track_grad_flow'] = False  # don't plot grad flows when tuning
-    opt['wandb_project'] = project_name #"greed_runs"
-    opt['wandb_group'] = group_name #"testing"  # "tuning" eval
-    DT = datetime.datetime.now()
-    opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb_best_BLEND_params"  # "wandb_log_gradflow_test3"
-    # hyper-params
-    if not opt['use_best_params']:
-        opt = greed_hyper_params(opt)
-    opt = greed_ablation_params(opt)
-    return opt
 
 def default_params():
     parser = argparse.ArgumentParser()
