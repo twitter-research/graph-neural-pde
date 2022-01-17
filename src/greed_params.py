@@ -65,7 +65,6 @@ def greed_hyper_params(opt):
     opt["dropout"] = 0.04687 #tune.uniform(0, 0.15)  # output dropout parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
 
     # opt["use_mlp"] = True### this was ignored in Sweeep as string from YAML
-
     # alpha = 1
     # heads = 8
     # method = 'dopri5'
@@ -86,6 +85,8 @@ def greed_ablation_params(opt):
     else:
         opt['test_tau_symmetric'] = True
 
+    #if function is greed_linear
+    opt['test_linear_L0'] = True # flag to make the Laplacian form only dependent on embedding not time
     return opt
 
 def not_sweep_args(opt, project_name, group_name):
@@ -111,7 +112,7 @@ def t_or_f(tf_str):
 
 def tf_ablation_args(opt):
     for arg in ['test_no_chanel_mix','test_omit_metric','test_mu_0',
-                'test_tau_remove_tanh','test_tau_symmetric', 'test_tau_outside',
+                'test_tau_remove_tanh','test_tau_symmetric', 'test_tau_outside', 'test_linear_L0',
                 'use_mlp']:
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)
@@ -295,6 +296,7 @@ def default_params():
     parser.add_argument('--test_tau_remove_tanh', type=str, default='True')  # action='store_true')
     parser.add_argument('--test_tau_symmetric', type=str, default='True')  # action='store_true')
     parser.add_argument('--test_tau_outside', type=str, default='True')  # action='store_true')
+    parser.add_argument('--test_linear_L0', type=str, default='True')  # action='store_true')
 
     # Temp changing these to be strings so can tune over
     # parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',

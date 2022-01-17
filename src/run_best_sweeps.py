@@ -21,7 +21,7 @@ def run_best(sweep, run_list, project_name, group_name, num_runs):
 
         opt = {**default_params_dict, **greed_run_dict, **not_sweep_dict, **yaml_opt}
         opt['wandb_best_run_id'] = run
-
+        opt['use_best_params'] = False
         for i in range(num_runs):
             main(opt)
 
