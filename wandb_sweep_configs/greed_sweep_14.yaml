@@ -19,7 +19,7 @@ parameters:
     values: [True, False]
   method:
     values: [euler]
-  ste_size:
+  step_size:
     values: [0.25, 0.5, 1]
   time:
     values: [5, 18.295]
