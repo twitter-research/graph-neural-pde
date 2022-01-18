@@ -11,7 +11,7 @@ def run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs):
         sweep = cmd_opt['sweep_id']
 
     for run in run_list:
-        # default_params_dict = default_params()
+        default_params_dict = default_params()
         greed_run_dict = greed_run_params(cmd_opt)#default_params_dict)
         not_sweep_dict = not_sweep_args(greed_run_dict, project_name, group_name)
 
@@ -26,8 +26,8 @@ def run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs):
                 temp_opt[k] = v
         yaml_opt = temp_opt
 
-        # opt = {**default_params_dict, **greed_run_dict, **not_sweep_dict, **yaml_opt, **cmd_opt}
-        opt = {**greed_run_dict, **not_sweep_dict, **yaml_opt, **cmd_opt}
+        opt = {**default_params_dict, **greed_run_dict, **not_sweep_dict, **yaml_opt, **cmd_opt}
+        # opt = {**greed_run_dict, **not_sweep_dict, **yaml_opt, **cmd_opt}
         # loads all the needed params, eventually overiding with yaml and cmd line
         print(opt)
         opt['wandb_best_run_id'] = run
