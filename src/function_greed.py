@@ -305,8 +305,12 @@ class ODEFuncGreed(ODEFunc):
     f = torch_sparse.spmm(edges, L, x.shape[0], x.shape[0], x)
     f = torch.matmul(f, Ws)
 
+    if self.opt['test_R1R2_0']:
+      R1 = 0
+      R2 = 0
+
     if self.opt['test_tau_symmetric']:
-      f + R1.unsqueeze(dim=-1) @ self.K.t() + R2.unsqueeze(dim=-1) @ self.K.t()
+      f = f + R1.unsqueeze(dim=-1) @ self.K.t() + R2.unsqueeze(dim=-1) @ self.K.t()
     else:
       f = f + R1.unsqueeze(dim=-1) @ self.K.t() + R2.unsqueeze(dim=-1) @ self.Q.t()
 

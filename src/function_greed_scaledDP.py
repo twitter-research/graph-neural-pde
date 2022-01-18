@@ -192,6 +192,12 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
     fomegaT = torch.matmul(x, Omega.T)
     fomega = torch.matmul(x, Omega)
 
+    if self.opt['test_R1R2_0']:
+      R1_term1 = 0
+      R1_term2 = 0
+      R2_term1 = 0
+      R2_term2 = 0
+
     f = torch.matmul(Lf, Ws)
     f = f + torch_sparse.spmm(self.edge_index, R1_term1, x.shape[0], x.shape[0], fomegaT)
     f = f - torch_sparse.spmm(self.edge_index, R1_term2, x.shape[0], x.shape[0], fomegaT)

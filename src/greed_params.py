@@ -87,7 +87,9 @@ def greed_ablation_params(opt):
 
     #if function is greed_linear
     opt['test_linear_L0'] = True # flag to make the Laplacian form only dependent on embedding not time
+    opt['test_R1R2_0'] = True
     return opt
+
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
@@ -297,6 +299,7 @@ def default_params():
     parser.add_argument('--test_tau_symmetric', type=str, default='True')  # action='store_true')
     parser.add_argument('--test_tau_outside', type=str, default='True')  # action='store_true')
     parser.add_argument('--test_linear_L0', type=str, default='True')  # action='store_true')
+    parser.add_argument('--test_R1R2_0', type=str, default='True')  # action='store_true')
 
     # Temp changing these to be strings so can tune over
     # parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
