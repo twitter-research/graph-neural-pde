@@ -318,6 +318,7 @@ def default_params():
     #needed for run_best_sweeps
     parser.add_argument('--sweep_id', type=str, default='', help="sweep_id for 1 best run")  # action='store_true')
     parser.add_argument('--run_id', type=str, default='', help="run_id for 1 best run")  # action='store_true')
+    parser.add_argument('--run_group', type=str, default=None, help="run_id for 1 best run")  # action='store_true')
 
     args = parser.parse_args()
     opt = vars(args)
