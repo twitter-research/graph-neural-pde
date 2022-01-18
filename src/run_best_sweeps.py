@@ -46,6 +46,7 @@ if __name__ == "__main__":
     parser.add_argument('--test_linear_L0', type=str, default='True')  # action='store_true')
     parser.add_argument('--test_R1R2_0', type=str, default='True')  # action='store_true')
 
+    parser.add_argument('--function', type=str, help='laplacian, transformer, greed, GAT, greed, greed_scaledDP, greed_linear', required=True)
     parser.add_argument('--sweep_id', type=str, default='', help="sweep_id for 1 best run")  # action='store_true')
     parser.add_argument('--run_id', type=str, default='', help="run_id for 1 best run")  # action='store_true')
 

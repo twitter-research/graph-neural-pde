@@ -31,7 +31,7 @@ def greed_test_params(opt):
 
 def greed_run_params(opt):
     #fixed greed params - handled by merge_cmd_args
-    # opt['function'] = 'greed' or 'greed_scaledDP'
+    # opt['function'] = 'greed' or 'greed_scaledDP' or 'greed_linear'
     opt['block'] = 'constant'
     opt['self_loop_weight'] = 0 #needed for greed
     # opt['method'] = 'euler' #'dopri5' #'dopri5' #'euler' #need to comment this out for tuning
