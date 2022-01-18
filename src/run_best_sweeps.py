@@ -4,7 +4,7 @@ import argparse
 from greed_params import default_params, not_sweep_args, greed_run_params
 from run_GNN import main
 
-def run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs):
+def run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs, run_group=None):
     if cmd_opt['run_id']:
         run_list = [cmd_opt['run_id']]
     if cmd_opt['sweep_id']:
@@ -31,7 +31,10 @@ def run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs):
         # opt = {**greed_run_dict, **not_sweep_dict, **yaml_opt, **cmd_opt}
         # loads all the needed params, eventually overiding with yaml and cmd line
         print(opt)
-        opt['wandb_best_run_id'] = run
+        if run_group:
+            opt['wandb_best_run_id'] = run + "_" + run_group
+        else:
+            opt['wandb_best_run_id'] = run
 
         for i in range(num_runs):
             main(opt)
@@ -46,6 +49,7 @@ if __name__ == "__main__":
     # parser.add_argument('--test_tau_remove_tanh', type=str, default='True')  # action='store_true')
     # parser.add_argument('--test_tau_symmetric', type=str, default='True')  # action='store_true')
     # parser.add_argument('--test_tau_outside', type=str, default='True')  # action='store_true')
+    parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
     parser.add_argument('--test_linear_L0', type=str, default='True')  # action='store_true')
     parser.add_argument('--test_R1R2_0', type=str, default='True')  # action='store_true')
 
@@ -61,4 +65,4 @@ if __name__ == "__main__":
     run_list = ['yv3v42ym', '7ba0jl9m', 'a60dnqcc', 'v6ln1x90', 'f5dmv6ow']
     project_name = 'best_runs'
     group_name = 'eval'
-    run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs=8)
+    run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs=8, run_group=2)
