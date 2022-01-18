@@ -50,6 +50,9 @@ if __name__ == "__main__":
     # parser.add_argument('--test_tau_symmetric', type=str, default='True')  # action='store_true')
     # parser.add_argument('--test_tau_outside', type=str, default='True')  # action='store_true')
     parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
+    parser.add_argument('--pos_enc_type', type=str, default="GDC",
+                        help='positional encoder either GDC, DW64, DW128, DW256')
+
     parser.add_argument('--test_linear_L0', type=str, default='True')  # action='store_true')
     parser.add_argument('--test_R1R2_0', type=str, default='True')  # action='store_true')
 
