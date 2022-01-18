@@ -239,13 +239,16 @@ def main(cmd_opt):
                name=opt['wandb_run_name'], reinit=True, config=opt, allow_val_change=True)
   else:
     wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
-               reinit=True, config=opt, allow_val_change=True) #required when update dim in beltrami
+               reinit=True, config=opt, allow_val_change=True) #required when update hidden_dim in beltrami
+
+# wandb.config.update(config, allow_val_change=True)
 
   wandb.define_metric("epoch_step") #Customize axes - https://docs.wandb.ai/guides/track/log
   if opt['wandb_track_grad_flow']:
     wandb.define_metric("grad_flow_step") #Customize axes - https://docs.wandb.ai/guides/track/log
     wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
 
+  wandb.config.update(opt, allow_val_change=True) #required when update hidden_dim in beltrami
   opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
