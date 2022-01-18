@@ -306,8 +306,8 @@ class ODEFuncGreed(ODEFunc):
     f = torch.matmul(f, Ws)
 
     if self.opt['test_R1R2_0']:
-      R1 = torch.zeros(self.out_features)
-      R2 = torch.zeros(self.out_features)
+      R1 = torch.zeros(self.out_features, device=x.device)
+      R2 = torch.zeros(self.out_features, device=x.device)
 
     if self.opt['test_tau_symmetric']:
       f = f + R1.unsqueeze(dim=-1) @ self.K.t() + R2.unsqueeze(dim=-1) @ self.K.t()
