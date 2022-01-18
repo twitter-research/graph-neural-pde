@@ -236,10 +236,10 @@ def main(cmd_opt):
 
   if 'wandb_run_name' in opt.keys():
     wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
-               name=opt['wandb_run_name'], reinit=True, config=opt)
+               name=opt['wandb_run_name'], reinit=True, config=opt, allow_val_change=True)
   else:
     wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
-               reinit=True, config=opt)
+               reinit=True, config=opt, allow_val_change=True) #required when update dim in beltrami
 
   wandb.define_metric("epoch_step") #Customize axes - https://docs.wandb.ai/guides/track/log
   if opt['wandb_track_grad_flow']:
