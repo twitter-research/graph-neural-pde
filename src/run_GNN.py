@@ -235,20 +235,14 @@ def main(cmd_opt):
   opt['device'] = device
 
 
-  # if 'wandb_run_name' in opt.keys():
-  #   wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
-  #              name=opt['wandb_run_name'], reinit=True, config=opt, allow_val_change=True)
-  # else:
-  #   wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
-  #              reinit=True, config=opt, allow_val_change=True) #required when update hidden_dim in beltrami
   if 'wandb_run_name' in opt.keys():
     wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
-               name=opt['wandb_run_name'], reinit=True, allow_val_change=True)
+               name=opt['wandb_run_name'], reinit=True, config=opt, allow_val_change=True)
   else:
     wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
-               reinit=True, allow_val_change=True) #required when update hidden_dim in beltrami
+               reinit=True, config=opt, allow_val_change=True) #required when update hidden_dim in beltrami
 
-  wandb.config.update(opt, allow_val_change=True) #required when update hidden_dim in beltrami
+  # wandb.config.update(opt, allow_val_change=True) #required when update hidden_dim in beltrami
   opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
 
 

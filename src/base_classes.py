@@ -5,7 +5,7 @@ from utils import Meter
 from regularized_ODE_function import RegularizedODEfunc
 import regularized_ODE_function as reg_lib
 import six
-
+import wandb
 
 REGULARIZATION_FNS = {
     "kinetic_energy": reg_lib.quadratic_cost,
@@ -110,7 +110,12 @@ class BaseGNN(MessagePassing):
     if opt['beltrami']:
       self.mx = nn.Linear(self.num_features, opt['feat_hidden_dim'])
       self.mp = nn.Linear(opt['pos_enc_dim'], opt['pos_enc_hidden_dim'])
-      opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
+
+      if opt['wandb']:
+        wandb.config.update({'hidden_dim': opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']}, allow_val_change=True)  # required when update hidden_dim in beltrami
+      else:
+        opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
+
     else:
       self.m1 = nn.Linear(self.num_features, opt['hidden_dim'])
 
