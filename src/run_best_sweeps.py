@@ -8,7 +8,7 @@ def run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs):
     if cmd_opt['run_id']:
         run_list = [cmd_opt['run_id']]
     if cmd_opt['sweep_id']:
-        sweep = [cmd_opt['sweep_id']]
+        sweep = cmd_opt['sweep_id']
 
     for run in run_list:
         default_params_dict = default_params()
