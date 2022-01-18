@@ -27,6 +27,8 @@ def run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs):
         yaml_opt = temp_opt
 
         opt = {**default_params_dict, **greed_run_dict, **not_sweep_dict, **yaml_opt, **cmd_opt}
+        #loads all the needed params, eventually overiding with yaml and cmd line
+        print(opt)
         opt['wandb_best_run_id'] = run
         opt['use_best_params'] = False
         for i in range(num_runs):
