@@ -48,10 +48,10 @@ if __name__ == "__main__":
     parser.add_argument('--run_id', type=str, default='', help="run_id for 1 best run")  # action='store_true')
 
     args = parser.parse_args()
-    opt = vars(args)
+    cmd_opt = vars(args)
 
     sweep = 'ebq1b5hy'
     run_list = ['yv3v42ym', '7ba0jl9m', 'a60dnqcc', 'v6ln1x90', 'f5dmv6ow']
     project_name = 'best_runs'
     group_name = 'eval'
-    run_best(sweep, run_list, project_name, group_name, num_runs=8)
+    run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs=8)
