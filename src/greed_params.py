@@ -315,6 +315,9 @@ def default_params():
     parser.add_argument('--use_best_params', action='store_true', help="flag to take the best BLEND params")
     parser.add_argument('--greed_momentum', action='store_true', help="flag to use momentum grad flow")
     parser.add_argument('--momentum_alpha', type=float, default=0.2, help="alpha to use in momentum grad flow")
+    #needed for run_best_sweeps
+    parser.add_argument('--sweep_id', type=str, default='', help="sweep_id for 1 best run")  # action='store_true')
+    parser.add_argument('--run_id', type=str, default='', help="run_id for 1 best run")  # action='store_true')
 
     args = parser.parse_args()
     opt = vars(args)
