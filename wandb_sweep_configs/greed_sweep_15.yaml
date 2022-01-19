@@ -25,7 +25,9 @@ parameters:
     values: [euler]
   step_size:
     values: [0.25, 0.5]
-  hidden_dim:
+  feat_hidden_dim:
+    values: [8, 16, 32]
+  pos_enc_hidden_dim:
     values: [8, 16, 32]
   attention_dim:
     values: [8, 16, 32]
