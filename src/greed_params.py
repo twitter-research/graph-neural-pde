@@ -34,6 +34,7 @@ def greed_run_params(opt):
     # opt['function'] = 'greed' or 'greed_scaledDP' or 'greed_linear'
     opt['block'] = 'constant'
     opt['beltrami'] = True
+    opt['pos_Enc_type'] = 'GDC'
     opt['self_loop_weight'] = 0 #needed for greed
     # opt['method'] = 'euler' #'dopri5' #'dopri5' #'euler' #need to comment this out for tuning
     # TUNING
