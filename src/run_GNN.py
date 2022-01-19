@@ -529,16 +529,8 @@ if __name__ == '__main__':
 
     if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these
       opt = not_sweep_args(opt, project_name='greed_runs', group_name='testing')
-      # # args for running locally - specified in YAML for tunes
-      # opt['wandb'] = True
-      # opt['wandb_track_grad_flow'] = False # don't plot grad flows when tuning
-      # opt['wandb_project'] = "greed_runs"
-      # opt['wandb_group'] = "testing" #"tuning" eval
-      # DT = datetime.datetime.now()
-      # opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb_best_BLEND_params"#"wandb_log_gradflow_test3"
-      # #hyper-params
-      # if not opt['use_best_params']:
-      #   opt = greed_hyper_params(opt)
+      # this includes args for running locally - specified in YAML for tunes
+      #  opt = greed_hyper_params(opt)
       # opt = greed_ablation_params(opt)
 
     opt = tf_ablation_args(opt)

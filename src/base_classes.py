@@ -111,11 +111,10 @@ class BaseGNN(MessagePassing):
       self.mx = nn.Linear(self.num_features, opt['feat_hidden_dim'])
       self.mp = nn.Linear(opt['pos_enc_dim'], opt['pos_enc_hidden_dim'])
 
-      # if opt['wandb']:
-      wandb.config.update({'hidden_dim': opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']}, allow_val_change=True)  # required when update hidden_dim in beltrami
-      #this should also be applied to sweeps where opt['wandb']=False
-      # else:
-      #   opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
+      if opt['wandb']:
+        wandb.config.update({'hidden_dim': opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']}, allow_val_change=True)  # required when update hidden_dim in beltrami
+      else:
+        opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
 
     else:
       self.m1 = nn.Linear(self.num_features, opt['hidden_dim'])
