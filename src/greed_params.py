@@ -38,7 +38,7 @@ def greed_run_params(opt):
     # TUNING
     # opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     # opt['time'] = 10 #18.295 #10
-    opt['epoch'] = 30 #10
+    # opt['epoch'] = 30 #10
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
 
     #at some point test these  - not  so won't overwrite

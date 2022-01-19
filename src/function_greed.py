@@ -178,7 +178,7 @@ class ODEFuncGreed(ODEFunc):
     energy_gradient = (src_term - dst_term) @ self.W
     return energy_gradient
 
-  def get_gamma(self, metric, epsilon=1e-2):
+  def get_gamma(self, metric, epsilon=1e-3): #2):
     # todo make epsilon smaller
     # The degree is the thing that provides a notion of dimension on a graph
     # eta is the determinant of the ego graph. This should slow down diffusion where the grad is large
