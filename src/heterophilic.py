@@ -5,7 +5,6 @@ Code taken from https://github.com/jianhao2016/GPRGNN/blob/master/src/dataset_ut
 import torch
 import numpy as np
 import os.path as osp
-import torch_geometric.transforms as T
 
 from typing import Optional, Callable, List, Union
 from torch_sparse import SparseTensor, coalesce
@@ -13,6 +12,7 @@ from torch_geometric.data import InMemoryDataset, download_url, Data
 from torch_geometric.utils.undirected import to_undirected
 from torch_geometric.utils import remove_self_loops
 
+from utils import ROOT_DIR
 
 class Actor(InMemoryDataset):
   r"""The actor-only induced subgraph of the film-director-actor-writer
@@ -293,7 +293,7 @@ def generate_random_splits(data, num_classes, train_rate=0.6, val_rate=0.2):
 
 
 def get_fixed_splits(data, dataset_name, seed):
-  with np.load(f'splits/{dataset_name}_split_0.6_0.2_{seed}.npz') as splits_file:
+  with np.load(f'{ROOT_DIR}/splits/{dataset_name}_split_0.6_0.2_{seed}.npz') as splits_file:
     train_mask = splits_file['train_mask']
     val_mask = splits_file['val_mask']
     test_mask = splits_file['test_mask']

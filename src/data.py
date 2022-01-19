@@ -92,7 +92,8 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     dataset.data = data
     train_mask_exists = True
 
-  if use_lcc or not train_mask_exists:
+  #todo this currently breaks with heterophilic datasets if you don't pass --geom_gcn_splits
+  if (use_lcc or not train_mask_exists) and not opt['geom_gcn_splits']:
     dataset.data = set_train_val_test_split(
       12345,
       dataset.data,
