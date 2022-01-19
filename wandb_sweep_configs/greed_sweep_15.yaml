@@ -47,13 +47,13 @@ parameters:
     values: [adam, adamax]
   lr:
     distribution: q_log_uniform
-    min: 0.001
-    max: 0.1
+    min: -3.0
+    max: -1.0
     q: 10
   decay:
     distribution: q_log_uniform
-    min: 0.001
-    max: 0.1
+    min: -3.0
+    max: -1.0
     q: 10
 command:
   - ${env}
