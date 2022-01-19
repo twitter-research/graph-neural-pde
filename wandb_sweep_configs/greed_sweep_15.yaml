@@ -51,7 +51,7 @@ parameters:
     max: 0.1
     q: 10
   decay:
-    distribution: uniform
+    distribution: q_log_uniform
     min: 0.001
     max: 0.1
     q: 10
