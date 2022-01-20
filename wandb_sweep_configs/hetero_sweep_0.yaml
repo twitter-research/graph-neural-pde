@@ -36,8 +36,8 @@ parameters:
     value: 10
   time:
     distribution: uniform
-    min: 1
-    max: 9
+    min: 0
+    max: 6
   dataset:
     distribution: categorical
     values: ['texas', 'wisconsin', 'cornell']
