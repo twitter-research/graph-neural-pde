@@ -3,7 +3,7 @@ method: random
 parameters:
   method:
     distribution: categorical
-    values: [ 'euler' ]
+    values: [ 'rk4' ]
   step_size:
     distribution: categorical
     values: [ 0.25 , 0.5, 1 ]
