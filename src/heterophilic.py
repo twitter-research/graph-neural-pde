@@ -293,7 +293,7 @@ def generate_random_splits(data, num_classes, train_rate=0.6, val_rate=0.2):
 
 
 def get_fixed_splits(data, dataset_name, seed):
-  with np.load(f'{ROOT_DIR}/splits/{dataset_name}_split_0.6_0.2_{seed}.npz') as splits_file:
+  with np.load(f'{ROOT_DIR}/src/splits/{dataset_name}_split_0.6_0.2_{seed}.npz') as splits_file:
     train_mask = splits_file['train_mask']
     val_mask = splits_file['val_mask']
     test_mask = splits_file['test_mask']

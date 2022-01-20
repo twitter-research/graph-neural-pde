@@ -13,7 +13,7 @@ from torch_geometric.utils.convert import to_scipy_sparse_matrix
 from sklearn.preprocessing import normalize
 from torch_geometric.nn.conv.gcn_conv import gcn_norm
 
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 class MaxNFEException(Exception): pass
 
