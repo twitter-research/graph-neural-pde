@@ -23,7 +23,7 @@ parameters:
   time:
     distribution: uniform
     min: 1
-    max: 10
+    max: 15
   dataset:
     distribution: categorical
     values: ['squirrel', 'chameleon']
