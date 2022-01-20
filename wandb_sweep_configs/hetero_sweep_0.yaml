@@ -18,7 +18,7 @@ parameters:
   test_mu_0:
     values: [True, False]
   use_mlp:
-    values: [True, False]
+    values: [False]
   method:
     distribution: categorical
     values: [ 'dopri5' ]
@@ -36,8 +36,8 @@ parameters:
     value: 10
   time:
     distribution: uniform
-    min: 4
-    max: 15
+    min: 1
+    max: 9
   dataset:
     distribution: categorical
     values: ['texas', 'wisconsin', 'cornell']
