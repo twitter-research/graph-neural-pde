@@ -17,7 +17,7 @@ from data import get_dataset, set_train_val_test_split
 from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling
 from best_params import best_params_dict
 from heterophilic import get_fixed_splits
-
+from utils import ROOT_DIR
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
   if name == 'sgd':
@@ -210,7 +210,7 @@ def main(cmd_opt):
 
   merge_cmd_args(cmd_opt, opt)
 
-  dataset = get_dataset(opt, '../data', opt['not_lcc'])
+  dataset = get_dataset(opt, f'{ROOT_DIR}/data', opt['not_lcc'])
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
   if opt['beltrami']:
