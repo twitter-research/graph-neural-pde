@@ -14,6 +14,7 @@ from ogb.nodeproppred import PygNodePropPredDataset
 import torch_geometric.transforms as T
 from torch_geometric.utils import to_undirected
 from graph_rewiring import make_symmetric, apply_pos_dist_rewire
+from heterophilic import WebKB, WikipediaNetwork, Actor
 
 DATA_PATH = '../data'
 
@@ -38,8 +39,14 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     dataset = Amazon(path, ds)
   elif ds == 'CoauthorCS':
     dataset = Coauthor(path, 'CS')
+  elif ds in ['cornell', 'texas', 'wisconsin']:
+    dataset = WebKB(root=path, name=ds, transform=T.NormalizeFeatures())
+  elif ds in ['chameleon', 'squirrel']:
+    dataset = WikipediaNetwork(root=path, name=ds, transform=T.NormalizeFeatures())
+  elif ds == 'film':
+    dataset = Actor(root=path, transform=T.NormalizeFeatures())
   elif ds == 'ogbn-arxiv':
-    dataset = PygNodePropPredDataset(name=ds,root=path,
+    dataset = PygNodePropPredDataset(name=ds, root=path,
                                      transform=T.ToSparseTensor())
     use_lcc = False  #  never need to calculate the lcc with ogb datasets
   elif ds == 'Karate':
@@ -91,7 +98,8 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     dataset.data = data
     train_mask_exists = True
 
-  if use_lcc or not train_mask_exists:
+  #todo this currently breaks with heterophilic datasets if you don't pass --geom_gcn_splits
+  if (use_lcc or not train_mask_exists) and not opt['geom_gcn_splits']:
     dataset.data = set_train_val_test_split(
       12345,
       dataset.data,
@@ -169,3 +177,14 @@ def set_train_val_test_split(
   data.test_mask = get_mask(test_idx)
 
   return data
+
+
+if __name__ == '__main__':
+  # example for heterophilic datasets
+  from heterophilic import get_fixed_splits
+  opt = {'dataset': 'Cora', 'device': 'cpu'}
+  dataset = get_dataset(opt)
+  for fold in range(10):
+    data = dataset[0]
+    data = get_fixed_splits(data, opt['dataset'], fold)
+    data = data.to(opt['device'])

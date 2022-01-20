@@ -4,17 +4,20 @@ import numpy as np
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
 import torch.nn.functional as F
+import wandb
+from ogb.nodeproppred import Evaluator
+
 from GNN import GNN
 from GNN_early import GNNEarly
 from GNN_KNN import GNN_KNN
 from GNN_KNN_early import GNNKNNEarly
 import time, datetime
 from data import get_dataset, set_train_val_test_split
-from ogb.nodeproppred import Evaluator
 from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling
 from best_params import best_params_dict
 from greed_params import greed_test_params, greed_run_params, greed_hyper_params, greed_ablation_params, tf_ablation_args, not_sweep_args
-import wandb
+
+from heterophilic import get_fixed_splits
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
   if name == 'sgd':
@@ -259,11 +262,6 @@ def main(cmd_opt):
   else:
     pos_encoding = None
 
-  if opt['rewire_KNN'] or opt['fa_layer']:
-    model = GNN_KNN(opt, dataset, device).to(device) if opt["no_early"] else GNNKNNEarly(opt, dataset, device).to(
-      device)
-  else:
-    model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
 
   if not opt['planetoid_split'] and opt['dataset'] in ['Cora', 'Citeseer', 'Pubmed']:
     dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data,
@@ -271,59 +269,74 @@ def main(cmd_opt):
 
   data = dataset.data.to(device)
 
-  parameters = [p for p in model.parameters() if p.requires_grad]
-  print(opt)
-  print_model_params(model)
-  optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-  best_time = best_epoch = train_acc = val_acc = test_acc = 0
-
   this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
 
-  for epoch in range(1, opt['epoch']):
-    start_time = time.time()
+  results = []
+  for rep in range(opt['num_splits']):
+    if opt['rewire_KNN'] or opt['fa_layer']:
+      model = GNN_KNN(opt, dataset, device).to(device) if opt["no_early"] else GNNKNNEarly(opt, dataset, device).to(
+        device)
+    else:
+      model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
 
-    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
-      ei = apply_KNN(data, pos_encoding, model, opt)
-      model.odeblock.odefunc.edge_index = ei
+    parameters = [p for p in model.parameters() if p.requires_grad]
+    print(opt)
+    print_model_params(model)
+    optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
+    best_time = best_epoch = train_acc = val_acc = test_acc = 0
 
-    loss = train(model, optimizer, data, pos_encoding)
-    model.odeblock.odefunc.wandb_step = 0 # resets the wandstep in function after train forward pass
+    if opt['geom_gcn_splits']:
+      data = get_fixed_splits(data, opt['dataset'], rep)
+    for epoch in range(1, opt['epoch']):
+      start_time = time.time()
 
-    tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
-    model.odeblock.odefunc.wandb_step = 0 # resets the wandstep in function after eval forward pass
+      if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
+        ei = apply_KNN(data, pos_encoding, model, opt)
+        model.odeblock.odefunc.edge_index = ei
 
-    best_time = opt['time']
-    if tmp_val_acc > val_acc:
-      best_epoch = epoch
-      train_acc = tmp_train_acc
-      val_acc = tmp_val_acc
-      test_acc = tmp_test_acc
+      loss = train(model, optimizer, data, pos_encoding)
+      model.odeblock.odefunc.wandb_step = 0 # resets the wandstep in function after train forward pass
+
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
+      model.odeblock.odefunc.wandb_step = 0 # resets the wandstep in function after eval forward pass
+
       best_time = opt['time']
-    if not opt['no_early'] and model.odeblock.test_integrator.solver.best_val > val_acc:
-      best_epoch = epoch
-      val_acc = model.odeblock.test_integrator.solver.best_val
-      test_acc = model.odeblock.test_integrator.solver.best_test
-      train_acc = model.odeblock.test_integrator.solver.best_train
-      best_time = model.odeblock.test_integrator.solver.best_time
+      if tmp_val_acc > val_acc:
+        best_epoch = epoch
+        train_acc = tmp_train_acc
+        val_acc = tmp_val_acc
+        test_acc = tmp_test_acc
+        best_time = opt['time']
+      if not opt['no_early'] and model.odeblock.test_integrator.solver.best_val > val_acc:
+        best_epoch = epoch
+        val_acc = model.odeblock.test_integrator.solver.best_val
+        test_acc = model.odeblock.test_integrator.solver.best_test
+        train_acc = model.odeblock.test_integrator.solver.best_train
+        best_time = model.odeblock.test_integrator.solver.best_time
 
-    if ((epoch) % opt['wandb_log_freq']) == 0:
-      wandb.log({"loss": loss,
-                 # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
-                 "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc, "epoch_step": epoch}) #, step=epoch) wandb: WARNING Step must only increase in log calls
+      if ((epoch) % opt['wandb_log_freq']) == 0:
+        wandb.log({"loss": loss,
+                   # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+                   "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc, "epoch_step": epoch}) #, step=epoch) wandb: WARNING Step must only increase in log calls
 
-    print(f"Epoch: {epoch}, Runtime: {time.time() - start_time:.3f}, Loss: {loss:.3f}, "
-          f"forward nfe {model.fm.sum}, backward nfe {model.bm.sum}, "
-          f"Train: {train_acc:.4f}, Val: {val_acc:.4f}, Test: {test_acc:.4f}, Best time: {best_time:.4f}")
-    if opt['function'] == 'greed':
-      model.odeblock.odefunc.epoch += 1
+      print(f"Epoch: {epoch}, Runtime: {time.time() - start_time:.3f}, Loss: {loss:.3f}, "
+            f"forward nfe {model.fm.sum}, backward nfe {model.bm.sum}, "
+            f"Train: {train_acc:.4f}, Val: {val_acc:.4f}, Test: {test_acc:.4f}, Best time: {best_time:.4f}")
+      if opt['function'] == 'greed':
+        model.odeblock.odefunc.epoch += 1
 
-  print(f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
-  # https://docs.wandb.ai/guides/track/log
-  # https://wandb.ai/wandb/plots/reports/Custom-Multi-Line-Plots--VmlldzozOTMwMjU
-  # https://docs.wandb.ai/ref/app/features/custom-charts/walkthrough
-  #todo Customize axes - https://docs.wandb.ai/guides/track/log
+    print(f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
 
-  # wandb.log({'final_test_accuracy': test_acc, 'final_val_accuracy': val_acc, 'final_loss': loss, 'best_epoch': best_epoch}) #For values that are logged with wandb.log, we automatically set summary to the last value added
+    if opt['num_splits'] > 1:
+      results.append([test_acc, val_acc, train_acc])
+
+  if opt['num_splits'] > 1:
+    test_acc_mean, val_acc_mean, train_acc_mean = np.mean(results, axis=0) * 100
+    test_acc_std = np.sqrt(np.var(results, axis=0)[0]) * 100
+    wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
+                     'test_acc_std': test_acc_std}
+    wandb.log(wandb_results)
+    print(wandb_results)
   wandb_run.finish()
   return train_acc, val_acc, test_acc
 
@@ -339,6 +352,10 @@ if __name__ == '__main__':
                       help='rw for random walk, gcn for symmetric gcn norm')
   parser.add_argument('--self_loop_weight', type=float, help='Weight of self-loops.')
   parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
+  parser.add_argument('--geom_gcn_splits', dest='geom_gcn_splits', action='store_true',
+                      help='use the 10 fixed splits from '
+                           'https://arxiv.org/abs/2002.05287')
+  parser.add_argument('--num_splits', type=int, dest='num_splits', default=1, help='the number of splits to repeat the results on')
   parser.add_argument('--label_rate', type=float, default=0.5,
                       help='% of training labels to use when --use_labels is set.')
   parser.add_argument('--planetoid_split', action='store_true',
@@ -540,3 +557,5 @@ if __name__ == '__main__':
 #terminal commands for sweeps
 #wandb sweep ../wandb_sweep_configs/greed_sweep_grid.yaml
 #./run_sweeps.sh XXX
+
+#--dataset texas --geom_gcn_splits --num_splits 10 --epoch 2 --function greed --use_best_params --method euler --step_size 0.25
