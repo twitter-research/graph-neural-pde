@@ -6,11 +6,14 @@ parameters:
     values: [ 'dopri5' ]
   tol_scale:
     distribution: log_uniform
-    min: 0
-    max: 7
+    min: 7
+    max: 12
   function:
     distribution: constant
     value: laplacian
+  max_nfe:
+    distribution: constant
+    value: 5000
   block:
     distribution: constant
     value: attention
