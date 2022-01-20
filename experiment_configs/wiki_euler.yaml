@@ -3,15 +3,10 @@ method: random
 parameters:
   method:
     distribution: categorical
-    values: [ 'dopri5' ]
-  tol_scale:
-    distribution: log_uniform
-    min: 1
-    max: 7
-  tol_scale_adjoint:
-    distribution: log_uniform
-    min: 7
-    max: 12
+    values: [ 'euler' ]
+  step_size:
+    distribution: categorical
+    values: [ 0.25 , 0.5, 1 ]
   function:
     distribution: constant
     value: laplacian
@@ -60,4 +55,3 @@ command:
   - --wandb
   - --wandb_sweep
   - --geom_gcn_splits
-  - --adjoint
