@@ -53,7 +53,7 @@ parameters:
     max: 0.1
   decay:
     distribution: uniform
-    min: 0.01
+    min: 0.005
     max: 0.2
 command:
   - ${env}
