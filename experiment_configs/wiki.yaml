@@ -18,11 +18,11 @@ parameters:
     value: 10
   time:
     distribution: uniform
-    min: 4
+    min: 1
     max: 15
   dataset:
     distribution: categorical
-    values: ['texas', 'wisconsin', 'cornell']
+    values: ['squirrel', 'chameleon', 'cornell']
   hidden_dim:
     values: [ 16, 32, 64 ]
   input_dropout:
