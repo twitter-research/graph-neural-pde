@@ -13,6 +13,10 @@ parameters:
   epoch:
     distribution: constant
     value: 50
+  tol_scale:
+    distribution: log_uniform
+    min: 0
+    max: 7
   num_splits:
     distribution: constant
     value: 10

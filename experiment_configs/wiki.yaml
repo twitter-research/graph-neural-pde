@@ -4,6 +4,10 @@ parameters:
   method:
     distribution: categorical
     values: [ 'dopri5' ]
+  tol_scale:
+    distribution: log_uniform
+    min: 0
+    max: 7
   function:
     distribution: constant
     value: laplacian
