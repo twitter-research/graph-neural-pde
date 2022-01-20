@@ -53,8 +53,8 @@ parameters:
     max: 0.1
   decay:
     distribution: uniform
-    min: 0.0001
-    max: 0.1
+    min: 0.01
+    max: 0.2
 command:
   - ${env}
   - python3
