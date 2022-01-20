@@ -6,7 +6,10 @@ parameters:
     values: [ 'dopri5' ]
   function:
     distribution: constant
-    value: gcn
+    value: laplacian
+  block:
+    distribution: constant
+    value: attention
   epoch:
     distribution: constant
     value: 50
