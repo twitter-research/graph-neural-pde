@@ -39,7 +39,7 @@ class ODEFuncGreedLinear(ODEFuncGreed):
     metric_0 = self.get_metric(x_0, tau_0, tau_transpose_0)
     if self.opt['test_omit_metric']:
       self.eta_0 = torch.ones(metric_0.shape, device=x_0.device)
-      self.gamma_0 = -torch.ones(metric_0.shape, device=x_0.device)  # setting metric equal to adjacency
+      self.gamma_0 = -torch.ones(metric_0.shape, device=x_0.device)  # setting metric equal to adjacency, but still weighting with tau - "weighted heat equation"
     else:
       self.gamma_0, self.eta_0 = self.get_gamma(metric_0, self.opt['gamma_epsilon'])
     self.L_0 = self.get_laplacian_linear(self.gamma_0, tau_0, tau_transpose_0)
@@ -71,15 +71,17 @@ class ODEFuncGreedLinear(ODEFuncGreed):
     self.nfe += 1
     Ws = self.W @ self.W.t()  # output a [d,d] tensor
 
-    if self.opt['test_linear_L0']:
-      with torch.no_grad(): #these things go into calculating energy not forward
+    if self.opt['test_linear_L0']: # setL0
+      with torch.no_grad(): #these things only go into calculating Energy not forward
         metric_0 = self.get_metric(self.x_0, self.tau_0, self.tau_transpose_0)
         _, eta = self.get_gamma(metric_0, self.opt['gamma_epsilon'])
         tau, tau_transpose = self.tau_0, self.tau_transpose_0 #assigning for energy calcs
       edges = torch.cat([self.edge_index, self.self_loops], dim=1)
       L = self.L_0
       f = torch_sparse.spmm(edges, L, x.shape[0], x.shape[0], x)
-    else:
+    ### this is like a hybrid approach still need to confirm if useful, not being focussed on.
+    # "Closest thing to GRAND/BLEND but not gradient flow so no R!/R2"
+    else: # not setL0, L is still dependent on time but setting R1=R2=0
       tau, tau_transpose = self.get_tau(x)
       metric = self.get_metric(self.x_0, tau, tau_transpose) #metric is dependent on x_0 but still on time implicitly through tau
       gamma, eta = self.get_gamma(metric, self.opt['gamma_epsilon'])
