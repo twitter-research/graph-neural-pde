@@ -248,12 +248,10 @@ def main(cmd_opt):
   # wandb.config.update(opt, allow_val_change=True) #required when update hidden_dim in beltrami
   opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
 
-
   wandb.define_metric("epoch_step") #Customize axes - https://docs.wandb.ai/guides/track/log
   if opt['wandb_track_grad_flow']:
     wandb.define_metric("grad_flow_step") #Customize axes - https://docs.wandb.ai/guides/track/log
     wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
-
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
   if opt['beltrami']:
@@ -317,6 +315,7 @@ def main(cmd_opt):
       if ((epoch) % opt['wandb_log_freq']) == 0:
         wandb.log({"loss": loss,
                    # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+                   "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
                    "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc, "epoch_step": epoch}) #, step=epoch) wandb: WARNING Step must only increase in log calls
 
       print(f"Epoch: {epoch}, Runtime: {time.time() - start_time:.3f}, Loss: {loss:.3f}, "
