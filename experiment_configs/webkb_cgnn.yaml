@@ -54,4 +54,5 @@ command:
   - --wandb_sweep
   - --geom_gcn_splits
   - --cgnn
+  - --no_early
 
