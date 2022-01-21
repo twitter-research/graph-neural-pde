@@ -19,6 +19,7 @@ from best_params import best_params_dict
 from heterophilic import get_fixed_splits
 from utils import ROOT_DIR
 
+
 def get_optimizer(name, parameters, lr, weight_decay=0):
   if name == 'sgd':
     return torch.optim.SGD(parameters, lr=lr, weight_decay=weight_decay)
@@ -202,6 +203,9 @@ def merge_cmd_args(cmd_opt, opt):
     opt['time'] = cmd_opt['time']
   if cmd_opt['epoch'] != 100:
     opt['epoch'] = cmd_opt['epoch']
+  if not cmd_opt['not_lcc']:
+    opt['not_lcc'] = False
+
 
 
 def main(cmd_opt):
@@ -243,8 +247,6 @@ def main(cmd_opt):
 
   opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
 
-
-
   if not (opt['planetoid_split'] and opt['dataset'] in ['Cora', 'Citeseer', 'Pubmed']) and not opt['geom_gcn_splits']:
     dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data,
                                             num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
@@ -262,13 +264,14 @@ def main(cmd_opt):
       model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
 
     parameters = [p for p in model.parameters() if p.requires_grad]
-    print_model_params(model)
+    if rep == 0:
+      print_model_params(model)
     optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
     best_time = best_epoch = train_acc = val_acc = test_acc = 0
 
     if opt['geom_gcn_splits']:
       data = get_fixed_splits(data, opt['dataset'], rep)
-    for epoch in range(1, opt['epoch']):
+    for epoch in range(1, opt['epoch'] + 1):
       start_time = time.time()
 
       if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
@@ -334,7 +337,8 @@ if __name__ == '__main__':
   parser.add_argument('--geom_gcn_splits', dest='geom_gcn_splits', action='store_true',
                       help='use the 10 fixed splits from '
                            'https://arxiv.org/abs/2002.05287')
-  parser.add_argument('--num_splits', type=int, dest='num_splits', default=1, help='the number of splits to repeat the results on')
+  parser.add_argument('--num_splits', type=int, dest='num_splits', default=1,
+                      help='the number of splits to repeat the results on')
   parser.add_argument('--label_rate', type=float, default=0.5,
                       help='% of training labels to use when --use_labels is set.')
   parser.add_argument('--planetoid_split', action='store_true',

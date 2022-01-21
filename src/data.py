@@ -9,6 +9,7 @@ import numpy as np
 import torch
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.datasets import Planetoid, Amazon, Coauthor
+from planetoid_geom_gcn import GeomGCNPlanetoid
 from graph_rewiring import get_two_hop, apply_gdc
 from ogb.nodeproppred import PygNodePropPredDataset
 import torch_geometric.transforms as T
@@ -34,7 +35,11 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
   ds = opt['dataset']
   path = os.path.join(data_dir, ds)
   if ds in ['Cora', 'Citeseer', 'Pubmed']:
-    dataset = Planetoid(path, ds)
+    if opt['geom_gcn_splits']:
+      dataset = GeomGCNPlanetoid(path, ds)
+      use_lcc = False
+    else:
+      dataset = Planetoid(path, ds)
   elif ds in ['Computers', 'Photo']:
     dataset = Amazon(path, ds)
   elif ds == 'CoauthorCS':

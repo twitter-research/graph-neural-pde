@@ -53,4 +53,5 @@ command:
   - --wandb
   - --wandb_sweep
   - --geom_gcn_splits
+  - --beltrami
 

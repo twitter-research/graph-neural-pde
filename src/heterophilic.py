@@ -303,7 +303,7 @@ def get_fixed_splits(data, dataset_name, seed):
   data.test_mask = torch.tensor(test_mask, dtype=torch.bool)
 
   # Remove the nodes that the label vectors are all zeros, they aren't assigned to any class
-  if dataset_name in {'cora', 'citeseer', 'pubmed'}:
+  if dataset_name in {'Cora', 'Citeseer', 'Pubmed'}:
     data.train_mask[data.non_valid_samples] = False
     data.test_mask[data.non_valid_samples] = False
     data.val_mask[data.non_valid_samples] = False
