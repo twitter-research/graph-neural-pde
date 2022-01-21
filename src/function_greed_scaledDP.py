@@ -34,7 +34,7 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
     # self.W = nn.Linear(out_features, opt['dim_p_w'])
     # self.init_weights(self.W)
 
-    self.reset_parameters()
+    self.reset_parameters() #needed to reset parameters as overiding base class params
 
   # def init_weights(self, m):
   #   if type(m) == nn.Linear:

@@ -28,13 +28,37 @@ class ODEFuncGreedLinear(ODEFuncGreed):
     self.x_0 = None
     self.L_0 = None #static Laplacian form
 
+    self.Qx = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], opt['dim_p_omega']))
+    self.Qp = Parameter(torch.Tensor(opt['pos_enc_hidden_dim'], opt['dim_p_omega']))
+    self.Kx = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], opt['dim_p_omega']))
+    self.Kp = Parameter(torch.Tensor(opt['pos_enc_hidden_dim'], opt['dim_p_omega']))
+    self.Wk = Parameter(torch.Tensor(opt['hidden_dim'], opt['dim_p_omega']))
+    self.Wq = Parameter(torch.Tensor(opt['hidden_dim'], opt['dim_p_omega']))
+
+    self.reset_parameters()
+
+
+  def reset_parameters(self):
+    glorot(self.Qx)
+    glorot(self.Qp)
+    glorot(self.Kx)
+    glorot(self.Kp)
+    glorot(self.Wk)
+    glorot(self.Wq)
+
+    zeros(self.bias)
+
+
   def set_x_0(self, x_0):
     self.x_0 = x_0.clone().detach()
 
   def set_tau_0(self, x_0):
     self.tau_0, self.tau_transpose_0 = self.get_tau(x_0)
 
-  def set_L0(self, x_0, tau_0, tau_transpose_0):
+  def set_L0(self, x_0):
+
+
+
     # tau_0, tau_transpose_0 = self.get_tau(self.x_0)
     metric_0 = self.get_metric(x_0, tau_0, tau_transpose_0)
     if self.opt['test_omit_metric']:
@@ -43,6 +67,12 @@ class ODEFuncGreedLinear(ODEFuncGreed):
     else:
       self.gamma_0, self.eta_0 = self.get_gamma(metric_0, self.opt['gamma_epsilon'])
     self.L_0 = self.get_laplacian_linear(self.gamma_0, tau_0, tau_transpose_0)
+
+
+
+
+
+
 
   def get_laplacian_linear(self, gamma, tau, tau_transpose):
     """
