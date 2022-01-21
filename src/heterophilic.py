@@ -293,6 +293,9 @@ def generate_random_splits(data, num_classes, train_rate=0.6, val_rate=0.2):
 
 
 def get_fixed_splits(data, dataset_name, seed):
+  #todo just added this to test sheaf experiments. Remove when done
+  if dataset_name == 'gg_cora':
+    dataset_name = 'cora'
   with np.load(f'{ROOT_DIR}/src/splits/{dataset_name}_split_0.6_0.2_{seed}.npz') as splits_file:
     train_mask = splits_file['train_mask']
     val_mask = splits_file['val_mask']
@@ -303,7 +306,7 @@ def get_fixed_splits(data, dataset_name, seed):
   data.test_mask = torch.tensor(test_mask, dtype=torch.bool)
 
   # Remove the nodes that the label vectors are all zeros, they aren't assigned to any class
-  if dataset_name in {'Cora', 'Citeseer', 'Pubmed'}:
+  if dataset_name in {'cora', 'citeseer', 'pubmed'}:
     data.train_mask[data.non_valid_samples] = False
     data.test_mask[data.non_valid_samples] = False
     data.val_mask[data.non_valid_samples] = False

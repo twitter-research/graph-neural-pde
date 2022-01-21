@@ -39,7 +39,7 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     dataset = Planetoid(path, ds)
   #todo rename this datasets as they rely on case sensitive folder names (not supported on mac) and this is also
   # MASSIVELY error prone
-  elif ds in ['cora', 'citeseer', 'pubmed']:
+  elif ds in ['cora', 'citeseer', 'pubmed', 'gg_cora']:
     dataset = GeomGCNPlanetoid(path, ds)
     opt['geom_gcn_splits'] = True
     use_lcc = False
