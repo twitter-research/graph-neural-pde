@@ -33,7 +33,7 @@ parameters:
     max: 15
   dataset:
     distribution: categorical
-    values: ['cora', 'citeseer']
+    values: ['pubmed']
   hidden_dim:
     values: [ 16, 32, 64 ]
   input_dropout:
@@ -47,7 +47,7 @@ parameters:
   lr:
     distribution: uniform
     min: 0.001
-    max: 0.05
+    max: 0.1
   decay:
     distribution: log_uniform
     min: -13.9
@@ -60,3 +60,4 @@ command:
   - --wandb
   - --wandb_sweep
   - --geom_gcn_splits
+  - --adjoint
