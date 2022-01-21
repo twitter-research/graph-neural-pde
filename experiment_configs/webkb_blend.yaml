@@ -27,8 +27,10 @@ parameters:
   dataset:
     distribution: categorical
     values: ['texas', 'wisconsin', 'cornell']
-  hidden_dim:
-    values: [ 16, 32, 64 ]
+  feat_hidden_dim:
+    values: [8, 16, 32]
+  pos_enc_hidden_dim:
+    values: [8, 16, 32, 64]
   input_dropout:
     distribution: uniform
     min: 0.0
