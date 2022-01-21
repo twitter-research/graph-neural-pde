@@ -451,7 +451,7 @@ if __name__ == '__main__':
   # beltrami args
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
   parser.add_argument('--fa_layer', action='store_true', help='add a bottleneck paper style layer with more edges')
-  parser.add_argument('--pos_enc_type', type=str, default="gdc",
+  parser.add_argument('--pos_enc_type', type=str, default="GDC",
                       help='positional encoder either GDC, DW64, DW128, DW256')
   parser.add_argument('--pos_enc_orientation', type=str, default="row", help="row, col")
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
