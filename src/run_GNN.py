@@ -205,10 +205,12 @@ def merge_cmd_args(cmd_opt, opt):
 
 
 def main(cmd_opt):
-  best_opt = best_params_dict[cmd_opt['dataset']]
-  opt = {**cmd_opt, **best_opt}
-
-  merge_cmd_args(cmd_opt, opt)
+  try:
+    best_opt = best_params_dict[cmd_opt['dataset']]
+    opt = {**cmd_opt, **best_opt}
+    merge_cmd_args(cmd_opt, opt)
+  except KeyError:
+    opt = cmd_opt
 
   dataset = get_dataset(opt, f'{ROOT_DIR}/data', opt['not_lcc'])
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -227,7 +229,7 @@ def main(cmd_opt):
   else:
     os.environ["WANDB_MODE"] = "disabled"  # sets as NOOP, saves keep writing: if opt['wandb']:
 
-  if 'wandb_run_name' in opt.keys():
+  if opt['wandb'] and 'wandb_run_name' in opt.keys():
     wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
                            name=opt['wandb_run_name'], reinit=True, config=opt)
   else:
@@ -243,7 +245,7 @@ def main(cmd_opt):
 
 
 
-  if not opt['planetoid_split'] and opt['dataset'] in ['Cora', 'Citeseer', 'Pubmed'] and not opt['geom_gcn_splits']:
+  if not (opt['planetoid_split'] and opt['dataset'] in ['Cora', 'Citeseer', 'Pubmed']) and not opt['geom_gcn_splits']:
     dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data,
                                             num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 

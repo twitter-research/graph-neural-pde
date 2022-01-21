@@ -33,7 +33,7 @@ parameters:
     max: 15
   dataset:
     distribution: categorical
-    values: ['squirrel', 'chameleon']
+    values: ['Cora', 'Citeseer']
   hidden_dim:
     values: [ 16, 32, 64 ]
   input_dropout:
