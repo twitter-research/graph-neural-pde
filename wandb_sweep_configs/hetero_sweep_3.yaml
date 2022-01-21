@@ -1,0 +1,73 @@
+program: run_GNN.py
+method: random
+parameters:
+  test_omit_metric:
+    values: [True, False]
+  test_tau_symmetric:
+    values: [True, False]
+  test_tau_remove_tanh:
+    values: [False]
+  test_tau_outside:
+    values: [False]
+  test_linear_L0:
+    values: [True, False]
+  test_R1R2_0:
+    values: [True, False]
+  test_no_chanel_mix:
+    values: [True, False]
+  test_mu_0:
+    values: [True, False]
+  use_mlp:
+    values: [True, False]
+  method:
+    distribution: categorical
+    values: ['dopri5']
+  self_loop_weight:
+    values: [0]
+  epoch:
+    distribution: constant
+    value: 50
+  num_splits:
+    distribution: constant
+    value: 10
+  time:
+    distribution: uniform
+    min: 0
+    max: 10
+  dataset:
+    distribution: categorical
+    values: ['film', 'squirrel', 'chameleon']
+  hidden_dim:
+    values: [8, 16, 32, 64]
+  attention_dim:
+    values: [8, 16, 32, 64]
+  tau_reg:
+    values: [8, 16, 32, 64]
+  input_dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.5
+  dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.5
+  lr:
+    distribution: uniform
+    min: 0.001
+    max: 0.1
+  decay:
+    distribution: uniform
+    min: 0.001
+    max: 0.1
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --geom_gcn_splits
+  - --function
+  - greed_linear
+entity: graph_neural_diffusion
+project: greed_tuning_hetero_3

@@ -14,7 +14,7 @@ import wandb
 from function_greed import ODEFuncGreed
 from utils import MaxNFEException
 from base_classes import ODEFunc
-
+from function_transformer_attention import SpGraphTransAttentionLayer
 
 class ODEFuncGreedLinear(ODEFuncGreed):
 
@@ -32,10 +32,28 @@ class ODEFuncGreedLinear(ODEFuncGreed):
     self.Qp = Parameter(torch.Tensor(opt['pos_enc_hidden_dim'], opt['dim_p_omega']))
     self.Kx = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], opt['dim_p_omega']))
     self.Kp = Parameter(torch.Tensor(opt['pos_enc_hidden_dim'], opt['dim_p_omega']))
+
     self.Wk = Parameter(torch.Tensor(opt['hidden_dim'], opt['dim_p_omega']))
     self.Wq = Parameter(torch.Tensor(opt['hidden_dim'], opt['dim_p_omega']))
 
     self.reset_parameters()
+
+    self.multihead_att_layer_KQ = SpGraphTransAttentionLayer(in_features, out_features, opt,
+                                                          device, edge_weights=self.edge_weight).to(device)
+
+  def multiply_attention(self, x, attention, v=None):
+    # todo would be nice if this was more efficient
+    if self.opt['mix_features']:
+      vx = torch.mean(torch.stack(
+        [torch_sparse.spmm(self.edge_index, attention[:, idx], v.shape[0], v.shape[0], v[:, :, idx]) for idx in
+         range(self.opt['heads'])], dim=0),
+        dim=0)
+      ax = self.multihead_att_layer.Wout(vx)
+    else:
+      mean_attention = attention.mean(dim=1)
+      ax = torch_sparse.spmm(self.edge_index, mean_attention, x.shape[0], x.shape[0], x)
+    return ax
+
 
 
   def reset_parameters(self):
