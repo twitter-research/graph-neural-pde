@@ -10,6 +10,8 @@ parameters:
   block:
     distribution: constant
     value: attention
+  self_loop_weight:
+    values: [0, 1]
   epoch:
     distribution: constant
     value: 50
