@@ -70,7 +70,8 @@ command:
   - --wandb
   - --wandb_sweep
   - --dataset
-  - cora
+  - texas
+  - --geom_gcn_splits
   - --function
   - greed
   - --beltrami
