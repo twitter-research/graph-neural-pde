@@ -6,27 +6,26 @@ from regularized_ODE_function import RegularizedODEfunc
 import regularized_ODE_function as reg_lib
 import six
 
-
 REGULARIZATION_FNS = {
-    "kinetic_energy": reg_lib.quadratic_cost,
-    "jacobian_norm2": reg_lib.jacobian_frobenius_regularization_fn,
-    "total_deriv": reg_lib.total_derivative,
-    "directional_penalty": reg_lib.directional_derivative
+  "kinetic_energy": reg_lib.quadratic_cost,
+  "jacobian_norm2": reg_lib.jacobian_frobenius_regularization_fn,
+  "total_deriv": reg_lib.total_derivative,
+  "directional_penalty": reg_lib.directional_derivative
 }
 
 
 def create_regularization_fns(args):
-    regularization_fns = []
-    regularization_coeffs = []
+  regularization_fns = []
+  regularization_coeffs = []
 
-    for arg_key, reg_fn in six.iteritems(REGULARIZATION_FNS):
-        if args[arg_key] is not None:
-            regularization_fns.append(reg_fn)
-            regularization_coeffs.append(args[arg_key])
+  for arg_key, reg_fn in six.iteritems(REGULARIZATION_FNS):
+    if args[arg_key] is not None:
+      regularization_fns.append(reg_fn)
+      regularization_coeffs.append(args[arg_key])
 
-    regularization_fns = regularization_fns
-    regularization_coeffs = regularization_coeffs
-    return regularization_fns, regularization_coeffs
+  regularization_fns = regularization_fns
+  regularization_coeffs = regularization_coeffs
+  return regularization_fns, regularization_coeffs
 
 
 class ODEblock(nn.Module):
@@ -34,10 +33,10 @@ class ODEblock(nn.Module):
     super(ODEblock, self).__init__()
     self.opt = opt
     self.t = t
-    
+
     self.aug_dim = 2 if opt['augment'] else 1
     self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, data, device)
-    
+
     self.nreg = len(regularization_fns)
     self.reg_odefunc = RegularizedODEfunc(self.odefunc, regularization_fns)
 
@@ -110,7 +109,10 @@ class BaseGNN(MessagePassing):
     if opt['beltrami']:
       self.mx = nn.Linear(self.num_features, opt['feat_hidden_dim'])
       self.mp = nn.Linear(opt['pos_enc_dim'], opt['pos_enc_hidden_dim'])
-      opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
+      if opt['wandb']:
+        opt.update({'hidden_dim': opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']}, allow_val_change=True)
+      else:
+        opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
     else:
       self.m1 = nn.Linear(self.num_features, opt['hidden_dim'])
 
