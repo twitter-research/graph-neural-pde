@@ -18,6 +18,8 @@ from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling
 from best_params import best_params_dict
 from heterophilic import get_fixed_splits
 from utils import ROOT_DIR
+from CGNN import CGNN, get_sym_adj
+from CGNN import train as train_cgnn
 
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
@@ -259,8 +261,16 @@ def main(cmd_opt):
     if opt['rewire_KNN'] or opt['fa_layer']:
       model = GNN_KNN(opt, dataset, device).to(device) if opt["no_early"] else GNNKNNEarly(opt, dataset, device).to(
         device)
+      train_func = train
+    elif opt['cgnn']:
+      opt['num_feature'] = dataset.num_node_features
+      opt['num_class'] = dataset.num_classes
+      adj = get_sym_adj(dataset.data, opt, device)
+      model, data = CGNN(opt, adj, opt['time'], device).to(device), dataset.data.to(device)
+      train_func = train_cgnn
     else:
       model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
+      train_func = train
 
     parameters = [p for p in model.parameters() if p.requires_grad]
     if rep == 0:
@@ -277,7 +287,7 @@ def main(cmd_opt):
         ei = apply_KNN(data, pos_encoding, model, opt)
         model.odeblock.odefunc.edge_index = ei
 
-      loss = train(model, optimizer, data, pos_encoding)
+      loss = train_func(model, optimizer, data, pos_encoding)
       tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
 
       best_time = opt['time']
@@ -364,6 +374,7 @@ if __name__ == '__main__':
                       help='Add a fully connected layer to the encoder.')
   parser.add_argument('--add_source', dest='add_source', action='store_true',
                       help='If try get rid of alpha param and the beta*x0 source term')
+  parser.add_argument('--cgnn', dest='cgnn', action='store_true', help='Run the baseline CGNN model from ICML20')
 
   # ODE args
   parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
