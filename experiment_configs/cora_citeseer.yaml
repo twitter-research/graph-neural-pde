@@ -29,7 +29,7 @@ parameters:
     value: 10
   time:
     distribution: uniform
-    min: 1
+    min: 0.1
     max: 15
   dataset:
     distribution: categorical
