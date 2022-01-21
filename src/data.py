@@ -16,8 +16,9 @@ import torch_geometric.transforms as T
 from torch_geometric.utils import to_undirected
 from graph_rewiring import make_symmetric, apply_pos_dist_rewire
 from heterophilic import WebKB, WikipediaNetwork, Actor
+from utils import ROOT_DIR
 
-DATA_PATH = '../data'
+DATA_PATH = f'{ROOT_DIR}/data'
 
 
 def rewire(data, opt, data_dir):
@@ -35,11 +36,13 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
   ds = opt['dataset']
   path = os.path.join(data_dir, ds)
   if ds in ['Cora', 'Citeseer', 'Pubmed']:
-    if opt['geom_gcn_splits']:
-      dataset = GeomGCNPlanetoid(path, ds)
-      use_lcc = False
-    else:
-      dataset = Planetoid(path, ds)
+    dataset = Planetoid(path, ds)
+  #todo rename this datasets as they rely on case sensitive folder names (not supported on mac) and this is also
+  # MASSIVELY error prone
+  elif ds in ['cora', 'citeseer', 'pubmed']:
+    dataset = GeomGCNPlanetoid(path, ds)
+    opt['geom_gcn_splits'] = True
+    use_lcc = False
   elif ds in ['Computers', 'Photo']:
     dataset = Amazon(path, ds)
   elif ds == 'CoauthorCS':
