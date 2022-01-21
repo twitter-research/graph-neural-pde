@@ -1,0 +1,62 @@
+program: src/run_GNN.py
+method: random
+parameters:
+  method:
+    distribution: categorical
+    values: [ 'dopri5' ]
+  tol_scale:
+    distribution: log_uniform
+    min: 1
+    max: 7
+  tol_scale_adjoint:
+    distribution: log_uniform
+    min: 7
+    max: 12
+  function:
+    distribution: constant
+    value: laplacian
+  max_nfe:
+    distribution: constant
+    value: 5000
+  block:
+    distribution: constant
+    value: attention
+  epoch:
+    distribution: constant
+    value: 50
+  num_splits:
+    distribution: constant
+    value: 10
+  time:
+    distribution: uniform
+    min: 1
+    max: 15
+  dataset:
+    distribution: categorical
+    values: ['squirrel', 'chameleon']
+  hidden_dim:
+    values: [ 16, 32, 64 ]
+  input_dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.5
+  dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.5
+  lr:
+    distribution: uniform
+    min: 0.01
+    max: 0.1
+  decay:
+    distribution: log_uniform
+    min: -13.9
+    max: -6.9
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --geom_gcn_splits
