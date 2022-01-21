@@ -73,6 +73,6 @@ command:
   - cora
   - --function
   - greed
-  - beltrami
+  - --beltrami
 entity: graph_neural_diffusion
 project: greed_beltrami_test
