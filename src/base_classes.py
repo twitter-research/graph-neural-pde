@@ -115,7 +115,6 @@ class BaseGNN(MessagePassing):
         wandb.config.update({'hidden_dim': opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']}, allow_val_change=True)  # required when update hidden_dim in beltrami
       else:
         opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
-
     else:
       self.m1 = nn.Linear(self.num_features, opt['hidden_dim'])
 
