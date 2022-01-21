@@ -22,7 +22,7 @@ parameters:
     value: 10
   time:
     distribution: uniform
-    min: 4
+    min: 0.1
     max: 15
   dataset:
     distribution: categorical
@@ -45,6 +45,9 @@ parameters:
     distribution: uniform
     min: 0.001
     max: 0.1
+  pos_enc_type:
+    distribution: constant
+    value: GDC
 command:
   - ${env}
   - python3
