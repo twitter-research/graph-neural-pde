@@ -56,5 +56,6 @@ command:
   - --wandb_sweep
   - --function
   - greed_linear_homo
+  - --beltrami
 entity: graph_neural_diffusion
 project: homo_sweep_0
