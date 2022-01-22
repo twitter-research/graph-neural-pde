@@ -193,8 +193,9 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     self.Lf_0 = None #static Laplacian form
     self.Lp_0 = None #static Laplacian form
 
-    self.Qx = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], 1))
-    self.Qp = Parameter(torch.Tensor(opt['pos_enc_hidden_dim'], 1))
+    if not self.opt['test_tau_symmetric']:
+      self.Qx = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], 1))
+      self.Qp = Parameter(torch.Tensor(opt['pos_enc_hidden_dim'], 1))
     self.Kx = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], 1))
     self.Kp = Parameter(torch.Tensor(opt['pos_enc_hidden_dim'], 1))
 
@@ -210,8 +211,9 @@ class ODEFuncGreedLinH(ODEFuncGreed):
 
 
   def reset_linH_parameters(self): #todo rename the param reset() functions in scaledDP and greed_linear aswell
-    glorot(self.Qx)
-    glorot(self.Qp)
+    if not self.opt['test_tau_symmetric']:
+      glorot(self.Qx)
+      glorot(self.Qp)
     glorot(self.Kx)
     glorot(self.Kp)
     zeros(self.bias)
@@ -227,13 +229,21 @@ class ODEFuncGreedLinH(ODEFuncGreed):
 
   def get_tau(self, x, Q, K):
     src_x, dst_x = self.get_src_dst(x)
-    tau = torch.tanh((src_x @ K + dst_x @ Q) / self.opt['tau_reg'])
-    tau_transpose = torch.tanh((dst_x @ K + src_x @ Q) / self.opt['tau_reg'])
+    if self.opt['test_tau_symmetric']:
+      tau = torch.tanh((src_x + dst_x) @ self.K / self.opt['tau_reg'])
+      tau_transpose = torch.tanh((dst_x + src_x) @ self.K / self.opt['tau_reg'])
+    else:
+      tau = torch.tanh((src_x @ K + dst_x @ Q) / self.opt['tau_reg'])
+      tau_transpose = torch.tanh((dst_x @ K + src_x @ Q) / self.opt['tau_reg'])
     return tau, tau_transpose
 
   def set_tau_0(self):
-    self.tau_f_0, self.tau_f_transpose_0 = self.get_tau(self.xf_0, self.Qx, self.Kx)
-    self.tau_p_0, self.tau_p_transpose_0 = self.get_tau(self.p_0, self.Qp, self.Kp )
+    if self.opt['test_tau_symmetric']:
+      self.tau_f_0, self.tau_f_transpose_0 = self.get_tau(self.xf_0, self.Kx, self.Kx)
+      self.tau_p_0, self.tau_p_transpose_0 = self.get_tau(self.p_0, self.Kp, self.Kp)
+    else:
+      self.tau_f_0, self.tau_f_transpose_0 = self.get_tau(self.xf_0, self.Qx, self.Kx)
+      self.tau_p_0, self.tau_p_transpose_0 = self.get_tau(self.p_0, self.Qp, self.Kp)
 
   def set_L0(self):
     #here get metric is the symetric attention matrix
@@ -243,8 +253,13 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     attention, _ = self.multihead_att_layer(self.x_0, self.edge_index)
     self.mean_attention_0 = attention.mean(dim=1)
 
-    self.Lf_0 = self.get_laplacian_linear(self.mean_attention_0, self.tau_f_0, self.tau_f_transpose_0)
-    self.Lp_0 = self.get_laplacian_linear(self.mean_attention_0, self.tau_p_0, self.tau_p_transpose_0)
+    if self.opt['test_omit_metric']:
+      gamma = torch.ones(self.mean_attention_0.shape, device=self.mean_attention_0.device) #setting metric equal to adjacency
+    else:
+      gamma = self.mean_attention_0
+
+    self.Lf_0 = self.get_laplacian_linear(gamma, self.tau_f_0, self.tau_f_transpose_0)
+    self.Lp_0 = self.get_laplacian_linear(gamma, self.tau_p_0, self.tau_p_transpose_0)
 
 
   def get_laplacian_linear(self, gamma, tau, tau_transpose):
