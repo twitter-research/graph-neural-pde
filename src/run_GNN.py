@@ -510,7 +510,7 @@ if __name__ == '__main__':
   parser.add_argument('--wandb_epoch_list', nargs='+',  default=[0, 1, 2, 4, 8, 16], help='list of epochs to log gradient flow')
 
   #wandb setup sweep args
-  parser.add_argument('--tau_reg', type=int, default=2)
+  parser.add_argument('--tau_reg', type=float, default=2)
   parser.add_argument('--test_mu_0', type=str, default='True') #action='store_true')
   parser.add_argument('--test_no_chanel_mix', type=str, default='True') #action='store_true')
   parser.add_argument('--test_omit_metric', type=str, default='True') #action='store_true')
