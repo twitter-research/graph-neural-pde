@@ -34,7 +34,9 @@ parameters:
     min: 4
     max: 32
   dim_p_w:
-    values: [8, 16, 32]
+    distribution: int_uniform
+    min: 4
+    max: 32
   tau_reg:
     distribution: uniform
     min: 4
