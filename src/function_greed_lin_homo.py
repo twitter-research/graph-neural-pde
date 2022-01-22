@@ -33,16 +33,14 @@ class ODEFuncGreedLinear(ODEFuncGreed):
     self.Kx = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], opt['dim_p_omega']))
     self.Kp = Parameter(torch.Tensor(opt['pos_enc_hidden_dim'], opt['dim_p_omega']))
 
-    self.Wk = Parameter(torch.Tensor(opt['hidden_dim'], opt['dim_p_omega']))
-    self.Wq = Parameter(torch.Tensor(opt['hidden_dim'], opt['dim_p_omega']))
-
     self.reset_parameters()
 
-    self.multihead_att_layer_KQ = SpGraphTransAttentionLayer(in_features, out_features, opt,
+    self.multihead_att_layer = SpGraphTransAttentionLayer(in_features, out_features, opt, #check out_features is attention_dim
                                                           device, edge_weights=self.edge_weight).to(device)
 
+
   def multiply_attention(self, x, attention, v=None):
-    # todo would be nice if this was more efficient
+
     if self.opt['mix_features']:
       vx = torch.mean(torch.stack(
         [torch_sparse.spmm(self.edge_index, attention[:, idx], v.shape[0], v.shape[0], v[:, :, idx]) for idx in
@@ -53,7 +51,6 @@ class ODEFuncGreedLinear(ODEFuncGreed):
       mean_attention = attention.mean(dim=1)
       ax = torch_sparse.spmm(self.edge_index, mean_attention, x.shape[0], x.shape[0], x)
     return ax
-
 
 
   def reset_parameters(self):
@@ -74,22 +71,17 @@ class ODEFuncGreedLinear(ODEFuncGreed):
     self.tau_0, self.tau_transpose_0 = self.get_tau(x_0)
 
   def set_L0(self, x_0):
-
-
-
+    #here get metric is the symetric attention matrix
     # tau_0, tau_transpose_0 = self.get_tau(self.x_0)
     metric_0 = self.get_metric(x_0, tau_0, tau_transpose_0)
+
+
     if self.opt['test_omit_metric']:
       self.eta_0 = torch.ones(metric_0.shape, device=x_0.device)
       self.gamma_0 = -torch.ones(metric_0.shape, device=x_0.device)  # setting metric equal to adjacency, but still weighting with tau - "weighted heat equation"
     else:
       self.gamma_0, self.eta_0 = self.get_gamma(metric_0, self.opt['gamma_epsilon'])
     self.L_0 = self.get_laplacian_linear(self.gamma_0, tau_0, tau_transpose_0)
-
-
-
-
-
 
 
   def get_laplacian_linear(self, gamma, tau, tau_transpose):
@@ -124,9 +116,11 @@ class ODEFuncGreedLinear(ODEFuncGreed):
         metric_0 = self.get_metric(self.x_0, self.tau_0, self.tau_transpose_0)
         _, eta = self.get_gamma(metric_0, self.opt['gamma_epsilon'])
         tau, tau_transpose = self.tau_0, self.tau_transpose_0 #assigning for energy calcs
+
       edges = torch.cat([self.edge_index, self.self_loops], dim=1)
       L = self.L_0
       f = torch_sparse.spmm(edges, L, x.shape[0], x.shape[0], x)
+
     ### this is like a hybrid approach still need to confirm if useful, not being focussed on.
     # "Closest thing to GRAND/BLEND but not gradient flow so no R!/R2"
     else: # not setL0, L is still dependent on time but setting R1=R2=0

@@ -21,7 +21,9 @@ parameters:
     values: [True, False]
   method:
     distribution: categorical
-    values: ['dopri5']
+    values: ['euler']
+  step_size:
+    values: [0.25, 0.5, 1.0]
   self_loop_weight:
     values: [0]
   epoch:

@@ -104,11 +104,11 @@ class SpGraphTransAttentionLayer(nn.Module):
       self.Q = nn.Linear(in_features, self.attention_dim)
       self.init_weights(self.Q)
 
-    self.V = nn.Linear(in_features, self.attention_dim)
-    self.init_weights(self.V)
+      self.V = nn.Linear(in_features, self.attention_dim)
+      self.init_weights(self.V)
 
-    self.K = nn.Linear(in_features, self.attention_dim)
-    self.init_weights(self.K)
+      self.K = nn.Linear(in_features, self.attention_dim)
+      self.init_weights(self.K)
 
     self.activation = nn.Sigmoid()  # nn.LeakyReLU(self.alpha)
 
