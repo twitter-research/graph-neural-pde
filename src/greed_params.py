@@ -81,12 +81,7 @@ def greed_ablation_params(opt):
     opt['test_tau_remove_tanh'] = False #True
     # opt['tau_reg'] = 5
     # opt['test_tau_remove_tanh_reg'] = 5  # opt['attention_dim']
-    if opt['test_tau_remove_tanh']:
-        opt['test_tau_symmetric'] = True
-        # opt['test_tau_remove_tanh_reg'] = 5 found this has different tolerances
-    else:
-        opt['test_tau_symmetric'] = False #True
-
+    opt['test_tau_symmetric'] = True
     #if function is greed_linear
     opt['test_linear_L0'] = True # flag to make the Laplacian form only dependent on embedding not time
     opt['test_R1R2_0'] = True

@@ -230,8 +230,8 @@ class ODEFuncGreedLinH(ODEFuncGreed):
   def get_tau(self, x, Q, K):
     src_x, dst_x = self.get_src_dst(x)
     if self.opt['test_tau_symmetric']:
-      tau = torch.tanh((src_x + dst_x) @ self.K / self.opt['tau_reg'])
-      tau_transpose = torch.tanh((dst_x + src_x) @ self.K / self.opt['tau_reg'])
+      tau = torch.tanh((src_x + dst_x) @ K / self.opt['tau_reg'])
+      tau_transpose = torch.tanh((dst_x + src_x) @ K / self.opt['tau_reg'])
     else:
       tau = torch.tanh((src_x @ K + dst_x @ Q) / self.opt['tau_reg'])
       tau_transpose = torch.tanh((dst_x @ K + src_x @ Q) / self.opt['tau_reg'])
