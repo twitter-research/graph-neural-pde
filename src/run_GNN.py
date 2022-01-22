@@ -540,7 +540,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
   opt = vars(args)
 
-  if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_lin_homo']:
+  if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo']:
     opt = greed_run_params(opt)  ###basic params for GREED
 
     if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these

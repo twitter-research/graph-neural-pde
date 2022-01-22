@@ -49,7 +49,7 @@ def set_function(opt):
     f = ODEFuncGreed_SDB
   elif ode_str == 'greed_linear':
     f = ODEFuncGreedLinear
-  elif ode_str == 'greed_lin_homo':
+  elif ode_str == 'greed_linear_homo':
     f = ODEFuncGreedLinH
   else:
     raise FunctionNotDefined
