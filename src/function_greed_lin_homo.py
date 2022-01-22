@@ -4,10 +4,11 @@ Implementation of the functions proposed in Graph embedding energies and diffusi
 
 import torch
 from torch import nn
+import numpy as np
 import torch_sparse
 from torch_scatter import scatter_add, scatter_mul
 from torch_geometric.utils.loop import add_remaining_self_loops
-from torch_geometric.utils import degree
+from torch_geometric.utils import degree, softmax
 from torch_geometric.nn.inits import glorot, zeros
 from torch.nn import Parameter
 import wandb
@@ -16,72 +17,234 @@ from utils import MaxNFEException
 from base_classes import ODEFunc
 from function_transformer_attention import SpGraphTransAttentionLayer
 
-class ODEFuncGreedLinear(ODEFuncGreed):
+
+class SpGraphTransAttentionLayer(nn.Module):
+  """
+  Sparse version GAT layer, similar to https://arxiv.org/abs/1710.10903
+  """
+
+  def __init__(self, in_features, out_features, opt, device, concat=True, edge_weights=None):
+    super(SpGraphTransAttentionLayer, self).__init__()
+    self.in_features = in_features
+    self.out_features = out_features
+    self.alpha = opt['leaky_relu_slope']
+    self.concat = concat
+    self.device = device
+    self.opt = opt
+    self.h = int(opt['heads'])
+    self.edge_weights = edge_weights
+
+    try:
+      self.attention_dim = opt['attention_dim']
+    except KeyError:
+      self.attention_dim = out_features
+
+    assert self.attention_dim % self.h == 0, "Number of heads ({}) must be a factor of the dimension size ({})".format(
+      self.h, self.attention_dim)
+    self.d_k = self.attention_dim // self.h
+
+    if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
+      pass #not used for now but leaving here in case we split the metric like we do diffusion
+      # self.output_var_x = nn.Parameter(torch.ones(1))
+      # self.lengthscale_x = nn.Parameter(torch.ones(1))
+      # self.output_var_p = nn.Parameter(torch.ones(1))
+      # self.lengthscale_p = nn.Parameter(torch.ones(1))
+      # self.Qx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
+      # self.init_weights(self.Qx)
+      # self.Vx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
+      # self.init_weights(self.Vx)
+      # self.Kx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
+      # self.init_weights(self.Kx)
+      #
+      # self.Qp = nn.Linear(opt['pos_enc_hidden_dim'], self.attention_dim)
+      # self.init_weights(self.Qp)
+      # self.Vp = nn.Linear(opt['pos_enc_hidden_dim'], self.attention_dim)
+      # self.init_weights(self.Vp)
+      # self.Kp = nn.Linear(opt['pos_enc_hidden_dim'], self.attention_dim)
+      # self.init_weights(self.Kp)
+
+    else:
+      self.Q = nn.Linear(in_features, self.attention_dim)
+      self.init_weights(self.Q)
+      self.V = nn.Linear(in_features, self.attention_dim)
+      self.init_weights(self.V)
+      self.K = nn.Linear(in_features, self.attention_dim)
+      self.init_weights(self.K)
+
+    self.activation = nn.Sigmoid()  # nn.LeakyReLU(self.alpha)
+    self.Wout = nn.Linear(self.d_k, in_features)
+    self.init_weights(self.Wout)
+
+  def init_weights(self, m):
+    if type(m) == nn.Linear:
+      # nn.init.xavier_uniform_(m.weight, gain=1.414)
+      # m.bias.data.fill_(0.01)
+      nn.init.constant_(m.weight, 1e-5) #not this https://stackoverflow.com/questions/20027598/why-should-weights-of-neural-networks-be-initialized-to-random-numbers
+
+  def forward(self, x, edge):
+    """
+    x might be [features, augmentation, positional encoding, labels]
+    """
+    # if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
+    if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
+      pass #not used for now but leaving here in case we split the metric like we do diffusion
+      # label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
+      # p = x[:, self.opt['feat_hidden_dim']: label_index]
+      # x = torch.cat((x[:, :self.opt['feat_hidden_dim']], x[:, label_index:]), dim=1)
+      #
+      # qx = self.Qx(x)
+      # kx = self.Kx(x)
+      # vx = self.Vx(x)
+      # # perform linear operation and split into h heads
+      # kx = kx.view(-1, self.h, self.d_k)
+      # qx = qx.view(-1, self.h, self.d_k)
+      # vx = vx.view(-1, self.h, self.d_k)
+      # # transpose to get dimensions [n_nodes, attention_dim, n_heads]
+      # kx = kx.transpose(1, 2)
+      # qx = qx.transpose(1, 2)
+      # vx = vx.transpose(1, 2)
+      # src_x = qx[edge[0, :], :, :]
+      # dst_x = kx[edge[1, :], :, :]
+      #
+      # qp = self.Qp(p)
+      # kp = self.Kp(p)
+      # vp = self.Vp(p)
+      # # perform linear operation and split into h heads
+      # kp = kp.view(-1, self.h, self.d_k)
+      # qp = qp.view(-1, self.h, self.d_k)
+      # vp = vp.view(-1, self.h, self.d_k)
+      # # transpose to get dimensions [n_nodes, attention_dim, n_heads]
+      # kp = kp.transpose(1, 2)
+      # qp = qp.transpose(1, 2)
+      # vp = vp.transpose(1, 2)
+      # src_p = qp[edge[0, :], :, :]
+      # dst_p = kp[edge[1, :], :, :]
+      #
+      # prods = self.output_var_x ** 2 * torch.exp(
+      #   -torch.sum((src_x - dst_x) ** 2, dim=1) / (2 * self.lengthscale_x ** 2)) \
+      #         * self.output_var_p ** 2 * torch.exp(
+      #   -torch.sum((src_p - dst_p) ** 2, dim=1) / (2 * self.lengthscale_p ** 2))
+      #
+      # v = None
+
+    else:
+      q = self.Q(x)
+      k = self.K(x)
+      v = self.V(x)
+
+      # perform linear operation and split into h heads
+
+      k = k.view(-1, self.h, self.d_k)
+      q = q.view(-1, self.h, self.d_k)
+      v = v.view(-1, self.h, self.d_k)
+
+      # transpose to get dimensions [n_nodes, attention_dim, n_heads]
+
+      k = k.transpose(1, 2)
+      q = q.transpose(1, 2)
+      v = v.transpose(1, 2)
+
+      src_q= q[edge[0, :], :, :]
+      dst_k = k[edge[1, :], :, :]
+      prods1 = torch.sum(src_q * dst_k, dim=1) / np.sqrt(self.d_k)
+      src_k = k[edge[0, :], :, :]
+      dst_q = q[edge[1, :], :, :]
+      prods2 = torch.sum(src_k * dst_q, dim=1) / np.sqrt(self.d_k)
+
+      attention = (softmax(prods1, edge[self.opt['attention_norm_idx']]) + softmax(prods2, edge[self.opt['attention_norm_idx']])) / 2
+      # return attention, (v, prods)
+      return attention, (None, None)
+
+    # if self.opt['attention_type'] == "scaled_dot":
+    #   prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
+    #
+    # elif self.opt['attention_type'] == "cosine_sim":
+    #   cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
+    #   prods = cos(src, dst_k)
+    #
+    # elif self.opt['attention_type'] == "pearson":
+    #   src_mu = torch.mean(src, dim=1, keepdim=True)
+    #   dst_mu = torch.mean(dst_k, dim=1, keepdim=True)
+    #   src = src - src_mu
+    #   dst_k = dst_k - dst_mu
+    #   cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
+    #   prods = cos(src, dst_k)
+
+    # if self.opt['reweight_attention'] and self.edge_weights is not None:
+    #   prods = prods * self.edge_weights.unsqueeze(dim=1)
+    # if self.opt['square_plus']:
+    #   attention = squareplus(prods, edge[self.opt['attention_norm_idx']])
+    # else:
+    #   attention = softmax(prods, edge[self.opt['attention_norm_idx']])
+    # return attention, (v, prods) #attention here is size
+
+
+class ODEFuncGreedLinH(ODEFuncGreed):
 
   def __init__(self, in_features, out_features, opt, data, device, bias=False):
-    super(ODEFuncGreedLinear, self).__init__(in_features, out_features, opt, data, device, bias=False)
+    super(ODEFuncGreedLinH, self).__init__(in_features, out_features, opt, data, device, bias=False)
 
     self.energy = 0
     self.epoch = 0
     self.wandb_step = 0
     self.prev_grad = None
-    self.x_0 = None
-    self.L_0 = None #static Laplacian form
+    self.xf_0 = None
+    self.xp_0 = None
+    self.Lf_0 = None #static Laplacian form
+    self.Lp_0 = None #static Laplacian form
 
-    self.Qx = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], opt['dim_p_omega']))
-    self.Qp = Parameter(torch.Tensor(opt['pos_enc_hidden_dim'], opt['dim_p_omega']))
-    self.Kx = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], opt['dim_p_omega']))
-    self.Kp = Parameter(torch.Tensor(opt['pos_enc_hidden_dim'], opt['dim_p_omega']))
+    self.Qx = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], 1))
+    self.Qp = Parameter(torch.Tensor(opt['pos_enc_hidden_dim'], 1))
+    self.Kx = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], 1))
+    self.Kp = Parameter(torch.Tensor(opt['pos_enc_hidden_dim'], 1))
 
-    self.reset_parameters()
+    if opt['test_no_chanel_mix']: #<- fix W s.t. W_s == I
+      self.W = torch.cat([torch.eye(opt['hidden_dim']-opt['pos_enc_hidden_dim'], device=device), torch.zeros(opt['hidden_dim']-opt['pos_enc_hidden_dim'], max(opt['dim_p_w'] - opt['hidden_dim']-opt['pos_enc_hidden_dim'], 0), device=device)], dim=1)
+    else:
+      self.W = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], opt['dim_p_w']))
+
+    self.reset_linH_parameters()
 
     self.multihead_att_layer = SpGraphTransAttentionLayer(in_features, out_features, opt, #check out_features is attention_dim
                                                           device, edge_weights=self.edge_weight).to(device)
 
 
-  def multiply_attention(self, x, attention, v=None):
-
-    if self.opt['mix_features']:
-      vx = torch.mean(torch.stack(
-        [torch_sparse.spmm(self.edge_index, attention[:, idx], v.shape[0], v.shape[0], v[:, :, idx]) for idx in
-         range(self.opt['heads'])], dim=0),
-        dim=0)
-      ax = self.multihead_att_layer.Wout(vx)
-    else:
-      mean_attention = attention.mean(dim=1)
-      ax = torch_sparse.spmm(self.edge_index, mean_attention, x.shape[0], x.shape[0], x)
-    return ax
-
-
-  def reset_parameters(self):
+  def reset_linH_parameters(self): #todo rename the param reset() functions in scaledDP and greed_linear aswell
     glorot(self.Qx)
     glorot(self.Qp)
     glorot(self.Kx)
     glorot(self.Kp)
-    glorot(self.Wk)
-    glorot(self.Wq)
-
     zeros(self.bias)
-
+    glorot(self.W)
 
   def set_x_0(self, x_0):
     self.x_0 = x_0.clone().detach()
+    label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
+    p_0 = x_0[:, self.opt['feat_hidden_dim']: label_index]
+    xf_0 = torch.cat((x_0[:, :self.opt['feat_hidden_dim']], x_0[:, label_index:]), dim=1)
+    self.xf_0 = xf_0.clone().detach()
+    self.p_0 = p_0.clone().detach()
 
-  def set_tau_0(self, x_0):
-    self.tau_0, self.tau_transpose_0 = self.get_tau(x_0)
+  def get_tau(self, x, Q, K):
+    src_x, dst_x = self.get_src_dst(x)
+    tau = torch.tanh((src_x @ K + dst_x @ Q) / self.opt['tau_reg'])
+    tau_transpose = torch.tanh((dst_x @ K + src_x @ Q) / self.opt['tau_reg'])
+    return tau, tau_transpose
 
-  def set_L0(self, x_0):
+  def set_tau_0(self):
+    self.tau_f_0, self.tau_f_transpose_0 = self.get_tau(self.xf_0, self.Qx, self.Kx)
+    self.tau_p_0, self.tau_p_transpose_0 = self.get_tau(self.p_0, self.Qp, self.Kp )
+
+  def set_L0(self):
     #here get metric is the symetric attention matrix
     # tau_0, tau_transpose_0 = self.get_tau(self.x_0)
-    metric_0 = self.get_metric(x_0, tau_0, tau_transpose_0)
+    # metric_0 = self.get_metric(x_0, tau_0, tau_transpose_0)
 
+    attention, _ = self.multihead_att_layer(self.x_0, self.edge_index)
+    self.mean_attention_0 = attention.mean(dim=1)
 
-    if self.opt['test_omit_metric']:
-      self.eta_0 = torch.ones(metric_0.shape, device=x_0.device)
-      self.gamma_0 = -torch.ones(metric_0.shape, device=x_0.device)  # setting metric equal to adjacency, but still weighting with tau - "weighted heat equation"
-    else:
-      self.gamma_0, self.eta_0 = self.get_gamma(metric_0, self.opt['gamma_epsilon'])
-    self.L_0 = self.get_laplacian_linear(self.gamma_0, tau_0, tau_transpose_0)
+    self.Lf_0 = self.get_laplacian_linear(self.mean_attention_0, self.tau_f_0, self.tau_f_transpose_0)
+    self.Lp_0 = self.get_laplacian_linear(self.mean_attention_0, self.tau_p_0, self.tau_p_transpose_0)
 
 
   def get_laplacian_linear(self, gamma, tau, tau_transpose):
@@ -96,14 +259,13 @@ class ODEFuncGreedLinear(ODEFuncGreed):
     tau = tau.flatten()
     tau_transpose = tau_transpose.flatten()
     tau2 = tau * tau
-    if self.opt['test_tau_remove_tanh']:
-      T0 = gamma * tau2
-      T1 = gamma * tau * tau_transpose
-    else:
-      T0 = gamma * tau2
-      T1 = gamma * tau * tau_transpose
+
+    T0 = gamma * tau2
+    T1 = gamma * tau * tau_transpose
+
     L = self.get_laplacian_form(T1, T0)
     return L
+
 
   def forward(self, t, x):  # t is needed when called by the integrator
     if self.nfe > self.opt["max_nfe"]:
@@ -111,41 +273,36 @@ class ODEFuncGreedLinear(ODEFuncGreed):
     self.nfe += 1
     Ws = self.W @ self.W.t()  # output a [d,d] tensor
 
-    if self.opt['test_linear_L0']: # setL0
-      with torch.no_grad(): #these things only go into calculating Energy not forward
-        metric_0 = self.get_metric(self.x_0, self.tau_0, self.tau_transpose_0)
-        _, eta = self.get_gamma(metric_0, self.opt['gamma_epsilon'])
-        tau, tau_transpose = self.tau_0, self.tau_transpose_0 #assigning for energy calcs
+    # x is [(features, pos_encs) * aug_factor, lables] but it's safe to assume aug_factor == 1
+    label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
+    p = x[:, self.opt['feat_hidden_dim']: label_index]
+    xf = torch.cat((x[:, :self.opt['feat_hidden_dim']], x[:, label_index:]), dim=1)
 
-      edges = torch.cat([self.edge_index, self.self_loops], dim=1)
-      L = self.L_0
-      f = torch_sparse.spmm(edges, L, x.shape[0], x.shape[0], x)
+    # with torch.no_grad(): #these things only go into calculating Energy not forward
+    #   metric_0 = self.get_metric(self.x_0, self.tau_0, self.tau_transpose_0)
+    #   _, eta = self.get_gamma(metric_0, self.opt['gamma_epsilon'])
+    #   tau, tau_transpose = self.tau_0, self.tau_transpose_0 #assigning for energy calcs
 
-    ### this is like a hybrid approach still need to confirm if useful, not being focussed on.
-    # "Closest thing to GRAND/BLEND but not gradient flow so no R!/R2"
-    else: # not setL0, L is still dependent on time but setting R1=R2=0
-      tau, tau_transpose = self.get_tau(x)
-      metric = self.get_metric(self.x_0, tau, tau_transpose) #metric is dependent on x_0 but still on time implicitly through tau
-      gamma, eta = self.get_gamma(metric, self.opt['gamma_epsilon'])
-      edges = torch.cat([self.edge_index, self.self_loops], dim=1)
-      L = self.get_laplacian_linear(gamma, self.tau_0, self.tau_transpose_0)
-      f = torch_sparse.spmm(edges, L, x.shape[0], x.shape[0], x)
+    edges = torch.cat([self.edge_index, self.self_loops], dim=1)
+
+    ff = torch_sparse.spmm(edges, -self.Lf_0, xf.shape[0], xf.shape[0], xf)
+    ff = torch.matmul(ff, Ws)
+    ff = ff - self.mu * (ff - self.xf_0) #check xf0
+
+    fp = torch_sparse.spmm(edges, -self.Lp_0, p.shape[0], p.shape[0], p)
+
+    f = torch.cat([ff, fp], dim=1) #assuming don't have any augmentation or labels
+
+    # if self.opt['test_omit_metric'] and self.opt['test_mu_0']: #energy to use when Gamma is -adjacency and not the pullback and mu == 0
+    #   energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2)
+    # elif self.opt['test_omit_metric']: #energy to use when Gamma is -adjacency and not the pullback and mu != 0
+    #   energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2) + self.mu * torch.sum((x - self.x0) ** 2)
+    # else:
+    #   energy = self.get_energy(x, eta)
 
     R1 = 0
     R2 = 0
-    f = torch.matmul(f, Ws)
-
-    f = f - 0.5 * self.mu * (x - self.x0)
-    # f = f + self.x0
-    # todo consider adding a term f = f + self.alpha * f
-
-    if self.opt['test_omit_metric'] and self.opt['test_mu_0']: #energy to use when Gamma is -adjacency and not the pullback and mu == 0
-      energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2)
-    elif self.opt['test_omit_metric']: #energy to use when Gamma is -adjacency and not the pullback and mu != 0
-      energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2) + self.mu * torch.sum((x - self.x0) ** 2)
-    else:
-      energy = self.get_energy(x, eta)
-
+    energy = 0
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.training:
       wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
                  f"gf_e{self.epoch}_f": f ** 2, f"gf_e{self.epoch}_L": torch.sum(L ** 2),

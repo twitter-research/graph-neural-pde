@@ -540,7 +540,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
   opt = vars(args)
 
-  if opt['function'] == 'greed' or opt['function'] == 'greed_scaledDP' or opt['function'] == 'greed_linear':
+  if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_lin_homo']:
     opt = greed_run_params(opt)  ###basic params for GREED
 
     if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these
@@ -558,3 +558,4 @@ if __name__ == '__main__':
 #./run_sweeps.sh XXX
 
 #--dataset texas --geom_gcn_splits --num_splits 10 --epoch 2 --function greed --use_best_params --method euler --step_size 0.25
+#--dataset texas --geom_gcn_splits --num_splits 10 --epoch 2 --function greed_lin_homo --beltrami --pos_enc_type GDC --method euler --step_size 0.25 --self_loop_weight 0

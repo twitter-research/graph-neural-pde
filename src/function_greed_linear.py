@@ -31,18 +31,18 @@ class ODEFuncGreedLinear(ODEFuncGreed):
   def set_x_0(self, x_0):
     self.x_0 = x_0.clone().detach()
 
-  def set_tau_0(self, x_0):
-    self.tau_0, self.tau_transpose_0 = self.get_tau(x_0)
+  def set_tau_0(self):
+    self.tau_0, self.tau_transpose_0 = self.get_tau(self.x_0)
 
-  def set_L0(self, x_0, tau_0, tau_transpose_0):
+  def set_L0(self):
     # tau_0, tau_transpose_0 = self.get_tau(self.x_0)
-    metric_0 = self.get_metric(x_0, tau_0, tau_transpose_0)
+    metric_0 = self.get_metric(self.x_0, self.tau_0, self.tau_transpose_0)
     if self.opt['test_omit_metric']:
-      self.eta_0 = torch.ones(metric_0.shape, device=x_0.device)
-      self.gamma_0 = -torch.ones(metric_0.shape, device=x_0.device)  # setting metric equal to adjacency, but still weighting with tau - "weighted heat equation"
+      self.eta_0 = torch.ones(metric_0.shape, device=self.x_0.device)
+      self.gamma_0 = -torch.ones(metric_0.shape, device=self.x_0.device)  # setting metric equal to adjacency, but still weighting with tau - "weighted heat equation"
     else:
       self.gamma_0, self.eta_0 = self.get_gamma(metric_0, self.opt['gamma_epsilon'])
-    self.L_0 = self.get_laplacian_linear(self.gamma_0, tau_0, tau_transpose_0)
+    self.L_0 = self.get_laplacian_linear(self.gamma_0, self.tau_0, self.tau_transpose_0)
 
   def get_laplacian_linear(self, gamma, tau, tau_transpose):
     """

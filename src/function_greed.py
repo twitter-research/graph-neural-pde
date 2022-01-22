@@ -83,7 +83,7 @@ class ODEFuncGreed(ODEFunc):
   def reset_parameters(self):
     glorot(self.W)
     glorot(self.K)
-    if not self.opt['test_tau_symmetric'] or self.opt['function'] == 'greed_scaledDP': #second term is so that scaledDP can inherit
+    if not self.opt['test_tau_symmetric'] or self.opt['function'] == 'greed_scaledDP': #second term is so that scaledDP can inherit #todo see fix in lin_h
       glorot(self.Q)
     zeros(self.bias)
 

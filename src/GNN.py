@@ -49,11 +49,11 @@ class GNN(BaseGNN):
 
     self.odeblock.set_x0(x)
 
-    if self.opt['function'] == 'greed_linear':
+    if self.opt['function'] == 'greed_linear' or self.opt['function'] == 'greed_lin_homo':
       self.odeblock.odefunc.set_x_0(x)
-      self.odeblock.odefunc.set_tau_0(self.odeblock.odefunc.x_0)
+      self.odeblock.odefunc.set_tau_0()
       if self.opt['test_linear_L0']:
-        self.odeblock.odefunc.set_L0(self.odeblock.odefunc.x_0, self.odeblock.odefunc.tau_0, self.odeblock.odefunc.tau_transpose_0)
+        self.odeblock.odefunc.set_L0()
 
     if self.training and self.odeblock.nreg > 0:
       z, self.reg_states = self.odeblock(x)

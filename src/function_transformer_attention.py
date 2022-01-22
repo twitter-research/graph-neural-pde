@@ -1,9 +1,9 @@
+import numpy as np
 import torch
 from torch import nn
 from torch_geometric.utils import softmax
 import torch_sparse
 from torch_geometric.utils.loop import add_remaining_self_loops
-import numpy as np
 from data import get_dataset
 from utils import MaxNFEException, squareplus
 from base_classes import ODEFunc
