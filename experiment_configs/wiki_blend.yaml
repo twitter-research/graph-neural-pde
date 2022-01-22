@@ -33,7 +33,7 @@ parameters:
     max: 15
   dataset:
     distribution: categorical
-    values: ['squirrel', 'chameleon', 'film']
+    values: ['squirrel', 'chameleon', 'film', 'cora', 'citeseer', 'pubmed']
   feat_hidden_dim:
     values: [8, 16, 32]
   pos_enc_hidden_dim:
