@@ -3,6 +3,8 @@ method: random
 parameters:
   test_linear_L0:
     values: [True]
+  test_grand_metric:
+    values: [True, False]
   test_omit_metric:
     values: [True, False]
   test_no_chanel_mix:

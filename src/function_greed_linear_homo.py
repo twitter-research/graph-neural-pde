@@ -144,16 +144,18 @@ class SpGraphTransAttentionLayer(nn.Module):
       q = q.transpose(1, 2)
       v = v.transpose(1, 2)
 
-      src_q= q[edge[0, :], :, :]
+      src_q = q[edge[0, :], :, :]
       dst_k = k[edge[1, :], :, :]
       prods1 = torch.sum(src_q * dst_k, dim=1) / np.sqrt(self.d_k)
-      src_k = k[edge[0, :], :, :]
-      dst_q = q[edge[1, :], :, :]
-      prods2 = torch.sum(src_k * dst_q, dim=1) / np.sqrt(self.d_k)
-
-      attention = (softmax(prods1, edge[self.opt['attention_norm_idx']]) + softmax(prods2, edge[self.opt['attention_norm_idx']])) / 2
-      # return attention, (v, prods)
-      return attention, (None, None)
+      if self.opt['test_grand_metric']:
+        attention = softmax(prods1, edge[self.opt['attention_norm_idx']])
+        return attention, (None, None)
+      else:
+        src_k = k[edge[0, :], :, :]
+        dst_q = q[edge[1, :], :, :]
+        prods2 = torch.sum(src_k * dst_q, dim=1) / np.sqrt(self.d_k)
+        attention = (softmax(prods1, edge[self.opt['attention_norm_idx']]) + softmax(prods2, edge[self.opt['attention_norm_idx']])) / 2
+        return attention, (None, None)
 
     # if self.opt['attention_type'] == "scaled_dot":
     #   prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
