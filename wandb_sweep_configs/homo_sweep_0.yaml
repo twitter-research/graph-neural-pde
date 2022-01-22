@@ -9,6 +9,8 @@ parameters:
     values: [True, False]
   use_mlp:
     values: [True, False]
+  pos_enc_type:
+    values: [GDC]
   epoch:
     values: [100]
   method:
