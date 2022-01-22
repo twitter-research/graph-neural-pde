@@ -4,7 +4,7 @@ from function_laplacian_diffusion import LaplacianODEFunc
 from function_greed import ODEFuncGreed
 from function_greed_scaledDP import ODEFuncGreed_SDB
 from function_greed_linear import ODEFuncGreedLinear
-from function_greed_lin_homo import ODEFuncGreedLinH
+from function_greed_linear_homo import ODEFuncGreedLinH
 from block_transformer_attention import AttODEblock
 from block_constant import ConstantODEblock
 from block_mixed import MixedODEblock
