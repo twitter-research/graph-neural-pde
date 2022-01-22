@@ -19,7 +19,7 @@ parameters:
     values: [0.1, 0.25]
   feat_hidden_dim:
     values: [8, 16, 32]
-  pos_enc_dim:
+  pos_enc_hidden_dim:
     values: [8, 16, 32]
   attention_dim:
     values: [8, 16, 32]
