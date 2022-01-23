@@ -76,4 +76,4 @@ command:
   - greed_linear_homo
   - --beltrami
 entity: graph_neural_diffusion
-project: homo_sweep_2
+project: gcn_grand
