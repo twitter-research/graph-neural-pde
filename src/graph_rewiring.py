@@ -10,7 +10,7 @@ from torch_scatter import scatter
 from torch_geometric.transforms.two_hop import TwoHop
 from torch_geometric.utils import add_self_loops, to_undirected, to_dense_adj, dense_to_sparse
 from torch_geometric.transforms import GDC
-from utils import get_rw_adj, get_full_adjacency
+from utils import get_rw_adj, get_full_adjacency, ROOT_DIR
 from pykeops.torch import LazyTensor
 import os
 import pickle
@@ -241,7 +241,7 @@ def apply_edge_sampling(x, pos_encoding, model, opt):
   edge_sampling(model, z, opt)
 
 
-def apply_beltrami(data, opt, data_dir='../data'):
+def apply_beltrami(data, opt, data_dir=f'{ROOT_DIR}/data'):
   pos_enc_dir = os.path.join(f"{data_dir}", "pos_encodings")
   # generate new positional encodings
   # do encodings already exist on disk?
