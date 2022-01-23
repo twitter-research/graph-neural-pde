@@ -139,6 +139,11 @@ def default_params():
                         help='% of training labels to use when --use_labels is set.')
     parser.add_argument('--planetoid_split', action='store_true',
                         help='use planetoid splits for Cora/Citeseer/Pubmed')
+    parser.add_argument('--geom_gcn_splits', dest='geom_gcn_splits', action='store_true',
+                        help='use the 10 fixed splits from '
+                             'https://arxiv.org/abs/2002.05287')
+    parser.add_argument('--num_splits', type=int, dest='num_splits', default=1,
+                        help='the number of splits to repeat the results on')
     # GNN args
     parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
     parser.add_argument('--fc_out', dest='fc_out', action='store_true',
