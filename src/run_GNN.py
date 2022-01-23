@@ -562,3 +562,6 @@ if __name__ == '__main__':
 #--dataset texas --geom_gcn_splits --num_splits 10 --epoch 2 --function greed --use_best_params --method euler --step_size 0.25
 #--dataset texas --geom_gcn_splits --num_splits 10 --epoch 2 --function greed_lin_homo --beltrami --pos_enc_type GDC --method euler --step_size 0.25 --self_loop_weight 0
 #--dataset Cora --epoch 100 --function greed_linear_homo --beltrami --pos_enc_type GDC --method euler --step_size 0.25 --self_loop_weight 0 --test_tau_symmetric True
+#--dataset Cora --use_best_params --function greed_linear_homo
+#--dataset Cora --use_best_params --beltrami --function greed_linear_homo --no_early True
+# --dataset Cora --use_best_params --beltrami --no_early True --self_loop_weight 1.0

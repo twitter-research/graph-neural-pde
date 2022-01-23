@@ -306,13 +306,35 @@ class ODEFuncGreedLinH(ODEFuncGreed):
 
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
 
+    ##PURE GREED
     ff = torch_sparse.spmm(edges, -self.Lf_0, xf.shape[0], xf.shape[0], xf)
     ff = torch.matmul(ff, Ws)
-    ff = ff - self.mu * (ff - self.xf_0) #check xf0
-
+    ff = ff - self.mu * (xf - self.xf_0)
     fp = torch_sparse.spmm(edges, -self.Lp_0, p.shape[0], p.shape[0], p)
-
     f = torch.cat([ff, fp], dim=1) #assuming don't have any augmentation or labels
+
+    ###mix
+    # if not self.opt['no_alpha_sigmoid']:
+    #   alpha = torch.sigmoid(self.alpha_train)
+    # else:
+    #   alpha = self.alpha_train
+    # ff = alpha * torch_sparse.spmm(edges, -self.Lf_0, xf.shape[0], xf.shape[0], xf)
+    # ff = torch.matmul(ff, Ws)
+    # ff = ff  ###newline
+    # # ff = ff - self.mu * (ff - self.xf_0) #check xf0
+    # ff = ff + self.mu * (self.xf_0) ###newline
+    # fp = alpha * torch_sparse.spmm(edges, -self.Lp_0, p.shape[0], p.shape[0], p)
+    # f = torch.cat([ff, fp], dim=1) #assuming don't have any augmentation or labels
+
+    ###FUNCTION LAPLACIAN
+    # ax = self.sparse_multiply(x)
+    # if not self.opt['no_alpha_sigmoid']:
+    #   alpha = torch.sigmoid(self.alpha_train)
+    # else:
+    #   alpha = self.alpha_train
+    # f = alpha * (ax - x)
+    # if self.opt['add_source']:
+    #   f = f + self.beta_train * self.x0
 
     # if self.opt['test_omit_metric'] and self.opt['test_mu_0']: #energy to use when Gamma is -adjacency and not the pullback and mu == 0
     #   energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2)
@@ -328,15 +350,14 @@ class ODEFuncGreedLinH(ODEFuncGreed):
       wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
                  f"gf_e{self.epoch}_f": f ** 2, f"gf_e{self.epoch}_L": torch.sum(L ** 2),
                  f"gf_e{self.epoch}_R1": torch.sum(R1 ** 2), f"gf_e{self.epoch}_R2": torch.sum(R2 ** 2), f"gf_e{self.epoch}_mu": self.mu,
-                 "grad_flow_step": self.wandb_step}) #, step=self.wandb_step)
-      # todo Customize axes - https://docs.wandb.ai/guides/track/log
+                 "grad_flow_step": self.wandb_step})
       self.wandb_step += 1
 
     self.energy = energy
 
-    if self.opt['greed_momentum'] and self.prev_grad:
-      f = self.opt['momentum_alpha'] * f + (1 - self.opt['momentum_alpha']) * self.prev_grad
-      self.prev_grad = f
+    # if self.opt['greed_momentum'] and self.prev_grad:
+    #   f = self.opt['momentum_alpha'] * f + (1 - self.opt['momentum_alpha']) * self.prev_grad
+    #   self.prev_grad = f
     return f
 
   def __repr__(self):

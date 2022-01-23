@@ -35,12 +35,12 @@ def greed_run_params(opt):
     opt['block'] = 'constant'
     # opt['beltrami'] = True
     # opt['pos_enc_type'] = 'GDC'
-    opt['self_loop_weight'] = 0 #needed for greed
+    opt['self_loop_weight'] = 0.0 #1.0 #0 #needed for greed
     # opt['method'] = 'euler' #'dopri5' #'dopri5' #'euler' #need to comment this out for tuning
     # TUNING
     # opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     # opt['time'] = 10 #18.295 #10
-    # opt['epoch'] = 30 #10
+    opt['epoch'] = 50 #10
     # opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
 
     #at some point test these  - not  so won't overwrite
@@ -77,7 +77,7 @@ def greed_ablation_params(opt):
     #ablation flags
     opt['test_no_chanel_mix'] = True #True
     opt['test_omit_metric'] = False #True
-    opt['test_mu_0'] = True #False #True
+    opt['test_mu_0'] = False #False #True
     opt['test_tau_remove_tanh'] = False #True
     # opt['tau_reg'] = 5
     # opt['test_tau_remove_tanh_reg'] = 5  # opt['attention_dim']
@@ -116,7 +116,7 @@ def tf_ablation_args(opt):
     for arg in ['test_no_chanel_mix','test_omit_metric','test_mu_0',
                 'test_tau_remove_tanh','test_tau_symmetric','test_grand_metric','test_tau_ones',
                 'test_tau_outside', 'test_linear_L0', 'test_R1R2_0',
-                'use_mlp', 'use_best_params']:
+                'use_mlp', 'use_best_params', 'no_early']:
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)
         opt[arg] = bool_tf
