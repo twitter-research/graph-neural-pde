@@ -1,0 +1,79 @@
+program: run_GNN.py
+method: random
+parameters:
+  test_linear_L0:
+    values: [True]
+  test_grand_metric:
+    values: [True, False]
+  test_tau_ones:
+    values: [True, False]
+  test_omit_metric:
+    values: [True, False]
+  test_no_chanel_mix:
+    values: [True, False]
+  test_tau_symmetric:
+    values: [True, False]
+  test_mu_0:
+    values: [True, False]
+  use_mlp:
+    values: [True, False]
+  pos_enc_type:
+    values: [GDC]
+  epoch:
+    values: [100]
+  method:
+    values: [dopri5]
+  attention_dim:
+    values: [8, 16, 32]
+  heads:
+    values: [1, 4, 8]
+  feat_hidden_dim:
+    distribution: int_uniform
+    min: 4
+    max: 32
+  pos_enc_hidden_dim:
+    distribution: int_uniform
+    min: 4
+    max: 32
+  dim_p_w:
+    distribution: int_uniform
+    min: 4
+    max: 32
+  tau_reg:
+    distribution: uniform
+    min: 4
+    max: 32
+  time:
+    distribution: uniform
+    min: 1.0
+    max: 20.0
+  input_dropout:
+    distribution: uniform
+    min: 0.1
+    max: 0.5
+  dropout:
+    distribution: uniform
+    min: 0.1
+    max: 0.5
+  optimizer:
+    values: [adam]
+  lr:
+    distribution: uniform
+    min: 0.001
+    max: 0.1
+  decay:
+    distribution: uniform
+    min: 0.0001
+    max: 0.015
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --function
+  - greed_linear_homo
+  - --beltrami
+entity: graph_neural_diffusion
+project: homo_sweep_2

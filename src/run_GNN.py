@@ -520,6 +520,7 @@ if __name__ == '__main__':
   parser.add_argument('--test_linear_L0', type=str, default='True') #action='store_true')
   parser.add_argument('--test_R1R2_0', type=str, default='True') #action='store_true')
   parser.add_argument('--test_grand_metric', type=str, default='True') #action='store_true')
+  parser.add_argument('--test_tau_ones', type=str, default='True') #action='store_true')
 
   # Temp changing these to be strings so can tune over
   # parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',

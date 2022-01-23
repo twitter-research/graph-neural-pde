@@ -237,6 +237,10 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     else:
       tau = torch.tanh((src_x @ K + dst_x @ Q) / self.opt['tau_reg'])
       tau_transpose = torch.tanh((dst_x @ K + src_x @ Q) / self.opt['tau_reg'])
+    if self.opt['test_tau_ones']:
+      tau = torch.ones(tau.shape, device=tau.device)
+      tau_transpose = torch.ones(tau_transpose.shape, device=tau_transpose.device)
+
     return tau, tau_transpose
 
   def set_tau_0(self):
