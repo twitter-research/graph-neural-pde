@@ -69,7 +69,7 @@ def greed_runs(cmd_opt, project_name, group_name, num_runs):
             opt['test_no_chanel_mix'] = no_mix
             for mu_0 in [False, True]:
                 opt['test_mu_0'] = mu_0
-                for stop_type in [True, False]:
+                for stop_type in [False, True]:
                     opt['no_early'] = stop_type
 
                     run = f"run_NE_{stop_type}_SLW_{SLW}_nomix_{no_mix}_m0_{mu_0}"
