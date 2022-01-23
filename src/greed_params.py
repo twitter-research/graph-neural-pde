@@ -116,7 +116,7 @@ def tf_ablation_args(opt):
     for arg in ['test_no_chanel_mix','test_omit_metric','test_mu_0',
                 'test_tau_remove_tanh','test_tau_symmetric','test_grand_metric','test_tau_ones',
                 'test_tau_outside', 'test_linear_L0', 'test_R1R2_0',
-                'use_mlp']:
+                'use_mlp', 'use_best_params']:
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)
         opt[arg] = bool_tf
@@ -321,6 +321,11 @@ def default_params():
     parser.add_argument('--use_best_params', action='store_true', help="flag to take the best BLEND params")
     parser.add_argument('--greed_momentum', action='store_true', help="flag to use momentum grad flow")
     parser.add_argument('--momentum_alpha', type=float, default=0.2, help="alpha to use in momentum grad flow")
+    parser.add_argument('--dim_p_omega', type=int, default=16, help="inner dimension for Omega")
+    parser.add_argument('--dim_p_w', type=int, default=16, help="inner dimension for W")
+    parser.add_argument('--gamma_epsilon', type=float, default=0.01,
+                        help="epsilon value used for numerical stability in get_gamma")
+
     #needed for run_best_sweeps
     parser.add_argument('--sweep_id', type=str, default='', help="sweep_id for 1 best run")  # action='store_true')
     parser.add_argument('--run_id', type=str, default='', help="run_id for 1 best run")  # action='store_true')
@@ -329,3 +334,4 @@ def default_params():
     args = parser.parse_args()
     opt = vars(args)
     return(opt)
+
