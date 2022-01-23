@@ -23,7 +23,7 @@ parameters:
     distribution: categorical
     values: ['euler']
   step_size:
-    values: [0.25, 0.5, 1.0]
+    values: [0.1, 0.25, 0.5]
   self_loop_weight:
     values: [0]
   epoch:
