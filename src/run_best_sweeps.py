@@ -50,6 +50,19 @@ def greed_runs(cmd_opt, project_name, group_name, num_runs):
     opt['use_best_params'] = True
     opt['beltrami'] = True
     opt['pos_enc_type'] = 'GDC'
+
+    #functional
+    opt['test_omit_metric'] = False #True
+    opt['test_linear_L0'] = True # flag to make the Laplacian form only dependent on embedding not time
+    opt['test_grand_metric'] = True
+    opt['test_tau_ones'] = True
+    opt['use_mlp'] = False #True
+
+    # redundant
+    opt['test_tau_remove_tanh'] = False #True
+    opt['test_tau_symmetric'] = False
+    opt['test_R1R2_0'] = True
+
     for stop_type in [True, False]:
         opt['no_early'] = stop_type
         for SLW in [0, 1]:
@@ -58,7 +71,6 @@ def greed_runs(cmd_opt, project_name, group_name, num_runs):
                 opt['test_no_chanel_mix'] = no_mix
                 for mu_0 in [True, False]:
                     opt['test_mu_0'] = mu_0
-
                     run = f"run_NE_{stop_type}_SLW_{SLW}_nomix_{no_mix}_m0_{mu_0}"
                     opt['wandb_best_run_id'] = run
                     for i in range(num_runs):
