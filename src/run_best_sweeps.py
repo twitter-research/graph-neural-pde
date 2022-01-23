@@ -63,14 +63,15 @@ def greed_runs(cmd_opt, project_name, group_name, num_runs):
     opt['test_tau_symmetric'] = False
     opt['test_R1R2_0'] = True
 
-    for stop_type in [True, False]:
-        opt['no_early'] = stop_type
-        for SLW in [0, 1]:
-            opt['self_loop_weight'] = SLW
-            for no_mix in [True, False]:
-                opt['test_no_chanel_mix'] = no_mix
-                for mu_0 in [True, False]:
-                    opt['test_mu_0'] = mu_0
+    for SLW in [0, 1]:
+        opt['self_loop_weight'] = SLW
+        for no_mix in [True, False]:
+            opt['test_no_chanel_mix'] = no_mix
+            for mu_0 in [False, True]:
+                opt['test_mu_0'] = mu_0
+                for stop_type in [True, False]:
+                    opt['no_early'] = stop_type
+
                     run = f"run_NE_{stop_type}_SLW_{SLW}_nomix_{no_mix}_m0_{mu_0}"
                     opt['wandb_best_run_id'] = run
                     for i in range(num_runs):
@@ -106,7 +107,7 @@ if __name__ == "__main__":
     run_list = ['yv3v42ym', '7ba0jl9m', 'a60dnqcc', 'v6ln1x90', 'f5dmv6ow']
     project_name = 'grand_runs'
     group_name = 'eval'
-    num_runs = 8
+    num_runs = 4
     # run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs)
 
     greed_runs(cmd_opt, project_name, group_name, num_runs)
