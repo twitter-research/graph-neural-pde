@@ -41,7 +41,7 @@ def greed_run_params(opt):
     # opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     # opt['time'] = 10 #18.295 #10
     # opt['epoch'] = 30 #10
-    opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
+    # opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
 
     #at some point test these  - not  so won't overwrite
     # not in best aprams
@@ -75,9 +75,9 @@ def greed_hyper_params(opt):
 
 def greed_ablation_params(opt):
     #ablation flags
-    opt['test_no_chanel_mix'] = False #True
-    opt['test_omit_metric'] = True #True
-    opt['test_mu_0'] = False #True
+    opt['test_no_chanel_mix'] = True #True
+    opt['test_omit_metric'] = False #True
+    opt['test_mu_0'] = True #False #True
     opt['test_tau_remove_tanh'] = False #True
     # opt['tau_reg'] = 5
     # opt['test_tau_remove_tanh_reg'] = 5  # opt['attention_dim']
@@ -86,9 +86,10 @@ def greed_ablation_params(opt):
     opt['test_linear_L0'] = True # flag to make the Laplacian form only dependent on embedding not time
     opt['test_R1R2_0'] = True
     opt['test_grand_metric'] = True
-    opt['test_tau_ones'] =True
+    opt['test_tau_ones'] = True
+    opt['use_mlp'] = False #True
     return opt
-
+#--dataset Cora --function greed_linear_homo --use_best_params --test_tau_ones True --test_grand_metric True --test_omit_metric False
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
@@ -120,6 +121,7 @@ def tf_ablation_args(opt):
         bool_tf = t_or_f(str_tf)
         opt[arg] = bool_tf
     return opt
+
 
 
 def default_params():

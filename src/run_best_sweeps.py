@@ -40,6 +40,31 @@ def run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs):
             main(opt)
 
 
+def greed_runs(cmd_opt, project_name, group_name, num_runs):
+    default_params_dict = default_params()
+    not_sweep_dict = not_sweep_args(default_params_dict, project_name, group_name)
+    opt = {**default_params_dict, **not_sweep_dict, **cmd_opt}
+
+    opt['block'] = 'constant'
+    opt['function'] = 'greed_linear_homo'
+    opt['use_best_params'] = True
+    opt['beltrami'] = True
+    opt['pos_enc_type'] = 'GDC'
+    for stop_type in [True, False]:
+        opt['no_early'] = stop_type
+        for SLW in [0, 1]:
+            opt['self_loop_weight'] = SLW
+            for no_mix in [True, False]:
+                opt['test_no_chanel_mix'] = no_mix
+                for mu_0 in [True, False]:
+                    opt['test_mu_0'] = mu_0
+
+                    run = f"run_NE_{stop_type}_SLW_{SLW}_nomix_{no_mix}_m0_{mu_0}"
+                    opt['wandb_best_run_id'] = run
+                    for i in range(num_runs):
+                        main(opt)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # parser.add_argument('--tau_reg', type=int, default=2)
@@ -67,6 +92,9 @@ if __name__ == "__main__":
 
     sweep = 'ebq1b5hy'
     run_list = ['yv3v42ym', '7ba0jl9m', 'a60dnqcc', 'v6ln1x90', 'f5dmv6ow']
-    project_name = 'best_runs'
+    project_name = 'grand_runs'
     group_name = 'eval'
-    run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs=8)
+    num_runs = 8
+    # run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs)
+
+    greed_runs(cmd_opt, project_name, group_name, num_runs)
