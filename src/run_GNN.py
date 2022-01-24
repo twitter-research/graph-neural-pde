@@ -260,6 +260,7 @@ def main(cmd_opt):
   print(opt)
   results = []
   for rep in range(opt['num_splits']):
+    print(f'running repetition {rep}')
     if opt['rewire_KNN'] or opt['fa_layer']:
       model = GNN_KNN(opt, dataset, device).to(device) if opt["no_early"] else GNNKNNEarly(opt, dataset, device).to(
         device)
