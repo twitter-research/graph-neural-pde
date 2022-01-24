@@ -186,7 +186,9 @@ class SpGraphTransAttentionLayer(nn.Module):
       src = q[edge[0, :], :, :]
       dst_k = k[edge[1, :], :, :]
 
-    if self.opt['attention_type'] == "scaled_dot":
+    if not self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
+      prods = (torch.sum((src - dst_k) ** 2, dim=1) / (2 * self.lengthscale ** 2))
+    elif self.opt['attention_type'] == "scaled_dot":
       prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
     elif self.opt['attention_type'] == "cosine_sim":
       cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
