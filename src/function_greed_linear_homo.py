@@ -284,9 +284,22 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     T0 = gamma * tau2
     T1 = gamma * tau * tau_transpose
 
-    L = self.get_laplacian_form(T1, T0)
+    # L = self.get_laplacian_form(T1, T0)
+    L = self.get_laplacian_form_noDNorm(T1, T0)
     return L
 
+  def get_laplacian_form_noDNorm(self, A, D):
+    """
+    Takes two sparse matrices A and D and performs sym_norm(D' - A) where D' is the degree matrix from row summing D
+    @param A: Matrix that plays the role of the adjacency
+    @param D: Matrix that is row summed to play the role of the degree matrix
+    @return: A Laplacian form
+    """
+    degree = scatter_add(D, self.edge_index[0, :], dim=-1, dim_size=self.n_nodes)
+    edges = torch.cat([self.edge_index, self.self_loops], dim=1)
+    L = torch.cat([-A, degree], dim=-1)
+    # L = self.symmetrically_normalise(values, edges) #non normalisation
+    return L
 
   def forward(self, t, x):  # t is needed when called by the integrator
     if self.nfe > self.opt["max_nfe"]:
@@ -309,7 +322,8 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     ##PURE GREED
     ff = torch_sparse.spmm(edges, -self.Lf_0, xf.shape[0], xf.shape[0], xf)
     ff = torch.matmul(ff, Ws)
-    ff = ff - self.mu * (xf - self.xf_0)
+    # ff = ff - self.mu * (xf - self.xf_0)
+    ff = ff - self.mu * (ff - self.xf_0)  #this is WRONG but the above doesn't work
     fp = torch_sparse.spmm(edges, -self.Lp_0, p.shape[0], p.shape[0], p)
     f = torch.cat([ff, fp], dim=1) #assuming don't have any augmentation or labels
 
