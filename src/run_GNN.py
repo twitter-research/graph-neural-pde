@@ -207,6 +207,8 @@ def merge_cmd_args(cmd_opt, opt):
     opt['epoch'] = cmd_opt['epoch']
   if not cmd_opt['not_lcc']:
     opt['not_lcc'] = False
+  if cmd_opt['num_splits'] != 1:
+    opt['num_splits'] = cmd_opt['num_splits']
 
 
 def main(cmd_opt):
