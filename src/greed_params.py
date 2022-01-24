@@ -76,11 +76,9 @@ def greed_hyper_params(opt):
 def greed_ablation_params(opt):
     #ablation flags
     opt['test_no_chanel_mix'] = True #True
-    opt['test_omit_metric'] = False #True
+    opt['test_omit_metric'] = True#False #True
     opt['test_mu_0'] = False #False #True
     opt['test_tau_remove_tanh'] = False #True
-    # opt['tau_reg'] = 5
-    # opt['test_tau_remove_tanh_reg'] = 5  # opt['attention_dim']
     opt['test_tau_symmetric'] = False
     #if function is greed_linear
     opt['test_linear_L0'] = True # flag to make the Laplacian form only dependent on embedding not time

@@ -284,8 +284,8 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     T0 = gamma * tau2
     T1 = gamma * tau * tau_transpose
 
-    # L = self.get_laplacian_form(T1, T0)
-    L = self.get_laplacian_form_noDNorm(T1, T0)
+    L = self.get_laplacian_form(T1, T0)
+    # L = self.get_laplacian_form_noDNorm(T1, T0)
     return L
 
   def get_laplacian_form_noDNorm(self, A, D):
@@ -298,7 +298,6 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     degree = scatter_add(D, self.edge_index[0, :], dim=-1, dim_size=self.n_nodes)
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
     L = torch.cat([-A, degree], dim=-1)
-    # L = self.symmetrically_normalise(values, edges) #non normalisation
     return L
 
   def forward(self, t, x):  # t is needed when called by the integrator

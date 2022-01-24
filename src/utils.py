@@ -7,6 +7,7 @@ import scipy
 from scipy.stats import sem
 import numpy as np
 from torch_scatter import scatter_add
+from torch_sparse import coalesce
 from torch_geometric.utils import add_remaining_self_loops
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.utils.convert import to_scipy_sparse_matrix
@@ -122,6 +123,21 @@ def get_rw_adj(edge_index, edge_weight=None, norm_dim=1, fill_value=0., num_node
   edge_weight = deg_inv_sqrt[indices] * edge_weight if norm_dim == 0 else edge_weight * deg_inv_sqrt[indices]
   return edge_index, edge_weight
 
+#adapted from make symmetric in graph_rewiring.py
+def make_symmetric(edge_index, values, n):
+  ApAT_index = torch.cat([edge_index, edge_index[[1, 0], :]], dim=1)
+  ApAT_value = torch.cat([values, values], dim=0) / 2
+  ei, ew = coalesce(ApAT_index, ApAT_value, n, n, op="add")
+  return ei, ew
+
+def max_row_sum_one():
+  #find max row sum
+  #divide all values in the matrix by the required factor
+  pass
+def sym_row_sum_one():
+  #find each
+  # LHS @ A @ RHS
+  pass
 
 def mean_confidence_interval(data, confidence=0.95):
   """
