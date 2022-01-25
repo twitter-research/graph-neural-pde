@@ -5,7 +5,7 @@ from torch_geometric.utils import softmax
 import torch_sparse
 from torch_geometric.utils.loop import add_remaining_self_loops
 from data import get_dataset
-from utils import MaxNFEException, squareplus, make_symmetric, sym_row_max
+from utils import MaxNFEException, squareplus, make_symmetric, sym_row_max, make_symmetric_unordered
 from base_classes import ODEFunc
 
 
@@ -238,12 +238,9 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
       attention = softmax(prods, edge[self.opt['attention_norm_idx']])
 
     if self.opt['symmetric_attention']:
-      #we assume here that the edge_index is already symmetric and self loops are taken care of
-      ei, attention = make_symmetric(edge, attention, x.shape[0])
-
-
-
-      assert torch.all(torch.eq(ei, edge)), 'edge index was reordered'
+      # ei, attention = make_symmetric(edge, attention, x.shape[0])
+      # assert torch.all(torch.eq(ei, edge)), 'edge index was reordered'
+      attention = make_symmetric_unordered(edge, attention, x.shape[0])
       prods = None
       v = None
       if self.opt['sym_row_max']:

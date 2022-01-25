@@ -7,7 +7,7 @@ import scipy
 from scipy.stats import sem
 import numpy as np
 from torch_scatter import scatter_add
-from torch_sparse import coalesce
+from torch_sparse import coalesce, transpose
 from torch_geometric.utils import add_remaining_self_loops
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.utils.convert import to_scipy_sparse_matrix
@@ -129,10 +129,23 @@ def make_symmetric(edge_index, values, n):
   ApAT_index = torch.cat([edge_index, edge_index[[1, 0], :]], dim=1)
   ApAT_value = torch.cat([values, values], dim=0) / 2
   ei, ew = coalesce(ApAT_index, ApAT_value, n, n, op="add")
-
   scatter_add
-
   return ei, ew
+
+def is_symmetric(index, value, n):
+  ###check a sparse tensor is symmetric###
+  index_t, value_t = transpose(index, value, n, n)
+  i0, v0 = coalesce(index, value, n, n, op="add")
+  it, vt = coalesce(index_t, value_t, n, n, op="add")
+  assert torch.all(torch.eq(i0, it)), 'edge index is equal'
+  assert torch.all(torch.eq(v0, vt)), 'edge index was reordered'
+
+def make_symmetric_unordered(index, value, n):
+  ### takes multiheaded attention and does (A+A.T)/2 but keeps given index ordering
+  # is_symmetric(index, value, n) #todo include this
+  d = {(index[0,i].item(), index[1,i].item()): value[i] for i in range(index.shape[1])}
+  trans = torch.stack([d[(index[1,i].item(), index[0,i].item())] for i in range(index.shape[1])],dim=0)
+  return (value + trans) / 2
 
 def sym_row_max(edge_index, values, n):
   row_max = scatter_add(values, edge_index[0], dim=0, dim_size=n).max()

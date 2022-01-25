@@ -1,0 +1,29 @@
+program: run_GNN.py
+method: random
+parameters:
+  dataset:
+    values: [Cora]
+  block:
+    values: [attention_greed]
+  function:
+    values: [laplacian_greed]
+  num_splits:
+    values: [8]
+  add_source:
+    values: [True, False]
+  symmetric_attention:
+    values: [True, False]
+  sym_row_max:
+    values: [True, False]
+  symmetric_QK:
+    values: [True, False]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --use_best_params
+entity: graph_neural_diffusion
+project: grand_increments_1
