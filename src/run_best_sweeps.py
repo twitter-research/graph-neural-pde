@@ -90,7 +90,7 @@ def grand_runs(cmd_opt, project_name, group_name, num_runs):
     opt['use_best_params'] = True ###USE BEST GRAND PARAMS
 
     for make_sym in [True, False]:
-        opt['make_symmetric'] = make_sym
+        opt['symmetric_attention'] = make_sym
         for smr in [True, False]:
             opt['sym_row_max'] = smr
 
