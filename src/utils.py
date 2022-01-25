@@ -129,6 +129,9 @@ def make_symmetric(edge_index, values, n):
   ApAT_index = torch.cat([edge_index, edge_index[[1, 0], :]], dim=1)
   ApAT_value = torch.cat([values, values], dim=0) / 2
   ei, ew = coalesce(ApAT_index, ApAT_value, n, n, op="add")
+
+  scatter_add
+
   return ei, ew
 
 def sym_row_max(edge_index, values, n):
