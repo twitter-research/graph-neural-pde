@@ -5,7 +5,9 @@ from function_greed import ODEFuncGreed
 from function_greed_scaledDP import ODEFuncGreed_SDB
 from function_greed_linear import ODEFuncGreedLinear
 from function_greed_linear_homo import ODEFuncGreedLinH
+from function_transformer_attention_greed import ODEFuncTransformerAttGreed
 from block_transformer_attention import AttODEblock
+from block_transformer_attention_greed import AttODEblock_greed
 from block_constant import ConstantODEblock
 from block_mixed import MixedODEblock
 from block_transformer_hard_attention import HardAttODEblock
@@ -30,6 +32,8 @@ def set_block(opt):
     block = RewireAttODEblock
   elif ode_str == 'constant':
     block = ConstantODEblock
+  elif ode_str == 'attention_greed':
+    block = AttODEblock_greed
   else:
     raise BlockNotDefined
   return block
@@ -51,6 +55,8 @@ def set_function(opt):
     f = ODEFuncGreedLinear
   elif ode_str == 'greed_linear_homo':
     f = ODEFuncGreedLinH
+  elif ode_str == 'transformer_greed':
+    f = ODEFuncTransformerAttGreed
   else:
     raise FunctionNotDefined
   return f

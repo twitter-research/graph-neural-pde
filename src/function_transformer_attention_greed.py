@@ -9,17 +9,17 @@ from utils import MaxNFEException, squareplus, make_symmetric, sym_row_max
 from base_classes import ODEFunc
 
 
-class ODEFuncTransformerAtt(ODEFunc):
+class ODEFuncTransformerAttGreed(ODEFunc):
 
   def __init__(self, in_features, out_features, opt, data, device):
-    super(ODEFuncTransformerAtt, self).__init__(opt, data, device)
+    super(ODEFuncTransformerAttGreed, self).__init__(opt, data, device)
 
     if opt['self_loop_weight'] > 0:
       self.edge_index, self.edge_weight = add_remaining_self_loops(data.edge_index, data.edge_attr,
                                                                    fill_value=opt['self_loop_weight'])
     else:
       self.edge_index, self.edge_weight = data.edge_index, data.edge_attr
-    self.multihead_att_layer = SpGraphTransAttentionLayer(in_features, out_features, opt,
+    self.multihead_att_layer = SpGraphTransAttentionLayer_greed(in_features, out_features, opt,
                                                           device, edge_weights=self.edge_weight).to(device)
 
   def multiply_attention(self, x, attention, v=None):
@@ -56,13 +56,13 @@ class ODEFuncTransformerAtt(ODEFunc):
     return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'
 
 
-class SpGraphTransAttentionLayer(nn.Module):
+class SpGraphTransAttentionLayer_greed(nn.Module):
   """
   Sparse version GAT layer, similar to https://arxiv.org/abs/1710.10903
   """
 
   def __init__(self, in_features, out_features, opt, device, concat=True, edge_weights=None):
-    super(SpGraphTransAttentionLayer, self).__init__()
+    super(SpGraphTransAttentionLayer_greed, self).__init__()
     self.in_features = in_features
     self.out_features = out_features
     self.alpha = opt['leaky_relu_slope']
@@ -86,29 +86,46 @@ class SpGraphTransAttentionLayer(nn.Module):
       self.lengthscale_x = nn.Parameter(torch.ones(1))
       self.output_var_p = nn.Parameter(torch.ones(1))
       self.lengthscale_p = nn.Parameter(torch.ones(1))
-      self.Qx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
-      self.init_weights(self.Qx)
+
+    if self.opt['beltrami'] and self.opt['attention_type'] in ["exp_kernel","exp_kernel_pos","exp_kernel_z"]:
+      #todo the below is very error prone. Think of a better way when there's time
+      if self.opt['symmetric_QK']:
+        self.QKx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
+        self.init_weights(self.QKx)
+
+        self.QKp = nn.Linear(opt['pos_enc_hidden_dim'], self.attention_dim)
+        self.init_weights(self.QKp)
+
+      else:
+        self.Qx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
+        self.init_weights(self.Qx)
+        self.Kx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
+        self.init_weights(self.Kx)
+
+        self.Qp = nn.Linear(opt['pos_enc_hidden_dim'], self.attention_dim)
+        self.init_weights(self.Qp)
+        self.Kp = nn.Linear(opt['pos_enc_hidden_dim'], self.attention_dim)
+        self.init_weights(self.Kp)
+
       self.Vx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
       self.init_weights(self.Vx)
-      self.Kx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
-      self.init_weights(self.Kx)
-
-      self.Qp = nn.Linear(opt['pos_enc_hidden_dim'], self.attention_dim)
-      self.init_weights(self.Qp)
       self.Vp = nn.Linear(opt['pos_enc_hidden_dim'], self.attention_dim)
       self.init_weights(self.Vp)
-      self.Kp = nn.Linear(opt['pos_enc_hidden_dim'], self.attention_dim)
-      self.init_weights(self.Kp)
 
     else:
-      self.Q = nn.Linear(in_features, self.attention_dim)
-      self.init_weights(self.Q)
+      if self.opt['symmetric_QK']:
+        self.QK = nn.Linear(in_features, self.attention_dim)
+        self.init_weights(self.QK)
+
+      else:
+        self.Q = nn.Linear(in_features, self.attention_dim)
+        self.init_weights(self.Q)
+
+        self.K = nn.Linear(in_features, self.attention_dim)
+        self.init_weights(self.K)
 
       self.V = nn.Linear(in_features, self.attention_dim)
       self.init_weights(self.V)
-
-      self.K = nn.Linear(in_features, self.attention_dim)
-      self.init_weights(self.K)
 
     self.activation = nn.Sigmoid()  # nn.LeakyReLU(self.alpha)
 
@@ -131,8 +148,13 @@ class SpGraphTransAttentionLayer(nn.Module):
       p = x[:, self.opt['feat_hidden_dim']: label_index]
       x = torch.cat((x[:, :self.opt['feat_hidden_dim']], x[:, label_index:]), dim=1)
 
-      qx = self.Qx(x)
-      kx = self.Kx(x)
+      if self.opt['symmetric_QK']:
+        qx = self.QKx(x)
+        kx = qx
+      else:
+        qx = self.Qx(x)
+        kx = self.Kx(x)
+
       vx = self.Vx(x)
       # perform linear operation and split into h heads
       kx = kx.view(-1, self.h, self.d_k)
@@ -145,8 +167,13 @@ class SpGraphTransAttentionLayer(nn.Module):
       src_x = qx[edge[0, :], :, :]
       dst_x = kx[edge[1, :], :, :]
 
-      qp = self.Qp(p)
-      kp = self.Kp(p)
+      if self.opt['symmetric_QK']:
+        qp = self.QKp(p)
+        kp = qp
+      else:
+        qp = self.Qp(p)
+        kp = self.Kp(p)
+
       vp = self.Vp(p)
       # perform linear operation and split into h heads
       kp = kp.view(-1, self.h, self.d_k)
@@ -167,8 +194,12 @@ class SpGraphTransAttentionLayer(nn.Module):
       v = None
 
     else:
-      q = self.Q(x)
-      k = self.K(x)
+      if self.opt['symmetric_QK']:
+        q = self.QK(x)
+        k = q
+      else:
+        q = self.Q(x)
+        k = self.K(x)
       v = self.V(x)
 
       # perform linear operation and split into h heads
@@ -215,6 +246,11 @@ class SpGraphTransAttentionLayer(nn.Module):
         attention, row_max = sym_row_max(edge, attention, x.shape[0])
         self.opt.update({'row_max': row_max}, allow_val_change=True)
 
+    ###BELOW NOT DONE YET
+    # if self.opt['tau_weight_attention'] and self.tau_weights is not None:
+    #   prods = prods * self.tau_weights.unsqueeze(dim=1)
+
+
     return attention, (v, prods)
 
   def __repr__(self):
@@ -229,5 +265,5 @@ if __name__ == '__main__':
          }
   dataset = get_dataset(opt, '../data', False)
   t = 1
-  func = ODEFuncTransformerAtt(dataset.data.num_features, 6, opt, dataset.data, device)
+  func = ODEFuncTransformerAtt_greed(dataset.data.num_features, 6, opt, dataset.data, device)
   out = func(t, dataset.data.x)

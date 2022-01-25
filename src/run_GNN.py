@@ -216,7 +216,6 @@ def merge_cmd_args(cmd_opt, opt):
   if cmd_opt['epoch'] != 100:
     opt['epoch'] = cmd_opt['epoch']
 
-
 def main(cmd_opt):
 
   if cmd_opt['use_best_params']:
@@ -484,7 +483,7 @@ if __name__ == '__main__':
   parser.add_argument('--edge_sampling_online_reps', type=int, default=4, help="how many online KNN its")
   parser.add_argument('--edge_sampling_space', type=str, default="attention",
                       help="attention,pos_distance, z_distance, pos_distance_QK, z_distance_QK")
-  # parser.add_argument('--symm_QK', action='store_true',
+  # parser.add_argument('--symmetric_QK', action='store_true',
   #                     help='makes the attention symmetric for rewring in QK space')
   # parser.add_argument('--symmetric_attention', action='store_true',
   #                     help='makes the attention symmetric via (A+A.T)/2')#for rewring in QK space')
@@ -529,7 +528,7 @@ if __name__ == '__main__':
   # Temp changing these to be strings so can tune over
   parser.add_argument('--use_mlp', type=str, default='False') #action='store_true')
   parser.add_argument('--no_early', type=str, default='False') #action='store_true')
-  parser.add_argument('--symm_QK', type=str, default='False',
+  parser.add_argument('--symmetric_QK', type=str, default='False',
                       help='makes the attention symmetric for rewring in QK space')
   parser.add_argument('--symmetric_attention', type=str, default='False',
                       help='makes the attention symmetric via (A+A.T)/2')#for rewring in QK space')
@@ -571,3 +570,5 @@ if __name__ == '__main__':
 #--dataset Cora --use_best_params --function greed_linear_homo
 #--dataset Cora --use_best_params --beltrami --function greed_linear_homo --no_early True
 # --dataset Cora --use_best_params --beltrami --no_early True --self_loop_weight 1.0
+
+#--dataset Cora --block attention_greed --function laplacian --use_best_params --symmetric_attention True --sym_row_max True --symmetric_QK True

@@ -31,7 +31,6 @@ def greed_test_params(opt):
 
 def greed_run_params(opt):
     #fixed greed params - handled by merge_cmd_args
-    # opt['function'] = 'greed' or 'greed_scaledDP' or 'greed_linear'
     opt['block'] = 'constant'
     # opt['beltrami'] = True
     # opt['pos_enc_type'] = 'GDC'
