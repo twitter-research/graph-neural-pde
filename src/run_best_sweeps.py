@@ -85,14 +85,16 @@ def grand_runs(cmd_opt, project_name, group_name, num_runs):
     opt = {**default_params_dict, **not_sweep_dict, **cmd_opt}
 
     opt['dataset'] = 'Cora'
-    opt['block'] = 'attention'
-    opt['function'] = 'laplacian'
+    opt['block'] = 'attention_greed'
+    opt['function'] = 'laplacian_greed'
     opt['use_best_params'] = True ###USE BEST GRAND PARAMS
 
     for make_sym in [True, False]:
         opt['symmetric_attention'] = make_sym
         for smr in [True, False]:
             opt['sym_row_max'] = smr
+            for symm_QK in [True, False]:
+                opt['symmetric_QK'] = symm_QK
 
             run = f"run_sym_{make_sym}_symrowmax_{smr}"
             print(opt)

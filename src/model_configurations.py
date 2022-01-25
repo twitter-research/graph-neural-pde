@@ -6,6 +6,7 @@ from function_greed_scaledDP import ODEFuncGreed_SDB
 from function_greed_linear import ODEFuncGreedLinear
 from function_greed_linear_homo import ODEFuncGreedLinH
 from function_transformer_attention_greed import ODEFuncTransformerAttGreed
+from function_laplacian_diffusion_greed import LaplacianODEFunc_greed
 from block_transformer_attention import AttODEblock
 from block_transformer_attention_greed import AttODEblock_greed
 from block_constant import ConstantODEblock
@@ -57,6 +58,8 @@ def set_function(opt):
     f = ODEFuncGreedLinH
   elif ode_str == 'transformer_greed':
     f = ODEFuncTransformerAttGreed
+  elif ode_str == 'laplacian_greed':
+    f = LaplacianODEFunc_greed
   else:
     raise FunctionNotDefined
   return f
