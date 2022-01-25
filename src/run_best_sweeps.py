@@ -78,6 +78,33 @@ def greed_runs(cmd_opt, project_name, group_name, num_runs):
                         main(opt)
 
 
+def grand_runs(cmd_opt, project_name, group_name, num_runs):
+    #--dataset Cora --use_best_params --symmetric_attention
+    default_params_dict = default_params()
+    not_sweep_dict = not_sweep_args(default_params_dict, project_name, group_name)
+    opt = {**default_params_dict, **not_sweep_dict, **cmd_opt}
+
+    opt['dataset'] = 'Cora'
+    opt['block'] = 'attention'
+    opt['function'] = 'laplacian'
+    opt['use_best_params'] = True ###USE BEST GRAND PARAMS
+
+    for make_sym in [True, False]:
+        opt['make_symmetric'] = make_sym
+        for smr in [True, False]:
+            opt['sym_row_max'] = smr
+
+            run = f"run_sym_{make_sym}_symrowmax_{smr}"
+            print(opt)
+
+            if opt['run_group']:
+                opt['wandb_best_run_id'] = run + "_" + str(opt['run_group'])
+            else:
+                opt['wandb_best_run_id'] = run
+
+            for i in range(num_runs):
+                main(opt)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # parser.add_argument('--tau_reg', type=int, default=2)
@@ -103,11 +130,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     cmd_opt = vars(args)
 
-    sweep = 'ebq1b5hy'
-    run_list = ['yv3v42ym', '7ba0jl9m', 'a60dnqcc', 'v6ln1x90', 'f5dmv6ow']
+    # sweep = 'ebq1b5hy'
+    # run_list = ['yv3v42ym', '7ba0jl9m', 'a60dnqcc', 'v6ln1x90', 'f5dmv6ow']
     project_name = 'grand_runs'
     group_name = 'eval'
-    num_runs = 4
+    num_runs = 8 #4
     # run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs)
-
-    greed_runs(cmd_opt, project_name, group_name, num_runs)
+    # greed_runs(cmd_opt, project_name, group_name, num_runs)
+    grand_runs(cmd_opt, project_name, group_name, num_runs)

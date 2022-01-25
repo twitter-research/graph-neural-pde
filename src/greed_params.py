@@ -268,7 +268,9 @@ def default_params():
     parser.add_argument('--edge_sampling_space', type=str, default="attention",
                         help="attention,pos_distance, z_distance, pos_distance_QK, z_distance_QK")
     parser.add_argument('--symmetric_attention', action='store_true',
-                        help='maks the attention symmetric for rewring in QK space')
+                        help='makes the attention symmetric via (A+A.T)/2')  # for rewring in QK space')
+    parser.add_argument('--sym_row_max', action='store_true',
+                        help='makes every row sum less than 1 by dividing by max rum some')
     parser.add_argument('--fa_layer_edge_sampling_rmv', type=float, default=0.8, help="percentage of edges to remove")
     parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")
     parser.add_argument('--pos_enc_csv', action='store_true', help="Generate pos encoding as a sparse CSV")

@@ -5,7 +5,7 @@ from torch_geometric.utils import softmax
 import torch_sparse
 from torch_geometric.utils.loop import add_remaining_self_loops
 from data import get_dataset
-from utils import MaxNFEException, squareplus, make_symmetric
+from utils import MaxNFEException, squareplus, make_symmetric, sym_row_max
 from base_classes import ODEFunc
 
 
@@ -213,6 +213,9 @@ class SpGraphTransAttentionLayer(nn.Module):
       _, attention = make_symmetric(edge, attention, x.shape[0])
       prods = None
       v = None
+      if self.opt['sym_row_max']:
+        attention, row_max = sym_row_max(edge, attention, x.shape[0])
+        self.opt.update({'row_max': row_max}, allow_val_change=True)
 
     ###BELOW NOT DONE YET
     # if self.opt['tau_weight_attention'] and self.tau_weights is not None:

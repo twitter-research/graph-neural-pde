@@ -125,15 +125,17 @@ def get_rw_adj(edge_index, edge_weight=None, norm_dim=1, fill_value=0., num_node
 
 #adapted from make symmetric in graph_rewiring.py
 def make_symmetric(edge_index, values, n):
+  ###test ideas: assert symetric matrix, compare to dense form
   ApAT_index = torch.cat([edge_index, edge_index[[1, 0], :]], dim=1)
   ApAT_value = torch.cat([values, values], dim=0) / 2
   ei, ew = coalesce(ApAT_index, ApAT_value, n, n, op="add")
   return ei, ew
 
-def max_row_sum_one():
-  #find max row sum
-  #divide all values in the matrix by the required factor
-  pass
+def sym_row_max(edge_index, values, n):
+  row_max = scatter_add(values, edge_index[0], dim=0, dim_size=n).max()
+  values = values / row_max
+  return values, row_max
+
 def sym_row_sum_one():
   #find each
   # LHS @ A @ RHS
