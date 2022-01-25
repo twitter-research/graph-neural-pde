@@ -7,8 +7,6 @@ parameters:
     values: [attention_greed]
   function:
     values: [laplacian_greed]
-  use_best_params:
-    values: [True]
   num_splits:
     values: [8]
   add_source:
@@ -26,5 +24,6 @@ command:
   - ${args}
   - --wandb
   - --wandb_sweep
+  - --use_best_params
 entity: graph_neural_diffusion
 project: grand_increments
