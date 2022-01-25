@@ -310,6 +310,8 @@ def default_params():
 
     # Temp changing these to be strings so can tune over
     parser.add_argument('--use_mlp', type=str, default='False')  # action='store_true')
+    parser.add_argument('--add_source', type=str, default='False',
+                        help='If try get rid of alpha param and the beta*x0 source term')
     parser.add_argument('--no_early', type=str, default='False')  # action='store_true')
     parser.add_argument('--symm_QK', type=str, default='False',
                         help='makes the attention symmetric for rewring in QK space')

@@ -378,8 +378,8 @@ if __name__ == '__main__':
   parser.add_argument('--function', type=str, help='laplacian, transformer, greed, GAT')
   # parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
   #                     help='Add a fully connected layer to the encoder.')
-  parser.add_argument('--add_source', dest='add_source', action='store_true',
-                      help='If try get rid of alpha param and the beta*x0 source term')
+  # parser.add_argument('--add_source', dest='add_source', action='store_true',
+  #                     help='If try get rid of alpha param and the beta*x0 source term')
 
   # ODE args
   parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
@@ -527,6 +527,8 @@ if __name__ == '__main__':
 
   # Temp changing these to be strings so can tune over
   parser.add_argument('--use_mlp', type=str, default='False') #action='store_true')
+  parser.add_argument('--add_source', type=str, default='False',
+                      help='If try get rid of alpha param and the beta*x0 source term')
   parser.add_argument('--no_early', type=str, default='False') #action='store_true')
   parser.add_argument('--symmetric_QK', type=str, default='False',
                       help='makes the attention symmetric for rewring in QK space')
