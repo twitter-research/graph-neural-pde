@@ -114,12 +114,12 @@ def tf_ablation_args(opt):
     for arg in ['test_no_chanel_mix','test_omit_metric','test_mu_0',
                 'test_tau_remove_tanh','test_tau_symmetric','test_grand_metric','test_tau_ones',
                 'test_tau_outside', 'test_linear_L0', 'test_R1R2_0',
-                'use_mlp', 'use_best_params', 'no_early']:
+                'use_mlp', 'use_best_params', 'no_early',
+                'add_source', 'symmetric_attention', 'sym_row_max']:
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)
         opt[arg] = bool_tf
     return opt
-
 
 
 def default_params():
@@ -267,10 +267,12 @@ def default_params():
     parser.add_argument('--edge_sampling_online_reps', type=int, default=4, help="how many online KNN its")
     parser.add_argument('--edge_sampling_space', type=str, default="attention",
                         help="attention,pos_distance, z_distance, pos_distance_QK, z_distance_QK")
-    parser.add_argument('--symmetric_attention', action='store_true',
-                        help='makes the attention symmetric via (A+A.T)/2')  # for rewring in QK space')
-    parser.add_argument('--sym_row_max', action='store_true',
-                        help='makes every row sum less than 1 by dividing by max rum some')
+    # parser.add_argument('--symm_QK', action='store_true',
+    #                     help='makes the attention symmetric for rewring in QK space')
+    # parser.add_argument('--symmetric_attention', action='store_true',
+    #                     help='makes the attention symmetric via (A+A.T)/2')#for rewring in QK space')
+    # parser.add_argument('--sym_row_max', action='store_true',
+    #                     help='makes every row sum less than 1 by dividing by max rum some')
     parser.add_argument('--fa_layer_edge_sampling_rmv', type=float, default=0.8, help="percentage of edges to remove")
     parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")
     parser.add_argument('--pos_enc_csv', action='store_true', help="Generate pos encoding as a sparse CSV")
@@ -309,13 +311,14 @@ def default_params():
     parser.add_argument('--test_R1R2_0', type=str, default='True')  # action='store_true')
 
     # Temp changing these to be strings so can tune over
-    # parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
-    #                     help='Add a fully connected layer to the encoder.')
-    # parser.add_argument("--no_early", action="store_true",
-    #                     help="Whether or not to use early stopping of the ODE integrator when testing.")
-
     parser.add_argument('--use_mlp', type=str, default='False')  # action='store_true')
     parser.add_argument('--no_early', type=str, default='False')  # action='store_true')
+    parser.add_argument('--symm_QK', type=str, default='False',
+                        help='makes the attention symmetric for rewring in QK space')
+    parser.add_argument('--symmetric_attention', type=str, default='False',
+                        help='makes the attention symmetric via (A+A.T)/2')  # for rewring in QK space')
+    parser.add_argument('--sym_row_max', type=str, default='False',
+                        help='makes every row sum less than 1 by dividing by max rum some')
 
     # greed args
     parser.add_argument('--use_best_params', action='store_true', help="flag to take the best BLEND params")
