@@ -114,12 +114,11 @@ def tf_ablation_args(opt):
                 'test_tau_remove_tanh','test_tau_symmetric','test_grand_metric','test_tau_ones',
                 'test_tau_outside', 'test_linear_L0', 'test_R1R2_0',
                 'use_mlp', 'use_best_params', 'no_early',
-                'add_source', 'symmetric_attention', 'sym_row_max']:
+                'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK']:
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)
         opt[arg] = bool_tf
     return opt
-
 
 def default_params():
     parser = argparse.ArgumentParser()
