@@ -1,6 +1,5 @@
 program: run_GNN.py
 method: random
-parameters:--dataset Cora --block attention_greed --function laplacian_greed --use_best_params --symmetric_QK True
   dataset:
     values: [Cora]
   block:
