@@ -240,7 +240,7 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
     if self.opt['symmetric_attention']:
       # ei, attention = make_symmetric(edge, attention, x.shape[0])
       # assert torch.all(torch.eq(ei, edge)), 'edge index was reordered'
-      attention = make_symmetric_unordered(edge, attention, x.shape[0])
+      attention = make_symmetric_unordered(edge, attention)
       prods = None
       v = None
       if self.opt['sym_row_max']:

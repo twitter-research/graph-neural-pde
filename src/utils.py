@@ -144,7 +144,7 @@ def is_symmetric(index, value, n):
   assert torch.all(torch.eq(v0, vt)), 'edge index was reordered'
 
 
-def make_symmetric_unordered(index, value, n=None):
+def make_symmetric_unordered(index, value):
   ### takes multiheaded attention and does (A+A.T)/2 but keeps given index ordering
   # is_symmetric(index, value, n) #todo include this
   d = {(index[0, i].item(), index[1, i].item()): value[i] for i in range(index.shape[1])}
