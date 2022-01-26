@@ -25,8 +25,16 @@ def greed_test_params(opt):
     else:
         opt['test_tau_symmetric'] = False
     opt['test_tau_outside'] = False
-    opt['greed_momentum'] = False
 
+    opt['test_R1R2_0'] = False
+    opt['test_grand_metric'] = False
+    opt['test_tau_ones'] = False
+    opt['symmetric_QK'] = False
+    opt['symmetric_attention'] = False
+    opt['sym_row_max'] = False
+
+    opt['greed_momentum'] = False
+    opt['gamma_epsilon'] = 1e-3
     return opt
 
 def greed_run_params(opt):
@@ -313,7 +321,7 @@ def default_params():
     parser.add_argument('--add_source', type=str, default='False',
                         help='If try get rid of alpha param and the beta*x0 source term')
     parser.add_argument('--no_early', type=str, default='False')  # action='store_true')
-    parser.add_argument('--symm_QK', type=str, default='False',
+    parser.add_argument('--symmetric_QK', type=str, default='False',
                         help='makes the attention symmetric for rewring in QK space')
     parser.add_argument('--symmetric_attention', type=str, default='False',
                         help='makes the attention symmetric via (A+A.T)/2')  # for rewring in QK space')

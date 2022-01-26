@@ -206,14 +206,14 @@ class SpGraphTransAttentionLayer(nn.Module):
     else:
       attention = softmax(prods, edge[self.opt['attention_norm_idx']])
 
-    if self.opt['symmetric_attention']:
-      #we assume here that the edge_index is already symmetric and self loops are taken care of
-      _, attention = make_symmetric(edge, attention, x.shape[0])
-      prods = None
-      v = None
-      if self.opt['sym_row_max']:
-        attention, row_max = sym_row_max(edge, attention, x.shape[0])
-        self.opt.update({'row_max': row_max}, allow_val_change=True)
+    # if self.opt['symmetric_attention']:
+    #   #we assume here that the edge_index is already symmetric and self loops are taken care of
+    #   _, attention = make_symmetric(edge, attention, x.shape[0])
+    #   prods = None
+    #   v = None
+    #   if self.opt['sym_row_max']:
+    #     attention, row_max = sym_row_max(edge, attention, x.shape[0])
+    #     self.opt.update({'row_max': row_max}, allow_val_change=True)
 
     return attention, (v, prods)
 
