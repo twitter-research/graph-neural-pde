@@ -16,6 +16,7 @@ from torch_geometric.nn.conv.gcn_conv import gcn_norm
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
 class MaxNFEException(Exception): pass
 
 
@@ -123,7 +124,8 @@ def get_rw_adj(edge_index, edge_weight=None, norm_dim=1, fill_value=0., num_node
   edge_weight = deg_inv_sqrt[indices] * edge_weight if norm_dim == 0 else edge_weight * deg_inv_sqrt[indices]
   return edge_index, edge_weight
 
-#adapted from make symmetric in graph_rewiring.py
+
+# adapted from make symmetric in graph_rewiring.py
 def make_symmetric(edge_index, values, n):
   ###test ideas: assert symetric matrix, compare to dense form
   ApAT_index = torch.cat([edge_index, edge_index[[1, 0], :]], dim=1)
@@ -131,6 +133,7 @@ def make_symmetric(edge_index, values, n):
   ei, ew = coalesce(ApAT_index, ApAT_value, n, n, op="add")
   scatter_add
   return ei, ew
+
 
 def is_symmetric(index, value, n):
   ###check a sparse tensor is symmetric###
@@ -140,22 +143,26 @@ def is_symmetric(index, value, n):
   assert torch.all(torch.eq(i0, it)), 'edge index is equal'
   assert torch.all(torch.eq(v0, vt)), 'edge index was reordered'
 
-def make_symmetric_unordered(index, value, n):
+
+def make_symmetric_unordered(index, value, n=None):
   ### takes multiheaded attention and does (A+A.T)/2 but keeps given index ordering
   # is_symmetric(index, value, n) #todo include this
-  d = {(index[0,i].item(), index[1,i].item()): value[i] for i in range(index.shape[1])}
-  trans = torch.stack([d[(index[1,i].item(), index[0,i].item())] for i in range(index.shape[1])],dim=0)
+  d = {(index[0, i].item(), index[1, i].item()): value[i] for i in range(index.shape[1])}
+  trans = torch.stack([d[(index[1, i].item(), index[0, i].item())] for i in range(index.shape[1])], dim=0)
   return (value + trans) / 2
+
 
 def sym_row_max(edge_index, values, n):
   row_max = scatter_add(values, edge_index[0], dim=0, dim_size=n).max()
   values = values / row_max
   return values, row_max
 
+
 def sym_row_sum_one():
-  #find each
+  # find each
   # LHS @ A @ RHS
   pass
+
 
 def mean_confidence_interval(data, confidence=0.95):
   """
@@ -194,12 +201,11 @@ def get_sem(vec):
 
 def get_full_adjacency(num_nodes):
   # what is the format of the edge index?
-  edge_index = torch.zeros((2, num_nodes ** 2),dtype=torch.long)
+  edge_index = torch.zeros((2, num_nodes ** 2), dtype=torch.long)
   for idx in range(num_nodes):
     edge_index[0][idx * num_nodes: (idx + 1) * num_nodes] = idx
-    edge_index[1][idx * num_nodes: (idx + 1) * num_nodes] = torch.arange(0, num_nodes,dtype=torch.long)
+    edge_index[1][idx * num_nodes: (idx + 1) * num_nodes] = torch.arange(0, num_nodes, dtype=torch.long)
   return edge_index
-
 
 
 from typing import Optional
