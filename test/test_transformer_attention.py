@@ -12,7 +12,7 @@ from function_transformer_attention import SpGraphTransAttentionLayer, ODEFuncTr
 from torch_geometric.utils import softmax, to_dense_adj
 from data import get_dataset
 from test_params import OPT
-
+from utils import ROOT_DIR
 
 class AttentionTests(unittest.TestCase):
   def setUp(self):
@@ -66,7 +66,7 @@ class AttentionTests(unittest.TestCase):
     self.assertTrue(torch.all(attention > 0.))
     self.assertTrue(torch.all(attention <= 1.))
 
-    dataset = get_dataset(self.opt, '../data', True)
+    dataset = get_dataset(self.opt, f'{ROOT_DIR}/data', True)
     data = dataset.data
     in_features = data.x.shape[1]
     out_features = data.x.shape[1]
@@ -94,7 +94,7 @@ class AttentionTests(unittest.TestCase):
     self.assertTrue(torch.all(torch.eq(attention, 0.5 * torch.ones((self.edge1.shape[1], self.x1.shape[1])))))
 
   def test_module(self):
-    dataset = get_dataset(self.opt, '../data', False)
+    dataset = get_dataset(self.opt, f'{ROOT_DIR}/data', False)
     t = 1
     out_dim = 6
     func = ODEFuncTransformerAtt(dataset.data.num_features, out_dim, self.opt, dataset.data, self.device)
@@ -116,7 +116,7 @@ class AttentionTests(unittest.TestCase):
     self.assertTrue(torch.all(torch.isclose(ax1,ax2)))
 
   def test_two_way_edge(self):
-    dataset = get_dataset(self.opt, '../data', False)
+    dataset = get_dataset(self.opt, f'{ROOT_DIR}/data', False)
     edge = dataset.data.edge_index
     print(f"is_undirected {dataset.data.is_undirected()}")
 

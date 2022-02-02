@@ -3,7 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 from base_classes import BaseGNN
 from model_configurations import set_block, set_function
-from graph_rewiring import KNN, add_edges, edge_sampling, GDC
+from graph_rewiring import KNN, add_edges, edge_sampling, GDCWrapper
 from utils import DummyData, get_full_adjacency
 
 # Define the GNN model.

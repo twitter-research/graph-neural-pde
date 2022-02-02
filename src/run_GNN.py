@@ -1,17 +1,24 @@
 import argparse
+import time
+import os
+
 import numpy as np
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
 import torch.nn.functional as F
+from ogb.nodeproppred import Evaluator
+
 from GNN import GNN
 from GNN_early import GNNEarly
 from GNN_KNN import GNN_KNN
 from GNN_KNN_early import GNNKNNEarly
-import time
 from data import get_dataset, set_train_val_test_split
-from ogb.nodeproppred import Evaluator
 from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling
-from best_params import  best_params_dict
+from best_params import best_params_dict
+from heterophilic import get_fixed_splits
+from utils import ROOT_DIR
+from CGNN import CGNN, get_sym_adj
+from CGNN import train as train_cgnn
 
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
@@ -180,14 +187,38 @@ def test_OGB(model, data, pos_encoding, opt):
   return train_acc, valid_acc, test_acc
 
 
-def main(cmd_opt):
-  best_opt = best_params_dict[cmd_opt['dataset']]
-  opt = {**cmd_opt, **best_opt}
-
+def merge_cmd_args(cmd_opt, opt):
   if cmd_opt['beltrami']:
     opt['beltrami'] = True
+  if cmd_opt['function'] is not None:
+    opt['function'] = cmd_opt['function']
+  if cmd_opt['block'] is not None:
+    opt['block'] = cmd_opt['block']
+  if cmd_opt['self_loop_weight'] is not None:
+    opt['self_loop_weight'] = cmd_opt['self_loop_weight']
+  if cmd_opt['method'] is not None:
+    opt['method'] = cmd_opt['method']
+  if cmd_opt['step_size'] != 1:
+    opt['step_size'] = cmd_opt['step_size']
+  if cmd_opt['time'] != 1:
+    opt['time'] = cmd_opt['time']
+  if cmd_opt['epoch'] != 100:
+    opt['epoch'] = cmd_opt['epoch']
+  if not cmd_opt['not_lcc']:
+    opt['not_lcc'] = False
+  if cmd_opt['num_splits'] != 1:
+    opt['num_splits'] = cmd_opt['num_splits']
 
-  dataset = get_dataset(opt, '../data', opt['not_lcc'])
+
+def main(cmd_opt):
+  try:
+    best_opt = best_params_dict[cmd_opt['dataset']]
+    opt = {**cmd_opt, **best_opt}
+    merge_cmd_args(cmd_opt, opt)
+  except KeyError:
+    opt = cmd_opt
+
+  dataset = get_dataset(opt, f'{ROOT_DIR}/data', opt['not_lcc'])
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
   if opt['beltrami']:
@@ -257,6 +288,11 @@ if __name__ == '__main__':
                       help='rw for random walk, gcn for symmetric gcn norm')
   parser.add_argument('--self_loop_weight', type=float, default=1.0, help='Weight of self-loops.')
   parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
+  parser.add_argument('--geom_gcn_splits', dest='geom_gcn_splits', action='store_true',
+                      help='use the 10 fixed splits from '
+                           'https://arxiv.org/abs/2002.05287')
+  parser.add_argument('--num_splits', type=int, dest='num_splits', default=1,
+                      help='the number of splits to repeat the results on')
   parser.add_argument('--label_rate', type=float, default=0.5,
                       help='% of training labels to use when --use_labels is set.')
   parser.add_argument('--planetoid_split', action='store_true',
@@ -283,13 +319,13 @@ if __name__ == '__main__':
                       help='Add a fully connected layer to the encoder.')
   parser.add_argument('--add_source', dest='add_source', action='store_true',
                       help='If try get rid of alpha param and the beta*x0 source term')
+  parser.add_argument('--cgnn', dest='cgnn', action='store_true', help='Run the baseline CGNN model from ICML20')
 
   # ODE args
   parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilist ODE learning')
-  parser.add_argument('--method', type=str, default='dopri5',
-                      help="set the numerical solver: dopri5, euler, rk4, midpoint")
+  parser.add_argument('--method', type=str, help="set the numerical solver: dopri5, euler, rk4, midpoint")
   parser.add_argument('--step_size', type=float, default=1,
                       help='fixed step size when using fixed step solvers e.g. rk4')
   parser.add_argument('--max_iters', type=float, default=100, help='maximum number of integration steps')
@@ -370,7 +406,8 @@ if __name__ == '__main__':
   # beltrami args
   parser.add_argument('--beltrami', action='store_true', help='perform diffusion beltrami style')
   parser.add_argument('--fa_layer', action='store_true', help='add a bottleneck paper style layer with more edges')
-  parser.add_argument('--pos_enc_type', type=str, default="DW64", help='positional encoder either GDC, DW64, DW128, DW256')
+  parser.add_argument('--pos_enc_type', type=str, default="DW64",
+                      help='positional encoder either GDC, DW64, DW128, DW256')
   parser.add_argument('--pos_enc_orientation', type=str, default="row", help="row, col")
   parser.add_argument('--feat_hidden_dim', type=int, default=64, help="dimension of features in beltrami")
   parser.add_argument('--pos_enc_hidden_dim', type=int, default=32, help="dimension of position in beltrami")
@@ -378,14 +415,16 @@ if __name__ == '__main__':
   parser.add_argument('--edge_sampling_T', type=str, default="T0", help="T0, TN")
   parser.add_argument('--edge_sampling_epoch', type=int, default=5, help="frequency of epochs to rewire")
   parser.add_argument('--edge_sampling_add', type=float, default=0.64, help="percentage of new edges to add")
-  parser.add_argument('--edge_sampling_add_type', type=str, default="importance", help="random, ,anchored, importance, degree")
+  parser.add_argument('--edge_sampling_add_type', type=str, default="importance",
+                      help="random, ,anchored, importance, degree")
   parser.add_argument('--edge_sampling_rmv', type=float, default=0.32, help="percentage of edges to remove")
   parser.add_argument('--edge_sampling_sym', action='store_true', help='make KNN symmetric')
   parser.add_argument('--edge_sampling_online', action='store_true', help='perform rewiring online')
   parser.add_argument('--edge_sampling_online_reps', type=int, default=4, help="how many online KNN its")
-  parser.add_argument('--edge_sampling_space', type=str, default="attention", help="attention,pos_distance, z_distance, pos_distance_QK, z_distance_QK")
-  parser.add_argument('--symmetric_attention', action='store_true', help='maks the attention symmetric for rewring in QK space')
-
+  parser.add_argument('--edge_sampling_space', type=str, default="attention",
+                      help="attention,pos_distance, z_distance, pos_distance_QK, z_distance_QK")
+  parser.add_argument('--symmetric_attention', action='store_true',
+                      help='maks the attention symmetric for rewring in QK space')
 
   parser.add_argument('--fa_layer_edge_sampling_rmv', type=float, default=0.8, help="percentage of edges to remove")
   parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")

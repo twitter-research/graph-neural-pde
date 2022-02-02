@@ -2,6 +2,7 @@ from base_classes import ODEblock
 import torch
 from utils import get_rw_adj, gcn_norm_fill_val
 
+
 class ConstantODEblock(ODEblock):
   def __init__(self, odefunc, regularization_fns, opt, data, device, t=torch.tensor([0, 1])):
     super(ConstantODEblock, self).__init__(odefunc, regularization_fns, opt, data, device, t)
