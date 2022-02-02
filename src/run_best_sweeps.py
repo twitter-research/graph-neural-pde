@@ -108,6 +108,8 @@ def grand_runs(cmd_opt, project_name, group_name, num_runs):
                 main(opt)
 
 def grand_sym_runs(cmd_opt, project_name, group_name, num_runs):
+    if True:
+         return    #replaced with grand_increments_2.yaml
 
     default_params_dict = default_params()
     not_sweep_dict = not_sweep_args(default_params_dict, project_name, group_name)

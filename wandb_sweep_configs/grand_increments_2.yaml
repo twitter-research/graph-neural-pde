@@ -1,0 +1,35 @@
+program: run_GNN.py
+method: grid
+parameters:
+  dataset:
+    values: [Cora]
+  block:
+    values: [attention_greed]
+  function:
+    values: [laplacian_greed]
+  num_splits:
+    values: [16]
+  symmetric_QK:
+    values: [True]
+  symmetric_attention:
+    values: [False]
+  attention_type:
+    values:  [scaled_dot, cosine_sim, pearson, exp_kernel]
+  attention_activation:
+    values:  [sigmoid, exponential]
+  attention_normalisation:
+    values:  [mat_row_max, sym_row_col]
+  test_mu_0:
+    values: [True, False]
+  add_source:
+    values: [True, False]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --use_best_params
+entity: graph_neural_diffusion
+project: grand_increments_2
