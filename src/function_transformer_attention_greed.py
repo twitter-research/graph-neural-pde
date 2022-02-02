@@ -245,6 +245,8 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
 
     if self.opt['attention_activation'] == "sigmoid":
       prods = torch.sigmoid(prods)
+    elif self.opt['attention_activation'] == "tanh":
+      prods = torch.tanh(prods)
     elif self.opt['attention_activation'] == "exponential":
       prods = torch.exp(prods)
     else:
