@@ -194,6 +194,8 @@ def merge_cmd_args(cmd_opt, opt):
     opt['function'] = cmd_opt['function']
   if cmd_opt['block'] is not None:
     opt['block'] = cmd_opt['block']
+  if cmd_opt['attention_type'] != 'scaled_dot':
+    opt['attention_type'] = cmd_opt['attention_type']
   if cmd_opt['self_loop_weight'] is not None:
     opt['self_loop_weight'] = cmd_opt['self_loop_weight']
   if cmd_opt['method'] is not None:

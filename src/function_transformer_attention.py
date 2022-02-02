@@ -101,14 +101,18 @@ class SpGraphTransAttentionLayer(nn.Module):
       self.init_weights(self.Kp)
 
     else:
+      if self.opt['attention_type'] == "exp_kernel":
+        self.output_var = nn.Parameter(torch.ones(1))
+        self.lengthscale = nn.Parameter(torch.ones(1))
+
       self.Q = nn.Linear(in_features, self.attention_dim)
       self.init_weights(self.Q)
 
-    self.V = nn.Linear(in_features, self.attention_dim)
-    self.init_weights(self.V)
+      self.V = nn.Linear(in_features, self.attention_dim)
+      self.init_weights(self.V)
 
-    self.K = nn.Linear(in_features, self.attention_dim)
-    self.init_weights(self.K)
+      self.K = nn.Linear(in_features, self.attention_dim)
+      self.init_weights(self.K)
 
     self.activation = nn.Sigmoid()  # nn.LeakyReLU(self.alpha)
 
@@ -187,7 +191,7 @@ class SpGraphTransAttentionLayer(nn.Module):
       dst_k = k[edge[1, :], :, :]
 
     if not self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
-      prods = (torch.sum((src - dst_k) ** 2, dim=1) / (2 * self.lengthscale ** 2))
+      prods = self.output_var ** 2 * torch.exp(-(torch.sum((src - dst_k) ** 2, dim=1) / (2 * self.lengthscale ** 2)))
     elif self.opt['attention_type'] == "scaled_dot":
       prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
     elif self.opt['attention_type'] == "cosine_sim":
