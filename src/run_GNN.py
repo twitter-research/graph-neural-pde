@@ -575,3 +575,4 @@ if __name__ == '__main__':
 
 #--dataset Cora --block attention_greed --function laplacian_greed --use_best_params --symetric_QK True --method euler --step_size 0.5 --no_early True
 #--dataset Cora --block attention_greed --function laplacian_greed --use_best_params --symmetric_QK True --method euler --step_size 0.5 --no_early True
+#--method euler --step_size 0.5 --no_early True

@@ -48,8 +48,15 @@ class ODEFuncTransformerAttGreed(ODEFunc):
     else:
       alpha = self.alpha_train
     f = alpha * (ax - x)
-    if self.opt['add_source']:
-      f = f + self.beta_train * self.x0
+
+    if self.opt['test_mu_0']:
+      if self.opt['add_source']:
+        f = f + self.beta_train * self.x0
+    else:
+      # f = f + self.beta_train * self.x0
+      # f = f - 0.5 * self.mu * (x - self.x0)
+      f = f - 0.5 * self.beta_train * (x - self.x0)
+
     return f
 
   def __repr__(self):
@@ -234,7 +241,7 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
       prods = cos(src, dst_k)
 
     elif self.opt['attention_type'] == "exp_kernel":
-      prods = self.output_var ** 2 * torch.exp((torch.sum((src - dst_k) ** 2, dim=1) / (2 * self.lengthscale ** 2)))
+      prods = self.output_var ** 2 * torch.exp(-(torch.sum((src - dst_k) ** 2, dim=1) / (2 * self.lengthscale ** 2)))
 
     if self.opt['attention_activation'] == "sigmoid":
       prods = torch.sigmoid(prods)

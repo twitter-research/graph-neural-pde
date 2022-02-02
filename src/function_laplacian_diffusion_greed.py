@@ -46,6 +46,13 @@ class LaplacianODEFunc_greed(ODEFunc):
       alpha = self.alpha_train
 
     f = alpha * (ax - x)
-    if self.opt['add_source']:
-      f = f + self.beta_train * self.x0
+
+    if self.opt['test_mu_0']:
+      if self.opt['add_source']:
+        f = f + self.beta_train * self.x0
+    else:
+      # f = f + self.beta_train * self.x0
+      # f = f - 0.5 * self.mu * (x - self.x0)
+      f = f - 0.5 * self.beta_train * (x - self.x0)
+
     return f

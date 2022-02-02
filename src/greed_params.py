@@ -342,6 +342,11 @@ def default_params():
     parser.add_argument('--run_id', type=str, default='', help="run_id for 1 best run")  # action='store_true')
     parser.add_argument('--run_group', type=str, default=None, help="run_id for 1 best run")  # action='store_true')
 
+    parser.add_argument('--attention_activation', type=str, default='exponential',
+                        help='[exponential, sigmoid] activations for the GRAM matrix')
+    parser.add_argument('--attention_normalisation', type=str, default='sym_row_col',
+                        help='[mat_row_max, sym_row_col, row_bottom, "best"] how to normalise')
+
     args = parser.parse_args()
     opt = vars(args)
     return(opt)

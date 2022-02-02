@@ -107,6 +107,39 @@ def grand_runs(cmd_opt, project_name, group_name, num_runs):
             for i in range(num_runs):
                 main(opt)
 
+def grand_sym_runs(cmd_opt, project_name, group_name, num_runs):
+
+    default_params_dict = default_params()
+    not_sweep_dict = not_sweep_args(default_params_dict, project_name, group_name)
+    opt = {**default_params_dict, **not_sweep_dict, **cmd_opt}
+
+    opt['dataset'] = 'Cora'
+    opt['block'] = 'attention_greed'
+    opt['function'] = 'laplacian_greed'
+    opt['use_best_params'] = True ###USE BEST GRAND PARAMS
+    opt['symmetric_attention'] = False #not needed as removed softmax, can think about bringing this back if not symm_QK
+    opt['symmetric_QK'] = True
+
+    for att_type in ["scaled_dot", "cosine_sim", "pearson", "exp_kernel"]:
+        opt['attention_type'] = att_type
+        for att_act in ["sigmoid", "exponential"]:
+            opt['attention_activation'] = att_act
+            for att_norm in ["mat_row_max", "sym_row_col"]:
+                opt['attention_normalisation'] = att_norm
+                for mu_0 in [False, True]:
+                    opt['test_mu_0'] = mu_0 ##if mu_0 is True then it will just default to best_params bolean of "add_source"
+
+                    run = f"att_type_{att_type}_activation_{att_act}_norm_{att_norm}_mu0_{mu_0}"
+                    print(opt)
+
+                    if opt['run_group']:
+                        opt['wandb_best_run_id'] = run + "_" + str(opt['run_group'])
+                    else:
+                        opt['wandb_best_run_id'] = run
+
+                    for i in range(num_runs):
+                        main(opt)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # parser.add_argument('--tau_reg', type=int, default=2)
@@ -139,4 +172,5 @@ if __name__ == "__main__":
     num_runs = 8 #4
     # run_best(cmd_opt, sweep, run_list, project_name, group_name, num_runs)
     # greed_runs(cmd_opt, project_name, group_name, num_runs)
-    grand_runs(cmd_opt, project_name, group_name, num_runs)
+    # grand_runs(cmd_opt, project_name, group_name, num_runs)
+    grand_sym_runs(cmd_opt, project_name, group_name, num_runs)

@@ -159,7 +159,7 @@ def sym_row_max(edge_index, values, n):
 
 
 def sym_row_col(edge_index, values, n):
-  #doesn't even need symmetric matrix but can be made more efficient with that assumption
+  #doesn't need symmetric matrix but can be made more efficient with that assumption
   row_sum = scatter_add(values, edge_index[0], dim=0, dim_size=n)
   col_sum = scatter_add(values, edge_index[1], dim=0, dim_size=n)
   row_sum_sq = torch.pow(row_sum, -0.5)
