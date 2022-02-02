@@ -5,7 +5,7 @@ from torch_geometric.utils import softmax
 import torch_sparse
 from torch_geometric.utils.loop import add_remaining_self_loops
 from data import get_dataset
-from utils import MaxNFEException, squareplus, make_symmetric, sym_row_max, make_symmetric_unordered
+from utils import MaxNFEException, squareplus, make_symmetric, make_symmetric_unordered, sym_row_max, sym_row_col
 from base_classes import ODEFunc
 
 
@@ -86,8 +86,11 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
       self.lengthscale_x = nn.Parameter(torch.ones(1))
       self.output_var_p = nn.Parameter(torch.ones(1))
       self.lengthscale_p = nn.Parameter(torch.ones(1))
+    else:
+      self.output_var = nn.Parameter(torch.ones(1))
+      self.lengthscale = nn.Parameter(torch.ones(1))
 
-    if self.opt['beltrami'] and self.opt['attention_type'] in ["exp_kernel","exp_kernel_pos","exp_kernel_z"]:
+    if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
       #todo the below is very error prone. Think of a better way when there's time
       if self.opt['symmetric_QK']:
         self.QKx = nn.Linear(opt['hidden_dim']-opt['pos_enc_hidden_dim'], self.attention_dim)
@@ -136,7 +139,7 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
     if type(m) == nn.Linear:
       # nn.init.xavier_uniform_(m.weight, gain=1.414)
       # m.bias.data.fill_(0.01)
-      nn.init.constant_(m.weight, 1e-5)
+      nn.init.constant_(m.weight, 1e-5) #todo check this
 
   def forward(self, x, edge):
     """
@@ -230,27 +233,50 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
       cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
       prods = cos(src, dst_k)
 
+    elif self.opt['attention_type'] == "exp_kernel":
+      prods = self.output_var ** 2 * torch.exp((torch.sum((src - dst_k) ** 2, dim=1) / (2 * self.lengthscale ** 2)))
+
+    if self.opt['attention_activation'] == "sigmoid":
+      prods = torch.sigmoid(prods)
+    elif self.opt['attention_activation'] == "exponential":
+      prods = torch.exp(prods)
+    else:
+      pass
+
     if self.opt['reweight_attention'] and self.edge_weights is not None:
       prods = prods * self.edge_weights.unsqueeze(dim=1)
-    if self.opt['square_plus']:
-      attention = squareplus(prods, edge[self.opt['attention_norm_idx']])
-    else:
-      attention = softmax(prods, edge[self.opt['attention_norm_idx']])
 
-    if self.opt['symmetric_attention']:
+    #REMOVE SOFTMAX
+    attention = prods
+    # if self.opt['square_plus']:
+    #   attention = squareplus(prods, edge[self.opt['attention_norm_idx']])
+    # else:
+    #   attention = softmax(prods, edge[self.opt['attention_norm_idx']])
+
+    if self.opt['symmetric_attention']: #NOT NEEDED IF REMOVE SOFTMAX AND HAVE Q=K
       # ei, attention = make_symmetric(edge, attention, x.shape[0])
       # assert torch.all(torch.eq(ei, edge)), 'edge index was reordered'
       attention = make_symmetric_unordered(edge, attention)
       prods = None
       v = None
-      if self.opt['sym_row_max']:
-        attention, row_max = sym_row_max(edge, attention, x.shape[0])
-        self.opt.update({'row_max': row_max}, allow_val_change=True)
 
-    ###BELOW NOT DONE YET
+    # if self.opt['sym_row_max']:
+    #   attention, row_max = sym_row_max(edge, attention, x.shape[0])
+    #   self.opt.update({'row_max': row_max}, allow_val_change=True)
+
+    if self.opt['attention_normalisation'] == "mat_row_max": #divide entire matrix by max row sum
+      attention, row_max = sym_row_max(edge, attention, x.shape[0])
+    elif self.opt['attention_normalisation'] == "sym_row_col": #this seems to make the system extremely stiff
+      attention = sym_row_col(edge, attention, x.shape[0])
+    elif self.opt['attention_normalisation'] == "row_bottom":
+      # attention = make_symmetric_unordered(edge, attention)
+      pass
+    else:
+      pass
+
+    ###tau_weight_attention NOT DONE YET
     # if self.opt['tau_weight_attention'] and self.tau_weights is not None:
     #   prods = prods * self.tau_weights.unsqueeze(dim=1)
-
 
     return attention, (v, prods)
 

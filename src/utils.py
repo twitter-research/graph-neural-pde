@@ -136,7 +136,7 @@ def make_symmetric(edge_index, values, n):
 
 
 def is_symmetric(index, value, n):
-  ###check a sparse tensor is symmetric###
+  ###check a sparse tensor is symmetric### #todo check this works
   index_t, value_t = transpose(index, value, n, n)
   i0, v0 = coalesce(index, value, n, n, op="add")
   it, vt = coalesce(index_t, value_t, n, n, op="add")
@@ -157,6 +157,18 @@ def sym_row_max(edge_index, values, n):
   values = values / row_max
   return values, row_max
 
+
+def sym_row_col(edge_index, values, n):
+  #doesn't even need symmetric matrix but can be made more efficient with that assumption
+  row_sum = scatter_add(values, edge_index[0], dim=0, dim_size=n)
+  col_sum = scatter_add(values, edge_index[1], dim=0, dim_size=n)
+  row_sum_sq = torch.pow(row_sum, -0.5)
+  col_sum_sq = torch.pow(col_sum, -0.5)
+  return row_sum_sq[edge_index[0]] * values * col_sum_sq[edge_index[1]]
+  #Assuming symetric
+  # row_sum = scatter_add(values, edge_index[0], dim=0, dim_size=n)
+  # row_sum_sq = torch.pow(row_sum, -0.5)
+  # return row_sum_sq[edge_index[0]] * values * row_sum_sq[edge_index[1]]
 
 def sym_row_sum_one():
   # find each

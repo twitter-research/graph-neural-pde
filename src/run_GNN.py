@@ -545,6 +545,9 @@ if __name__ == '__main__':
   parser.add_argument('--dim_p_w', type=int, default=16, help="inner dimension for W")
   parser.add_argument('--gamma_epsilon', type=float, default=0.01, help="epsilon value used for numerical stability in get_gamma")
 
+  parser.add_argument('--attention_activation', type=str, default='exponential', help='[exponential, sigmoid] activations for the GRAM matrix')
+  parser.add_argument('--attention_normalisation', type=str, default='sym_row_col', help='[mat_row_max, sym_row_col, row_bottom, "best"] how to normalise')
+
   args = parser.parse_args()
   opt = vars(args)
 
@@ -559,7 +562,6 @@ if __name__ == '__main__':
 
   #applied to both sweeps and not sweeps
   opt = tf_ablation_args(opt)
-
   main(opt)
 
 #terminal commands for sweeps
@@ -570,7 +572,6 @@ if __name__ == '__main__':
 #--dataset texas --geom_gcn_splits --num_splits 10 --epoch 2 --function greed_lin_homo --beltrami --pos_enc_type GDC --method euler --step_size 0.25 --self_loop_weight 0
 #--dataset Cora --epoch 100 --function greed_linear_homo --beltrami --pos_enc_type GDC --method euler --step_size 0.25 --self_loop_weight 0 --test_tau_symmetric True
 #--dataset Cora --use_best_params --function greed_linear_homo
-#--dataset Cora --use_best_params --beltrami --function greed_linear_homo --no_early True
-# --dataset Cora --use_best_params --beltrami --no_early True --self_loop_weight 1.0
 
-#--dataset Cora --block attention_greed --function laplacian --use_best_params --symmetric_attention True --sym_row_max True --symmetric_QK True
+#--dataset Cora --block attention_greed --function laplacian_greed --use_best_params --symetric_QK True --method euler --step_size 0.5 --no_early True
+#--dataset Cora --block attention_greed --function laplacian_greed --use_best_params --symmetric_QK True --method euler --step_size 0.5 --no_early True
