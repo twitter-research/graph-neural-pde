@@ -10,13 +10,12 @@ from torch_scatter import scatter
 from torch_geometric.transforms.two_hop import TwoHop
 from torch_geometric.utils import add_self_loops, to_undirected, to_dense_adj, dense_to_sparse
 from torch_geometric.transforms import GDC
-from utils import get_rw_adj, get_full_adjacency
+from utils import get_rw_adj, get_full_adjacency, ROOT_DIR
 from pykeops.torch import LazyTensor
 import os
 import pickle
 from distances_kNN import apply_dist_KNN, apply_dist_threshold, get_distances, apply_feat_KNN
 from hyperbolic_distances import hyperbolize
-
 
 ### for custom GDC
 import torch
@@ -24,7 +23,7 @@ import numba
 import numpy as np
 from scipy.linalg import expm
 from torch_geometric.utils import add_self_loops, is_undirected, to_dense_adj, \
-   dense_to_sparse, to_undirected
+  dense_to_sparse, to_undirected
 from torch_sparse import coalesce
 from torch_scatter import scatter_add
 
@@ -65,17 +64,17 @@ def apply_gdc(data, opt, type="combined"):
     diff_args['eps'] = opt['gdc_threshold']
   print('gdc sparse args: {}'.format(sparse_args))
   if opt['self_loop_weight'] != 0:
-    gdc = GDC(float(opt['self_loop_weight']),
-              normalization_in='sym',
-              normalization_out='col',
-              diffusion_kwargs=diff_args,
-              sparsification_kwargs=sparse_args, exact=opt['exact'])
+    gdc = GDCWrapper(float(opt['self_loop_weight']),
+                     normalization_in='sym',
+                     normalization_out='col',
+                     diffusion_kwargs=diff_args,
+                     sparsification_kwargs=sparse_args, exact=opt['exact'])
   else:
-    gdc = GDC(self_loop_weight=None,
-              normalization_in='sym',
-              normalization_out='col',
-              diffusion_kwargs=diff_args,
-              sparsification_kwargs=sparse_args, exact=opt['exact'])
+    gdc = GDCWrapper(self_loop_weight=None,
+                     normalization_in='sym',
+                     normalization_out='col',
+                     diffusion_kwargs=diff_args,
+                     sparsification_kwargs=sparse_args, exact=opt['exact'])
   if isinstance(data.num_nodes, list):
     data.num_nodes = data.num_nodes[0]
 
@@ -242,7 +241,7 @@ def apply_edge_sampling(x, pos_encoding, model, opt):
   edge_sampling(model, z, opt)
 
 
-def apply_beltrami(data, opt, data_dir='../data'):
+def apply_beltrami(data, opt, data_dir=f'{ROOT_DIR}/data'):
   pos_enc_dir = os.path.join(f"{data_dir}", "pos_encodings")
   # generate new positional encodings
   # do encodings already exist on disk?
@@ -324,7 +323,6 @@ def apply_pos_dist_rewire(data, opt, data_dir='../data'):
       with open(fname, "wb") as f:
         pickle.dump(pos_dist, f)
 
-
       if opt['gdc_sparsification'] == 'topk':
         ei = apply_dist_KNN(pos_dist, opt['gdc_k'])
       elif opt['gdc_sparsification'] == 'threshold':
@@ -333,7 +331,7 @@ def apply_pos_dist_rewire(data, opt, data_dir='../data'):
   elif opt['pos_enc_type'].startswith("DW"):
     pos_encoding = apply_beltrami(data, opt, data_dir)
     if opt['gdc_sparsification'] == 'topk':
-      ei = apply_feat_KNN(pos_encoding,  opt['gdc_k'])
+      ei = apply_feat_KNN(pos_encoding, opt['gdc_k'])
       # ei = KNN(pos_encoding, opt)
     elif opt['gdc_sparsification'] == 'threshold':
       dist = get_distances(pos_encoding)
@@ -343,12 +341,15 @@ def apply_pos_dist_rewire(data, opt, data_dir='../data'):
 
   return data
 
-class GDC(GDC):
+
+class GDCWrapper(GDC):
   def __init__(self, self_loop_weight=1, normalization_in='sym',
                normalization_out='col',
                diffusion_kwargs=dict(method='ppr', alpha=0.15),
                sparsification_kwargs=dict(method='threshold',
                                           avg_degree=64), exact=True):
+    super(GDCWrapper, self).__init__(self_loop_weight, normalization_in, normalization_out, diffusion_kwargs,
+                              sparsification_kwargs, exact)
     self.self_loop_weight = self_loop_weight
     self.normalization_in = normalization_in
     self.normalization_out = normalization_out
@@ -358,7 +359,6 @@ class GDC(GDC):
 
     if self_loop_weight:
       assert exact or self_loop_weight == 1
-
 
   def position_encoding(self, data):
     N = data.num_nodes

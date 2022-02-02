@@ -131,8 +131,8 @@ class EarlyStopDopri5(RKAdaptiveStepsizeODESolver):
 class EarlyStopRK4(FixedGridODESolver):
   order = 4
 
-  def __init__(self, func, y0, rtol, atol, opt, eps=0, **kwargs):
-    super(EarlyStopRK4, self).__init__(func, y0, step_size=opt['step_size'])
+  def __init__(self, func, y0, opt, eps=0, **kwargs):
+    super(EarlyStopRK4, self).__init__(func, y0, **kwargs)
     self.eps = torch.as_tensor(eps, dtype=self.dtype, device=self.device)
     self.lf = torch.nn.CrossEntropyLoss()
     self.m2_weight = None
@@ -147,8 +147,12 @@ class EarlyStopRK4(FixedGridODESolver):
       self.lf = torch.nn.functional.nll_loss
       self.evaluator = Evaluator(name=opt['dataset'])
 
-  def _step_func(self, func, t, dt, y):
-    return rk4_alt_step_func(func, t + self.eps, dt - 2 * self.eps, y)
+  def _step_func(self, func, t, dt, t1, y):
+    ver = torchdiffeq.__version__[0] + torchdiffeq.__version__[2] + torchdiffeq.__version__[4]
+    if int(ver) >= 22:  # '0.2.2'
+      return rk4_alt_step_func(func, t + self.eps, dt - 2 * self.eps, t1, y)
+    else:
+      return rk4_alt_step_func(func, t + self.eps, dt - 2 * self.eps, y)
 
   def set_accs(self, train, val, test, time):
     self.best_train = train
@@ -166,7 +170,7 @@ class EarlyStopRK4(FixedGridODESolver):
     j = 1
     y0 = self.y0
     for t0, t1 in zip(time_grid[:-1], time_grid[1:]):
-      dy = self._step_func(self.func, t0, t1 - t0, y0)
+      dy = self._step_func(self.func, t0, t1 - t0, t1, y0)
       y1 = y0 + dy
       train_acc, val_acc, test_acc = self.evaluate(y1, t0, t1)
       if val_acc > self.best_val:
@@ -239,7 +243,7 @@ class EarlyStopInt(torch.nn.Module):
     self.opt = opt
     self.t = torch.tensor([0, opt['earlystopxT'] * t], dtype=torch.float).to(self.device)
 
-  def __call__(self, func, y0, t, method=None, rtol=1e-7, atol=1e-9, 
+  def __call__(self, func, y0, t, method=None, rtol=1e-7, atol=1e-9,
                adjoint_method="dopri5", adjoint_atol=1e-9, adjoint_rtol=1e-7, options=None):
     """Integrate a system of ordinary differential equations.
 

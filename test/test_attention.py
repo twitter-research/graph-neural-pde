@@ -10,6 +10,7 @@ from torch import nn
 from function_GAT_attention import SpGraphAttentionLayer, ODEFuncAtt
 from torch_geometric.utils import softmax, to_dense_adj
 from data import get_dataset
+from test_params import OPT
 
 
 class AttentionTests(unittest.TestCase):
@@ -23,12 +24,13 @@ class AttentionTests(unittest.TestCase):
 
     self.leakyrelu = nn.LeakyReLU(0.2)
     self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    self.opt = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2,
+    opt = {'dataset': 'Cora', 'self_loop_weight': 1, 'leaky_relu_slope': 0.2, 'beta_dim': 'vc', 'heads': 2,
                 'K': 10,
                 'attention_norm_idx': 0, 'add_source': False, 'max_nfe': 1000, 'mix_features': False,
                 'attention_dim': 32,
                 'mixed_block': False, 'rewiring': None, 'no_alpha_sigmoid': False, 'reweight_attention': False,
                 'kinetic_energy': None, 'jacobian_norm2': None, 'total_deriv': None, 'directional_penalty': None}
+    self.opt = {**OPT, **opt}
 
   def tearDown(self) -> None:
     pass

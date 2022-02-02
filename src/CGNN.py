@@ -19,7 +19,6 @@ import argparse
 from torch import nn
 import torch.nn.functional as F
 from data import get_dataset
-from run_GNN import get_optimizer, test
 # Whether use adjoint method or not.
 from torch_geometric.utils.convert import to_scipy_sparse_matrix
 import numpy as np
@@ -37,6 +36,33 @@ if adjoint:
 else:
   from torchdiffeq import odeint
 
+def get_optimizer(name, parameters, lr, weight_decay=0):
+  if name == 'sgd':
+    return torch.optim.SGD(parameters, lr=lr, weight_decay=weight_decay)
+  elif name == 'rmsprop':
+    return torch.optim.RMSprop(parameters, lr=lr, weight_decay=weight_decay)
+  elif name == 'adagrad':
+    return torch.optim.Adagrad(parameters, lr=lr, weight_decay=weight_decay)
+  elif name == 'adam':
+    return torch.optim.Adam(parameters, lr=lr, weight_decay=weight_decay)
+  elif name == 'adamax':
+    return torch.optim.Adamax(parameters, lr=lr, weight_decay=weight_decay)
+  else:
+    raise Exception("Unsupported optimizer: {}".format(name))
+
+
+@torch.no_grad()
+def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
+  model.eval()
+  feat = data.x
+  if model.opt['use_labels']:
+    feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
+  logits, accs = model(feat, pos_encoding), []
+  for _, mask in data('train_mask', 'val_mask', 'test_mask'):
+    pred = logits[mask].max(1)[1]
+    acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
+    accs.append(acc)
+  return accs
 
 # Define the ODE function.
 # Input:
@@ -119,7 +145,7 @@ class CGNN(nn.Module):
     self.m1.reset_parameters()
     self.m2.reset_parameters()
 
-  def forward(self, x):
+  def forward(self, x, pos_enc=None):
     # Encode each node based on its feature.
     x = F.dropout(x, self.opt['input_dropout'], training=self.training)
     x = self.m1(x)
@@ -258,7 +284,7 @@ def get_sym_adj(data, opt, device):
   return coo2tensor(coo, device)
 
 
-def train(model, optimizer, data):
+def train(model, optimizer, data, pos_encoding=None):
   model.train()
   optimizer.zero_grad()
   out = model(data.x)
