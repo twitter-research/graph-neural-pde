@@ -86,7 +86,7 @@ def greed_ablation_params(opt):
     opt['test_omit_metric'] = True#False #True
     opt['test_mu_0'] = False #False #True
     opt['test_tau_remove_tanh'] = False #True
-    opt['test_tau_symmetric'] = False
+    opt['test_tau_symmetric'] = True#False
     #if function is greed_linear
     opt['test_linear_L0'] = True # flag to make the Laplacian form only dependent on embedding not time
     opt['test_R1R2_0'] = True
@@ -122,10 +122,13 @@ def tf_ablation_args(opt):
                 'test_tau_remove_tanh','test_tau_symmetric','test_grand_metric','test_tau_ones',
                 'test_tau_outside', 'test_linear_L0', 'test_R1R2_0',
                 'use_mlp', 'use_best_params', 'no_early',
-                'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK']:
+                'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
+                'T0term_normalisation', 'T1term_normalisation']:
+
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)
         opt[arg] = bool_tf
+
     return opt
 
 def default_params():
@@ -346,6 +349,10 @@ def default_params():
                         help='[exponential, sigmoid] activations for the GRAM matrix')
     parser.add_argument('--attention_normalisation', type=str, default='sym_row_col',
                         help='[mat_row_max, sym_row_col, row_bottom, "best"] how to normalise')
+    parser.add_argument('--T0term_normalisation', type=str, default='False', help='normalise T0 term')
+    parser.add_argument('--T1term_normalisation', type=str, default='False', help='normalise T1 term')
+    parser.add_argument('--laplacian_norm', type=str, default='lap_noNorm',
+                        help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
 
     args = parser.parse_args()
     opt = vars(args)

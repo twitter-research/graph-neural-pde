@@ -152,7 +152,6 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
     """
     x might be [features, augmentation, positional encoding, labels]
     """
-    # if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
     if self.opt['beltrami'] and self.opt['attention_type'] == "exp_kernel":
       label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
       p = x[:, self.opt['feat_hidden_dim']: label_index]
@@ -243,49 +242,61 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
     elif self.opt['attention_type'] == "exp_kernel":
       prods = self.output_var ** 2 * torch.exp(-(torch.sum((src - dst_k) ** 2, dim=1) / (2 * self.lengthscale ** 2)))
 
+    #Attention activations
     if self.opt['attention_activation'] == "sigmoid":
-      prods = torch.sigmoid(prods)
+      attention = torch.sigmoid(prods)
     elif self.opt['attention_activation'] == "tanh":
-      prods = torch.tanh(prods)
+      attention = torch.tanh(prods)
     elif self.opt['attention_activation'] == "exponential":
-      prods = torch.exp(prods)
+      attention = torch.exp(prods)
+    elif self.opt['attention_activation'] == "softmax":
+      attention = softmax(prods, edge[self.opt['attention_norm_idx']])
+    elif self.opt['attention_activation'] == "squareplus":
+      attention = squareplus(prods, edge[self.opt['attention_norm_idx']])
     else:
       pass
 
-    if self.opt['reweight_attention'] and self.edge_weights is not None:
-      prods = prods * self.edge_weights.unsqueeze(dim=1)
-
-    #REMOVE SOFTMAX
-    attention = prods
-    # if self.opt['square_plus']:
-    #   attention = squareplus(prods, edge[self.opt['attention_norm_idx']])
+    #todo we can have a symmetric activated attention matrix without requiring Q=K following the else path below and (A+A.t)/2
+    #might be overcomplicating it though..
+    ##### - from GRAND HOMO
+    # src_q = q[edge[0, :], :, :]
+    # dst_k = k[edge[1, :], :, :]
+    # prods1 = torch.sum(src_q * dst_k, dim=1) / np.sqrt(self.d_k)
+    # if self.opt['test_grand_metric']:
+    #   attention = softmax(prods1, edge[self.opt['attention_norm_idx']])
+    #   return attention, (None, None)
     # else:
-    #   attention = softmax(prods, edge[self.opt['attention_norm_idx']])
+    #   src_k = k[edge[0, :], :, :]
+    #   dst_q = q[edge[1, :], :, :]
+    #   prods2 = torch.sum(src_k * dst_q, dim=1) / np.sqrt(self.d_k)
+    #   attention = (softmax(prods1, edge[self.opt['attention_norm_idx']]) + softmax(prods2, edge[
+    #     self.opt['attention_norm_idx']])) / 2
+    #   return attention, (None, None)
+    #####
 
-    if self.opt['symmetric_attention']: #NOT NEEDED IF REMOVE SOFTMAX AND HAVE Q=K
+    if self.opt['symmetric_attention']: #NOT NEEDED IF REMOVE SOFTMAX AND HAVE Q=K which is the current working assumption
       # ei, attention = make_symmetric(edge, attention, x.shape[0])
       # assert torch.all(torch.eq(ei, edge)), 'edge index was reordered'
       attention = make_symmetric_unordered(edge, attention)
       prods = None
       v = None
 
-    # if self.opt['sym_row_max']:
-    #   attention, row_max = sym_row_max(edge, attention, x.shape[0])
-    #   self.opt.update({'row_max': row_max}, allow_val_change=True)
-
+    #normalising the attention matrix
     if self.opt['attention_normalisation'] == "mat_row_max": #divide entire matrix by max row sum
       attention, row_max = sym_row_max(edge, attention, x.shape[0])
-    elif self.opt['attention_normalisation'] == "sym_row_col": #this seems to make the system extremely stiff
+      #   self.opt.update({'row_max': row_max}, allow_val_change=True)
+    elif self.opt['attention_normalisation'] == "sym_row_col":
       attention = sym_row_col(edge, attention, x.shape[0])
     elif self.opt['attention_normalisation'] == "row_bottom":
-      # attention = make_symmetric_unordered(edge, attention)
+      pass  #an algorithm that iteratively sym normalises by the smallest row sum
+    elif self.opt['attention_normalisation'] == "none":
       pass
     else:
       pass
 
-    ###tau_weight_attention NOT DONE YET
-    # if self.opt['tau_weight_attention'] and self.tau_weights is not None:
-    #   prods = prods * self.tau_weights.unsqueeze(dim=1)
+    #we do the Tau reweighting in the ODE function forward pass
+    # if self.opt['reweight_attention'] and self.edge_weights is not None:
+    #   prods = prods * self.edge_weights.unsqueeze(dim=1)
 
     return attention, (v, prods)
 

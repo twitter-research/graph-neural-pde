@@ -88,8 +88,8 @@ class ODEFunc(MessagePassing):
     self.beta_train = nn.Parameter(torch.tensor(0.0))
     self.x0 = None
     self.nfe = 0
-    self.alpha_sc = nn.Parameter(torch.ones(1))
-    self.beta_sc = nn.Parameter(torch.ones(1))
+    self.alpha_sc = nn.Parameter(torch.ones(1)) #todo are these even used
+    self.beta_sc = nn.Parameter(torch.ones(1)) #todo are these even used
 
   def __repr__(self):
     return self.__class__.__name__
