@@ -83,7 +83,7 @@ def greed_hyper_params(opt):
 def greed_ablation_params(opt):
     #ablation flags
     opt['test_no_chanel_mix'] = True #True
-    opt['test_omit_metric'] = True#False #True
+    opt['test_omit_metric'] = False #False #True
     opt['test_mu_0'] = False #False #True
     opt['test_tau_remove_tanh'] = False #True
     opt['test_tau_symmetric'] = True#False

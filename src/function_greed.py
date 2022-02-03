@@ -81,7 +81,8 @@ class ODEFuncGreed(ODEFunc):
     self.reset_parameters()
 
   def reset_parameters(self):
-    glorot(self.W)
+    if not self.opt['test_no_chanel_mix']: ##not having this might have been making Ws not identity for MANY cases
+      glorot(self.W)
     glorot(self.K)
     if not self.opt['test_tau_symmetric'] or self.opt['function'] == 'greed_scaledDP': #second term is so that scaledDP can inherit #todo see fix in lin_h
       glorot(self.Q)

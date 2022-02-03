@@ -78,7 +78,7 @@ class GNNEarly(BaseGNN):
     with torch.no_grad():
       self.set_solver_m2()
 
-    if self.opt['function'] in ['greed_linear', 'greed_linear_homo', 'laplacian_greed']:
+    if self.opt['function'] in ['greed_linear', 'greed_linear_homo']:
       self.odeblock.odefunc.set_x_0(x) #this x is actually z
       self.odeblock.odefunc.set_tau_0()
       if self.opt['test_linear_L0']:
