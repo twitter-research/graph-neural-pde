@@ -547,8 +547,8 @@ if __name__ == '__main__':
 
   parser.add_argument('--attention_activation', type=str, default='exponential', help='[exponential, sigmoid] activations for the GRAM matrix')
   parser.add_argument('--attention_normalisation', type=str, default='sym_row_col', help='[mat_row_max, sym_row_col, row_bottom, "best"] how to normalise')
-  parser.add_argument('--T0term_normalisation', type=str, default='False', help='normalise T0 term')
-  parser.add_argument('--T1term_normalisation', type=str, default='False', help='normalise T1 term')
+  parser.add_argument('--T0term_normalisation', type=str, default='T0_identity', help='[T0_symmDegnorm, T0_symmDegnorm, T0_identity] normalise T0 term')
+  parser.add_argument('--T1term_normalisation', type=str, default='T1_identity', help='[T1_symmDegnorm, T1_symmDegnorm, T1_noNorm] normalise T0 term')
   parser.add_argument('--laplacian_norm', type=str, default='lap_noNorm', help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
 
 
@@ -589,4 +589,4 @@ if __name__ == '__main__':
 
 #--dataset Cora --epoch 100 --function greed_linear_homo --beltrami --pos_enc_type GDC --method euler --step_size 0.25 --self_loop_weight 0 --test_tau_symmetric True
 
-#--dataset Cora --epoch 100 --function greed_linear_homo --method euler --step_size 0.25 --self_loop_weight 0 --test_tau_symmetric True --symmetric_QK True --symmetric_attention False --attention_activation sigmoid --attention_normalisation sym_row_col --test_tau_ones True --use_best_params --T0term_normalisation True
+#--dataset Cora --epoch 100 --function greed_linear_homo --method euler --step_size 0.25 --self_loop_weight 0 --test_tau_symmetric True --symmetric_QK True --symmetric_attention False --attention_activation sigmoid --attention_normalisation sym_row_col --test_tau_ones True --use_best_params --T0term_normalisation T0_identity --T1term_normalisation T1_noNorm

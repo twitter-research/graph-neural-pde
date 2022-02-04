@@ -51,11 +51,6 @@ class ODEFuncGreedLinH(ODEFuncGreed):
         self.Q = Parameter(torch.Tensor(opt['hidden_dim'], 1))
       self.K = Parameter(torch.Tensor(opt['hidden_dim'], 1))
 
-      # if opt['test_no_chanel_mix']: #<- fix W s.t. W_s == I
-      #   self.W = torch.cat([torch.eye(in_features, device=device), torch.zeros(in_features, max(opt['dim_p_w'] - in_features, 0), device=device)], dim=1)
-      # else:
-      #   self.W = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
-
     self.reset_linH_parameters()
 
     # self.multihead_att_layer = SpGraphTransAttentionLayer(in_features, out_features, opt, #check out_features is attention_dim
@@ -63,14 +58,15 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     self.multihead_att_layer = SpGraphTransAttentionLayer_greed(in_features, out_features, opt, #check out_features is attention_dim
                                                           device, edge_weights=self.edge_weight).to(device)
 
-  def reset_linH_parameters(self): #todo rename the param reset() functions in scaledDP and greed_linear aswell
+  def reset_linH_parameters(self):
     if self.opt['beltrami']:
       if not self.opt['test_tau_symmetric']:
         glorot(self.Qx)
         glorot(self.Qp)
       glorot(self.Kx)
       glorot(self.Kp)
-      glorot(self.W) #for non beltrami done in function_greed
+      if not self.opt['test_no_chanel_mix']:  ##not having this might have been making Ws not identity for MANY cases
+        glorot(self.W) #for non beltrami W init and reset in function_greed
     else:
       if not self.opt['test_tau_symmetric']:
         glorot(self.Q)
@@ -161,13 +157,20 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     @return: A Laplacian form
     """
     degree = scatter_add(D, self.edge_index[0, :], dim=0, dim_size=self.n_nodes)
-    if self.opt['T0term_normalisation']: #like identity in A_hat = A - I
+    if self.opt['T0term_normalisation'] == "T0_symmDegnorm": #like identity in A_hat = A - I
+      degree = self.symmetrically_normalise(degree, self.self_loops)
+    elif self.opt['T0term_normalisation'] == "T0_symmRowSumnorm":
       degree = sym_row_col(self.self_loops, degree, self.n_nodes)
-      degree = torch.ones(degree.shape) #set this to ones to replicate good result
-      # degree = self.symmetrically_normalise(degree, self.self_loops)
+    elif self.opt['T0term_normalisation'] == "T0_identity":
+      degree = torch.ones(degree.shape) #set this to ones to replicate good result from GRAND incremental
 
-    if self.opt['T1term_normalisation']: #like A in A_hat = A - I
+    if self.opt['T1term_normalisation'] == "T1_symmDegnorm": #like A in A_hat = A - I
+      A = self.symmetrically_normalise(A, self.self_loops)
+    elif self.opt['T1term_normalisation'] == "T1_symmRowSumnorm":
       A = sym_row_col(self.edge_index, A, self.n_nodes)
+    elif self.opt['T1term_normalisation'] == "T1_noNorm":
+      # A = torch.ones(A.shape) #path not used
+      pass
 
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
     values = torch.cat([-A, degree], dim=-1)

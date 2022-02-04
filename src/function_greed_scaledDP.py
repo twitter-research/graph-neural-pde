@@ -27,20 +27,7 @@ class ODEFuncGreed_SDB(ODEFuncGreed):
     # https://discuss.pytorch.org/t/how-to-initialize-weight-with-arbitrary-tensor/3432
     #https://discuss.pytorch.org/t/initialize-weights-using-the-matrix-multiplication-result-from-two-nn-parameter/120557/8
 
-    # self.K = nn.Linear(out_features, opt['dim_p_omega'])
-    # self.init_weights(self.K)
-    # self.Q = nn.Linear(out_features, opt['dim_p_omega'])
-    # self.init_weights(self.Q)
-    # self.W = nn.Linear(out_features, opt['dim_p_w'])
-    # self.init_weights(self.W)
-
     self.reset_parameters() #needed to reset parameters as overiding base class params
-
-  # def init_weights(self, m):
-  #   if type(m) == nn.Linear:
-  #     # nn.init.xavier_uniform_(m.weight, gain=1.414)
-  #     # m.bias.data.fill_(0.01)
-  #     nn.init.constant_(m.weight, 1e-5)
 
 
   def sparse_hadamard_bilin(self, A, B, edge_index, values=None):

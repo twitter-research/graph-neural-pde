@@ -122,8 +122,7 @@ def tf_ablation_args(opt):
                 'test_tau_remove_tanh','test_tau_symmetric','test_grand_metric','test_tau_ones',
                 'test_tau_outside', 'test_linear_L0', 'test_R1R2_0',
                 'use_mlp', 'use_best_params', 'no_early',
-                'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
-                'T0term_normalisation', 'T1term_normalisation']:
+                'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK']:
 
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)
@@ -349,8 +348,10 @@ def default_params():
                         help='[exponential, sigmoid] activations for the GRAM matrix')
     parser.add_argument('--attention_normalisation', type=str, default='sym_row_col',
                         help='[mat_row_max, sym_row_col, row_bottom, "best"] how to normalise')
-    parser.add_argument('--T0term_normalisation', type=str, default='False', help='normalise T0 term')
-    parser.add_argument('--T1term_normalisation', type=str, default='False', help='normalise T1 term')
+    parser.add_argument('--T0term_normalisation', type=str, default='T0_identity',
+                        help='[T0_symmDegnorm, T0_symmDegnorm, T0_identity] normalise T0 term')
+    parser.add_argument('--T1term_normalisation', type=str, default='T1_identity',
+                        help='[T1_symmDegnorm, T1_symmDegnorm, T1_noNorm] normalise T0 term')
     parser.add_argument('--laplacian_norm', type=str, default='lap_noNorm',
                         help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
 
