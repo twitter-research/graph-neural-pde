@@ -55,7 +55,7 @@ jobs:
             ${{ runner.os }}-
       - name: pytorch
         run: |
-          conda install -y pytorch=1.7.0 torchvision cudatoolkit=10.2 -c pytorch --update-deps
+          conda install -y pytorch=1.7.1 torchvision cudatoolkit=10.2 -c pytorch --update-deps
       - name: Install pyG
         run: |
           ./pyG_install.sh cu102
