@@ -582,11 +582,8 @@ if __name__ == '__main__':
 #--dataset Cora --block attention_greed --function laplacian_greed --use_best_params --symmetric_QK True --method euler --step_size 0.5 --no_early True
 #--method euler --step_size 0.5 --no_early True
 
-#--dataset Cora --block attention_greed --function greed_linear_homo --use_best_params --symmetric_QK True --method euler --step_size 0.5 --no_early True
-
-#--dataset Cora --block attention_greed --function laplacian_greed --use_best_params --symmetric_QK True --method euler --step_size 0.5 --no_early True --attention_activation sigmoid
-#--dataset Cora --block attention_greed --function laplacian_greed --use_best_params --symmetric_QK True --method euler --step_size 0.5 --no_early True --attention_activation tanh
-
+#--dataset Cora --function greed_linear_homo --use_best_params --symmetric_QK True --method euler --step_size 0.5 --no_early True
 #--dataset Cora --epoch 100 --function greed_linear_homo --beltrami --pos_enc_type GDC --method euler --step_size 0.25 --self_loop_weight 0 --test_tau_symmetric True
 
+#--dataset Cora --block attention_greed --function laplacian_greed --use_best_params --symmetric_QK True --method euler --step_size 0.5 --no_early True --attention_activation sigmoid
 #--dataset Cora --epoch 100 --function greed_linear_homo --method euler --step_size 0.25 --self_loop_weight 0 --test_tau_symmetric True --symmetric_QK True --symmetric_attention False --attention_activation sigmoid --attention_normalisation sym_row_col --test_tau_ones True --use_best_params --T0term_normalisation T0_identity --T1term_normalisation T1_noNorm
