@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# needed for CI/CD
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 import unittest
 import torch
 from torch import tensor
 from torch import nn
+
 from data import get_dataset
 from function_laplacian_diffusion import LaplacianODEFunc
 from GNN import GNN

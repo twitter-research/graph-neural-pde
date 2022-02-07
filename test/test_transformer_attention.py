@@ -3,13 +3,18 @@
 """
 Test attention
 """
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+
 import unittest
 import torch
 from torch import tensor
 from torch import nn
 import torch_sparse
-from function_transformer_attention import SpGraphTransAttentionLayer, ODEFuncTransformerAtt
 from torch_geometric.utils import softmax, to_dense_adj
+
+from function_transformer_attention import SpGraphTransAttentionLayer, ODEFuncTransformerAtt
 from data import get_dataset
 from test_params import OPT
 from utils import ROOT_DIR
