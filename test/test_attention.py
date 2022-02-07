@@ -3,10 +3,16 @@
 """
 Test attention
 """
+# needed for CI/CD
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+
 import unittest
 import torch
 from torch import tensor
 from torch import nn
+
 from function_GAT_attention import SpGraphAttentionLayer, ODEFuncAtt
 from torch_geometric.utils import softmax, to_dense_adj
 from data import get_dataset

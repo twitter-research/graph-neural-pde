@@ -1,17 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# needed for CI/CD
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 import unittest
 import torch
 from torch import tensor
 from torch import nn
+import numpy as np
+
 from data import get_dataset
 from function_laplacian_diffusion import LaplacianODEFunc
 from GNN import GNN
 from block_mixed import MixedODEblock
 from torch_geometric.data import Data
 from torch_geometric.utils import to_dense_adj
-import numpy as np
 from test_params import OPT
 
 
