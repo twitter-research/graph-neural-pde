@@ -17,6 +17,8 @@ scikit-learn==0.23.1
 scipy==1.5.3
 six==1.15.0
 tqdm==4.46.1
+torchdiffeq==0.1.1
+tabulate==0.8.7
 
 # reliant on cuda version
 # torch==1.6.0=pypi_0
