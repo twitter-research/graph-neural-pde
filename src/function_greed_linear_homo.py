@@ -159,7 +159,7 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     if self.opt['T0term_normalisation'] == "T0_rowSum":
       degree = scatter_add(D, self.edge_index[0, :], dim=0, dim_size=self.n_nodes)
     elif self.opt['T0term_normalisation'] == "T0_identity":
-      degree = torch.ones(self.n_nodes) #set this to ones to replicate good result from GRAND incremental
+      degree = torch.ones(self.n_nodes, device=D.device) #set this to ones to replicate good result from GRAND incremental
 
     # if self.opt['T1term_normalisation'] == "T1_symmDegnorm": #like A in A_hat = A - I
     #   A = self.symmetrically_normalise(A, self.self_loops)
