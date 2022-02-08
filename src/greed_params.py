@@ -90,7 +90,7 @@ def greed_ablation_params(opt):
     #if function is greed_linear
     opt['test_linear_L0'] = True # flag to make the Laplacian form only dependent on embedding not time
     opt['test_R1R2_0'] = True
-    opt['test_grand_metric'] = True
+    # opt['test_grand_metric'] = True #old parameter
     opt['test_tau_ones'] = True
     opt['use_mlp'] = False #True
     return opt

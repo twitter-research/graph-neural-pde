@@ -165,8 +165,8 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     #   A = self.symmetrically_normalise(A, self.self_loops)
     # elif self.opt['T1term_normalisation'] == "T1_symmRowSumnorm":
     #   A = sym_row_col(self.edge_index, A, self.n_nodes)
-    if self.opt['T1term_normalisation'] == "T1_noNorm":
-      pass
+    # if self.opt['T1term_normalisation'] == "T1_noNorm":
+    #   pass
 
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
     values = torch.cat([-A, degree], dim=-1)
