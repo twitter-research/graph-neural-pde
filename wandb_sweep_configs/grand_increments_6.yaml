@@ -1,5 +1,5 @@
 program: run_GNN.py
-method: grid
+method: random
 parameters:
   dataset:
     values: [chameleon]
@@ -66,6 +66,6 @@ command:
   - ${args}
   - --wandb
   - --wandb_sweep
-  - --use_best_params
+  - --geom_gcn_splits
 entity: graph_neural_diffusion
-project: grand_increments_5
+project: grand_increments_6
