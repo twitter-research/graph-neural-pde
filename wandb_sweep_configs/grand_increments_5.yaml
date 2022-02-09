@@ -32,7 +32,7 @@ parameters:
   test_tau_ones:
     values: [True, False]
   test_tau_symmetric:
-    values: [True]
+    values: [False]
   test_mu_0:
     values: [True, False]
   add_source:
