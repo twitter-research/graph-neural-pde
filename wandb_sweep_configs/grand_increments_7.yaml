@@ -1,0 +1,70 @@
+program: run_GNN.py
+method: random
+parameters:
+  dataset:
+    values: [chameleon]
+  block:
+    values: [constant]
+  function:
+    values: [greed_linear_homo]
+  num_splits:
+    values: [16]
+  method:
+    values: [euler]
+  step_size:
+    values: [0.25]
+  symmetric_QK:
+    values: [True]
+  symmetric_attention:
+    values: [False]
+  attention_type:
+    values:  [scaled_dot]
+  attention_activation:
+    values:  [exponential]
+  attention_normalisation:
+    values:  [sym_row_col]
+  T0term_normalisation:
+    values:  [T0_identity]
+  test_omit_metric:
+    values:  [False]
+  laplacian_norm:
+    values:  [lap_symmDegnorm]
+  test_tau_ones:
+    values: [False]
+  test_tau_symmetric:
+    values: [False]
+  test_mu_0:
+    values: [True]
+  add_source:
+    values: [False]
+  hidden_dim:
+    values: [8, 16, 32, 64]
+  attention_dim:
+    values: [8, 16, 32, 64]
+  tau_reg:
+    values: [8, 16, 32, 64]
+  input_dropout:
+    distribution: uniform
+    min: 0.2
+    max: 0.9
+  dropout:
+    distribution: uniform
+    min: 0.2
+    max: 0.9
+  lr:
+    distribution: uniform
+    min: 0.001
+    max: 0.1
+  decay:
+    distribution: uniform
+    min: 0.001
+    max: 0.1
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+entity: graph_neural_diffusion
+project: grand_increments_7
