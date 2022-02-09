@@ -26,7 +26,7 @@ parameters:
   T0term_normalisation:
     values:  [T0_rowSum, T0_identity]
   test_omit_metric:
-    values:  [True, False]
+    values:  [False]
   laplacian_norm:
     values:  [lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm]
   test_tau_ones:
