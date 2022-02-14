@@ -1,0 +1,49 @@
+program: run_GNN.py
+method: grid
+parameters:
+  dataset:
+    values: [Cora, Citeseer, Pubmed]
+  block:
+    values: [constant]
+  function:
+    values: [greed_linear_homo]
+  num_splits:
+    values: [8]
+  method:
+    values: [euler]
+  step_size:
+    values: [0.25]
+  symmetric_QK:
+    values: [True]
+  symmetric_attention:
+    values: [False]
+  attention_type:
+    values:  [scaled_dot]
+  attention_activation:
+    values:  [exponential]
+  attention_normalisation:
+    values:  [sym_row_col, none]
+  T0term_normalisation:
+    values:  [T0_rowSum, T0_identity]
+  test_omit_metric:
+    values:  [False]
+  laplacian_norm:
+    values:  [lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm]
+  test_tau_ones:
+    values: [True]
+  test_tau_symmetric:
+    values: [False]
+  test_mu_0:
+    values: [True]
+  add_source:
+    values: [False]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --use_best_params
+entity: graph_neural_diffusion
+project: grand_increments_8
