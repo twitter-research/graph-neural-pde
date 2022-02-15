@@ -589,3 +589,5 @@ if __name__ == '__main__':
 
 #--dataset Cora --block attention_greed --function laplacian_greed --use_best_params --symmetric_QK True --method euler --step_size 0.5 --no_early True --attention_activation sigmoid
 #--dataset Cora --epoch 100 --function greed_linear_homo --method euler --step_size 0.25 --self_loop_weight 0 --test_tau_symmetric True --symmetric_QK True --symmetric_attention False --attention_activation sigmoid --attention_normalisation sym_row_col --test_tau_ones True --use_best_params --T0term_normalisation T0_identity --T1term_normalisation T1_noNorm
+
+#--dataset Cora --use_best_params --function greed_linear_homo --attention_activation exponential --attention_normalisation none --T0term_normalisation T0_rowSum --laplacian_norm lap_symmAttM_RowSumnorm
