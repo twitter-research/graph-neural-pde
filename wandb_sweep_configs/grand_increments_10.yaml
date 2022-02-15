@@ -28,7 +28,7 @@ parameters:
   test_omit_metric:
     values:  [False]
   laplacian_norm:
-    values:  [lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm, lap_symmAtt_RowSumnorm, lap_symmAttM_RowSumnorm]
+    values:  [lap_noNorm, lap_symmAtt_RowSumnorm, lap_symmAttM_RowSumnorm]
   test_tau_ones:
     values: [True]
   test_tau_symmetric:
