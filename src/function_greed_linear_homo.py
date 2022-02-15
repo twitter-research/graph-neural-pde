@@ -13,7 +13,7 @@ from torch_geometric.nn.inits import glorot, zeros, ones
 from torch.nn import Parameter
 import wandb
 from function_greed import ODEFuncGreed
-from utils import MaxNFEException, sym_row_col
+from utils import MaxNFEException, sym_row_col, sym_row_col_att, sym_row_col_att_measure
 from base_classes import ODEFunc
 from function_transformer_attention import SpGraphTransAttentionLayer
 from function_transformer_attention_greed import SpGraphTransAttentionLayer_greed
@@ -178,9 +178,9 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     elif self.opt['laplacian_norm'] == "lap_symmRowSumnorm":
       L = sym_row_col(edges, values, self.n_nodes)
     elif self.opt['laplacian_norm'] == "lap_symmAtt_RowSumnorm":
-      L = self.sym_row_col_att(edges, A, values, self.n_nodes)
+      L = sym_row_col_att(edges, A, values, self.n_nodes)
     elif self.opt['laplacian_norm'] == "lap_symmAttM_RowSumnorm":
-      L = self.sym_row_col_att_measure(edges, A, values, self.measure, self.n_nodes)
+      L = sym_row_col_att_measure(edges, A, values, self.measure, self.n_nodes)
     elif self.opt['laplacian_norm'] == "lap_noNorm":
       L = values
 
