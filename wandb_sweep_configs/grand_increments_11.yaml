@@ -17,18 +17,18 @@ parameters:
     values: [True]
   symmetric_attention:
     values: [False]
+  test_omit_metric:
+    values:  [False]
   attention_type:
     values:  [scaled_dot]
   attention_activation:
     values:  [exponential]
   attention_normalisation:
-    values:  [sym_row_col]
+    values:  [none]
   T0term_normalisation:
-    values:  [T0_identity]
-  test_omit_metric:
-    values:  [False]
+    values:  [T0_rowSum]
   laplacian_norm:
-    values:  [lap_noNorm]
+    values:  [lap_symmAtt_RowSumnorm, lap_symmAttM_RowSumnorm]
   test_tau_ones:
     values: [True]
   test_tau_symmetric:

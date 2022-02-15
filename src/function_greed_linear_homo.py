@@ -9,7 +9,7 @@ import torch_sparse
 from torch_scatter import scatter_add, scatter_mul
 from torch_geometric.utils.loop import add_remaining_self_loops
 from torch_geometric.utils import degree, softmax
-from torch_geometric.nn.inits import glorot, zeros
+from torch_geometric.nn.inits import glorot, zeros, ones
 from torch.nn import Parameter
 import wandb
 from function_greed import ODEFuncGreed
@@ -51,6 +51,8 @@ class ODEFuncGreedLinH(ODEFuncGreed):
         self.Q = Parameter(torch.Tensor(opt['hidden_dim'], 1))
       self.K = Parameter(torch.Tensor(opt['hidden_dim'], 1))
 
+    self.measure = Parameter(torch.Tensor(self.n_nodes))
+
     self.reset_linH_parameters()
 
     # self.multihead_att_layer = SpGraphTransAttentionLayer(in_features, out_features, opt, #check out_features is attention_dim
@@ -72,7 +74,7 @@ class ODEFuncGreedLinH(ODEFuncGreed):
         glorot(self.Q)
       glorot(self.K)
     zeros(self.bias)
-
+    ones(self.measure)
 
 
   def set_x_0(self, x_0):
@@ -175,6 +177,10 @@ class ODEFuncGreedLinH(ODEFuncGreed):
       L = self.symmetrically_normalise(values, edges)
     elif self.opt['laplacian_norm'] == "lap_symmRowSumnorm":
       L = sym_row_col(edges, values, self.n_nodes)
+    elif self.opt['laplacian_norm'] == "lap_symmAtt_RowSumnorm":
+      L = self.sym_row_col_att(edges, A, values, self.n_nodes)
+    elif self.opt['laplacian_norm'] == "lap_symmAttM_RowSumnorm":
+      L = self.sym_row_col_att_measure(edges, A, values, self.measure, self.n_nodes)
     elif self.opt['laplacian_norm'] == "lap_noNorm":
       L = values
 

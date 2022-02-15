@@ -116,6 +116,7 @@ class ODEFuncGreed(ODEFunc):
     normed_x = dis[row] * x * dis[col]
     return normed_x
 
+
   def get_tau(self, x):
     """
     Tau plays a role similar to the diffusivity / attention function in BLEND. Here the choice of nonlinearity is not

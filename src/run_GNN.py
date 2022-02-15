@@ -215,6 +215,8 @@ def merge_cmd_args(cmd_opt, opt):
     opt['time'] = cmd_opt['time']
   if cmd_opt['epoch'] != 100:
     opt['epoch'] = cmd_opt['epoch']
+  if cmd_opt['num_splits'] != 1:
+    opt['num_splits'] = cmd_opt['num_splits']
 
 def main(cmd_opt):
 
