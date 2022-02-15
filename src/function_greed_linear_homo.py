@@ -178,11 +178,13 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     elif self.opt['laplacian_norm'] == "lap_symmRowSumnorm":
       L = sym_row_col(edges, values, self.n_nodes)
     elif self.opt['laplacian_norm'] == "lap_symmAtt_RowSumnorm":
-      A = torch.cat([A, torch.zeros(degree.shape, device=A.device)], dim=-1)
-      L = sym_row_col_att(edges, A, values, self.n_nodes)
+      # A = torch.cat([A, torch.zeros(degree.shape, device=A.device)], dim=-1)
+      # L = sym_row_col_att(edges, A, values, self.n_nodes)
+      L = sym_row_col_att(self.edge_index, A, edges, values, self.n_nodes)
     elif self.opt['laplacian_norm'] == "lap_symmAttM_RowSumnorm":
-      A = torch.cat([A, torch.zeros(degree.shape, device=A.device)], dim=-1)
-      L = sym_row_col_att_measure(edges, A, values, self.measure, self.n_nodes)
+      # A = torch.cat([A, torch.zeros(degree.shape, device=A.device)], dim=-1)
+      # L = sym_row_col_att_measure(edges, A, values, self.measure, self.n_nodes)
+      L = sym_row_col_att_measure(self.edge_index, A, edges, values, self.n_nodes)
     elif self.opt['laplacian_norm'] == "lap_noNorm":
       L = values
 

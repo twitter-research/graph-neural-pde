@@ -170,19 +170,33 @@ def sym_row_col(edge_index, values, n):
   # row_sum_sq = torch.pow(row_sum, -0.5)
   # return row_sum_sq[edge_index[0]] * values * row_sum_sq[edge_index[1]]
 
-def sym_row_col_att(edge_index, A, values, n):
+# def sym_row_col_att(edge_index, A, values, n):
+#   row_sum = scatter_add(A, edge_index[0], dim=0, dim_size=n)
+#   col_sum = scatter_add(A, edge_index[1], dim=0, dim_size=n)
+#   row_sum_sq = torch.pow(row_sum, -0.5)
+#   col_sum_sq = torch.pow(col_sum, -0.5)
+#   return row_sum_sq[edge_index[0]] * values * col_sum_sq[edge_index[1]]
+#
+# def sym_row_col_att_measure(edge_index, A, values, measure, n):
+#   row_sum = scatter_add(A, edge_index[0], dim=0, dim_size=n)
+#   col_sum = scatter_add(A, edge_index[1], dim=0, dim_size=n)
+#   row_sum_sq = torch.pow(row_sum * torch.exp(measure), -0.5)
+#   col_sum_sq = torch.pow(col_sum * torch.exp(measure), -0.5)
+#   return row_sum_sq[edge_index[0]] * values * col_sum_sq[edge_index[1]]
+
+def sym_row_col_att(edge_index, A, edges, values, n):
   row_sum = scatter_add(A, edge_index[0], dim=0, dim_size=n)
   col_sum = scatter_add(A, edge_index[1], dim=0, dim_size=n)
   row_sum_sq = torch.pow(row_sum, -0.5)
   col_sum_sq = torch.pow(col_sum, -0.5)
-  return row_sum_sq[edge_index[0]] * values * col_sum_sq[edge_index[1]]
+  return row_sum_sq[edges[0]] * values * col_sum_sq[edges[1]]
 
-def sym_row_col_att_measure(edge_index, A, values, measure, n):
+def sym_row_col_att_measure(edge_index, A, edges, values, measure, n):
   row_sum = scatter_add(A, edge_index[0], dim=0, dim_size=n)
   col_sum = scatter_add(A, edge_index[1], dim=0, dim_size=n)
   row_sum_sq = torch.pow(row_sum * torch.exp(measure), -0.5)
   col_sum_sq = torch.pow(col_sum * torch.exp(measure), -0.5)
-  return row_sum_sq[edge_index[0]] * values * col_sum_sq[edge_index[1]]
+  return row_sum_sq[edges[0]] * values * col_sum_sq[edges[1]]
 
 def sym_row_sum_one():
   # find each
