@@ -2,7 +2,7 @@ program: run_GNN.py
 method: grid
 parameters:
   dataset:
-    values: [Cora, Citeseer, Pubmed]
+    values: [Cora]
   block:
     values: [constant]
   function:
@@ -46,4 +46,4 @@ command:
   - --wandb_sweep
   - --use_best_params
 entity: graph_neural_diffusion
-project: grand_increments_9
+project: grand_increments_10
