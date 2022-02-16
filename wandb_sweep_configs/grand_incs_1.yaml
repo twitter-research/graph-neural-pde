@@ -2,7 +2,7 @@ program: run_GNN.py
 method: grid
 parameters:
   dataset:
-    values: [Cora, Citeseer, Pubmed]
+    values: [Cora, Citeseer]
   block:
     values: [constant]
   function:
@@ -38,7 +38,7 @@ parameters:
   test_mu_0:
     values: [True]
   add_source:
-    values: [False]
+    values: [True]
 command:
   - ${env}
   - python3
