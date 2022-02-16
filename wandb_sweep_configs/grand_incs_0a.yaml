@@ -46,4 +46,4 @@ command:
   - --wandb_sweep
   - --use_best_params
 entity: graph_neural_diffusion
-project: grand_incs_0
+project: grand_incs_0a
