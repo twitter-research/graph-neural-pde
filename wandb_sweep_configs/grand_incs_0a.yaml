@@ -36,9 +36,9 @@ parameters:
   test_tau_symmetric:
     values: [False]
   test_mu_0:
-    values: [True]
+    values: [False]
   add_source:
-    values: [True, False]
+    values: [False]
 command:
   - ${env}
   - python3
