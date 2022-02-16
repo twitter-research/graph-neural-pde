@@ -36,7 +36,7 @@ parameters:
   test_mu_0:
     values: [True]
   add_source:
-    values: [False]
+    values: [True, False]
 command:
   - ${env}
   - python3
