@@ -7,6 +7,8 @@ parameters:
     values: [constant]
   function:
     values: [greed_linear_homo]
+  epoch:
+    values: [50]
   num_splits:
     values: [20]
   method:
