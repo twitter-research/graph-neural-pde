@@ -25,6 +25,7 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     super(ODEFuncGreedLinH, self).__init__(in_features, out_features, opt, data, device, bias=False)
 
     self.energy = 0
+    self.attentions = None #torch.zeros((data.edge_index.shape[1],1))
     self.epoch = 0
     self.wandb_step = 0
     self.prev_grad = None
@@ -163,13 +164,6 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     elif self.opt['T0term_normalisation'] == "T0_identity":
       degree = torch.ones(self.n_nodes, device=D.device) #set this to ones to replicate good result from GRAND incremental
 
-    # if self.opt['T1term_normalisation'] == "T1_symmDegnorm": #like A in A_hat = A - I
-    #   A = self.symmetrically_normalise(A, self.self_loops)
-    # elif self.opt['T1term_normalisation'] == "T1_symmRowSumnorm":
-    #   A = sym_row_col(self.edge_index, A, self.n_nodes)
-    # if self.opt['T1term_normalisation'] == "T1_noNorm":
-    #   pass
-
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
     values = torch.cat([-A, degree], dim=-1)
 
@@ -222,31 +216,43 @@ class ODEFuncGreedLinH(ODEFuncGreed):
           f = f + self.beta_train * self.x0
       else:
         # f = f + self.beta_train * self.x0
-        # f = f - 0.5 * self.mu * (x - self.x0)
-        f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
+        f = f - 0.5 * self.mu * (x - self.x0)
+        # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
 
-    # with torch.no_grad(): #these things only go into calculating Energy not forward
-    #   metric_0 = self.get_metric(self.x_0, self.tau_0, self.tau_transpose_0)
-    #   _, eta = self.get_gamma(metric_0, self.opt['gamma_epsilon'])
-    #   tau, tau_transpose = self.tau_0, self.tau_transpose_0 #assigning for energy calcs
-
-    ##NOT USED AS NOT TRACKING CURRENTLY
-    # if self.opt['test_omit_metric'] and self.opt['test_mu_0']: #energy to use when Gamma is -adjacency and not the pullback and mu == 0
-    #   energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2)
-    # elif self.opt['test_omit_metric']: #energy to use when Gamma is -adjacency and not the pullback and mu != 0
-    #   energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2) + self.mu * torch.sum((x - self.x0) ** 2)
-    # else:
-    #   energy = self.get_energy(x, eta)
+    if self.opt['test_omit_metric'] and self.opt['test_mu_0'] and not self.opt['add_source']: #energy to use when Gamma is -adjacency and not the pullback and mu == 0
+      energy = torch.sum(self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0) ** 2)
+    elif self.opt['test_tau_ones'] and self.opt['test_mu_0'] and self.opt['add_source']: #energy to use when Gamma is -adjacency and not the pullback and mu != 0
+      energy = torch.sum(self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0) ** 2) \
+               - self.beta_train * torch.sum(x * self.x0)
+    elif self.opt['test_omit_metric'] and not self.opt['test_mu_0']: #energy to use when Gamma is -adjacency and not the pullback and mu != 0
+        energy = torch.sum(self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0) ** 2) \
+                 + self.mu * torch.sum((x - self.x0) ** 2)
+    else:
+      # with torch.no_grad(): #these things only go into calculating Energy not forward
+      #   metric_0 = self.get_metric(self.x_0, self.tau_0, self.tau_transpose_0)
+      #   _, eta = self.get_gamma(metric_0, self.opt['gamma_epsilon'])
+      #   tau, tau_transpose = self.tau_0, self.tau_transpose_0 #assigning for energy calcs
+      # energy = self.get_energy(x, eta)
+      energy = 0
     # R1 = 0
     # R2 = 0
     # energy = 0
-    # if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.training:
-    #   wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
-    #              f"gf_e{self.epoch}_f": f ** 2, f"gf_e{self.epoch}_L": torch.sum(L ** 2),
-    #              f"gf_e{self.epoch}_R1": torch.sum(R1 ** 2), f"gf_e{self.epoch}_R2": torch.sum(R2 ** 2), f"gf_e{self.epoch}_mu": self.mu,
-    #              "grad_flow_step": self.wandb_step})
-    #   self.wandb_step += 1
-    # self.energy = energy
+
+    if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.training:
+      wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
+                 f"gf_e{self.epoch}_f": f ** 2,
+                 "grad_flow_step": self.wandb_step})
+      if self.attentions is None:
+        self.attentions = self.mean_attention_0
+      else:
+        self.attentions = torch.cat([self.attentions, self.mean_attention_0], dim=-1)
+      # https://wandb.ai/wandb/plots/reports/Custom-Multi-Line-Plots--VmlldzozOTMwMjU
+      # I think I need to build the attentions tensor a save at the end
+      # f"gf_e{self.epoch}_attentions": wandb.plot.line_series(xs=self.wandb_step, ys=self.mean_attention_0),
+
+      self.wandb_step += 1
+
+    self.energy = energy
 
     # if self.opt['greed_momentum'] and self.prev_grad:
     #   f = self.opt['momentum_alpha'] * f + (1 - self.opt['momentum_alpha']) * self.prev_grad

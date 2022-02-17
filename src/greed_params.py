@@ -84,7 +84,8 @@ def greed_ablation_params(opt):
     #ablation flags
     opt['test_no_chanel_mix'] = True #True
     opt['test_omit_metric'] = False #False #True
-    opt['test_mu_0'] = False #False #True
+    opt['test_mu_0'] = True #False #True
+    opt['add_source'] = True #False #True
     opt['test_tau_remove_tanh'] = False #True
     opt['test_tau_symmetric'] = True#False
     #if function is greed_linear
@@ -93,13 +94,30 @@ def greed_ablation_params(opt):
     # opt['test_grand_metric'] = True #old parameter
     opt['test_tau_ones'] = True
     opt['use_mlp'] = False #True
+
+    #greed_linear_homo params
+    opt['symmetric_attention'] = True
+    opt['attention_type'] = 'scaled_dot'
+    opt['attention_normalisation'] = 'none'
+    opt['T0term_normalisation'] = 'T0_rowSum'
+    opt['test_omit_metric'] = False
+    opt['test_tau_symmetric'] = False
+    opt['test_mu_0'] = True
+
+    opt['symmetric_QK'] = False #True #False
+    opt['attention_activation'] = 'softmax' #, exponential
+    opt['laplacian_norm'] = 'lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
+    opt['method'] = 'euler'
+    opt['step_size'] = 0.25
+
+    opt['use_best_params'] = True
     return opt
-#--dataset Cora --function greed_linear_homo --use_best_params --test_tau_ones True --test_grand_metric True --test_omit_metric False
+    #--dataset Cora --function greed_linear_homo --use_best_params
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
     opt['wandb'] = True
-    opt['wandb_track_grad_flow'] = False  # don't plot grad flows when tuning
+    opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when tuning
     opt['wandb_project'] = project_name #"greed_runs"
     opt['wandb_group'] = group_name #"testing"  # "tuning" eval
     DT = datetime.datetime.now()
@@ -350,8 +368,6 @@ def default_params():
                         help='[mat_row_max, sym_row_col, row_bottom, "best"] how to normalise')
     parser.add_argument('--T0term_normalisation', type=str, default='T0_identity',
                         help='[T0_symmDegnorm, T0_symmDegnorm, T0_identity] normalise T0 term')
-    parser.add_argument('--T1term_normalisation', type=str, default='T1_identity',
-                        help='[T1_symmDegnorm, T1_symmDegnorm, T1_noNorm] normalise T0 term')
     parser.add_argument('--laplacian_norm', type=str, default='lap_noNorm',
                         help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
 

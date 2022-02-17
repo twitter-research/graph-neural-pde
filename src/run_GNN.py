@@ -329,7 +329,12 @@ def main(cmd_opt):
             f"forward nfe {model.fm.sum}, backward nfe {model.bm.sum}, "
             f"Train: {train_acc:.4f}, Val: {val_acc:.4f}, Test: {test_acc:.4f}, Best time: {best_time:.4f}")
       if opt['function'] == 'greed':
-        model.odeblock.odefunc.epoch += 1
+        model.odeblock.odefunc.epoch = epoch
+
+      # check this
+      if model.odeblock.odefunc.opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
+        wandb.log({f"gf_e{epoch}_attentions": wandb.plot.line_series(
+          xs=model.odeblock.odefunc.wandb_step, ys=model.odeblock.odefunc.mean_attention_0)})
 
     print(f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
 
@@ -343,6 +348,7 @@ def main(cmd_opt):
                      'test_acc_std': test_acc_std}
     wandb.log(wandb_results)
     print(wandb_results)
+
   wandb_run.finish()
   return train_acc, val_acc, test_acc
 
@@ -556,7 +562,6 @@ if __name__ == '__main__':
   parser.add_argument('--attention_activation', type=str, default='exponential', help='[exponential, sigmoid] activations for the GRAM matrix')
   parser.add_argument('--attention_normalisation', type=str, default='sym_row_col', help='[mat_row_max, sym_row_col, row_bottom, "best"] how to normalise')
   parser.add_argument('--T0term_normalisation', type=str, default='T0_identity', help='[T0_symmDegnorm, T0_symmDegnorm, T0_identity] normalise T0 term')
-  parser.add_argument('--T1term_normalisation', type=str, default='T1_identity', help='[T1_symmDegnorm, T1_symmDegnorm, T1_noNorm] normalise T0 term')
   parser.add_argument('--laplacian_norm', type=str, default='lap_noNorm', help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
 
 
