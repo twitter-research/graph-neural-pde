@@ -331,7 +331,7 @@ def main(cmd_opt):
       if opt['function'] == 'greed':
         model.odeblock.odefunc.epoch = epoch
 
-      # check this
+      #todo check this
       if model.odeblock.odefunc.opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
         wandb.log({f"gf_e{epoch}_attentions": wandb.plot.line_series(
           xs=model.odeblock.odefunc.wandb_step, ys=model.odeblock.odefunc.mean_attention_0)})
@@ -563,13 +563,15 @@ if __name__ == '__main__':
   parser.add_argument('--attention_normalisation', type=str, default='sym_row_col', help='[mat_row_max, sym_row_col, row_bottom, "best"] how to normalise')
   parser.add_argument('--T0term_normalisation', type=str, default='T0_identity', help='[T0_symmDegnorm, T0_symmDegnorm, T0_identity] normalise T0 term')
   parser.add_argument('--laplacian_norm', type=str, default='lap_noNorm', help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
+  parser.add_argument('--R_T0term_normalisation', type=str, default='T0_identity', help='[T0_symmDegnorm, T0_symmDegnorm, T0_identity] normalise T0 term')
+  parser.add_argument('--R_laplacian_norm', type=str, default='lap_noNorm', help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
 
 
 
   args = parser.parse_args()
   opt = vars(args)
 
-  if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo']:
+  if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero']:
     opt = greed_run_params(opt)  ###basic params for GREED
 
   if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these
