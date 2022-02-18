@@ -3,7 +3,7 @@ import argparse
 import numpy as np
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
-from torch_geometric.utils import homophily, diri
+from torch_geometric.utils import homophily
 import torch.nn.functional as F
 import wandb
 from ogb.nodeproppred import Evaluator
@@ -14,7 +14,7 @@ from GNN_KNN import GNN_KNN
 from GNN_KNN_early import GNNKNNEarly
 import time, datetime
 from data import get_dataset, set_train_val_test_split
-from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling
+from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling, dirichlet_energy
 from best_params import best_params_dict
 from greed_params import greed_test_params, greed_run_params, greed_hyper_params, greed_ablation_params, tf_ablation_args, not_sweep_args
 
@@ -218,6 +218,9 @@ def merge_cmd_args(cmd_opt, opt):
     opt['epoch'] = cmd_opt['epoch']
   if cmd_opt['num_splits'] != 1:
     opt['num_splits'] = cmd_opt['num_splits']
+  if cmd_opt['attention_type'] != '':
+    opt['attention_type'] = cmd_opt['attention_type']
+
 
 def main(cmd_opt):
 
@@ -314,35 +317,32 @@ def main(cmd_opt):
         best_time = model.odeblock.test_integrator.solver.best_time
 
       if ((epoch) % opt['wandb_log_freq']) == 0:
+        with torch.no_grad():
+          x0 = model.encoder(dataset.data.x)
+          T0_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, x0)
+          xN = model(dataset.data.x)
+          TN_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, xN)
+          pred_homophil = homophily(edge_index=dataset.data.edge_index, y=xN.max(1)[1])
+          label_homophil = homophily(edge_index=dataset.data.edge_index, y=dataset.data.y)
+
         wandb.log({"loss": loss,
                    # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
                    "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
-                   "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc, "epoch_step": epoch}) #, step=epoch) wandb: WARNING Step must only increase in log calls
+                   "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+                   "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
+                   "pred_homophil": pred_homophil, "label_homophil": label_homophil,
+                   "epoch_step": epoch})
 
       print(f"Epoch: {epoch}, Runtime: {time.time() - start_time:.3f}, Loss: {loss:.3f}, "
             f"forward nfe {model.fm.sum}, backward nfe {model.bm.sum}, "
             f"Train: {train_acc:.4f}, Val: {val_acc:.4f}, Test: {test_acc:.4f}, Best time: {best_time:.4f}")
-      if opt['function'] == 'greed':
+      if opt['function'] in ['greed', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero']:
         model.odeblock.odefunc.epoch = epoch
 
       #todo check this
-      if model.odeblock.odefunc.opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
-        wandb.log({f"gf_e{epoch}_attentions": wandb.plot.line_series(
-          xs=model.odeblock.odefunc.wandb_step, ys=model.odeblock.odefunc.mean_attention_0)})
-
-        try:
-          T0_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, dataset.data.x)))
-        except:
-          print('failed to calc dirichlet T0')
-        try:
-          xN = model(dataset.data.x)
-          TN_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, xN)))
-        except:
-          print('failed to calc dirichlet TN')
-
-          #edge homophilly ratio https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/utils/homophily.html#homophily
-          pred_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=xN.max(1)[1]) #, method='edge')
-          label_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=dataset.data.y) #, method='edge')
+      # if model.odeblock.odefunc.opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
+      #   wandb.log({f"gf_e{epoch}_attentions": wandb.plot.line_series(
+      #     xs=model.odeblock.odefunc.wandb_step, ys=model.odeblock.odefunc.mean_attention_0)})
 
 
     print(f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
@@ -443,7 +443,7 @@ if __name__ == '__main__':
                       help='apply a feature transformation xW to the ODE')
   parser.add_argument('--reweight_attention', dest='reweight_attention', action='store_true',
                       help="multiply attention scores by edge weights before softmax")
-  parser.add_argument('--attention_type', type=str, default="scaled_dot",
+  parser.add_argument('--attention_type', type=str, default="",
                       help="scaled_dot,cosine_sim,pearson, exp_kernel")
   parser.add_argument('--square_plus', action='store_true', help='replace softmax with square plus')
 
@@ -576,7 +576,7 @@ if __name__ == '__main__':
   parser.add_argument('--R_laplacian_norm', type=str, default='lap_noNorm', help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
 
   parser.add_argument('--repulsion', type=str, default='False', help='turns on repulsion')
-  parser.add_argument('--drift', type=str, default='True', help='turns on drift')
+  parser.add_argument('--drift', type=str, default='False', help='turns on drift')
 
 
   args = parser.parse_args()

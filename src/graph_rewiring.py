@@ -8,7 +8,7 @@ import torch_sparse
 from torch_sparse import coalesce
 from torch_scatter import scatter
 from torch_geometric.transforms.two_hop import TwoHop
-from torch_geometric.utils import add_self_loops, to_undirected, to_dense_adj, dense_to_sparse
+from torch_geometric.utils import add_self_loops, to_undirected, to_dense_adj, dense_to_sparse, get_laplacian
 from torch_geometric.transforms import GDC
 from utils import get_rw_adj, get_full_adjacency
 from pykeops.torch import LazyTensor
@@ -106,11 +106,10 @@ def make_symmetric(data):
 
 
 def dirichlet_energy(edge_index, edge_weight, n, X):
-  if edge_weight is None:
-    edge_weight = torch.ones(edge_index.size(1),
-                             device=edge_index.device)
-  de = torch_sparse.spmm(edge_index, edge_weight, n, n, X)
-  return X.T @ de
+  edge_index, L = get_laplacian(edge_index, edge_weight, None)
+  LX = torch_sparse.spmm(edge_index, L, n, n, X)
+  # return torch.sum(torch.trace(X.T @ de))
+  return (X * LX).sum()
 
 
 def KNN(x, opt):

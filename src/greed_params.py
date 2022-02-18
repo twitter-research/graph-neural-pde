@@ -47,7 +47,7 @@ def greed_run_params(opt):
     # TUNING
     # opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     # opt['time'] = 10 #18.295 #10
-    opt['epoch'] = 50 #10
+    opt['epoch'] = 20 #10
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
 
     #at some point test these  - not  so won't overwrite
@@ -97,7 +97,8 @@ def greed_ablation_params(opt):
 
     #greed_linear_homo params
     opt['symmetric_attention'] = True
-    opt['attention_type'] = 'scaled_dot'
+    opt['attention_type'] = "exp_kernel" #'scaled_dot'
+
     opt['attention_normalisation'] = 'none'
     opt['test_omit_metric'] = False
     opt['test_tau_symmetric'] = False
@@ -110,6 +111,9 @@ def greed_ablation_params(opt):
     opt['R_T0term_normalisation'] = 'T0_rowSum'
     opt['R_laplacian_norm'] = 'lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
 
+    opt['repulsion'] = False
+    opt['drift'] = False
+
     opt['method'] = 'euler'
     opt['step_size'] = 0.25
 
@@ -120,7 +124,7 @@ def greed_ablation_params(opt):
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
     opt['wandb'] = True
-    opt['wandb_track_grad_flow'] = False #True #False  # don't plot grad flows when tuning
+    opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when tuning
     opt['wandb_project'] = project_name #"greed_runs"
     opt['wandb_group'] = group_name #"testing"  # "tuning" eval
     DT = datetime.datetime.now()

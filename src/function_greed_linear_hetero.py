@@ -251,6 +251,15 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
 
     return R
 
+  def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
+    row_sum = scatter_add(attentions, edge_index[0], dim=0, dim_size=n)
+    deg_inv_sqrt = torch.pow(row_sum, -0.5)
+    src_x, dst_x = self.get_src_dst(x)
+    src_deg_inv_sqrt, dst_deg_inv_sqrt = self.get_src_dst(deg_inv_sqrt)
+    src_term = (tau * src_x * src_deg_inv_sqrt.unsqueeze(dim=-1))
+    dst_term = (tau_transpose * dst_x * dst_deg_inv_sqrt.unsqueeze(dim=-1))
+    energy_gradient = (src_term - dst_term) @ self.W
+    return energy_gradient
 
   def forward(self, t, x):  # t is needed when called by the integrator
     if self.nfe > self.opt["max_nfe"]:
@@ -303,28 +312,36 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
         drift += c
       f = f + drift
 
-    if self.opt['test_omit_metric'] and self.opt['test_mu_0'] and not self.opt['add_source']: #energy to use when Gamma is -adjacency and not the pullback and mu == 0
-      energy = torch.sum(self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0) ** 2)
-    elif self.opt['test_tau_ones'] and self.opt['test_mu_0'] and self.opt['add_source']: #energy to use when Gamma is -adjacency and not the pullback and mu != 0
-      energy = torch.sum(self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0) ** 2) \
-               - self.beta_train * torch.sum(x * self.x0)
-    elif self.opt['test_omit_metric'] and not self.opt['test_mu_0']: #energy to use when Gamma is -adjacency and not the pullback and mu != 0
-        energy = torch.sum(self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0) ** 2) \
-                 + self.mu * torch.sum((x - self.x0) ** 2)
-    else:
-      # with torch.no_grad(): #these things only go into calculating Energy not forward
-      #   metric_0 = self.get_metric(self.x_0, self.tau_0, self.tau_transpose_0)
-      #   _, eta = self.get_gamma(metric_0, self.opt['gamma_epsilon'])
-      #   tau, tau_transpose = self.tau_0, self.tau_transpose_0 #assigning for energy calcs
-      # energy = self.get_energy(x, eta)
-      energy = 0
-    # R1 = 0
-    # R2 = 0
-    # energy = 0
-
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.training:
+
+      if self.opt['test_omit_metric'] and self.opt['test_mu_0'] and not self.opt[
+        'add_source']:  # energy to use when Gamma is -adjacency and not the pullback and mu == 0
+        energy = torch.sum(
+          self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0, self.mean_attention_0, self.edge_index,
+                                   self.n_nodes) ** 2)
+      elif self.opt['test_tau_ones'] and self.opt['test_mu_0'] and self.opt[
+        'add_source']:  # energy to use when Gamma is -adjacency and not the pullback and mu != 0
+        energy = torch.sum(
+          self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0, self.mean_attention_0, self.edge_index,
+                                   self.n_nodes) ** 2) \
+                 - self.beta_train * torch.sum(x * self.x0)
+      elif self.opt['test_omit_metric'] and not self.opt[
+        'test_mu_0']:  # energy to use when Gamma is -adjacency and not the pullback and mu != 0
+        energy = torch.sum(
+          self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0, self.mean_attention_0, self.edge_index,
+                                   self.n_nodes) ** 2) \
+                 + self.mu * torch.sum((x - self.x0) ** 2)
+      else:
+        # with torch.no_grad(): #these things only go into calculating Energy not forward
+        #   metric_0 = self.get_metric(self.x_0, self.tau_0, self.tau_transpose_0)
+        #   _, eta = self.get_gamma(metric_0, self.opt['gamma_epsilon'])
+        #   tau, tau_transpose = self.tau_0, self.tau_transpose_0 #assigning for energy calcs
+        # energy = self.get_energy(x, eta)
+        energy = 0
+        self.energy = energy
+
       wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
-                 f"gf_e{self.epoch}_f": f ** 2,
+                 f"gf_e{self.epoch}_f": (f**2).sum(),
                  "grad_flow_step": self.wandb_step})
       if self.attentions is None:
         self.attentions = self.mean_attention_0
@@ -336,7 +353,6 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
 
       self.wandb_step += 1
 
-    self.energy = energy
 
     # if self.opt['greed_momentum'] and self.prev_grad:
     #   f = self.opt['momentum_alpha'] * f + (1 - self.opt['momentum_alpha']) * self.prev_grad
