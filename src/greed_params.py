@@ -143,7 +143,8 @@ def tf_ablation_args(opt):
                 'test_tau_remove_tanh','test_tau_symmetric','test_grand_metric','test_tau_ones',
                 'test_tau_outside', 'test_linear_L0', 'test_R1R2_0',
                 'use_mlp', 'use_best_params', 'no_early',
-                'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK']:
+                'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
+                'repulsion', 'drift']:
 
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)
@@ -377,6 +378,9 @@ def default_params():
                         help='[T0_symmDegnorm, T0_symmDegnorm, T0_identity] normalise T0 term')
     parser.add_argument('--R_laplacian_norm', type=str, default='lap_noNorm',
                         help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
+
+    parser.add_argument('--repulsion', type=str, default='False', help='turns on repulsion')
+    parser.add_argument('--drift', type=str, default='False', help='turns on drift')
 
     args = parser.parse_args()
     opt = vars(args)

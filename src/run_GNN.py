@@ -566,6 +566,8 @@ if __name__ == '__main__':
   parser.add_argument('--R_T0term_normalisation', type=str, default='T0_identity', help='[T0_symmDegnorm, T0_symmDegnorm, T0_identity] normalise T0 term')
   parser.add_argument('--R_laplacian_norm', type=str, default='lap_noNorm', help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
 
+  parser.add_argument('--repulsion', type=str, default='False', help='turns on repulsion')
+  parser.add_argument('--drift', type=str, default='True', help='turns on drift')
 
 
   args = parser.parse_args()

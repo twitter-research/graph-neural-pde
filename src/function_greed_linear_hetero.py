@@ -54,6 +54,8 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       self.K = Parameter(torch.Tensor(opt['hidden_dim'], 1))
 
     self.measure = Parameter(torch.Tensor(self.n_nodes))
+    self.C = (data.y.max()+1).item()
+    self.attractors = {i: Parameter(torch.Tensor(opt['hidden_dim'])) for i in range(self.C)}
 
     self.reset_linH_parameters()
 
@@ -79,6 +81,8 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       glorot(self.K)
     zeros(self.bias)
     ones(self.measure)
+    for c in self.attractors.values():
+      zeros(c)
 
 
   def set_x_0(self, x_0):
@@ -271,26 +275,33 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       Lf = torch_sparse.spmm(edges, -self.L_0, x.shape[0], x.shape[0], x)
       LfW = torch.matmul(Lf, Ws)
 
-      Rf = torch_sparse.spmm(edges, self.R_0, x.shape[0], x.shape[0], x) #LpRf
-      RfW = torch.matmul(Rf, Ws) #todo need a second Ws
-
-
       if not self.opt['no_alpha_sigmoid']:
         alpha = torch.sigmoid(self.alpha_train)
       else:
         alpha = self.alpha_train
 
-      # f = alpha * LfW
-      f = alpha * LfW + (1-alpha) * RfW
-      # f = 0.9 * LfW + (1-0.9) * RfW
-
-      if self.opt['test_mu_0']:
-        if self.opt['add_source']:
-          f = f + self.beta_train * self.x0
+      if self.opt['repulsion']:
+        Rf = torch_sparse.spmm(edges, self.R_0, x.shape[0], x.shape[0], x) #LpRf
+        RfW = torch.matmul(Rf, Ws) #todo need a second Ws
+        f = alpha * LfW + (1-alpha) * RfW
+        # f = 0.9 * LfW + (1-0.9) * RfW
       else:
-        # f = f + self.beta_train * self.x0
-        f = f - 0.5 * self.mu * (x - self.x0)
-        # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
+        f = alpha * LfW
+
+
+    if self.opt['test_mu_0']:
+      if self.opt['add_source']:
+        f = f + self.beta_train * self.x0
+    else:
+      # f = f + self.beta_train * self.x0
+      f = f - 0.5 * self.mu * (x - self.x0)
+      # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
+
+    if self.opt['drift']:
+      drift = -self.C * f
+      for c in self.attractors.values():
+        drift += c
+      f = f + drift
 
     if self.opt['test_omit_metric'] and self.opt['test_mu_0'] and not self.opt['add_source']: #energy to use when Gamma is -adjacency and not the pullback and mu == 0
       energy = torch.sum(self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0) ** 2)
