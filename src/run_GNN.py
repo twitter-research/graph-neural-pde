@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
+from torch_geometric.utils import homophily, diri
 import torch.nn.functional as F
 import wandb
 from ogb.nodeproppred import Evaluator
@@ -261,13 +262,6 @@ def main(cmd_opt):
   else:
     pos_encoding = None
 
-
-  # if not opt['planetoid_split'] and opt['dataset'] in ['Cora', 'Citeseer', 'Pubmed']:
-  #   dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data,
-  #                                           num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
-  #
-  # data = dataset.data.to(device)
-
   this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
 
   results = []
@@ -335,6 +329,21 @@ def main(cmd_opt):
       if model.odeblock.odefunc.opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
         wandb.log({f"gf_e{epoch}_attentions": wandb.plot.line_series(
           xs=model.odeblock.odefunc.wandb_step, ys=model.odeblock.odefunc.mean_attention_0)})
+
+        try:
+          T0_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, dataset.data.x)))
+        except:
+          print('failed to calc dirichlet T0')
+        try:
+          xN = model(dataset.data.x)
+          TN_dirichlet = torch.mean(torch.trace(dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, xN)))
+        except:
+          print('failed to calc dirichlet TN')
+
+          #edge homophilly ratio https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/utils/homophily.html#homophily
+          pred_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=xN.max(1)[1]) #, method='edge')
+          label_homophil = homophily_ratio(edge_index=dataset.data.edge_index, y=dataset.data.y) #, method='edge')
+
 
     print(f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
 
