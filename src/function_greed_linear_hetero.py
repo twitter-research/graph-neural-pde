@@ -294,7 +294,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
     if self.opt['W_type'] in ['identity', 'full']:
       Ws = self.W @ self.W.t()  # output a [d,d] tensor
     elif self.opt['W_type'] == 'residual':
-      Ws = torch.eye(self.W.shape[0], device=self.x.device) + self.W @ self.W.t()  # output a [d,d] tensor
+      Ws = torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
     elif self.opt['W_type'] == 'diag':
       Ws = torch.diag(self.W)
 
