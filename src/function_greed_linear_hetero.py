@@ -41,10 +41,15 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       self.Kx = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], 1))
       self.Kp = Parameter(torch.Tensor(opt['pos_enc_hidden_dim'], 1))
 
-      if opt['test_no_chanel_mix']: #<- fix W s.t. W_s == I
+      if opt['W_type'] == 'identity': #<- fix W s.t. W_s == I
         self.W = torch.cat([torch.eye(opt['hidden_dim']-opt['pos_enc_hidden_dim'], device=device), torch.zeros(opt['hidden_dim']-opt['pos_enc_hidden_dim'], max(opt['dim_p_w'] - opt['hidden_dim']-opt['pos_enc_hidden_dim'], 0), device=device)], dim=1)
-      else:
+      elif opt['W_type'] == 'diag':
+        self.W = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim']))
+      elif opt['W_type'] == 'residual':
         self.W = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], opt['dim_p_w']))
+      elif opt['W_type'] == 'full':
+        self.W = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], opt['dim_p_w']))
+
     else:
       self.x_0 = None
       self.L_0 = None #static Laplacian form
@@ -52,6 +57,16 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       if not self.opt['test_tau_symmetric']:
         self.Q = Parameter(torch.Tensor(opt['hidden_dim'], 1))
       self.K = Parameter(torch.Tensor(opt['hidden_dim'], 1))
+
+      if opt['W_type'] == 'identity': #<- fix W s.t. W_s == I
+        self.W = torch.cat([torch.eye(in_features, device=device),
+                            torch.zeros(in_features, max(opt['dim_p_w'] - in_features, 0), device=device)], dim=1)
+      elif opt['W_type'] == 'diag':
+        self.W = Parameter(torch.Tensor(in_features))
+      elif opt['W_type'] == 'residual':
+        self.W = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
+      elif opt['W_type'] == 'full':
+        self.W = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
 
     self.measure = Parameter(torch.Tensor(self.n_nodes))
     self.C = (data.y.max()+1).item()
@@ -73,17 +88,27 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
         glorot(self.Qp)
       glorot(self.Kx)
       glorot(self.Kp)
-      if not self.opt['test_no_chanel_mix']:  ##not having this might have been making Ws not identity for MANY cases
-        glorot(self.W) #for non beltrami W init and reset in function_greed
+      # if not self.opt['test_no_chanel_mix']:  ##not having this might have been making Ws not identity for MANY cases
+      #   glorot(self.W) #for non beltrami W init and reset in function_greed
     else:
       if not self.opt['test_tau_symmetric']:
         glorot(self.Q)
       glorot(self.K)
     zeros(self.bias)
     ones(self.measure)
-    for c in self.attractors.values():
-      zeros(c)
 
+    if self.opt['W_type'] == 'identity': #<- fix W s.t. W_s == I
+      pass
+    elif self.opt['W_type'] == 'diag':
+      ones(self.W)
+    elif self.opt['W_type'] == 'residual':
+      zeros(self.W)
+    elif self.opt['W_type'] == 'full':
+      glorot(self.W)
+
+    if self.opt['drift']:
+      for c in self.attractors.values():
+        zeros(c)
 
   def set_x_0(self, x_0):
     self.x_0 = x_0.clone().detach()
@@ -265,7 +290,14 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
     if self.nfe > self.opt["max_nfe"]:
       raise MaxNFEException
     self.nfe += 1
-    Ws = self.W @ self.W.t()  # output a [d,d] tensor
+
+    if self.opt['W_type'] in ['identity', 'full']:
+      Ws = self.W @ self.W.t()  # output a [d,d] tensor
+    elif self.opt['W_type'] == 'residual':
+      Ws = torch.eye(self.W.shape[0]) + self.W @ self.W.t()  # output a [d,d] tensor
+    elif self.opt['W_type'] == 'diag':
+      Ws = torch.diag(self.W)
+
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
 
     if self.opt['beltrami']:
@@ -276,7 +308,6 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       ff = torch_sparse.spmm(edges, -self.Lf_0, xf.shape[0], xf.shape[0], xf)
       ff = torch.matmul(ff, Ws)
       ff = ff - self.mu * (xf - self.xf_0)
-      # ff = ff - self.mu * (ff - self.xf_0)  #this is WRONG but the above doesn't work
       fp = torch_sparse.spmm(edges, -self.Lp_0, p.shape[0], p.shape[0], p)
       f = torch.cat([ff, fp], dim=1) #assuming don't have any augmentation or labels
 
@@ -297,12 +328,10 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       else:
         f = alpha * LfW
 
-
     if self.opt['test_mu_0']:
       if self.opt['add_source']:
         f = f + self.beta_train * self.x0
     else:
-      # f = f + self.beta_train * self.x0
       f = f - 0.5 * self.mu * (x - self.x0)
       # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
 
@@ -313,24 +342,17 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       f = f + drift
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.training:
-
-      if self.opt['test_omit_metric'] and self.opt['test_mu_0'] and not self.opt[
-        'add_source']:  # energy to use when Gamma is -adjacency and not the pullback and mu == 0
-        energy = torch.sum(
-          self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0, self.mean_attention_0, self.edge_index,
-                                   self.n_nodes) ** 2)
-      elif self.opt['test_tau_ones'] and self.opt['test_mu_0'] and self.opt[
-        'add_source']:  # energy to use when Gamma is -adjacency and not the pullback and mu != 0
-        energy = torch.sum(
-          self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0, self.mean_attention_0, self.edge_index,
-                                   self.n_nodes) ** 2) \
-                 - self.beta_train * torch.sum(x * self.x0)
-      elif self.opt['test_omit_metric'] and not self.opt[
-        'test_mu_0']:  # energy to use when Gamma is -adjacency and not the pullback and mu != 0
-        energy = torch.sum(
-          self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0, self.mean_attention_0, self.edge_index,
-                                   self.n_nodes) ** 2) \
-                 + self.mu * torch.sum((x - self.x0) ** 2)
+      energy = torch.sum(
+        self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0, self.mean_attention_0, self.edge_index,
+                                 self.n_nodes) ** 2)
+      if self.opt['drift']:
+        energy = energy
+      if self.opt['repulsion']:
+        energy = energy
+      if self.opt['test_mu_0'] and self.opt['add_source']:
+        energy = energy - self.beta_train * torch.sum(x * self.x0)
+      elif not self.opt['test_mu_0']:
+        energy = energy + self.mu * torch.sum((x - self.x0) ** 2)
       else:
         # with torch.no_grad(): #these things only go into calculating Energy not forward
         #   metric_0 = self.get_metric(self.x_0, self.tau_0, self.tau_transpose_0)
@@ -352,7 +374,6 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       # f"gf_e{self.epoch}_attentions": wandb.plot.line_series(xs=self.wandb_step, ys=self.mean_attention_0),
 
       self.wandb_step += 1
-
 
     # if self.opt['greed_momentum'] and self.prev_grad:
     #   f = self.opt['momentum_alpha'] * f + (1 - self.opt['momentum_alpha']) * self.prev_grad

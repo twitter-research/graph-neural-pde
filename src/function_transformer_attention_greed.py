@@ -144,9 +144,9 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
 
   def init_weights(self, m):
     if type(m) == nn.Linear:
-      nn.init.xavier_uniform_(m.weight, gain=1.414)
+      # nn.init.xavier_uniform_(m.weight, gain=1.414)
       # m.bias.data.fill_(0.01)
-      # nn.init.constant_(m.weight, 1e-5) #todo check this
+      nn.init.constant_(m.weight, 1e-5) #todo check this
 
   def forward(self, x, edge):
     """
@@ -256,25 +256,7 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
     else:
       pass
 
-    #todo we can have a symmetric activated attention matrix without requiring Q=K following the else path below and (A+A.t)/2
-    #might be overcomplicating it though..
-    ##### - from GRAND HOMO
-    # src_q = q[edge[0, :], :, :]
-    # dst_k = k[edge[1, :], :, :]
-    # prods1 = torch.sum(src_q * dst_k, dim=1) / np.sqrt(self.d_k)
-    # if self.opt['test_grand_metric']:
-    #   attention = softmax(prods1, edge[self.opt['attention_norm_idx']])
-    #   return attention, (None, None)
-    # else:
-    #   src_k = k[edge[0, :], :, :]
-    #   dst_q = q[edge[1, :], :, :]
-    #   prods2 = torch.sum(src_k * dst_q, dim=1) / np.sqrt(self.d_k)
-    #   attention = (softmax(prods1, edge[self.opt['attention_norm_idx']]) + softmax(prods2, edge[
-    #     self.opt['attention_norm_idx']])) / 2
-    #   return attention, (None, None)
-    #####
-
-    if self.opt['symmetric_attention']: #NOT NEEDED IF REMOVE SOFTMAX AND HAVE Q=K which is the current working assumption
+    if self.opt['symmetric_attention']:
       # ei, attention = make_symmetric(edge, attention, x.shape[0])
       # assert torch.all(torch.eq(ei, edge)), 'edge index was reordered'
       attention = make_symmetric_unordered(edge, attention)

@@ -1,0 +1,53 @@
+program: run_GNN.py
+method: grid
+parameters:
+  dataset:
+    values: [Cora]
+  block:
+    values: [constant]
+  function:
+    values: [greed_linear_homo]
+  epoch:
+    values: [50]
+  num_splits:
+    values: [16]
+  method:
+    values: [euler]
+  step_size:
+    values: [0.25]
+  symmetric_QK:
+    values: [True, False]
+  symmetric_attention:
+    values: [True]
+  attention_type:
+    values:  [scaled_dot]
+  attention_activation:
+    values:  [exponential]
+  attention_normalisation:
+    values:  [none]
+  T0term_normalisation:
+    values:  [T0_rowSum]
+  test_omit_metric:
+    values:  [False]
+  laplacian_norm:
+    values:  [lap_symmAtt_RowSumnorm]
+  W_type:
+    values: [identity, diag, residual, full]
+  test_tau_ones:
+    values: [True]
+  test_tau_symmetric:
+    values: [False]
+  test_mu_0:
+    values: [True]
+  add_source:
+    values: [True, False]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --use_best_params
+entity: graph_neural_diffusion
+project: greed_W_0
