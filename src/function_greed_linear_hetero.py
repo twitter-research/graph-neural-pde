@@ -109,7 +109,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
     elif self.opt['W_type'] == 'full':
       glorot(self.W)
     elif self.opt['W_type'] == 'full_idty':
-      pass
+      pass #todo figure out if this is really neccessary
 
     if self.opt['drift']:
       for c in self.attractors.values():
