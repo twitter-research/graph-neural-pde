@@ -210,6 +210,9 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
         q = self.Q(x)
         k = self.K(x)
       v = self.V(x)
+      #note key looks the same for every node because encoder is initialised small\
+      #then k is initialised small
+      #so the thing that dominates is the bias for every node
 
       # perform linear operation and split into h heads
       k = k.view(-1, self.h, self.d_k)
