@@ -67,6 +67,9 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
         self.W = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
       elif opt['W_type'] == 'full':
         self.W = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
+      elif opt['W_type'] == 'full_idty':
+        self.W = Parameter(torch.cat([torch.eye(in_features, device=device),
+                            torch.zeros(in_features, max(opt['dim_p_w'] - in_features, 0), device=device)], dim=1))
 
     self.measure = Parameter(torch.Tensor(self.n_nodes))
     self.C = (data.y.max()+1).item()
@@ -105,6 +108,8 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       zeros(self.W)
     elif self.opt['W_type'] == 'full':
       glorot(self.W)
+    elif self.opt['W_type'] == 'full_idty':
+      pass
 
     if self.opt['drift']:
       for c in self.attractors.values():
@@ -291,7 +296,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       raise MaxNFEException
     self.nfe += 1
 
-    if self.opt['W_type'] in ['identity', 'full']:
+    if self.opt['W_type'] in ['identity', 'full', 'full_idty']:
       Ws = self.W @ self.W.t()  # output a [d,d] tensor
     elif self.opt['W_type'] == 'residual':
       Ws = torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
