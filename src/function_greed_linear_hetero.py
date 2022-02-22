@@ -76,7 +76,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       elif opt['W_type'] == 'residual_GS':
         self.W_U = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
         # self.W_L = -torch.ones(opt['dim_p_w'], device=device)
-        self.W_L = Parameter(torch.Tensor(opt['dim_p_w'], device=device))
+        self.W_L = Parameter(torch.Tensor(opt['dim_p_w']))
 
     self.measure = Parameter(torch.Tensor(self.n_nodes))
     self.C = (data.y.max()+1).item()
