@@ -52,4 +52,4 @@ command:
   - --wandb_sweep
   - --use_best_params
 entity: graph_neural_diffusion
-project: greed_W_0
+project: greed_W_1
