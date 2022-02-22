@@ -579,7 +579,6 @@ if __name__ == '__main__':
   parser.add_argument('--drift', type=str, default='False', help='turns on drift')
   parser.add_argument('--W_type', type=str, default='identity', help='identity, diag, full')
 
-
   args = parser.parse_args()
   opt = vars(args)
 

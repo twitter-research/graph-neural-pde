@@ -241,6 +241,10 @@ from torch_scatter import scatter, segment_csr, gather_csr
 
 
 # https://twitter.com/jon_barron/status/1387167648669048833?s=12
+# Or vanilla numpy code:
+# def squareplus(x):
+#   return (x + np.sqrt(x**2 + 4))/2
+
 # @torch.jit.script
 def squareplus(src: Tensor, index: Optional[Tensor], ptr: Optional[Tensor] = None,
                num_nodes: Optional[int] = None) -> Tensor:
@@ -272,6 +276,56 @@ def squareplus(src: Tensor, index: Optional[Tensor], ptr: Optional[Tensor] = Non
     raise NotImplementedError
 
   return out / (out_sum + 1e-16)
+
+
+# https://github.com/legendongary/pytorch-gram-schmidt/blob/master/gram_schmidt.py
+# def gram_schmidt(vv):
+#   def projection(u, v):
+#     return (v * u).sum() / (u * u).sum() * u
+#
+#   nk = vv.size(0)
+#   uu = torch.zeros_like(vv, device=vv.device)
+#   uu[:, 0] = vv[:, 0].clone()
+#   for k in range(1, nk):
+#     vk = vv[k].clone()
+#     uk = 0
+#     for j in range(0, k):
+#       uj = uu[:, j].clone()
+#       uk = uk + projection(uj, vk)
+#     uu[:, k] = vk - uk
+#   for k in range(nk):
+#     uk = uu[:, k].clone()
+#     uu[:, k] = uk / uk.norm()
+#   return uu
+
+def gram_schmidt(vv):
+  def projection(u, v):
+    return (v * u).sum() / (u * u).sum() * u
+
+  nk = vv.size(1)
+  uu = torch.zeros_like(vv, device=vv.device)
+  uu[:, 0] = vv[:, 0].clone()
+  for k in range(1, nk):
+    vk = vv[:, k].clone()
+    uk = 0
+    for j in range(0, k):
+      uj = uu[:, j].clone()
+      uk = uk + projection(uj, vk)
+    uu[:, k] = vk - uk
+  for k in range(nk):
+    uk = uu[:, k].clone()
+    uu[:, k] = uk / uk.norm()
+  return uu
+
+
+# if __name__ == '__main__':
+#   torch.autograd.set_detect_anomaly(True)
+#   a = torch.randn(5, 5, requires_grad=True)
+#   b = gram_schmidt(a)
+#   c = b.sum()
+#   c.backward()
+#   print(b.matmul(b.t()))
+#   print(a.grad)
 
 
 # Counter of forward and backward passes.

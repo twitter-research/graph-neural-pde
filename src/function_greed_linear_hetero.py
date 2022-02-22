@@ -13,7 +13,7 @@ from torch_geometric.nn.inits import glorot, zeros, ones
 from torch.nn import Parameter
 import wandb
 from function_greed import ODEFuncGreed
-from utils import MaxNFEException, sym_row_col, sym_row_col_att, sym_row_col_att_measure
+from utils import MaxNFEException, sym_row_col, sym_row_col_att, sym_row_col_att_measure, gram_schmidt
 from base_classes import ODEFunc
 from function_transformer_attention import SpGraphTransAttentionLayer
 from function_transformer_attention_greed import SpGraphTransAttentionLayer_greed
@@ -49,6 +49,9 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
         self.W = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], opt['dim_p_w']))
       elif opt['W_type'] == 'full':
         self.W = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], opt['dim_p_w']))
+      elif opt['W_type'] == 'residual_GS':
+        self.W_U = Parameter(torch.Tensor(opt['hidden_dim']-opt['pos_enc_hidden_dim'], opt['dim_W_k']))
+        self.W_L = -torch.ones(opt['dim_W_k'], device=device)
 
     else:
       self.x_0 = None
@@ -70,6 +73,10 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       elif opt['W_type'] == 'full_idty':
         self.W = Parameter(torch.cat([torch.eye(in_features, device=device),
                             torch.zeros(in_features, max(opt['dim_p_w'] - in_features, 0), device=device)], dim=1))
+      elif opt['W_type'] == 'residual_GS':
+        self.W_U = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
+        # self.W_L = -torch.ones(opt['dim_p_w'], device=device)
+        self.W_L = Parameter(torch.Tensor(opt['dim_p_w'], device=device))
 
     self.measure = Parameter(torch.Tensor(self.n_nodes))
     self.C = (data.y.max()+1).item()
@@ -109,7 +116,10 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
     elif self.opt['W_type'] == 'full':
       glorot(self.W)
     elif self.opt['W_type'] == 'full_idty':
-      pass #todo figure out if this is really neccessary
+      pass #todo figure out if this is really neccessary as bit fiddly to init as identity
+    elif self.opt['W_type'] == 'residual_GS':
+      glorot(self.W_U)
+      zeros(self.W_L)
 
     if self.opt['drift']:
       for c in self.attractors.values():
@@ -302,6 +312,10 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       Ws = torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
     elif self.opt['W_type'] == 'diag':
       Ws = torch.diag(self.W)
+    elif self.opt['W_type'] == 'residual_GS':
+      V_hat = gram_schmidt(self.W_U)
+      W_hat = V_hat @ torch.diag(torch.exp(self.W_L) - 1.5) @ V_hat.t()
+      Ws = torch.eye(self.W.shape[0], device=x.device) + W_hat
 
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
 
