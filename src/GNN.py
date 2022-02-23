@@ -92,7 +92,7 @@ class GNN(BaseGNN):
       if self.opt['function'] == 'greed_linear_hetero':
         self.odeblock.odefunc.set_L0()
         self.odeblock.odefunc.set_R0()
-        self.odeblock.odefunc.set_GS()
+        self.odeblock.odefunc.set_WS()
 
     if self.training and self.odeblock.nreg > 0:
       z, self.reg_states = self.odeblock(x)
