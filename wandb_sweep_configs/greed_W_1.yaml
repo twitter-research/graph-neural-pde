@@ -11,6 +11,8 @@ parameters:
     values: [50]
   num_splits:
     values: [8]
+  time:
+    values: [1, 4]
   method:
     values: [euler]
   step_size:

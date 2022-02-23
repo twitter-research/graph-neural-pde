@@ -291,10 +291,17 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
 
     return R
 
-  def set_GS(self):
-    V_hat = gram_schmidt(self.W_U)
-    W_hat = V_hat @ torch.diag(torch.exp(self.W_L) - 1.5) @ V_hat.t()
-    self.Ws = torch.eye(self.W.shape[0], device=self.device) + W_hat
+  def set_WS(self):
+    if self.opt['W_type'] in ['identity', 'full', 'full_idty']:
+      self.Ws = self.W @ self.W.t()  # output a [d,d] tensor
+    elif self.opt['W_type'] == 'residual':
+      self.Ws = torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
+    elif self.opt['W_type'] == 'diag':
+      self.Ws = torch.diag(self.W)
+    elif self.opt['W_type'] == 'residual_GS':
+      V_hat = gram_schmidt(self.W_U)
+      W_hat = V_hat @ torch.diag(torch.exp(self.W_L) - 1.5) @ V_hat.t()
+      self.Ws = torch.eye(self.W.shape[0], device=self.device) + W_hat
 
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
     row_sum = scatter_add(attentions, edge_index[0], dim=0, dim_size=n)
@@ -311,19 +318,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       raise MaxNFEException
     self.nfe += 1
 
-    if self.opt['W_type'] in ['identity', 'full', 'full_idty']:
-      Ws = self.W @ self.W.t()  # output a [d,d] tensor
-    elif self.opt['W_type'] == 'residual':
-      Ws = torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
-    elif self.opt['W_type'] == 'diag':
-      Ws = torch.diag(self.W)
-    elif self.opt['W_type'] == 'residual_GS':
-      #todo only need to do GS once at start of each epoch, ie at the forward pass of the GNN
-      # V_hat = gram_schmidt(self.W_U)
-      # W_hat = V_hat @ torch.diag(torch.exp(self.W_L) - 1.5) @ V_hat.t()
-      # Ws = torch.eye(self.W.shape[0], device=x.device) + W_hat
-      Ws = self.Ws
-
+    Ws = self.Ws
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
 
     if self.opt['beltrami']:
