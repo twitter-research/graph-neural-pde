@@ -50,6 +50,7 @@ command:
   - ${args}
   - --wandb
   - --wandb_sweep
+  - --geom_gcn_splits
   - --use_best_params
 entity: graph_neural_diffusion
 project: greed_W_1
