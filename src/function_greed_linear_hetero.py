@@ -361,9 +361,9 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
 
     # mean
     elif self.opt['W_type'] == 'lin_layer_mean':
-      self.Ws = self.Ws_lin(x).view(x.shape[1], x.shape[1]).mean(dim=0) #h,h -> Ws
+      self.Ws = self.Ws_lin(x).view(-1, x.shape[1], x.shape[1]).mean(dim=0) #h,h -> Ws
     elif self.opt['W_type'] == 'lin_layer_hh_mean':
-      W = self.Ws_lin(x).view(x.shape[1], x.shape[1]).mean(dim=0) #h,h -> W @ W.t
+      W = self.Ws_lin(x).view(-1, x.shape[1], x.shape[1]).mean(dim=0) #h,h -> W @ W.t
       self.Ws = W @ W.t()
     elif self.opt['W_type'] == 'lin_layer_hp_mean':
       W_U = self.Ws_lin(x).view(-1, x.shape[1], self.opt['dim_p_w']).mean(dim=0) #h,p -> U L U.t
