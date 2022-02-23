@@ -77,6 +77,10 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
         self.W_U = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
         # self.W_L = -torch.ones(opt['dim_p_w'], device=device)
         self.W_L = Parameter(torch.Tensor(opt['dim_p_w']))
+      elif self.opt['W_type'] == 'cgnn':
+        self.Ws = Parameter(torch.eye(in_features))
+      elif self.opt['W_type'] == 'linear_layer':
+        self.Ws_lin = nn.Linear(in_features, in_features**2)
 
     self.measure = Parameter(torch.Tensor(self.n_nodes))
     self.C = (data.y.max()+1).item()
@@ -120,6 +124,11 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
     elif self.opt['W_type'] == 'residual_GS':
       glorot(self.W_U)
       zeros(self.W_L)
+    elif self.opt['W_type'] == 'cgnn':
+      pass #self.Ws
+    elif self.opt['W_type'] == 'linear_layer':
+      nn.init.xavier_uniform_(self.Ws_lin.weight, gain=1.414)
+      # nn.init.constant_(self.Ws.weight, 1e-1)#5) #todo check this
 
     if self.opt['drift']:
       for c in self.attractors.values():
@@ -291,7 +300,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
 
     return R
 
-  def set_WS(self):
+  def set_WS(self, x):
     if self.opt['W_type'] in ['identity', 'full', 'full_idty']:
       self.Ws = self.W @ self.W.t()  # output a [d,d] tensor
     elif self.opt['W_type'] == 'residual':
@@ -302,6 +311,13 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       V_hat = gram_schmidt(self.W_U)
       W_hat = V_hat @ torch.diag(torch.exp(self.W_L) - 1.5) @ V_hat.t()
       self.Ws = torch.eye(self.W.shape[0], device=self.device) + W_hat
+    elif self.opt['W_type'] == 'cgnn':
+      beta = self.opt['W_beta']
+      with torch.no_grad():
+        Ws = self.Ws.clone()
+        self.Ws.copy_((1 + beta) * Ws - beta * Ws @ Ws.t() @ Ws)
+    elif self.opt['W_type'] == 'linear_layer':
+      self.Ws = self.Ws_lin(x).view(-1, x.shape[1], x.shape[1])
 
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
     row_sum = scatter_add(attentions, edge_index[0], dim=0, dim_size=n)
@@ -322,7 +338,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
 
     if self.opt['beltrami']:
-      # x is [(features, pos_encs) * aug_factor, lables] but it's safe to assume aug_factor == 1
+      # x is [(features, pos_encs) * aug_factor, lables] but here assume aug_factor == 1
       label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
       p = x[:, self.opt['feat_hidden_dim']: label_index]
       xf = torch.cat((x[:, :self.opt['feat_hidden_dim']], x[:, label_index:]), dim=1)
@@ -330,11 +346,14 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       ff = torch.matmul(ff, Ws)
       ff = ff - self.mu * (xf - self.xf_0)
       fp = torch_sparse.spmm(edges, -self.Lp_0, p.shape[0], p.shape[0], p)
-      f = torch.cat([ff, fp], dim=1) #assuming don't have any augmentation or labels
+      f = torch.cat([ff, fp], dim=1)
 
     else:
       Lf = torch_sparse.spmm(edges, -self.L_0, x.shape[0], x.shape[0], x)
-      LfW = torch.matmul(Lf, Ws)
+      if self.opt['W_type'] == 'linear_layer':
+        LfW = torch.einsum("ij,ikj->ik", Lf, Ws)
+      else:
+        LfW = torch.matmul(Lf, Ws)
 
       if not self.opt['no_alpha_sigmoid']:
         alpha = torch.sigmoid(self.alpha_train)
