@@ -52,23 +52,23 @@ parameters:
   time:
     distribution: uniform
     min: 0.5
-    max: 10
+    max: 5
   tau_reg:
     distribution: uniform
     min: 0.5
     max: 64
   input_dropout:
     distribution: uniform
-    min: 0.2
-    max: 0.9
+    min: 0.25
+    max: 0.75
   dropout:
     distribution: uniform
     min: 0.2
-    max: 0.9
+    max: 0.65
   lr:
     distribution: uniform
-    min: 0.001
-    max: 0.1
+    min: 0.01
+    max: 0.085
   decay:
     distribution: uniform
     min: 0.001
