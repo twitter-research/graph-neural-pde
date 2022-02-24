@@ -2,7 +2,7 @@ program: run_GNN.py
 method: random
 parameters:
   dataset:
-    values: ['texas']
+    values: ['cornell', 'wisconsin']
   block:
     values: [ constant ]
   function:
@@ -84,4 +84,4 @@ command:
   - --function
   - greed_linear
 entity: graph_neural_diffusion
-project: hetero_W_0a
+project: hetero_W_1
