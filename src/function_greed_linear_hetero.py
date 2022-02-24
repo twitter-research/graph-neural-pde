@@ -246,6 +246,9 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       L = values
     elif self.opt['laplacian_norm'] == "lap_symmDeg_RowSumnorm":
       L = sym_row_col_att(self.self_loops, degree, edges, values, self.n_nodes)
+    elif self.opt['laplacian_norm'] == "lap_symmDegM_RowSumnorm":
+      L = sym_row_col_att(self.self_loops, degree, edges, values, self.n_nodes)
+      L = sym_row_col_att_measure(self.self_loops, degree, edges, values, self.measure, self.n_nodes)
 
     return L
 

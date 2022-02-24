@@ -105,7 +105,7 @@ def greed_ablation_params(opt):
     opt['symmetric_QK'] = False #True #False
     opt['attention_activation'] = 'exponential'#'softmax' #, exponential
     opt['T0term_normalisation'] = 'T0_rowSum'
-    opt['laplacian_norm'] = 'lap_symmDeg_RowSumnorm'#'lap_symmDeg_RowSumnorm' #'lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
+    opt['laplacian_norm'] = 'lap_symmDegM_RowSumnorm' #'lap_symmDeg_RowSumnorm'#'lap_symmDeg_RowSumnorm' #'lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
 
     opt['R_T0term_normalisation'] = 'T0_rowSum'
     opt['R_laplacian_norm'] = 'lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm

@@ -34,7 +34,7 @@ parameters:
   T0term_normalisation:
     values: [ T0_rowSum ]
   laplacian_norm:
-    values: [ lap_symmDeg_RowSumnorm ]
+    values: [ lap_symmDeg_RowSumnorm, lap_symmDegM_RowSumnorm ]
   W_type:
     values: [identity, res_layer_hp_mean]
   test_mu_0:
