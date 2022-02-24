@@ -1,0 +1,87 @@
+program: run_GNN.py
+method: random
+parameters:
+  dataset:
+    values: ['chameleon', 'squirrel', 'film']
+  block:
+    values: [ constant ]
+  function:
+    values: [ greed_linear_hetero ]
+  epoch:
+    values: [ 50 ]
+  num_splits:
+    values: [ 4 ]
+  method:
+    values: [ euler ]
+  step_size:
+    values: [ 0.25 ]
+  test_omit_metric:
+    values: [True, False]
+  test_tau_ones:
+    values: [ True, False ]
+  test_tau_symmetric:
+    values: [ True, False ]
+  tau_residual:
+    values: [ True, False ]
+  symmetric_QK:
+    values: [ False ]
+  symmetric_attention:
+    values: [ True ]
+  attention_type:
+    values: [ scaled_dot ]
+  attention_activation:
+    values: [ exponential ]
+  attention_normalisation:
+    values: [ none ]
+  T0term_normalisation:
+    values: [ T0_rowSum ]
+  laplacian_norm:
+    values: [ lap_symmDeg_RowSumnorm, lap_symmDegM_RowSumnorm ]
+  W_type:
+    values: [identity, res_layer_hp_mean]
+  test_mu_0:
+    values: [ True ]
+  add_source:
+    values: [ True ]
+  dim_p_w:
+    values: [2, 4, 8 , 16]
+  hidden_dim:
+    values: [8, 16, 32, 64]
+  attention_dim:
+    values: [8, 16, 32, 64]
+  time:
+    distribution: uniform
+    min: 0.5
+    max: 5
+  tau_reg:
+    distribution: uniform
+    min: 0.5
+    max: 64
+  input_dropout:
+    distribution: uniform
+    min: 0.2
+    max: 0.75
+  dropout:
+    distribution: uniform
+    min: 0.2
+    max: 0.65
+  lr:
+    distribution: uniform
+    min: 0.01
+    max: 0.085
+  decay:
+    distribution: uniform
+    min: 0.001
+    max: 0.1
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --geom_gcn_splits
+  - --function
+  - greed_linear
+entity: graph_neural_diffusion
+project: hetero_W_1
