@@ -128,10 +128,10 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
         self.init_weights(self.QK)
 
       else:
-        self.Q = nn.Linear(in_features, self.attention_dim)#, bias=False)
+        self.Q = nn.Linear(in_features, self.attention_dim, bias=False) #turned the bias off to get true model
         self.init_weights(self.Q)
 
-        self.K = nn.Linear(in_features, self.attention_dim)#, bias=False)
+        self.K = nn.Linear(in_features, self.attention_dim, bias=False) #turned the bias off to get true model
         self.init_weights(self.K)
 
       self.V = nn.Linear(in_features, self.attention_dim)
@@ -146,7 +146,7 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
     if type(m) == nn.Linear:
       # nn.init.xavier_uniform_(m.weight, gain=1.414)
       # m.bias.data.fill_(0.01)
-      nn.init.constant_(m.weight, 1e-5) #1) #todo check this
+      nn.init.constant_(m.weight, 1e-1) #5) #1) #todo check this and bias terms in a sweep
 
   def forward(self, x, edge):
     """

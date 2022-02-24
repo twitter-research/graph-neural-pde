@@ -1,0 +1,81 @@
+program: run_GNN.py
+method: random
+parameters:
+  dataset:
+    values: ['film', 'squirrel', 'chameleon']
+  block:
+    values: [ constant ]
+  function:
+    values: [ greed_linear_hetero ]
+  epoch:
+    values: [ 50 ]
+  num_splits:
+    values: [ 8 ]
+  method:
+    values: [ euler ]
+  step_size:
+    values: [ 0.25 ]
+  symmetric_QK:
+    values: [ False ]
+  symmetric_attention:
+    values: [ True ]
+  attention_type:
+    values: [ scaled_dot ]
+  attention_activation:
+    values: [ exponential ]
+  attention_normalisation:
+    values: [ none ]
+  T0term_normalisation:
+    values: [ T0_rowSum ]
+  test_omit_metric:
+    values: [ False ]
+  laplacian_norm:
+    values: [ lap_symmAtt_RowSumnorm ]
+  W_type:
+    values: [res_layer_hp_mean]
+  test_tau_ones:
+    values: [ True ]
+  test_tau_symmetric:
+    values: [ False ]
+  test_mu_0:
+    values: [ True ]
+  add_source:
+    values: [ True ]
+  time:
+    distribution: uniform
+    min: 0
+    max: 10
+  dim_p_w:
+    values: [2, 4, 8 , 16]
+  hidden_dim:
+    values: [8, 16, 32, 64]
+  attention_dim:
+    values: [8, 16, 32, 64]
+  input_dropout:
+    distribution: uniform
+    min: 0.2
+    max: 0.9
+  dropout:
+    distribution: uniform
+    min: 0.2
+    max: 0.9
+  lr:
+    distribution: uniform
+    min: 0.001
+    max: 0.1
+  decay:
+    distribution: uniform
+    min: 0.001
+    max: 0.1
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --geom_gcn_splits
+  - --function
+  - greed_linear
+entity: graph_neural_diffusion
+project: greed_tuning_hetero_5
