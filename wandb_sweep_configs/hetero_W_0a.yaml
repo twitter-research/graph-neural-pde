@@ -82,4 +82,4 @@ command:
   - --function
   - greed_linear
 entity: graph_neural_diffusion
-project: hetero_W_0
+project: hetero_W_0a
