@@ -244,6 +244,8 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       L = sym_row_col_att_measure(self.edge_index, A, edges, values, self.measure, self.n_nodes)
     elif self.opt['laplacian_norm'] == "lap_noNorm":
       L = values
+    elif self.opt['laplacian_norm'] == "lap_symmDeg_RowSumnorm":
+      L = sym_row_col_att(self.self_loops, degree, edges, values, self.n_nodes)
 
     return L
 
@@ -396,9 +398,8 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
 #todo
   # hyper parameter tune for heterophillic
   # average linear layer for W_U
-  # QK dependnce for f_0
-  # forced hetrero phillic or free and report, check ULU.t s.t. AX=-X
-  # time >> 4
+  # QK_W dependnce for f_0 or vice versa
+  # forced -1 lambda for hetrero phillic or free and report, check ULU.t s.t. AX=-X
 
 
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):

@@ -83,48 +83,54 @@ def greed_hyper_params(opt):
 def greed_ablation_params(opt):
     #ablation flags
     opt['test_no_chanel_mix'] = True #True
-    opt['test_omit_metric'] = False #False #True
     opt['test_mu_0'] = True #False #True
     opt['add_source'] = True #False #True
     opt['test_tau_remove_tanh'] = False #True
     opt['test_tau_symmetric'] = True#False
+
     #if function is greed_linear
     opt['test_linear_L0'] = True # flag to make the Laplacian form only dependent on embedding not time #redundant flag should be assumed in greed_linear_{homo, hetro}
     opt['test_R1R2_0'] = True
     # opt['test_grand_metric'] = True #old parameter
-    opt['test_tau_ones'] = True
     opt['use_mlp'] = False #True
 
     #greed_linear_homo params
     opt['symmetric_attention'] = True
-    opt['attention_type'] = "exp_kernel" #'scaled_dot'
-
+    opt['attention_type'] = "scaled_dot" #'scaled_dot'
     opt['attention_normalisation'] = 'none'
     opt['test_omit_metric'] = False
-    opt['test_tau_symmetric'] = False
     opt['test_mu_0'] = True
 
+    #greed_linear_hetero params
     opt['symmetric_QK'] = False #True #False
     opt['attention_activation'] = 'exponential'#'softmax' #, exponential
     opt['T0term_normalisation'] = 'T0_rowSum'
-    opt['laplacian_norm'] = 'lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
+    opt['laplacian_norm'] = 'lap_symmDeg_RowSumnorm'#'lap_symmDeg_RowSumnorm' #'lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
+
     opt['R_T0term_normalisation'] = 'T0_rowSum'
     opt['R_laplacian_norm'] = 'lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
-
     opt['repulsion'] = False
     opt['drift'] = False
 
+    #hetero experiment flags
+    opt['test_omit_metric'] = True #False #True
+    opt['test_tau_ones'] = False #False #True  ####<- this is key for hetero datasets
+    opt['test_tau_symmetric'] = False #False #False
+    opt['geom_gcn_splits'] = True
+    opt['W_type'] = 'identity'
+
+    #run params
     opt['method'] = 'euler'
     opt['step_size'] = 0.25
-
     opt['use_best_params'] = True
+
     return opt
     #--dataset Cora --function greed_linear_homo --use_best_params
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
     opt['wandb'] = True
-    opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when tuning
+    opt['wandb_track_grad_flow'] = False #True #False  # don't plot grad flows when testing
     opt['wandb_project'] = project_name #"greed_runs"
     opt['wandb_group'] = group_name #"testing"  # "tuning" eval
     DT = datetime.datetime.now()

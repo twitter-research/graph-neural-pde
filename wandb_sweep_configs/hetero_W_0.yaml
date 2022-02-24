@@ -2,7 +2,7 @@ program: run_GNN.py
 method: random
 parameters:
   dataset:
-    values: ['film', 'squirrel', 'chameleon']
+    values: ['texas']
   block:
     values: [ constant ]
   function:
@@ -10,11 +10,17 @@ parameters:
   epoch:
     values: [ 50 ]
   num_splits:
-    values: [ 8 ]
+    values: [ 4 ]
   method:
     values: [ euler ]
   step_size:
     values: [ 0.25 ]
+  test_omit_metric:
+    values: [True, False]
+  test_tau_ones:
+    values: [ True, False ]
+  test_tau_symmetric:
+    values: [ True, False ]
   symmetric_QK:
     values: [ False ]
   symmetric_attention:
@@ -27,24 +33,16 @@ parameters:
     values: [ none ]
   T0term_normalisation:
     values: [ T0_rowSum ]
-  test_omit_metric:
-    values: [ False ]
   laplacian_norm:
-    values: [ lap_symmAtt_RowSumnorm ]
+    values: [ lap_symmDeg_RowSumnorm ]
   W_type:
-    values: [res_layer_hp_mean]
-  test_tau_ones:
-    values: [ True ]
-  test_tau_symmetric:
-    values: [ False ]
+    values: [identity, res_layer_hp_mean]
   test_mu_0:
     values: [ True ]
   add_source:
     values: [ True ]
   time:
-    distribution: uniform
-    min: 0
-    max: 10
+    values: [5]
   dim_p_w:
     values: [2, 4, 8 , 16]
   hidden_dim:
@@ -78,4 +76,4 @@ command:
   - --function
   - greed_linear
 entity: graph_neural_diffusion
-project: greed_hetero_5
+project: hetero_W_0
