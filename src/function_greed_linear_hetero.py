@@ -89,6 +89,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
         self.W_L = -torch.ones(opt['dim_p_w'], device=device) #force this when heterophillic
         # self.W_L = Parameter(torch.Tensor(opt['dim_p_w']))
 
+    self.tau_l = Parameter(torch.Tensor(1))
     self.measure = Parameter(torch.Tensor(self.n_nodes))
     self.C = (data.y.max()+1).item()
     self.attractors = {i: Parameter(torch.Tensor(opt['hidden_dim'])) for i in range(self.C)}
@@ -117,6 +118,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       glorot(self.K)
     zeros(self.bias)
     ones(self.measure)
+    ones(self.tau_l)
 
     if self.opt['W_type'] == 'identity': #<- fix W s.t. W_s == I
       pass
@@ -157,11 +159,20 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
   def get_tau(self, x, Q, K):
     src_x, dst_x = self.get_src_dst(x)
     if self.opt['test_tau_symmetric']:
-      tau = torch.tanh((src_x + dst_x) @ K / self.opt['tau_reg'])
-      tau_transpose = torch.tanh((dst_x + src_x) @ K / self.opt['tau_reg'])
+      tau = (src_x + dst_x) @ K / self.opt['tau_reg']
+      tau_transpose = (dst_x + src_x) @ K / self.opt['tau_reg']
     else:
-      tau = torch.tanh((src_x @ K + dst_x @ Q) / self.opt['tau_reg'])
-      tau_transpose = torch.tanh((dst_x @ K + src_x @ Q) / self.opt['tau_reg'])
+      tau = (src_x @ K + dst_x @ Q) / self.opt['tau_reg']
+      tau_transpose = (dst_x @ K + src_x @ Q) / self.opt['tau_reg']
+
+    if self.opt['tau_residual']:
+      tau = tau + self.tau_l
+      tau_transpose = tau_transpose + self.tau_l
+
+    if not self.opt['test_tau_remove_tanh']:
+      tau = torch.tanh(tau)
+      tau_transpose = torch.tanh(tau_transpose)
+
     if self.opt['test_tau_ones']:
       tau = torch.ones(tau.shape, device=tau.device)
       tau_transpose = torch.ones(tau_transpose.shape, device=tau_transpose.device)

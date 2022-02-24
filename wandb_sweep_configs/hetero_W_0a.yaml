@@ -21,6 +21,8 @@ parameters:
     values: [ True, False ]
   test_tau_symmetric:
     values: [ True, False ]
+  tau_residual:
+    values: [ True, False ]
   symmetric_QK:
     values: [ False ]
   symmetric_attention:

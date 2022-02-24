@@ -118,6 +118,7 @@ def greed_ablation_params(opt):
     opt['test_tau_symmetric'] = False #False #False
     opt['geom_gcn_splits'] = True
     opt['W_type'] = 'identity'
+    opt['tau_residual'] = True
 
     #run params
     opt['method'] = 'euler'
@@ -154,7 +155,7 @@ def tf_ablation_args(opt):
                 'test_tau_outside', 'test_linear_L0', 'test_R1R2_0',
                 'use_mlp', 'use_best_params', 'no_early',
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
-                'repulsion', 'drift']:
+                'repulsion', 'drift', 'tau_residual']:
 
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)
@@ -393,6 +394,7 @@ def default_params():
     parser.add_argument('--drift', type=str, default='False', help='turns on drift')
     parser.add_argument('--W_type', type=str, default='identity', help='identity, diag, full')
     parser.add_argument('--W_beta', type=float, default=0.5, help='for cgnn Ws orthoganal update')
+    parser.add_argument('--tau_residual', type=str, default='False', help='makes tau residual')
 
     args = parser.parse_args()
     opt = vars(args)
