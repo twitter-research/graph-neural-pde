@@ -316,22 +316,30 @@ def main(cmd_opt):
         train_acc = model.odeblock.test_integrator.solver.best_train
         best_time = model.odeblock.test_integrator.solver.best_time
 
-      if opt['wandb_track_grad_flow'] and ((epoch) % opt['wandb_log_freq']) == 0:
-        with torch.no_grad():
-          x0 = model.encoder(dataset.data.x)
-          T0_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, x0)
-          xN = model(dataset.data.x)
-          TN_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, xN)
-          pred_homophil = homophily(edge_index=dataset.data.edge_index, y=xN.max(1)[1])
-          label_homophil = homophily(edge_index=dataset.data.edge_index, y=dataset.data.y)
 
-        wandb.log({"loss": loss,
-                   # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
-                   "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
-                   "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
-                   "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
-                   "pred_homophil": pred_homophil, "label_homophil": label_homophil,
-                   "epoch_step": epoch})
+      if ((epoch) % opt['wandb_log_freq']) == 0:
+        if opt['wandb_track_grad_flow']:
+          with torch.no_grad():
+            x0 = model.encoder(dataset.data.x)
+            T0_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, x0)
+            xN = model(dataset.data.x)
+            TN_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, xN)
+            pred_homophil = homophily(edge_index=dataset.data.edge_index, y=xN.max(1)[1])
+            label_homophil = homophily(edge_index=dataset.data.edge_index, y=dataset.data.y)
+
+          wandb.log({"loss": loss,
+                     # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+                     "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
+                     "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+                     "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
+                     "pred_homophil": pred_homophil, "label_homophil": label_homophil,
+                     "epoch_step": epoch})
+        else:
+          wandb.log({"loss": loss,
+                     # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+                     "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
+                     "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+                     "epoch_step": epoch})
 
       print(f"Epoch: {epoch}, Runtime: {time.time() - start_time:.3f}, Loss: {loss:.3f}, "
             f"forward nfe {model.fm.sum}, backward nfe {model.bm.sum}, "

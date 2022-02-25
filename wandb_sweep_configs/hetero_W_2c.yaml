@@ -8,7 +8,7 @@ parameters:
   function:
     values: [ greed_linear_hetero ]
   epoch:
-    values: [ 50 ]
+    values: [ 25 ]
   num_splits:
     values: [ 4 ]
   method:
@@ -18,9 +18,9 @@ parameters:
   test_omit_metric:
     values: [True, False]
   test_tau_ones:
-    values: [ True, False ]
+    values: [ False ]
   test_tau_symmetric:
-    values: [ True, False ]
+    values: [ False ]
   tau_residual:
     values: [ True, False ]
   symmetric_QK:
@@ -36,9 +36,9 @@ parameters:
   T0term_normalisation:
     values: [ T0_rowSum ]
   laplacian_norm:
-    values: [ lap_symmDeg_RowSumnorm, lap_symmDegM_RowSumnorm ]
+    values: [ lap_symmDegM_RowSumnorm ]
   W_type:
-    values: [identity, res_layer_hp_mean]
+    values: [ res_layer_hp_mean]
   test_mu_0:
     values: [ True ]
   add_source:
