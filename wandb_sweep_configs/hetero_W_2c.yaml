@@ -46,13 +46,13 @@ parameters:
   dim_p_w:
     values: [2, 4, 8 , 16]
   hidden_dim:
-    values: [8, 16, 32, 64]
+    values: [64, 128]
   attention_dim:
     values: [8, 16, 32, 64]
   time:
     distribution: uniform
     min: 0.5
-    max: 5
+    max: 3.5
   tau_reg:
     distribution: uniform
     min: 0.5
@@ -68,11 +68,11 @@ parameters:
   lr:
     distribution: uniform
     min: 0.01
-    max: 0.085
+    max: 0.05
   decay:
     distribution: uniform
-    min: 0.001
-    max: 0.1
+    min: 0.0001
+    max: 0.025
 command:
   - ${env}
   - python3
