@@ -316,7 +316,7 @@ def main(cmd_opt):
         train_acc = model.odeblock.test_integrator.solver.best_train
         best_time = model.odeblock.test_integrator.solver.best_time
 
-      if ((epoch) % opt['wandb_log_freq']) == 0:
+      if opt['wandb_track_grad_flow'] and ((epoch) % opt['wandb_log_freq']) == 0:
         with torch.no_grad():
           x0 = model.encoder(dataset.data.x)
           T0_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, x0)
