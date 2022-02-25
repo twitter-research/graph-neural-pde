@@ -10,7 +10,7 @@ parameters:
   epoch:
     values: [ 25 ]
   num_splits:
-    values: [ 4 ]
+    values: [ 3 ]
   method:
     values: [ euler ]
   step_size:
