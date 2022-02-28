@@ -583,10 +583,13 @@ if __name__ == '__main__':
   parser.add_argument('--R_T0term_normalisation', type=str, default='T0_identity', help='[T0_symmDegnorm, T0_symmDegnorm, T0_identity] normalise T0 term')
   parser.add_argument('--R_laplacian_norm', type=str, default='lap_noNorm', help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
 
+  parser.add_argument('--diffusion', type=str, default='True', help='turns on diffusion')
   parser.add_argument('--repulsion', type=str, default='False', help='turns on repulsion')
   parser.add_argument('--drift', type=str, default='False', help='turns on drift')
   parser.add_argument('--W_type', type=str, default='identity', help='identity, diag, full')
-  parser.add_argument('--W_beta', type=float, default=0.5, help='for cgnn Ws orthoganal update')
+  parser.add_argument('--R_W_type', type=str, default='identity', help='for repulsion: identity, diag, full')
+  parser.add_argument('--R_depon_A', type=str, default='', help='R dependancy in A')
+  # parser.add_argument('--W_beta', type=float, default=0.5, help='for cgnn Ws orthoganal update')
   parser.add_argument('--tau_residual', type=str, default='False', help='makes tau residual')
 
   args = parser.parse_args()

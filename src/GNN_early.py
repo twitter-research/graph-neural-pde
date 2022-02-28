@@ -122,9 +122,12 @@ class GNNEarly(BaseGNN):
       if self.opt['function'] == 'greed_linear_homo':
         self.odeblock.odefunc.set_L0()
       if self.opt['function'] == 'greed_linear_hetero':
-        self.odeblock.odefunc.set_L0()
-        self.odeblock.odefunc.set_R0()
-        self.odeblock.odefunc.set_WS(x)
+        if self.opt['diffusion']:
+          self.odeblock.odefunc.set_L0()
+          self.odeblock.odefunc.set_WS(x)
+        if self.opt['repulsion']:
+          self.odeblock.odefunc.set_R0()
+          self.odeblock.odefunc.set_R_WS(x)
 
     if self.training  and self.odeblock.nreg > 0:
       z, self.reg_states  = self.odeblock(x)

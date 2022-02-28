@@ -47,7 +47,7 @@ def greed_run_params(opt):
     # TUNING
     # opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     # opt['time'] = 10 #18.295 #10
-    opt['epoch'] = 20 #10
+    opt['epoch'] = 40 #10
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
 
     #at some point test these  - not  so won't overwrite
@@ -105,19 +105,22 @@ def greed_ablation_params(opt):
     opt['symmetric_QK'] = False #True #False
     opt['attention_activation'] = 'exponential'#'softmax' #, exponential
     opt['T0term_normalisation'] = 'T0_rowSum'
-    opt['laplacian_norm'] = 'lap_symmDegM_RowSumnorm' #'lap_symmDeg_RowSumnorm'#'lap_symmDeg_RowSumnorm' #'lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
+    opt['laplacian_norm'] = 'lap_symmAtt_RowSumnorm' #'lap_symmAtt_relaxed' #'lap_symmDeg_RowSumnorm'#'lap_symmDeg_RowSumnorm' #'lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
 
     opt['R_T0term_normalisation'] = 'T0_rowSum'
-    opt['R_laplacian_norm'] = 'lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
-    opt['repulsion'] = False
+    opt['R_laplacian_norm'] = 'lap_symmAtt_RowSumnorm' #'lap_symmAtt_relaxed' #lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
+    opt['diffusion'] = False
+    opt['repulsion'] = True
     opt['drift'] = False
+    opt['R_depon_A'] = '' #'inverse'
 
     #hetero experiment flags
-    opt['test_omit_metric'] = True #False #True
-    opt['test_tau_ones'] = False #False #True  ####<- this is key for hetero datasets
+    opt['test_omit_metric'] = False #True
+    opt['test_tau_ones'] = True #False #True  ####<- this is key for hetero datasets
     opt['test_tau_symmetric'] = False #False #False
     opt['geom_gcn_splits'] = True
     opt['W_type'] = 'identity'
+    opt['R_W_type'] = 'identity'
     opt['tau_residual'] = True
 
     #run params
@@ -155,7 +158,7 @@ def tf_ablation_args(opt):
                 'test_tau_outside', 'test_linear_L0', 'test_R1R2_0',
                 'use_mlp', 'use_best_params', 'no_early',
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
-                'repulsion', 'drift', 'tau_residual']:
+                'diffusion', 'repulsion', 'drift', 'tau_residual']:
 
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)
@@ -390,10 +393,13 @@ def default_params():
     parser.add_argument('--R_laplacian_norm', type=str, default='lap_noNorm',
                         help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
 
+    parser.add_argument('--diffusion', type=str, default='True', help='turns on diffusion')
     parser.add_argument('--repulsion', type=str, default='False', help='turns on repulsion')
     parser.add_argument('--drift', type=str, default='False', help='turns on drift')
     parser.add_argument('--W_type', type=str, default='identity', help='identity, diag, full')
-    parser.add_argument('--W_beta', type=float, default=0.5, help='for cgnn Ws orthoganal update')
+    parser.add_argument('--R_W_type', type=str, default='identity', help='for repulsion: identity, diag, full')
+    parser.add_argument('--R_depon_A', type=str, default='', help='R dependancy in A')
+    # parser.add_argument('--W_beta', type=float, default=0.5, help='for cgnn Ws orthoganal update')
     parser.add_argument('--tau_residual', type=str, default='False', help='makes tau residual')
 
     args = parser.parse_args()

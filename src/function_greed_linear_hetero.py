@@ -13,7 +13,7 @@ from torch_geometric.nn.inits import glorot, zeros, ones
 from torch.nn import Parameter
 import wandb
 from function_greed import ODEFuncGreed
-from utils import MaxNFEException, sym_row_col, sym_row_col_att, sym_row_col_att_measure, gram_schmidt
+from utils import MaxNFEException, sym_row_col, sym_row_col_att, sym_row_col_att_measure, gram_schmidt, sym_row_col_att_relaxed
 from base_classes import ODEFunc
 from function_transformer_attention import SpGraphTransAttentionLayer
 from function_transformer_attention_greed import SpGraphTransAttentionLayer_greed
@@ -79,14 +79,39 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
         self.W_L = Parameter(torch.Tensor(opt['dim_p_w']))
       elif self.opt['W_type'] == 'cgnn':
         self.Ws = Parameter(torch.eye(in_features))
-
       elif self.opt['W_type'] in ['lin_layer', 'res_lin_layer', 'lin_layer_hh', 'res_layer_hh'
                                   ,'lin_layer_mean', 'res_lin_layer_mean', 'lin_layer_hh_mean', 'res_layer_hh_mean']:
         self.Ws_lin = nn.Linear(in_features, in_features**2, bias=False)
-
       elif self.opt['W_type'] in ['lin_layer_hp', 'res_layer_hp', 'lin_layer_hp_mean', 'res_layer_hp_mean']:
         self.Ws_lin = nn.Linear(in_features, in_features * opt['dim_p_w'], bias=False)
         self.W_L = -torch.ones(opt['dim_p_w'], device=device) #force this when heterophillic
+        # self.W_L = Parameter(torch.Tensor(opt['dim_p_w']))
+
+
+      if opt['R_W_type'] == 'identity': #<- fix W s.t. W_s == I
+        self.R_W = torch.cat([torch.eye(in_features, device=device),
+                            torch.zeros(in_features, max(opt['dim_p_w'] - in_features, 0), device=device)], dim=1)
+      elif opt['R_W_type'] == 'diag':
+        self.R_W = Parameter(torch.Tensor(in_features))
+      elif opt['R_W_type'] == 'residual':
+        self.R_W = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
+      elif opt['R_W_type'] == 'full':
+        self.R_W = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
+      elif opt['R_W_type'] == 'full_idty':
+        self.R_W = Parameter(torch.cat([torch.eye(in_features, device=device),
+                            torch.zeros(in_features, max(opt['dim_p_w'] - in_features, 0), device=device)], dim=1))
+      elif opt['R_W_type'] == 'residual_GS':
+        self.R_W_U = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
+        # self.W_L = -torch.ones(opt['dim_p_w'], device=device) #force this when heterophillic
+        self.R_W_L = Parameter(torch.Tensor(opt['dim_p_w']))
+      elif self.opt['R_W_type'] == 'cgnn':
+        self.R_Ws = Parameter(torch.eye(in_features))
+      elif self.opt['R_W_type'] in ['lin_layer', 'res_lin_layer', 'lin_layer_hh', 'res_layer_hh'
+                                  ,'lin_layer_mean', 'res_lin_layer_mean', 'lin_layer_hh_mean', 'res_layer_hh_mean']:
+        self.R_Ws_lin = nn.Linear(in_features, in_features**2, bias=False)
+      elif self.opt['R_W_type'] in ['lin_layer_hp', 'res_layer_hp', 'lin_layer_hp_mean', 'res_layer_hp_mean']:
+        self.R_Ws_lin = nn.Linear(in_features, in_features * opt['dim_p_w'], bias=False)
+        self.R_W_L = -torch.ones(opt['dim_p_w'], device=device) #force this when heterophillic
         # self.W_L = Parameter(torch.Tensor(opt['dim_p_w']))
 
     self.tau_l = Parameter(torch.Tensor(1))
@@ -140,6 +165,29 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
                                 'res_layer_hh_mean', 'lin_layer_hp', 'res_layer_hp',
                                 'lin_layer_hp_mean', 'res_layer_hp_mean']:
       nn.init.xavier_uniform_(self.Ws_lin.weight, gain=1.414)
+      # nn.init.constant_(self.Ws.weight, 1e-1)#5)
+
+
+    if self.opt['R_W_type'] == 'identity': #<- fix W s.t. W_s == I
+      pass
+    elif self.opt['R_W_type'] == 'diag':
+      ones(self.R_W)
+    elif self.opt['R_W_type'] == 'residual':
+      zeros(self.R_W)
+    elif self.opt['R_W_type'] == 'full':
+      glorot(self.R_W)
+    elif self.opt['R_W_type'] == 'full_idty':
+      pass #todo figure out if this is really neccessary as bit fiddly to init as identity
+    elif self.opt['R_W_type'] == 'residual_GS':
+      glorot(self.R_W_U)
+      zeros(self.R_W_L)
+    elif self.opt['R_W_type'] == 'cgnn':
+      pass #self.Ws
+    elif self.opt['R_W_type'] in ['lin_layer', 'res_lin_layer', 'lin_layer_hh', 'res_layer_hh'
+                                  ,'lin_layer_mean', 'res_lin_layer_mean', 'lin_layer_hh_mean',
+                                'res_layer_hh_mean', 'lin_layer_hp', 'res_layer_hp',
+                                'lin_layer_hp_mean', 'res_layer_hp_mean']:
+      nn.init.xavier_uniform_(self.R_Ws_lin.weight, gain=1.414)
       # nn.init.constant_(self.Ws.weight, 1e-1)#5)
 
     if self.opt['drift']:
@@ -255,11 +303,13 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       L = sym_row_col_att_measure(self.edge_index, A, edges, values, self.measure, self.n_nodes)
     elif self.opt['laplacian_norm'] == "lap_noNorm":
       L = values
-    elif self.opt['laplacian_norm'] == "lap_symmDeg_RowSumnorm":
-      L = sym_row_col_att(self.self_loops, degree, edges, values, self.n_nodes)
-    elif self.opt['laplacian_norm'] == "lap_symmDegM_RowSumnorm":
-      L = sym_row_col_att(self.self_loops, degree, edges, values, self.n_nodes)
-      L = sym_row_col_att_measure(self.self_loops, degree, edges, values, self.measure, self.n_nodes)
+    elif self.opt['laplacian_norm'] == "lap_symmAtt_relaxed":
+      L = sym_row_col_att_relaxed(self.edge_index, A, edges, values, self.measure, self.n_nodes)
+
+    # elif self.opt['laplacian_norm'] == "lap_symmDeg_RowSumnorm":
+    #   L = sym_row_col_att(self.self_loops, degree, edges, values, self.n_nodes)
+    # elif self.opt['laplacian_norm'] == "lap_symmDegM_RowSumnorm":
+    #   L = sym_row_col_att_measure(self.self_loops, degree, edges, values, self.measure, self.n_nodes)
 
     return L
 
@@ -272,11 +322,17 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
     else:
       gamma = self.mean_attention_R0
 
+    if self.opt['R_depon_A'] == 'decay':
+      gamma = gamma * torch.exp(-self.mean_attention_0)
+    elif self.opt['R_depon_A'] == 'inverse':
+      gamma = gamma /(1 + self.mean_attention_0)
+
     if self.opt['beltrami']:
       self.Rf_0 = self.get_R0_linear(gamma, self.tau_f_0, self.tau_f_transpose_0)
       self.Rp_0 = self.get_R0_linear(gamma, self.tau_p_0, self.tau_p_transpose_0)
     else:
       self.R_0 = self.get_R0_linear(gamma, self.tau_0, self.tau_transpose_0)
+
 
 
   def get_R0_linear(self, gamma, tau, tau_transpose):
@@ -323,6 +379,8 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       R = sym_row_col_att_measure(self.edge_index, B, edges, values, self.measure, self.n_nodes)
     elif self.opt['R_laplacian_norm'] == "lap_noNorm":
       R = values
+    elif self.opt['R_laplacian_norm'] == "lap_symmAtt_relaxed":
+      R = sym_row_col_att_relaxed(self.edge_index, B, edges, values, self.measure, self.n_nodes)
 
     return R
 
@@ -408,6 +466,87 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       #W_K ^T * W_Q + W_Q ^T * W_K
       W_U = self.Ws_lin(x).view(-1, x.shape[1], x.shape[1]).mean(dim=0)
 
+  def set_R_WS(self, x):
+    if self.opt['R_W_type'] in ['identity', 'full', 'full_idty']:
+      self.R_Ws = self.R_W @ self.R_W.t()  # output a [d,d] tensor
+    elif self.opt['R_W_type'] == 'residual':
+      self.R_Ws = torch.eye(self.R_W.shape[0], device=x.device) + self.R_W @ self.R_W.t()  # output a [d,d] tensor
+    elif self.opt['R_W_type'] == 'diag':
+      self.R_Ws = torch.diag(self.R_W)
+
+    elif self.opt['R_W_type'] == 'residual_GS':
+      V_hat = gram_schmidt(self.R_W_U)
+      W_hat = V_hat @ torch.diag(torch.exp(self.R_W_L) - 1.5) @ V_hat.t()
+      self.R_Ws = torch.eye(self.R_W.shape[0], device=self.device) + W_hat
+
+    elif self.opt['R_W_type'] == 'cgnn':
+      beta = self.opt['W_beta']
+      with torch.no_grad():
+        Ws = self.R_Ws.clone()
+        self.R_Ws.copy_((1 + beta) * Ws - beta * Ws @ Ws.t() @ Ws)
+
+    elif self.opt['R_W_type'] == 'lin_layer':
+      self.R_Ws = self.R_Ws_lin(x).view(-1, x.shape[1], x.shape[1]) #n,h,h -> Ws
+
+    elif self.opt['R_W_type'] == 'lin_layer_hh':
+      W = self.R_Ws_lin(x).view(-1, x.shape[1], x.shape[1]) #n,h,h -> W @ W.t
+      ### XXXX
+      # self.Ws = W @ W.t()
+
+    elif self.opt['R_W_type'] == 'lin_layer_hp':
+      W_U = self.R_Ws_lin(x).view(-1, x.shape[1], self.opt['dim_p_w']) #n,h,p -> U L U.t
+      V_hat = gram_schmidt(W_U)
+      ### XXXX
+      # self.Ws = V_hat @ self.W_L @ V_hat.t()
+
+    elif self.opt['R_W_type'] == 'res_lin_layer':
+      W_hat = self.R_Ws_lin(x).view(-1, x.shape[1], x.shape[1]) #n,h,h -> Ws
+      self.R_Ws = torch.eye(self.R_W.shape[0], device=self.device) + W_hat
+    elif self.opt['R_W_type'] == 'res_layer_hh':
+      W = self.R_Ws_lin(x).view(-1, x.shape[1], x.shape[1]) #n,h,h -> W @ W.t
+      ### XXXX
+      W_hat = W @ W.t()
+      # self.Ws = torch.eye(self.W.shape[0], device=self.device) + W_hat
+
+    elif self.opt['R_W_type'] == 'res_layer_hp':
+      W_U = self.R_Ws_lin(x).view(-1, x.shape[1], self.opt['dim_p_w']) #n,h,p -> U L U.t
+      V_hat = gram_schmidt(W_U)
+      ### XXXX
+      W_hat = V_hat @ torch.diag(torch.exp(self.R_W_L) - 1.0) @ V_hat.t()
+      # self.Ws = torch.eye(self.W.shape[0], device=self.device) + W_hat
+
+    # mean
+    elif self.opt['R_W_type'] == 'lin_layer_mean':
+      self.R_Ws = self.R_Ws_lin(x).view(-1, x.shape[1], x.shape[1]).mean(dim=0) #h,h -> Ws
+    elif self.opt['R_W_type'] == 'lin_layer_hh_mean':
+      W = self.R_Ws_lin(x).view(-1, x.shape[1], x.shape[1]).mean(dim=0) #h,h -> W @ W.t
+      self.R_Ws = W @ W.t()
+    elif self.opt['R_W_type'] == 'lin_layer_hp_mean':
+      W_U = self.R_Ws_lin(x).view(-1, x.shape[1], self.opt['dim_p_w']).mean(dim=0) #h,p -> U L U.t
+      V_hat = gram_schmidt(W_U)
+      self.R_Ws = V_hat @ torch.diag(self.R_W_L) @ V_hat.t()
+
+    elif self.opt['R_W_type'] == 'res_lin_layer_mean':
+      W_hat = self.R_Ws_lin(x).view(-1, x.shape[1], x.shape[1]).mean(dim=0) #h,h -> Ws
+      self.R_Ws = torch.eye(self.R_W.shape[0], device=self.device) + W_hat
+    elif self.opt['R_W_type'] == 'res_layer_hh_mean':
+      W = self.R_Ws_lin(x).view(-1, x.shape[1], x.shape[1]).mean(dim=0) #h,h -> W @ W.t
+      W_hat = W @ W.t()
+      self.R_Ws = torch.eye(self.R_W.shape[0], device=self.device) + W_hat
+    elif self.opt['R_W_type'] == 'res_layer_hp_mean':
+      W_U = self.R_Ws_lin(x).view(-1, x.shape[1], self.opt['dim_p_w']).mean(dim=0) #h,p -> U L U.t
+      V_hat = gram_schmidt(W_U)
+      W_hat = V_hat @ torch.diag(torch.exp(self.R_W_L) - 1.0) @ V_hat.t()
+      self.R_Ws = torch.eye(self.R_W.shape[0], device=self.device) + W_hat
+
+    # ['lin_layer', 'lin_layer_hh', 'lin_layer_hp', 'res_lin_layer', 'res_layer_hh', 'res_layer_hp']
+    # ['lin_layer_mean', 'lin_layer_hh_mean', 'lin_layer_hp_mean',
+    # 'res_lin_layer_mean', 'res_layer_hh_mean', 'res_layer_hp_mean']
+
+    elif self.opt['R_W_type'] == 'QK_W':
+      #exp ( < W_K f_i, W_Q f_j > )
+      #W_K ^T * W_Q + W_Q ^T * W_K
+      W_U = self.R_Ws_lin(x).view(-1, x.shape[1], x.shape[1]).mean(dim=0)
 
 #todo
   # hyper parameter tune for heterophillic
@@ -431,10 +570,11 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       raise MaxNFEException
     self.nfe += 1
 
-    Ws = self.Ws
+    # Ws = self.Ws
     edges = torch.cat([self.edge_index, self.self_loops], dim=1)
 
     if self.opt['beltrami']:
+      Ws = self.Ws
       # x is [(features, pos_encs) * aug_factor, lables] but here assume aug_factor == 1
       label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
       p = x[:, self.opt['feat_hidden_dim']: label_index]
@@ -446,11 +586,15 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       f = torch.cat([ff, fp], dim=1)
 
     else:
-      Lf = torch_sparse.spmm(edges, -self.L_0, x.shape[0], x.shape[0], x)
-      if self.opt['W_type'] in ['lin_layer', 'lin_layer_hh', 'lin_layer_hp', 'res_lin_layer', 'res_layer_hh', 'res_layer_hp']:
-        LfW = torch.einsum("ij,ikj->ik", Lf, Ws)
-      else:
-        LfW = torch.matmul(Lf, Ws)
+      LfW = 0
+      RfW = 0
+      if self.opt['diffusion']:
+        Ws = self.Ws
+        Lf = torch_sparse.spmm(edges, -self.L_0, x.shape[0], x.shape[0], x)
+        if self.opt['W_type'] in ['lin_layer', 'lin_layer_hh', 'lin_layer_hp', 'res_lin_layer', 'res_layer_hh', 'res_layer_hp']:
+          LfW = torch.einsum("ij,ikj->ik", Lf, Ws)
+        else:
+          LfW = torch.matmul(Lf, Ws)
 
       if not self.opt['no_alpha_sigmoid']:
         alpha = torch.sigmoid(self.alpha_train)
@@ -458,12 +602,16 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
         alpha = self.alpha_train
 
       if self.opt['repulsion']:
+        R_Ws = self.R_Ws
         Rf = torch_sparse.spmm(edges, self.R_0, x.shape[0], x.shape[0], x) #LpRf
-        RfW = torch.matmul(Rf, Ws) #todo need a second Ws
-        f = alpha * LfW + (1-alpha) * RfW
-        # f = 0.9 * LfW + (1-0.9) * RfW
-      else:
-        f = alpha * LfW
+        if self.opt['R_W_type'] in ['lin_layer', 'lin_layer_hh', 'lin_layer_hp', 'res_lin_layer', 'res_layer_hh', 'res_layer_hp']:
+          RfW = torch.einsum("ij,ikj->ik", Rf, R_Ws)
+        else:
+          RfW = torch.matmul(Rf, R_Ws)
+
+      # f = alpha * LfW + (1-alpha) * RfW
+      c = 0.0
+      f = c * LfW + (1-c) * RfW
 
     if self.opt['test_mu_0']:
       if self.opt['add_source']:
