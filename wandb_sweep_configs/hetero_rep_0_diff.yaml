@@ -38,9 +38,9 @@ parameters:
   laplacian_norm:
     values: [lap_noNorm, lap_symmDeg_RowSumnorm]
   diffusion:
-    values: [True]
+    values: [True, False]
   repulsion:
-    values: [False]
+    values: [True, False]
   drift:
     values: [False]
   W_type:
