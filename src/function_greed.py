@@ -71,7 +71,6 @@ class ODEFuncGreed(ODEFunc):
       self.mu = 0
     else:
       self.mu = nn.Parameter(torch.tensor(1.))
-    self.alpha = nn.Parameter(torch.tensor(1.))
 
     self.energy = 0
     self.epoch = 0
@@ -318,7 +317,6 @@ class ODEFuncGreed(ODEFunc):
 
     f = f - 0.5 * self.mu * (x - self.x0)
     # f = f + self.x0
-    # todo consider adding a term f = f + self.alpha * f
 
     if self.opt['test_omit_metric'] and self.opt['test_mu_0']: #energy to use when Gamma is -adjacency and not the pullback and mu == 0
       energy = torch.sum(self.get_energy_gradient(x, tau, tau_transpose) ** 2)

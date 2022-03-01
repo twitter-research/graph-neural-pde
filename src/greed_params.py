@@ -47,7 +47,8 @@ def greed_run_params(opt):
     # TUNING
     # opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     # opt['time'] = 10 #18.295 #10
-    opt['epoch'] = 40 #10
+    opt['epoch'] = 3 #40 #10
+    opt['num_splits'] = 2
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
 
     #at some point test these  - not  so won't overwrite
@@ -104,11 +105,12 @@ def greed_ablation_params(opt):
     #greed_linear_hetero params
     opt['symmetric_QK'] = False #True #False
     opt['attention_activation'] = 'exponential'#'softmax' #, exponential
-    opt['T0term_normalisation'] = 'T0_rowSum'
-    opt['laplacian_norm'] = 'lap_symmAtt_RowSumnorm' #'lap_symmAtt_relaxed' #'lap_symmDeg_RowSumnorm'#'lap_symmDeg_RowSumnorm' #'lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
 
-    opt['R_T0term_normalisation'] = 'T0_rowSum'
-    opt['R_laplacian_norm'] = 'lap_symmAtt_RowSumnorm' #'lap_symmAtt_relaxed' #lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
+    opt['T0term_normalisation'] = 'T0_rowSum'
+    opt['laplacian_norm'] = 'lap_symmDeg_RowSumnorm' #'lap_symmAtt_relaxed' #'lap_symmDeg_RowSumnorm'#'lap_symmDeg_RowSumnorm' #'lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
+    # opt['R_T0term_normalisation'] = 'T0_rowSum'
+    # opt['R_laplacian_norm'] = 'lap_symmAtt_relaxed' #'lap_symmAtt_relaxed' #lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
+
     opt['diffusion'] = False
     opt['repulsion'] = True
     opt['drift'] = False
@@ -135,6 +137,7 @@ def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
     opt['wandb'] = True
     opt['wandb_track_grad_flow'] = False #True #False  # don't plot grad flows when testing
+    opt['wandb_track_epoch_energy'] = True
     opt['wandb_project'] = project_name #"greed_runs"
     opt['wandb_group'] = group_name #"testing"  # "tuning" eval
     DT = datetime.datetime.now()
@@ -331,6 +334,7 @@ def default_params():
                         help="flag if sweeping")  # if not it picks up params in greed_params
     parser.add_argument('--wandb_watch_grad', action='store_true', help='allows gradient tracking in train function')
     parser.add_argument('--wandb_track_grad_flow', action='store_true')
+    parser.add_argument('--wandb_track_epoch_energy', action='store_true')
 
     parser.add_argument('--wandb_entity', default="graph_neural_diffusion", type=str,
                         help="jrowbottomwnb, ger__man")  # not used as default set in web browser settings
@@ -393,6 +397,7 @@ def default_params():
     parser.add_argument('--R_laplacian_norm', type=str, default='lap_noNorm',
                         help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
 
+    parser.add_argument('--fix_alpha', type=float, default=None, help='control balance between diffusion and repulsion')
     parser.add_argument('--diffusion', type=str, default='True', help='turns on diffusion')
     parser.add_argument('--repulsion', type=str, default='False', help='turns on repulsion')
     parser.add_argument('--drift', type=str, default='False', help='turns on drift')

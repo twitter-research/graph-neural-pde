@@ -230,6 +230,10 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
     if self.opt['attention_type'] == "scaled_dot":
       prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
 
+    #todo norm wrt to f
+    elif self.opt['attention_type'] == "scaled_normf":
+      prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
+
     elif self.opt['attention_type'] == "cosine_sim":
       cos = torch.nn.CosineSimilarity(dim=1, eps=1e-5)
       prods = cos(src, dst_k)

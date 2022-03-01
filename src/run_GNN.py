@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
 from torch_geometric.utils import homophily
+from torch_scatter import scatter_add
 import torch.nn.functional as F
 import wandb
 from ogb.nodeproppred import Evaluator
@@ -318,21 +319,50 @@ def main(cmd_opt):
 
 
       if ((epoch) % opt['wandb_log_freq']) == 0:
-        if opt['wandb_track_grad_flow']:
+        if opt['wandb_track_epoch_energy']:
           with torch.no_grad():
+            num_nodes = dataset.data.num_nodes
             x0 = model.encoder(dataset.data.x)
-            T0_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, x0)
-            xN = model(dataset.data.x)
-            TN_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, dataset.data.num_nodes, xN)
-            pred_homophil = homophily(edge_index=dataset.data.edge_index, y=xN.max(1)[1])
+            T0_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, num_nodes, x0)
+            LpR = model.odeblock.odefunc.L_0 + model.odeblock.odefunc.R_0
+            edges = torch.cat([model.odeblock.odefunc.edge_index, model.odeblock.odefunc.self_loops], dim=1)
+            T0_dirichlet_W = dirichlet_energy(edges, LpR, num_nodes, x0)
+            xN = model.forward_XN(dataset.data.x)
+            TN_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, num_nodes, xN)
+            TN_dirichlet_W = dirichlet_energy(edges, LpR, num_nodes, xN)
+            enc_pred = model.m2(model.encoder(dataset.data.x)).max(1)[1]
+            pred = model.forward(dataset.data.x).max(1)[1]
+            enc_pred_homophil = homophily(edge_index=dataset.data.edge_index, y=enc_pred)
+            pred_homophil = homophily(edge_index=dataset.data.edge_index, y=pred)
             label_homophil = homophily(edge_index=dataset.data.edge_index, y=dataset.data.y)
+
+            if opt['diffusion']:
+              a = model.odeblock.odefunc.mean_attention_0
+              a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
+              a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
+            else:
+              a_row_max = 0
+              a_row_min = 0
+
+            if opt['repulsion']:
+              b = model.odeblock.odefunc.mean_attention_R0
+              b_row_max = scatter_add(b, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
+              b_row_min = scatter_add(b, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
+            else:
+              b_row_max = 0
+              b_row_min = 0
+
+            alpha = model.odeblock.odefunc.alpha.item()
 
           wandb.log({"loss": loss,
                      # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
                      "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
                      "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
                      "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
-                     "pred_homophil": pred_homophil, "label_homophil": label_homophil,
+                     "T0_dirichlet_W": T0_dirichlet_W, "TN_dirichlet_W": TN_dirichlet_W,
+                     "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil, "label_homophil": label_homophil,
+                     "a_row_max": a_row_max, "a_row_min": a_row_min, "b_row_max": b_row_max, "b_row_min": b_row_min,
+                     "alpha": alpha,
                      "epoch_step": epoch})
         else:
           wandb.log({"loss": loss,
@@ -532,6 +562,7 @@ if __name__ == '__main__':
   parser.add_argument('--wandb_sweep', action='store_true', help="flag if sweeping") #if not it picks up params in greed_params
   parser.add_argument('--wandb_watch_grad', action='store_true', help='allows gradient tracking in train function')
   parser.add_argument('--wandb_track_grad_flow', action='store_true')
+  parser.add_argument('--wandb_track_epoch_energy', action='store_true')
 
   parser.add_argument('--wandb_entity', default="graph_neural_diffusion", type=str,
                       help="jrowbottomwnb, ger__man")  # not used as default set in web browser settings
@@ -583,6 +614,7 @@ if __name__ == '__main__':
   parser.add_argument('--R_T0term_normalisation', type=str, default='T0_identity', help='[T0_symmDegnorm, T0_symmDegnorm, T0_identity] normalise T0 term')
   parser.add_argument('--R_laplacian_norm', type=str, default='lap_noNorm', help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
 
+  parser.add_argument('--fix_alpha', type=float, default=None, help='control balance between diffusion and repulsion')
   parser.add_argument('--diffusion', type=str, default='True', help='turns on diffusion')
   parser.add_argument('--repulsion', type=str, default='False', help='turns on repulsion')
   parser.add_argument('--drift', type=str, default='False', help='turns on drift')

@@ -75,6 +75,48 @@ class GNNEarly(BaseGNN):
 
     return x
 
+  def forward_XN(self, x):
+    ###forward XN
+    x = self.encoder(x, pos_encoding=None)
+
+    self.odeblock.set_x0(x)
+
+    with torch.no_grad():
+      self.set_solver_m2()
+
+    if self.opt['function'] in ['greed_linear', 'greed_linear_homo', 'greed_linear_hetero']:
+      self.odeblock.odefunc.set_x_0(x)  # this x is actually z
+      self.odeblock.odefunc.set_tau_0()
+      # if self.opt['test_linear_L0']:
+      #   self.odeblock.odefunc.set_L0()
+      if self.opt['function'] == 'greed_linear_homo':
+        self.odeblock.odefunc.set_L0()
+      if self.opt['function'] == 'greed_linear_hetero':
+        if self.opt['diffusion']:
+          self.odeblock.odefunc.set_L0()
+          self.odeblock.odefunc.Ws = self.odeblock.odefunc.set_WS(x)
+        if self.opt['repulsion']:
+          self.odeblock.odefunc.set_R0()
+          self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_WS(x)
+
+    if self.training and self.odeblock.nreg > 0:
+      z, self.reg_states = self.odeblock(x)
+    else:
+      z = self.odeblock(x)
+
+    if self.opt['augment']:
+      z = torch.split(z, x.shape[1] // 2, dim=1)[0]
+
+    # Activation.
+    z = F.relu(z)
+
+    if self.opt['fc_out']:
+      z = self.fc(z)
+      z = F.relu(z)
+
+    # Dropout.
+    z = F.dropout(z, self.opt['dropout'], training=self.training)
+
   def forward(self, x, pos_encoding=None):
     # # Encode each node based on its feature.
     # if self.opt['use_labels']:
@@ -109,45 +151,47 @@ class GNNEarly(BaseGNN):
     #   x = torch.cat([x, c_aux], dim=1)
     x = self.encoder(x, pos_encoding=None)
 
-    self.odeblock.set_x0(x)
-
-    with torch.no_grad():
-      self.set_solver_m2()
-
-    if self.opt['function'] in ['greed_linear', 'greed_linear_homo', 'greed_linear_hetero']:
-      self.odeblock.odefunc.set_x_0(x) #this x is actually z
-      self.odeblock.odefunc.set_tau_0()
-      # if self.opt['test_linear_L0']:
-      #   self.odeblock.odefunc.set_L0()
-      if self.opt['function'] == 'greed_linear_homo':
-        self.odeblock.odefunc.set_L0()
-      if self.opt['function'] == 'greed_linear_hetero':
-        if self.opt['diffusion']:
-          self.odeblock.odefunc.set_L0()
-          self.odeblock.odefunc.set_WS(x)
-        if self.opt['repulsion']:
-          self.odeblock.odefunc.set_R0()
-          self.odeblock.odefunc.set_R_WS(x)
-
-    if self.training  and self.odeblock.nreg > 0:
-      z, self.reg_states  = self.odeblock(x)
-    else:
-      z = self.odeblock(x)
-      
-    if self.opt['augment']:
-      z = torch.split(z, x.shape[1] // 2, dim=1)[0]
-
-    # Activation.
-    z = F.relu(z)
-
-    if self.opt['fc_out']:
-      z = self.fc(z)
-      z = F.relu(z)
-
-    # Dropout.
-    z = F.dropout(z, self.opt['dropout'], training=self.training)
+    ###forward_XN
+    # self.odeblock.set_x0(x)
+    #
+    # with torch.no_grad():
+    #   self.set_solver_m2()
+    #
+    # if self.opt['function'] in ['greed_linear', 'greed_linear_homo', 'greed_linear_hetero']:
+    #   self.odeblock.odefunc.set_x_0(x) #this x is actually z
+    #   self.odeblock.odefunc.set_tau_0()
+    #   # if self.opt['test_linear_L0']:
+    #   #   self.odeblock.odefunc.set_L0()
+    #   if self.opt['function'] == 'greed_linear_homo':
+    #     self.odeblock.odefunc.set_L0()
+    #   if self.opt['function'] == 'greed_linear_hetero':
+    #     if self.opt['diffusion']:
+    #       self.odeblock.odefunc.set_L0()
+    #       self.odeblock.odefunc.Ws = self.odeblock.odefunc.set_WS(x)
+    #     if self.opt['repulsion']:
+    #       self.odeblock.odefunc.set_R0()
+    #       self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_WS(x)
+    #
+    # if self.training  and self.odeblock.nreg > 0:
+    #   z, self.reg_states  = self.odeblock(x)
+    # else:
+    #   z = self.odeblock(x)
+    #
+    # if self.opt['augment']:
+    #   z = torch.split(z, x.shape[1] // 2, dim=1)[0]
+    #
+    # # Activation.
+    # z = F.relu(z)
+    #
+    # if self.opt['fc_out']:
+    #   z = self.fc(z)
+    #   z = F.relu(z)
+    #
+    # # Dropout.
+    # z = F.dropout(z, self.opt['dropout'], training=self.training)
 
     # Decode each node embedding to get node label.
+    z = self.forward_XN(x)
     z = self.m2(z)
     return z
 
