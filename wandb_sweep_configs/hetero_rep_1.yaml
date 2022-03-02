@@ -69,4 +69,4 @@ command:
   - --geom_gcn_splits
   - --wandb_track_epoch_energy
 entity: graph_neural_diffusion
-project: hetero_rep_0
+project: hetero_rep_1
