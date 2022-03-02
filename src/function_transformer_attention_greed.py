@@ -256,9 +256,11 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
       attention = torch.tanh(prods)
     elif self.opt['attention_activation'] == "exponential":
       attention = torch.exp(prods)
+    elif self.opt['attention_activation'] == "squareplus":
+      attention = (prods + torch.sqrt(prods ** 2 + 4)) / 2
     elif self.opt['attention_activation'] == "softmax":
       attention = softmax(prods, edge[self.opt['attention_norm_idx']])
-    elif self.opt['attention_activation'] == "squareplus":
+    elif self.opt['attention_activation'] == "squaremax":
       attention = squareplus(prods, edge[self.opt['attention_norm_idx']])
     else:
       pass
