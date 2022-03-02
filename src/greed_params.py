@@ -130,6 +130,8 @@ def greed_ablation_params(opt):
     opt['step_size'] = 0.25
     opt['use_best_params'] = True
 
+
+    opt['wandb_track_epoch_energy'] = True
     return opt
     #--dataset Cora --function greed_linear_homo --use_best_params
 

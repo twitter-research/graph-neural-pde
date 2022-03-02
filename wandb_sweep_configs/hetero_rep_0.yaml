@@ -1,0 +1,75 @@
+program: run_GNN.py
+method: random
+parameters:
+  dataset:
+    values: ['chameleon']
+  block:
+    values: [ constant ]
+  function:
+    values: [ greed_linear_hetero ]
+  epoch:
+    values: [ 25 ]
+  num_splits:
+    values: [ 3 ]
+  method:
+    values: [ euler ]
+  step_size:
+    values: [ 0.25 ]
+  test_omit_metric:
+    values: [False]
+  test_tau_ones:
+    values: [ True ]
+  test_tau_symmetric:
+    values: [ True ]
+  tau_residual:
+    values: [ False ]
+  symmetric_QK:
+    values: [ False ]
+  symmetric_attention:
+    values: [ True ]
+  attention_type:
+    values: [ scaled_dot ]
+  attention_activation:
+    values: [ exponential ]
+  attention_normalisation:
+    values: [ none ]
+  T0term_normalisation:
+    values: [ T0_rowSum ]
+  laplacian_norm:
+    values: [lap_noNorm, lap_symmDeg_RowSumnorm]
+  diffusion:
+    values: [True, False]
+  repulsion:
+    values: [True, False]
+  drift:
+    values: [False]
+  W_type:
+    values: [identity]
+  R_W_type:
+    values: [identity]
+  test_mu_0:
+    values: [ True ]
+  add_source:
+    values: [ True ]
+  hidden_dim:
+    values: [64, 128, 256]
+  attention_dim:
+    values: [16, 32, 64]
+  time:
+    distribution: uniform
+    min: 0.1
+    max: 5.0
+  wandb_track_epoch_energy:
+    values: [ True ]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --geom_gcn_splits
+  - --function
+  - greed_linear
+entity: graph_neural_diffusion
+project: hetero_rep_0
