@@ -163,7 +163,8 @@ def tf_ablation_args(opt):
                 'test_tau_outside', 'test_linear_L0', 'test_R1R2_0',
                 'use_mlp', 'use_best_params', 'no_early',
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
-                'diffusion', 'repulsion', 'drift', 'tau_residual']:
+                'diffusion', 'repulsion', 'drift', 'tau_residual',
+                'wandb_track_epoch_energy']:
 
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)
