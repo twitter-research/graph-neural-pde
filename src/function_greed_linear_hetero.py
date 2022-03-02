@@ -473,7 +473,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
         else:
           LfW = torch.matmul(Lf, Ws)
 
-      if self.opt['fix_alpha']:
+      if self.opt['fix_alpha'] and (not self.opt['fix_alpha'] == "None" or not self.opt['fix_alpha'] == None):
         self.alpha = self.opt['fix_alpha']
       else:
         if not self.opt['no_alpha_sigmoid']:
