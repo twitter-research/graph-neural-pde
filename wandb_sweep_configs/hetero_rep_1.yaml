@@ -36,7 +36,7 @@ parameters:
   T0term_normalisation:
     values: [ T0_rowSum ]
   laplacian_norm:
-    values: [lap_noNorm, lap_symmDeg_RowSumnorm]
+    values: [lap_noNorm, lap_symmDeg_RowSumnorm, lap_symmAtt_RowSumnorm]
   diffusion:
     values: [True, False]
   repulsion:
