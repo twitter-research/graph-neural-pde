@@ -352,7 +352,7 @@ def main(cmd_opt):
               b_row_max = 0
               b_row_min = 0
 
-            alpha = model.odeblock.odefunc.alpha.item()
+            alpha = model.odeblock.odefunc.alpha
 
           wandb.log({"loss": loss,
                      # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
