@@ -127,6 +127,12 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
     self.measure = Parameter(torch.Tensor(self.n_nodes)) # used as either dividitive or additive nodewise normalisation measure
     self.C = (data.y.max()+1).item() #num class for drift
     self.attractors = {i: Parameter(torch.Tensor(opt['hidden_dim'])) for i in range(self.C)}
+
+    if opt['alpha_style'] == 'free':
+      self.alpha_train = nn.Parameter(torch.tensor(1.0))
+    else:
+      self.alpha_train = nn.Parameter(torch.tensor(0.0))
+
     self.alpha_diag = Parameter(torch.Tensor(opt['hidden_dim']))
     self.reset_linH_parameters()
 
@@ -147,6 +153,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
     zeros(self.bias)
     ones(self.measure)
     ones(self.tau_l)
+    ones(self.alpha_diag)
 
     if self.opt['W_type'] == 'identity': #<- fix W s.t. W_s == I
       pass
@@ -491,14 +498,18 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       #   else:
       #     self.alpha = self.alpha_train
 
-      if self.opt['alpha_style'] == "sigmoid":
-        self.alpha = torch.sigmoid(self.alpha_train)
-      elif self.opt['alpha_style'] == "free":
-        self.alpha = self.alpha_train
-      elif self.opt['alpha_style'] == "forced":
-        self.alpha = self.opt['fix_alpha']
-      elif self.opt['alpha_style'] == "diag":
-        self.alpha = torch.diag(self.alpha_diag)
+
+      try:
+        self.alpha = float(self.opt['alpha_style'])
+      except:
+        if self.opt['alpha_style'] == "sigmoid":
+          self.alpha = torch.sigmoid(self.alpha_train)
+        elif self.opt['alpha_style'] == "free":
+          self.alpha = self.alpha_train
+        elif self.opt['alpha_style'] == "forced":
+          self.alpha = self.opt['fix_alpha']
+        elif self.opt['alpha_style'] == "diag":
+          self.alpha = torch.diag(self.alpha_diag)
 
       if self.opt['alpha_style'] == "diag":
         if self.opt['diffusion'] and self.opt['repulsion']:

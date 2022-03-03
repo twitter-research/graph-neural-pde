@@ -47,8 +47,8 @@ def greed_run_params(opt):
     # TUNING
     # opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     # opt['time'] = 10 #18.295 #10
-    opt['epoch'] = 3 #40 #10
-    opt['num_splits'] = 2
+    opt['epoch'] = 20 #40 #10
+    opt['num_splits'] = 1
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
 
     #at some point test these  - not  so won't overwrite
@@ -111,17 +111,16 @@ def greed_ablation_params(opt):
     # opt['R_laplacian_norm'] = 'lap_symmAtt_relaxed' #'lap_symmAtt_relaxed' #lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
 
     opt['diffusion'] = True
-    opt['repulsion'] = True
+    opt['repulsion'] = False #True
     opt['drift'] = False
     opt['R_depon_A'] = 'none' #'inverse'
-    opt['alpha_style'] = 'free' #"sigmoid", "free", "forced", "diag"
+    opt['alpha_style'] = 'free' #0.5 'sigmoid' #"sigmoid", "free", "forced", "diag"
 
     #hetero experiment flags
     opt['test_omit_metric_L'] = False #True
     opt['test_omit_metric_R'] = False #True
     opt['test_tau_ones'] = True #False #True  ####<- this is key for hetero datasets
     opt['test_tau_symmetric'] = False #False #False
-    opt['geom_gcn_splits'] = True
     opt['W_type'] = 'identity'
     opt['R_W_type'] = 'identity'
     opt['tau_residual'] = True
@@ -130,8 +129,9 @@ def greed_ablation_params(opt):
     opt['method'] = 'euler'
     opt['step_size'] = 0.25
     opt['use_best_params'] = True
+    opt['decay'] = 0
 
-
+    opt['geom_gcn_splits'] = False
     opt['wandb_track_epoch_energy'] = True
     return opt
     #--dataset Cora --function greed_linear_homo --use_best_params
