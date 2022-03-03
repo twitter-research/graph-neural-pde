@@ -54,11 +54,11 @@ parameters:
   add_source:
     values: [ True ]
   R_depon_A:
-      values: [none, decay, inverse]
+    values: [none, decay, inverse]
   alpha_style:
-      values: [sigmoid, free, matrix]
+    values: [sigmoid, free, matrix]
   decay:
-  values: [0.0]
+    values: [0.0]
 command:
   - ${env}
   - python3
