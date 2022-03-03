@@ -99,7 +99,6 @@ def greed_ablation_params(opt):
     opt['symmetric_attention'] = True
     opt['attention_type'] = "scaled_dot" #'scaled_dot'
     opt['attention_normalisation'] = 'none'
-    opt['test_omit_metric'] = False
     opt['test_mu_0'] = True
 
     #greed_linear_hetero params
@@ -117,7 +116,8 @@ def greed_ablation_params(opt):
     opt['R_depon_A'] = '' #'inverse'
 
     #hetero experiment flags
-    opt['test_omit_metric'] = False #True
+    opt['test_omit_metric_L'] = False #True
+    opt['test_omit_metric_R'] = False #True
     opt['test_tau_ones'] = True #False #True  ####<- this is key for hetero datasets
     opt['test_tau_symmetric'] = False #False #False
     opt['geom_gcn_splits'] = True
@@ -158,7 +158,7 @@ def t_or_f(tf_str):
         return False
 
 def tf_ablation_args(opt):
-    for arg in ['test_no_chanel_mix','test_omit_metric','test_mu_0',
+    for arg in ['test_no_chanel_mix','test_omit_metric_L', 'test_omit_metric_R','test_mu_0',
                 'test_tau_remove_tanh','test_tau_symmetric','test_grand_metric','test_tau_ones',
                 'test_tau_outside', 'test_linear_L0', 'test_R1R2_0',
                 'use_mlp', 'use_best_params', 'no_early',
@@ -353,7 +353,8 @@ def default_params():
     parser.add_argument('--tau_reg', type=int, default=2)
     parser.add_argument('--test_mu_0', type=str, default='True')  # action='store_true')
     parser.add_argument('--test_no_chanel_mix', type=str, default='True')  # action='store_true')
-    parser.add_argument('--test_omit_metric', type=str, default='True')  # action='store_true')
+    parser.add_argument('--test_omit_metric_L', type=str, default='True')  # action='store_true')
+    parser.add_argument('--test_omit_metric_R', type=str, default='True')  # action='store_true')
     parser.add_argument('--test_tau_remove_tanh', type=str, default='True')  # action='store_true')
     parser.add_argument('--test_tau_symmetric', type=str, default='True')  # action='store_true')
     parser.add_argument('--test_tau_outside', type=str, default='True')  # action='store_true')
@@ -399,6 +400,7 @@ def default_params():
     parser.add_argument('--R_laplacian_norm', type=str, default='lap_noNorm',
                         help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
 
+    parser.add_argument('--alpha_style', type=str, default='', help='"sigmoid", "free", "forced", "matrix"')
     parser.add_argument('--fix_alpha', type=float, default=None, help='control balance between diffusion and repulsion')
     parser.add_argument('--diffusion', type=str, default='True', help='turns on diffusion')
     parser.add_argument('--repulsion', type=str, default='False', help='turns on repulsion')

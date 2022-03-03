@@ -127,7 +127,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
     self.measure = Parameter(torch.Tensor(self.n_nodes)) # used as either dividitive or additive nodewise normalisation measure
     self.C = (data.y.max()+1).item() #num class for drift
     self.attractors = {i: Parameter(torch.Tensor(opt['hidden_dim'])) for i in range(self.C)}
-    self.alpha = 0.0
+    self.alpha_diag = Parameter(torch.Tensor(opt['hidden_dim']))
     self.reset_linH_parameters()
 
 
@@ -249,7 +249,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
   def set_L0(self):
     attention, _ = self.multihead_att_layer(self.x_0, self.edge_index)
     self.mean_attention_0 = attention.mean(dim=1)
-    if self.opt['test_omit_metric']:
+    if self.opt['test_omit_metric_L']:
       gamma = torch.ones(self.mean_attention_0.shape, device=self.mean_attention_0.device) #setting metric equal to adjacency
     else:
       gamma = self.mean_attention_0
@@ -263,7 +263,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
   def set_R0(self):
     attention, _ = self.multihead_att_layer_R0(self.x_0, self.edge_index)
     self.mean_attention_R0 = attention.mean(dim=1)
-    if self.opt['test_omit_metric']:
+    if self.opt['test_omit_metric_R']:
       gamma = torch.ones(self.mean_attention_R0.shape, device=self.mean_attention_R0.device) #setting metric equal to adjacency
     else:
       gamma = self.mean_attention_R0
@@ -272,6 +272,8 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       gamma = gamma * torch.exp(-self.mean_attention_0)
     elif self.opt['R_depon_A'] == 'inverse':
       gamma = 1 / (1 + self.mean_attention_0)
+    elif self.opt['R_depon_A'] == 'none':
+      pass
 
     if self.opt['beltrami']:
       self.Rf_0 = self.get_laplacian_linear(gamma, self.tau_f_0, self.tau_f_transpose_0, form_type="repulsion")
@@ -473,13 +475,22 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
         else:
           LfW = torch.matmul(Lf, Ws)
 
-      if self.opt['fix_alpha'] and (not self.opt['fix_alpha'] == "None" or not self.opt['fix_alpha'] == None):
+      # if self.opt['fix_alpha'] and (not self.opt['fix_alpha'] == "None" or not self.opt['fix_alpha'] == None):
+      #   self.alpha = self.opt['fix_alpha']
+      # else:
+      #   if not self.opt['no_alpha_sigmoid']:
+      #     self.alpha = torch.sigmoid(self.alpha_train)
+      #   else:
+      #     self.alpha = self.alpha_train
+
+      if self.opt['alpha_style'] == "sigmoid":
+        self.alpha = torch.sigmoid(self.alpha_train)
+      elif self.opt['alpha_style'] == "free":
+        self.alpha = self.alpha_train
+      elif self.opt['alpha_style'] == "forced":
         self.alpha = self.opt['fix_alpha']
-      else:
-        if not self.opt['no_alpha_sigmoid']:
-          self.alpha = torch.sigmoid(self.alpha_train)
-        else:
-          self.alpha = self.alpha_train
+      elif self.opt['alpha_style'] == "matrix":
+        self.alpha = torch.diag(self.alpha_diag)
 
       if self.opt['repulsion']:
         R_Ws = self.R_Ws

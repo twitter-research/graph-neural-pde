@@ -578,7 +578,8 @@ if __name__ == '__main__':
   parser.add_argument('--tau_reg', type=float, default=2)
   parser.add_argument('--test_mu_0', type=str, default='True') #action='store_true')
   parser.add_argument('--test_no_chanel_mix', type=str, default='True') #action='store_true')
-  parser.add_argument('--test_omit_metric', type=str, default='True') #action='store_true')
+  parser.add_argument('--test_omit_metric_L', type=str, default='True') #action='store_true')
+  parser.add_argument('--test_omit_metric_R', type=str, default='True') #action='store_true')
   parser.add_argument('--test_tau_remove_tanh', type=str, default='True') #action='store_true')
   parser.add_argument('--test_tau_symmetric', type=str, default='True') #action='store_true')
   parser.add_argument('--test_tau_outside', type=str, default='True') #action='store_true')
@@ -614,6 +615,7 @@ if __name__ == '__main__':
   parser.add_argument('--R_T0term_normalisation', type=str, default='T0_identity', help='[T0_symmDegnorm, T0_symmDegnorm, T0_identity] normalise T0 term')
   parser.add_argument('--R_laplacian_norm', type=str, default='lap_noNorm', help='[lap_symmDegnorm, lap_symmRowSumnorm, lap_noNorm] how to normalise L')
 
+  parser.add_argument('--alpha_style', type=str, default='', help='"sigmoid", "free", "forced", "matrix"')
   parser.add_argument('--fix_alpha', type=float, default=None, help='control balance between diffusion and repulsion')
   parser.add_argument('--diffusion', type=str, default='True', help='turns on diffusion')
   parser.add_argument('--repulsion', type=str, default='False', help='turns on repulsion')
