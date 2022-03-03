@@ -354,6 +354,8 @@ def main(cmd_opt):
 
             if opt['alpha_style'] == 'diag':
               alpha = model.odeblock.odefunc.alpha.mean()
+            elif opt['alpha_style'] == 'free':
+              alpha = model.odeblock.odefunc.alpha.data
             else:
               alpha = model.odeblock.odefunc.alpha
 

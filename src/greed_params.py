@@ -114,7 +114,7 @@ def greed_ablation_params(opt):
     opt['repulsion'] = True
     opt['drift'] = False
     opt['R_depon_A'] = 'none' #'inverse'
-    opt['alpha_style'] = 'diag'
+    opt['alpha_style'] = 'free' #"sigmoid", "free", "forced", "diag"
 
     #hetero experiment flags
     opt['test_omit_metric_L'] = False #True
