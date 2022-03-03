@@ -475,6 +475,14 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
         else:
           LfW = torch.matmul(Lf, Ws)
 
+      if self.opt['repulsion']:
+        R_Ws = self.R_Ws
+        Rf = torch_sparse.spmm(edges, self.R_0, x.shape[0], x.shape[0], x) #LpRf
+        if self.opt['R_W_type'] in ['lin_layer', 'lin_layer_hh', 'lin_layer_hp', 'res_lin_layer', 'res_layer_hh', 'res_layer_hp']:
+          RfW = torch.einsum("ij,ikj->ik", Rf, R_Ws)
+        else:
+          RfW = torch.matmul(Rf, R_Ws)
+
       # if self.opt['fix_alpha'] and (not self.opt['fix_alpha'] == "None" or not self.opt['fix_alpha'] == None):
       #   self.alpha = self.opt['fix_alpha']
       # else:
@@ -489,18 +497,18 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
         self.alpha = self.alpha_train
       elif self.opt['alpha_style'] == "forced":
         self.alpha = self.opt['fix_alpha']
-      elif self.opt['alpha_style'] == "matrix":
+      elif self.opt['alpha_style'] == "diag":
         self.alpha = torch.diag(self.alpha_diag)
 
-      if self.opt['repulsion']:
-        R_Ws = self.R_Ws
-        Rf = torch_sparse.spmm(edges, self.R_0, x.shape[0], x.shape[0], x) #LpRf
-        if self.opt['R_W_type'] in ['lin_layer', 'lin_layer_hh', 'lin_layer_hp', 'res_lin_layer', 'res_layer_hh', 'res_layer_hp']:
-          RfW = torch.einsum("ij,ikj->ik", Rf, R_Ws)
-        else:
-          RfW = torch.matmul(Rf, R_Ws)
-
-      f = self.alpha * LfW + (1-self.alpha) * RfW
+      if self.opt['alpha_style'] == "diag":
+        if self.opt['diffusion'] and self.opt['repulsion']:
+          f = torch.einsum("ij,kj->ki", self.alpha, LfW) + torch.einsum("ij,kj->ki", 1 - self.alpha, RfW)
+        elif self.opt['diffusion'] and not self.opt['repulsion']:
+          f = torch.einsum("ij,kj->ki", self.alpha, LfW)
+        elif not self.opt['diffusion'] and self.opt['repulsion']:
+          f = torch.einsum("ij,kj->ki", 1 - self.alpha, RfW)
+      else:
+        f = self.alpha * LfW + (1-self.alpha) * RfW
 
     if self.opt['test_mu_0']:
       if self.opt['add_source']:

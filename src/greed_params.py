@@ -110,10 +110,11 @@ def greed_ablation_params(opt):
     # opt['R_T0term_normalisation'] = 'T0_rowSum'
     # opt['R_laplacian_norm'] = 'lap_symmAtt_relaxed' #'lap_symmAtt_relaxed' #lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
 
-    opt['diffusion'] = False
+    opt['diffusion'] = True
     opt['repulsion'] = True
     opt['drift'] = False
-    opt['R_depon_A'] = '' #'inverse'
+    opt['R_depon_A'] = 'none' #'inverse'
+    opt['alpha_style'] = 'diag'
 
     #hetero experiment flags
     opt['test_omit_metric_L'] = False #True

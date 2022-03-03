@@ -56,7 +56,7 @@ parameters:
   R_depon_A:
     values: [none, decay, inverse]
   alpha_style:
-    values: [sigmoid, free, matrix]
+    values: [sigmoid, free, diag]
   decay:
     values: [0.0]
 command:
