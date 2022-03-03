@@ -352,7 +352,10 @@ def main(cmd_opt):
               b_row_max = 0
               b_row_min = 0
 
-            alpha = model.odeblock.odefunc.alpha
+            if opt['alpha_style'] == 'diag':
+              alpha = model.odeblock.odefunc.alpha.mean()
+            else:
+              alpha = model.odeblock.odefunc.alpha
 
           wandb.log({"loss": loss,
                      # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
@@ -366,7 +369,7 @@ def main(cmd_opt):
                      "epoch_step": epoch})
         else:
           wandb.log({"loss": loss,
-                     # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+                     #"tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
                      "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
                      "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
                      "epoch_step": epoch})
