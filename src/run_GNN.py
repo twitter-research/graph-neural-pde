@@ -298,6 +298,8 @@ def main(cmd_opt):
         model.odeblock.odefunc.edge_index = ei
 
       loss = train(model, optimizer, data, pos_encoding)
+      if torch.isnan(loss):
+        break
       model.odeblock.odefunc.wandb_step = 0 # resets the wandstep in function after train forward pass
 
       tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
