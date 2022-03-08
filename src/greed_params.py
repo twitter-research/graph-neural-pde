@@ -114,7 +114,7 @@ def greed_ablation_params(opt):
     opt['repulsion'] = False #True
     opt['drift'] = False
     opt['R_depon_A'] = 'none' #'inverse'
-    opt['alpha_style'] = 'diag' #0.5 'sigmoid' #"sigmoid", "free", "forced", "diag"
+    opt['alpha_style'] = 'sigmoid' #0.5 'sigmoid' #"sigmoid", "free", "forced", "diag"
 
     #hetero experiment flags
     opt['test_omit_metric_L'] = False #True
@@ -125,7 +125,17 @@ def greed_ablation_params(opt):
     opt['R_W_type'] = 'identity'
     opt['tau_residual'] = True
 
+    opt['XN_no_activation'] = True
+    opt['m2_mlp'] = True
+
+    #greed_non_linear params
+    opt['gnl_style'] = 'scaled_dot'
+    opt['gnl_omega'] = 'sum' # 'product'  #method to make Omega symmetric
+    opt['gnl_measure'] = 'nodewise' #'deg_poly' # 'nodewise'
+    opt['gnl_activation'] = 'squareplus_deriv' # exponential sigmoid_deriv tanh_deriv, squareplus_deriv
+
     #run params
+    opt['function'] = 'greed_non_linear' #'greed_linear_hetero'
     opt['method'] = 'euler'
     opt['step_size'] = 0.25
     opt['use_best_params'] = True
@@ -164,7 +174,8 @@ def tf_ablation_args(opt):
                 'test_tau_outside', 'test_linear_L0', 'test_R1R2_0',
                 'use_mlp', 'use_best_params', 'no_early',
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
-                'diffusion', 'repulsion', 'drift', 'tau_residual']:
+                'diffusion', 'repulsion', 'drift', 'tau_residual',
+                'XN_no_activation','m2_mlp']:
 
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)
@@ -388,6 +399,9 @@ def default_params():
     parser.add_argument('--run_id', type=str, default='', help="run_id for 1 best run")  # action='store_true')
     parser.add_argument('--run_group', type=str, default=None, help="run_id for 1 best run")  # action='store_true')
 
+    parser.add_argument('--XN_no_activation', type=str, default='False',
+                        help='whether to relu activate the terminal state')
+    parser.add_argument('--m2_mlp', type=str, default='False', help='whether to use decoder mlp')
     parser.add_argument('--attention_activation', type=str, default='exponential',
                         help='[exponential, sigmoid] activations for the GRAM matrix')
     parser.add_argument('--attention_normalisation', type=str, default='sym_row_col',

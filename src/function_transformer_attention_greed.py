@@ -230,7 +230,7 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
     if self.opt['attention_type'] == "scaled_dot":
       prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
 
-    #todo norm wrt to f
+    #todo norm wrt to f, slightly different to cosine sym
     elif self.opt['attention_type'] == "scaled_normf":
       prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
 
@@ -262,6 +262,14 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
       attention = softmax(prods, edge[self.opt['attention_norm_idx']])
     elif self.opt['attention_activation'] == "squaremax":
       attention = squareplus(prods, edge[self.opt['attention_norm_idx']])
+
+    elif self.opt['attention_activation'] == "sigmoid_deriv":
+      attention = torch.sigmoid(prods) * (1 - torch.sigmoid(prods))
+    elif self.opt['attention_activation'] == "tanh_deriv":
+      attention = 1 - torch.tanh(prods) ** 2
+    elif self.opt['attention_activation'] == "squareplus_deriv":
+      attention = (1 + prods / torch.sqrt(prods ** 2 + 4)) / 2
+
     else:
       pass
 
@@ -303,5 +311,5 @@ if __name__ == '__main__':
          }
   dataset = get_dataset(opt, '../data', False)
   t = 1
-  func = ODEFuncTransformerAtt_greed(dataset.data.num_features, 6, opt, dataset.data, device)
+  func = ODEFuncTransformerAttGreed(dataset.data.num_features, 6, opt, dataset.data, device)
   out = func(t, dataset.data.x)

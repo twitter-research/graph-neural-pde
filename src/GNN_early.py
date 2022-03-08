@@ -108,7 +108,8 @@ class GNNEarly(BaseGNN):
       z = torch.split(z, x.shape[1] // 2, dim=1)[0]
 
     # Activation.
-    z = F.relu(z)
+    if not self.opt['XN_no_activation']:
+      z = F.relu(z)
 
     if self.opt['fc_out']:
       z = self.fc(z)

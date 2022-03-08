@@ -84,6 +84,7 @@ def train(model, optimizer, data, pos_encoding=None):
   else:
     # lf = torch.nn.CrossEntropyLoss()
     loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
+
   if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
     reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
     regularization_coeffs = model.regularization_coeffs
@@ -298,8 +299,6 @@ def main(cmd_opt):
         model.odeblock.odefunc.edge_index = ei
 
       loss = train(model, optimizer, data, pos_encoding)
-      if np.isnan(loss):
-        break
       model.odeblock.odefunc.wandb_step = 0 # resets the wandstep in function after train forward pass
 
       tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
@@ -321,56 +320,77 @@ def main(cmd_opt):
 
 
       if ((epoch) % opt['wandb_log_freq']) == 0:
-        if opt['wandb_track_epoch_energy']:
+        if opt['wandb_track_epoch_energy'] and opt['function'] in ["greed_linear_hetero", "greed_non_linear"]:
           with torch.no_grad():
             num_nodes = dataset.data.num_nodes
             x0 = model.encoder(dataset.data.x)
             T0_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, num_nodes, x0)
-            LpR = model.odeblock.odefunc.L_0 + model.odeblock.odefunc.R_0
             edges = torch.cat([model.odeblock.odefunc.edge_index, model.odeblock.odefunc.self_loops], dim=1)
-            T0_dirichlet_W = dirichlet_energy(edges, LpR, num_nodes, x0)
             xN = model.forward_XN(dataset.data.x)
             TN_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, num_nodes, xN)
-            TN_dirichlet_W = dirichlet_energy(edges, LpR, num_nodes, xN)
             enc_pred = model.m2(model.encoder(dataset.data.x)).max(1)[1]
             pred = model.forward(dataset.data.x).max(1)[1]
             enc_pred_homophil = homophily(edge_index=dataset.data.edge_index, y=enc_pred)
             pred_homophil = homophily(edge_index=dataset.data.edge_index, y=pred)
             label_homophil = homophily(edge_index=dataset.data.edge_index, y=dataset.data.y)
 
-            if opt['diffusion']:
-              a = model.odeblock.odefunc.mean_attention_0
-              a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
-              a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
-            else:
-              a_row_max = 0
-              a_row_min = 0
+            if opt['function'] == "greed_linear_hetero":
+              LpR = model.odeblock.odefunc.L_0 + model.odeblock.odefunc.R_0
+              T0_dirichlet_W = dirichlet_energy(edges, LpR, num_nodes, x0)
+              TN_dirichlet_W = dirichlet_energy(edges, LpR, num_nodes, xN)
 
-            if opt['repulsion']:
-              b = model.odeblock.odefunc.mean_attention_R0
-              b_row_max = scatter_add(b, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
-              b_row_min = scatter_add(b, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
-            else:
-              b_row_max = 0
-              b_row_min = 0
+              if opt['diffusion']:
+                a = model.odeblock.odefunc.mean_attention_0
+                a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
+                a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
+              else:
+                a_row_max = 0
+                a_row_min = 0
 
-            if opt['alpha_style'] == 'diag':
-              alpha = model.odeblock.odefunc.alpha.mean()
-            elif opt['alpha_style'] == 'free':
-              alpha = model.odeblock.odefunc.alpha.data
-            else:
-              alpha = model.odeblock.odefunc.alpha
+              if opt['repulsion']:
+                b = model.odeblock.odefunc.mean_attention_R0
+                b_row_max = scatter_add(b, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
+                b_row_min = scatter_add(b, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
+              else:
+                b_row_max = 0
+                b_row_min = 0
 
-          wandb.log({"loss": loss,
-                     # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
-                     "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
-                     "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
-                     "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
-                     "T0_dirichlet_W": T0_dirichlet_W, "TN_dirichlet_W": TN_dirichlet_W,
-                     "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil, "label_homophil": label_homophil,
-                     "a_row_max": a_row_max, "a_row_min": a_row_min, "b_row_max": b_row_max, "b_row_min": b_row_min,
-                     "alpha": alpha,
-                     "epoch_step": epoch})
+              if opt['alpha_style'] == 'diag':
+                alpha = model.odeblock.odefunc.alpha.mean()
+              elif opt['alpha_style'] == 'free':
+                alpha = model.odeblock.odefunc.alpha.data
+              else:
+                alpha = model.odeblock.odefunc.alpha
+
+              wandb.log({"loss": loss,
+                         # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+                         "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
+                         "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+                         "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
+                         "T0_dirichlet_W": T0_dirichlet_W, "TN_dirichlet_W": TN_dirichlet_W,
+                         "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil, "label_homophil": label_homophil,
+                         "a_row_max": a_row_max, "a_row_min": a_row_min, "b_row_max": b_row_max, "b_row_min": b_row_min,
+                         "alpha": alpha,
+                         "epoch_step": epoch})
+
+            elif opt['function'] == "greed_non_linear":
+
+              # a = model.odeblock.odefunc.mean_attention_0
+              # a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
+              # a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
+
+              L, Q = torch.linalg.eigh(model.odeblock.odefunc.Omega)
+
+              wandb.log({"loss": loss,
+                         # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+                         "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
+                         "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+                         "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
+                         "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil,
+                         "label_homophil": label_homophil,
+                         # "a_row_max": a_row_max, "a_row_min": a_row_min,
+                         "epoch_step": epoch})
+
         else:
           wandb.log({"loss": loss,
                      #"tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
@@ -383,6 +403,8 @@ def main(cmd_opt):
             f"Train: {train_acc:.4f}, Val: {val_acc:.4f}, Test: {test_acc:.4f}, Best time: {best_time:.4f}")
       if opt['function'] in ['greed', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero']:
         model.odeblock.odefunc.epoch = epoch
+      if np.isnan(loss):
+        break
 
       #todo check this
       # if model.odeblock.odefunc.opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
@@ -615,6 +637,9 @@ if __name__ == '__main__':
   parser.add_argument('--dim_p_w', type=int, default=16, help="inner dimension for W")
   parser.add_argument('--gamma_epsilon', type=float, default=0.01, help="epsilon value used for numerical stability in get_gamma")
 
+
+  parser.add_argument('--XN_no_activation', type=str, default='False', help='whether to relu activate the terminal state')
+  parser.add_argument('--m2_mlp', type=str, default='False', help='whether to use decoder mlp')
   parser.add_argument('--attention_activation', type=str, default='exponential', help='[exponential, sigmoid] activations for the GRAM matrix')
   parser.add_argument('--attention_normalisation', type=str, default='sym_row_col', help='[mat_row_max, sym_row_col, row_bottom, "best"] how to normalise')
   parser.add_argument('--T0term_normalisation', type=str, default='T0_identity', help='[T0_symmDegnorm, T0_symmDegnorm, T0_identity] normalise T0 term')
@@ -636,7 +661,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
   opt = vars(args)
 
-  if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero']:
+  if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero', 'greed_non_linear']:
     opt = greed_run_params(opt)  ###basic params for GREED
 
   if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these

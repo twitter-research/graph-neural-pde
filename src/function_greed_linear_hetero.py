@@ -434,12 +434,6 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       #W_K ^T * W_Q + W_Q ^T * W_K
       W_U = self.Ws_lin(x).view(-1, x.shape[1], x.shape[1]).mean(dim=0)
 
-#todo
-  # hyper parameter tune for heterophillic
-  # average linear layer for W_U
-  # QK_W dependnce for f_0 or vice versa
-  # forced -1 lambda for hetrero phillic or free and report, check ULU.t s.t. AX=-X
-
 
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
     row_sum = scatter_add(attentions, edge_index[0], dim=0, dim_size=n)

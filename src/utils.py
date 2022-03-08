@@ -285,6 +285,16 @@ def squareplus(src: Tensor, index: Optional[Tensor], ptr: Optional[Tensor] = Non
   return out / (out_sum + 1e-16)
 
 
+def sigmoid_deriv(x):
+  return torch.sigmoid(x) * (1 - torch.sigmoid(x))
+
+def tanh_deriv(x):
+  return 1 - torch.tanh(x) ** 2
+
+def squareplus_deriv(x):
+  return (1 + x / torch.sqrt(x ** 2 + 4)) / 2
+
+
 # https://github.com/legendongary/pytorch-gram-schmidt/blob/master/gram_schmidt.py
 # def gram_schmidt(vv):
 #   def projection(u, v):

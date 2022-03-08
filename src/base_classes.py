@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 from torch_geometric.nn.conv import MessagePassing
 from utils import Meter
 from regularized_ODE_function import RegularizedODEfunc
@@ -128,7 +129,15 @@ class BaseGNN(MessagePassing):
       self.hidden_dim = opt['hidden_dim']
     if opt['fc_out']:
       self.fc = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
-    self.m2 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
+
+    if opt['m2_mlp']:
+      # self.m21 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
+      # self.m22 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
+      self.m2 = M2_MLP(opt, dataset, device=device)
+    else:
+      self.m2 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
+
+
     if self.opt['batch_norm']:
       self.bn_in = torch.nn.BatchNorm1d(opt['hidden_dim'])
       self.bn_out = torch.nn.BatchNorm1d(opt['hidden_dim'])
@@ -148,3 +157,17 @@ class BaseGNN(MessagePassing):
 
   def __repr__(self):
     return self.__class__.__name__
+
+class M2_MLP(nn.Module):
+  def __init__(self, opt, dataset, device=torch.device('cpu')):
+    super().__init__()
+    self.opt = opt
+    self.m21 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
+    self.m22 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
+
+  def forward(self, x):
+    x = F.dropout(x, self.opt['dropout'], training=self.training)
+    x = F.dropout(x + self.m21(torch.tanh(x)), self.opt['dropout'], training=self.training)  # tanh not relu to keep sign, with skip connection
+    x = F.dropout(self.m22(torch.tanh(x)), self.opt['dropout'], training=self.training)
+
+    return x
