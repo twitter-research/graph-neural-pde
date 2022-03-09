@@ -8,6 +8,9 @@ from torch_scatter import scatter_add
 import torch.nn.functional as F
 import wandb
 from ogb.nodeproppred import Evaluator
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
 from GNN import GNN
 from GNN_early import GNNEarly
@@ -378,8 +381,27 @@ def main(cmd_opt):
               # a = model.odeblock.odefunc.mean_attention_0
               # a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
               # a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
+              Omega = model.odeblock.odefunc.Omega
+              L, Q = torch.linalg.eigh(Omega) #fast version for symmetric atrices https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
 
-              L, Q = torch.linalg.eigh(model.odeblock.odefunc.Omega)
+              fig, ax = plt.subplots(1, 3, figsize=(24,8))
+              mat = ax[0].matshow(Omega, interpolation='nearest')
+              ax[0].xaxis.set_tick_params(labelsize=24)
+              ax[0].yaxis.set_tick_params(labelsize=24)
+              cbar = fig.colorbar(mat, ax=ax[0], shrink=0.75)
+              cbar.ax.tick_params(labelsize=20)
+
+              ax[1].bar(range(L.shape[0]), L)
+              ax[1].xaxis.set_tick_params(labelsize=24)
+              ax[1].yaxis.set_tick_params(labelsize=24)
+
+              mat2 = ax[2].matshow(Q, interpolation='nearest')
+              ax[2].xaxis.set_tick_params(labelsize=24)
+              ax[2].yaxis.set_tick_params(labelsize=24)
+              cbar1 = fig.colorbar(mat2, ax=ax[2], shrink=0.75)
+              cbar1.ax.tick_params(labelsize=20)
+
+              plt.show()
 
               wandb.log({"loss": loss,
                          # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,

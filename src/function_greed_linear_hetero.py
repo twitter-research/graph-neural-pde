@@ -530,8 +530,6 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.training:
       #todo check the computation of these energies
-      #todo add tracking of:
-      # alpha, heterophilly, diriclet and weighted dirichelt energy
       energy = torch.sum(
         self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0, self.mean_attention_0, self.edge_index,
                                  self.n_nodes) ** 2)

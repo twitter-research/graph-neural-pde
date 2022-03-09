@@ -124,7 +124,7 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
 
     else:
       if self.opt['symmetric_QK']:
-        self.QK = nn.Linear(in_features, self.attention_dim)
+        self.QK = nn.Linear(in_features, self.attention_dim, bias=False)
         self.init_weights(self.QK)
 
       else:

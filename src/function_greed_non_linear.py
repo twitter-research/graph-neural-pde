@@ -9,6 +9,7 @@ import torch_sparse
 from torch_scatter import scatter_add, scatter_mul
 from torch_geometric.utils.loop import add_remaining_self_loops
 from torch_geometric.utils import degree, softmax
+from torch_sparse import coalesce, transpose
 from torch_geometric.nn.inits import glorot, zeros, ones
 from torch.nn import Parameter
 import wandb
@@ -26,10 +27,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     super(ODEFuncGreedNonLin, self).__init__(in_features, out_features, opt, data, device, bias=False)
 
     self.energy = 0
-    self.attentions = None #torch.zeros((data.edge_index.shape[1],1))
+    self.attentions = None
     self.epoch = 0
     self.wandb_step = 0
     self.prev_grad = None
+
+    if self.opt['gnl_omega'] == 'sum':
+      # self.om_W = torch.eye(in_features, in_features)/2
+      self.om_W = Parameter(-torch.eye(in_features, in_features)/2)
+      # self.om_W = Parameter(torch.Tensor(in_features, in_features))
+    elif self.opt['gnl_omega'] == 'product':
+      self.om_W = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
 
     if opt['gnl_measure'] == 'deg_poly':
       self.m_alpha = Parameter(torch.Tensor([1.]))
@@ -37,18 +45,32 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.m_gamma = Parameter(torch.Tensor([0.]))
     elif opt['gnl_measure'] == 'nodewise':
       self.measure = Parameter(torch.Tensor(self.n_nodes))
+    elif opt['gnl_measure'] == 'ones':
+      pass
+
+    if self.opt['gnl_style'] == 'softmax_attention':
+      self.multihead_att_layer = SpGraphTransAttentionLayer_greed(in_features, out_features, opt,
+                                                                  # check out_features is attention_dim
+                                                                  device, edge_weights=self.edge_weight).to(device)
 
     self.delta = Parameter(torch.Tensor([1.]))
-
     self.reset_nonlinG_parameters()
 
   def reset_nonlinG_parameters(self):
+    # if self.opt['gnl_omega'] == 'sum':
+    #   self.init_eye(self.om_W)
+    if self.opt['gnl_omega'] == 'product':
+      glorot(self.om_W)
+
     if self.opt['gnl_measure'] == 'deg_poly':
       ones(self.m_alpha)
       ones(self.m_beta)
       ones(self.m_gamma)
     elif self.opt['gnl_measure'] == 'nodewise':
       ones(self.measure)
+    elif self.opt['gnl_measure'] == 'ones':
+      pass
+
     ones(self.delta)
 
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
@@ -79,38 +101,58 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # f = torch.cat([ff, fp], dim=1)
       pass
     else:
-      if self.opt['gnl_omega'] == 'sum':
-        self.Omega = self.W + self.W.T
-      elif self.opt['gnl_omega'] == 'product':
-        self.Omega = self.W @ self.W.T
 
-      src_x, dst_x = self.get_src_dst(x)
-      fOmf = torch.einsum("ij,jj,ij->i", src_x, self.Omega, dst_x)
+      if self.opt['gnl_measure'] == 'deg_poly':
+        deg = degree(self.edge_index[0], self.n_nodes)
+        measure = self.m_alpha * deg ** self.m_beta + self.m_gamma
+        src_meas, dst_meas = self.get_src_dst(measure)
+        measures_src_dst = 1 / (src_meas * dst_meas)
+      elif self.opt['gnl_measure'] == 'nodewise':
+        src_meas, dst_meas = self.get_src_dst(self.measure)
+        measures_src_dst = 1 / (src_meas * dst_meas)
+      elif self.opt['gnl_measure'] == 'ones':
+        src_meas = 1
+        dst_meas = 1
+        measures_src_dst = 1
 
-    if self.opt['gnl_activation'] == "sigmoid_deriv":
-      afOmf = sigmoid_deriv(fOmf)
-    elif self.opt['gnl_activation'] == "tanh_deriv":
-      afOmf = tanh_deriv(fOmf)
-    elif self.opt['gnl_activation'] == "squareplus_deriv":
-      afOmf = squareplus_deriv(fOmf)
-    elif self.opt['gnl_activation'] == "exponential":
-      afOmf = torch.exp(fOmf)
-    else:
-      afOmf = fOmf
+      #scaled-dot method
+      if self.opt['gnl_style'] == 'scaled_dot':
+        if self.opt['gnl_omega'] == 'sum':
+          self.Omega = self.om_W + self.om_W.T
+        elif self.opt['gnl_omega'] == 'product':
+          self.Omega = self.om_W @ self.om_W.T
 
-    if self.opt['gnl_measure'] == 'deg_poly':
-      deg = degree(self.edge_index[0], self.n_nodes)
-      measure = self.m_alpha * deg ** self.m_beta + self.m_gamma
-      src_meas, dst_meas = self.get_src_dst(measure)
-      measures_src_dst = 1 / (src_meas * dst_meas)
-    elif self.opt['gnl_measure'] == 'nodewise':
-      src_meas, dst_meas = self.get_src_dst(self.measure)
-      measures_src_dst = 1 / (src_meas * dst_meas)
+        src_x, dst_x = self.get_src_dst(x)
+        fOmf = torch.einsum("ij,jj,ij->i", src_x, self.Omega, dst_x)
 
-    MThM = measures_src_dst * afOmf
-    f = torch_sparse.spmm(self.edge_index, -MThM, x.shape[0], x.shape[0], x @ self.Omega)
+        if self.opt['gnl_activation'] == "sigmoid_deriv":
+          attention = sigmoid_deriv(fOmf)
+        elif self.opt['gnl_activation'] == "tanh_deriv":
+          attention = tanh_deriv(fOmf)
+        elif self.opt['gnl_activation'] == "squareplus_deriv":
+          attention = squareplus_deriv(fOmf)
+        elif self.opt['gnl_activation'] == "exponential":
+          attention = torch.exp(fOmf)
+        else:
+          attention = fOmf
+
+        MThM = measures_src_dst * attention
+        f = torch_sparse.spmm(self.edge_index, -MThM, x.shape[0], x.shape[0], x @ self.Omega)
+
+      #softmax_attention method
+      elif self.opt['gnl_style'] == 'softmax_attention':
+        attention_h, _ = self.multihead_att_layer(x, self.edge_index)
+        attention = attention_h.mean(dim=1)
+
+        self.Omega = self.multihead_att_layer.QK.weight.T @ self.multihead_att_layer.QK.weight
+
+        f1 = torch_sparse.spmm(self.edge_index, -attention / src_meas, x.shape[0], x.shape[0], x @ self.Omega)
+        index_t, att_t = transpose(self.edge_index, attention, x.shape[0], x.shape[0])
+        f2 = torch_sparse.spmm(index_t, -att_t / dst_meas, x.shape[0], x.shape[0], x @ self.Omega)
+        f = f1 + f2
 
     f = f - self.delta * f #break point np.isnan(f.sum().detach().numpy())
+
     if self.opt['test_mu_0']:
       if self.opt['add_source']:
         f = f + self.beta_train * self.x0
@@ -144,13 +186,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
                  f"gf_e{self.epoch}_f": (f**2).sum(),
                  "grad_flow_step": self.wandb_step})
+
       if self.attentions is None:
         self.attentions = self.mean_attention_0
       else:
         self.attentions = torch.cat([self.attentions, self.mean_attention_0], dim=-1)
-      # https://wandb.ai/wandb/plots/reports/Custom-Multi-Line-Plots--VmlldzozOTMwMjU
-      # I think I need to build the attentions tensor a save at the end
-      # f"gf_e{self.epoch}_attentions": wandb.plot.line_series(xs=self.wandb_step, ys=self.mean_attention_0),
 
       self.wandb_step += 1
 

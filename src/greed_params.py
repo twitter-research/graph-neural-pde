@@ -125,21 +125,31 @@ def greed_ablation_params(opt):
     opt['R_W_type'] = 'identity'
     opt['tau_residual'] = True
 
-    opt['XN_no_activation'] = True
-    opt['m2_mlp'] = True
+    opt['XN_no_activation'] = True #False
+    opt['m2_mlp'] = True #False
 
     #greed_non_linear params
-    opt['gnl_style'] = 'scaled_dot'
-    opt['gnl_omega'] = 'sum' # 'product'  #method to make Omega symmetric
-    opt['gnl_measure'] = 'nodewise' #'deg_poly' # 'nodewise'
-    opt['gnl_activation'] = 'squareplus_deriv' # exponential sigmoid_deriv tanh_deriv, squareplus_deriv
+    opt['gnl_style'] = 'scaled_dot' #'softmax_attention' #'scaled_dot'
+    opt['gnl_measure'] = 'ones' #'deg_poly' # 'nodewise'
+
+    if opt['gnl_style'] == 'scaled_dot':
+        opt['gnl_omega'] = 'sum'  # 'product' # 'product'  #method to make Omega symmetric
+        opt['dim_p_w'] = 4
+        opt['gnl_activation'] = 'squareplus_deriv' # exponential sigmoid_deriv tanh_deriv, squareplus_deriv
+
+    if opt['gnl_style'] == 'softmax_attention':
+        opt['symmetric_attention'] = True #should be redundant
+        opt['attention_type'] = "scaled_dot"
+        opt['symmetric_QK'] = True
+        opt['attention_activation'] = 'softmax'#'softmax' #, exponential
+        opt['attention_normalisation'] = 'none'
 
     #run params
     opt['function'] = 'greed_non_linear' #'greed_linear_hetero'
     opt['method'] = 'euler'
     opt['step_size'] = 0.25
     opt['use_best_params'] = True
-    opt['decay'] = 0
+    # opt['decay'] = 0
 
     opt['geom_gcn_splits'] = False
     opt['wandb_track_epoch_energy'] = True
