@@ -33,11 +33,19 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.prev_grad = None
 
     if self.opt['gnl_omega'] == 'sum':
-      # self.om_W = torch.eye(in_features, in_features)/2
-      self.om_W = Parameter(-torch.eye(in_features, in_features)/2)
+      self.om_W = -torch.eye(in_features, in_features)/2
+      # self.om_W = Parameter(-torch.eye(in_features, in_features)/2)
       # self.om_W = Parameter(torch.Tensor(in_features, in_features))
     elif self.opt['gnl_omega'] == 'product':
       self.om_W = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
+
+    elif self.opt['gnl_omega'] == 'attr_rep':
+      self.om_W_attr = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
+      self.om_W_rep = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
+      # self.om_W_eps = Parameter(torch.Tensor([0.75]))
+      self.om_W_eps = torch.Tensor([1.0])
+      self.om_W_nu = torch.Tensor([0.1])
+
 
     if opt['gnl_measure'] == 'deg_poly':
       self.m_alpha = Parameter(torch.Tensor([1.]))
@@ -54,13 +62,23 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
                                                                   device, edge_weights=self.edge_weight).to(device)
 
     self.delta = Parameter(torch.Tensor([1.]))
+    # self.delta = torch.Tensor([2.0])
+
     self.reset_nonlinG_parameters()
 
   def reset_nonlinG_parameters(self):
-    # if self.opt['gnl_omega'] == 'sum':
-    #   self.init_eye(self.om_W)
-    if self.opt['gnl_omega'] == 'product':
+    if self.opt['gnl_omega'] == 'sum':
+      # self.init_eye(self.om_W)
+      # glorot(self.om_W)
+      pass
+    elif self.opt['gnl_omega'] == 'product':
       glorot(self.om_W)
+    elif self.opt['gnl_omega'] == 'attr_rep':
+      glorot(self.om_W_attr)
+      glorot(self.om_W_rep)
+      # zeros(self.om_W_attr)
+      # zeros(self.om_W_rep)
+
 
     if self.opt['gnl_measure'] == 'deg_poly':
       ones(self.m_alpha)
@@ -71,7 +89,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_measure'] == 'ones':
       pass
 
-    ones(self.delta)
+    # ones(self.delta)
+    # zeros(self.delta)
 
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
     row_sum = scatter_add(attentions, edge_index[0], dim=0, dim_size=n)
@@ -121,9 +140,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.Omega = self.om_W + self.om_W.T
         elif self.opt['gnl_omega'] == 'product':
           self.Omega = self.om_W @ self.om_W.T
+        elif self.opt['gnl_omega'] == 'attr_rep':
+          # Omega = self.om_W_nu * (1 - 2 * self.om_W_eps) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
+          self.Omega =  (1 - 2 * self.om_W_eps) * torch.eye(self.in_features) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
+          # D = Omega.abs().sum(dim=1)
+          # self.Omega = torch.diag(torch.pow(D, -0.5)) @ Omega @ torch.diag(torch.pow(D, -0.5))
 
         src_x, dst_x = self.get_src_dst(x)
-        fOmf = torch.einsum("ij,jj,ij->i", src_x, self.Omega, dst_x)
+        # fOmf = torch.einsum("ij,jj,ij->i", src_x, self.Omega, dst_x)
+        fOmf = torch.einsum("ij,jk,ik->i", src_x, self.Omega, dst_x)
 
         if self.opt['gnl_activation'] == "sigmoid_deriv":
           attention = sigmoid_deriv(fOmf)
@@ -151,7 +176,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         f2 = torch_sparse.spmm(index_t, -att_t / dst_meas, x.shape[0], x.shape[0], x @ self.Omega)
         f = f1 + f2
 
-    f = f - self.delta * f #break point np.isnan(f.sum().detach().numpy())
+    f = f - self.delta * x #break point np.isnan(f.sum().detach().numpy())
 
     if self.opt['test_mu_0']:
       if self.opt['add_source']:
@@ -167,14 +192,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       f = f + drift
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.training:
-      #todo the computation of these energies is wrong
-      energy = torch.sum(
-        self.get_energy_gradient(x, self.tau_0, self.tau_transpose_0, self.mean_attention_0, self.edge_index,
-                                 self.n_nodes) ** 2)
-      if self.opt['drift']:
-        energy = energy
-      if self.opt['repulsion']:
-        energy = energy
+      if self.opt['gnl_activation'] == "sigmoid_deriv":
+        energy = torch.sum(torch.sigmoid(fOmf))
+      elif self.opt['gnl_activation'] == "squareplus_deriv":
+        energy = torch.sum((fOmf + torch.sqrt(fOmf ** 2 + 4)) / 2)
+      elif self.opt['gnl_activation'] == "exponential":
+        energy = torch.sum(torch.exp(fOmf))
+
+      energy = energy + 0.5 * self.delta * torch.sum(x**2)
+
       if self.opt['test_mu_0'] and self.opt['add_source']:
         energy = energy - self.beta_train * torch.sum(x * self.x0)
       elif not self.opt['test_mu_0']:
@@ -185,12 +211,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
       wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
                  f"gf_e{self.epoch}_f": (f**2).sum(),
+                 f"gf_e{self.epoch}_x": (x ** 2).sum(),
                  "grad_flow_step": self.wandb_step})
 
-      if self.attentions is None:
-        self.attentions = self.mean_attention_0
-      else:
-        self.attentions = torch.cat([self.attentions, self.mean_attention_0], dim=-1)
+      # if self.attentions is None:
+      #   self.attentions = self.mean_attention_0
+      # else:
+      #   self.attentions = torch.cat([self.attentions, self.mean_attention_0], dim=-1)
 
       self.wandb_step += 1
 

@@ -225,6 +225,8 @@ def merge_cmd_args(cmd_opt, opt):
     opt['num_splits'] = cmd_opt['num_splits']
   if cmd_opt['attention_type'] != '':
     opt['attention_type'] = cmd_opt['attention_type']
+  if cmd_opt['max_iters'] != 100:
+    opt['max_iters'] = cmd_opt['max_iters']
 
 
 def main(cmd_opt):
@@ -402,6 +404,7 @@ def main(cmd_opt):
               cbar1.ax.tick_params(labelsize=20)
 
               plt.show()
+              print(f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}")#, epsilon: {model.odeblock.odefunc.om_W_eps}, nu: {model.odeblock.odefunc.om_W_nu}")
 
               wandb.log({"loss": loss,
                          # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
@@ -409,7 +412,7 @@ def main(cmd_opt):
                          "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
                          "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
                          "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil,
-                         "label_homophil": label_homophil,
+                         "label_homophil": label_homophil, "delta": model.odeblock.odefunc.delta.detach(),
                          # "a_row_max": a_row_max, "a_row_min": a_row_min,
                          "epoch_step": epoch})
 
@@ -423,9 +426,10 @@ def main(cmd_opt):
       print(f"Epoch: {epoch}, Runtime: {time.time() - start_time:.3f}, Loss: {loss:.3f}, "
             f"forward nfe {model.fm.sum}, backward nfe {model.bm.sum}, "
             f"Train: {train_acc:.4f}, Val: {val_acc:.4f}, Test: {test_acc:.4f}, Best time: {best_time:.4f}")
-      if opt['function'] in ['greed', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero']:
+      if opt['function'] in ['greed', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero', 'greed_non_linear']:
         model.odeblock.odefunc.epoch = epoch
       if np.isnan(loss):
+        wandb_run.finish()
         break
 
       #todo check this

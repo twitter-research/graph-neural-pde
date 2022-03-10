@@ -46,8 +46,8 @@ def greed_run_params(opt):
     # opt['method'] = 'euler' #'dopri5' #'dopri5' #'euler' #need to comment this out for tuning
     # TUNING
     # opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
-    # opt['time'] = 10 #18.295 #10
-    opt['epoch'] = 20 #40 #10
+    opt['time'] = 18.295 #10
+    opt['epoch'] = 40 #40 #10
     opt['num_splits'] = 1
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
 
@@ -84,7 +84,7 @@ def greed_hyper_params(opt):
 def greed_ablation_params(opt):
     #ablation flags
     opt['test_no_chanel_mix'] = True #True
-    opt['test_mu_0'] = True #False #True
+    opt['test_mu_0'] = True # False #True
     opt['add_source'] = True #False #True
     opt['test_tau_remove_tanh'] = False #True
     opt['test_tau_symmetric'] = True#False
@@ -99,7 +99,6 @@ def greed_ablation_params(opt):
     opt['symmetric_attention'] = True
     opt['attention_type'] = "scaled_dot" #'scaled_dot'
     opt['attention_normalisation'] = 'none'
-    opt['test_mu_0'] = True
 
     #greed_linear_hetero params
     opt['symmetric_QK'] = False #True #False
@@ -126,15 +125,15 @@ def greed_ablation_params(opt):
     opt['tau_residual'] = True
 
     opt['XN_no_activation'] = True #False
-    opt['m2_mlp'] = True #False
+    opt['m2_mlp'] = True #False #False
 
     #greed_non_linear params
     opt['gnl_style'] = 'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones' #'deg_poly' # 'nodewise'
 
     if opt['gnl_style'] == 'scaled_dot':
-        opt['gnl_omega'] = 'sum'  # 'product' # 'product'  #method to make Omega symmetric
-        opt['dim_p_w'] = 4
+        opt['gnl_omega'] = 'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
+        opt['dim_p_w'] = 8 #4
         opt['gnl_activation'] = 'squareplus_deriv' # exponential sigmoid_deriv tanh_deriv, squareplus_deriv
 
     if opt['gnl_style'] == 'softmax_attention':
@@ -146,8 +145,9 @@ def greed_ablation_params(opt):
 
     #run params
     opt['function'] = 'greed_non_linear' #'greed_linear_hetero'
-    opt['method'] = 'euler'
-    opt['step_size'] = 0.25
+    opt['method'] = 'euler' #'euler'
+    opt['step_size'] = 0.25 #25 #25 #10 #25
+    # opt['max_iters'] = 10000
     opt['use_best_params'] = True
     # opt['decay'] = 0
 
@@ -159,7 +159,7 @@ def greed_ablation_params(opt):
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
     opt['wandb'] = True
-    opt['wandb_track_grad_flow'] = False #True #False  # don't plot grad flows when testing
+    opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when testing
     opt['wandb_track_epoch_energy'] = True
     opt['wandb_project'] = project_name #"greed_runs"
     opt['wandb_group'] = group_name #"testing"  # "tuning" eval
