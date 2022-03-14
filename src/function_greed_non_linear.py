@@ -43,6 +43,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     super(ODEFuncGreedNonLin, self).__init__(in_features, out_features, opt, data, device, bias=False)
 
     self.data = data
+    self.get_evol_stats = False
     self.energy = 0
     self.fOmf = None
     self.attentions = None
@@ -231,7 +232,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       f = f + drift
 
 
-    if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and not self.training:
+    if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
       with torch.no_grad():
         if self.opt['gnl_activation'] == "sigmoid_deriv":
           energy = torch.sum(torch.sigmoid(fOmf))

@@ -227,6 +227,8 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
 
   elif opt['function'] == "greed_non_linear":
     if opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
+      model.odeblock.odefunc.get_evol_stats = True
+      pred = model.forward(data.x).max(1)[1]
       # a = model.odeblock.odefunc.mean_attention_0
       # a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
       # a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
@@ -287,6 +289,7 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       model.odeblock.odefunc.train_accs = None
       model.odeblock.odefunc.val_accs = None
       model.odeblock.odefunc.test_accs = None
+      model.odeblock.odefunc.get_evol_stats = False
 
     wandb.log({"loss": loss,
                # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
