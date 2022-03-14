@@ -4,6 +4,7 @@ Implementation of the functions proposed in Graph embedding energies and diffusi
 
 import torch
 from torch import nn
+from torch.nn.init import uniform
 import numpy as np
 import torch_sparse
 from torch_scatter import scatter_add, scatter_mul
@@ -106,7 +107,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # constant(self.om_W_attr, 0.0001)
       # constant(self.om_W_rep, 0.0001)
     elif self.opt['gnl_omega'] == 'diag':
-      zeros(self.om_W)
+      # zeros(self.om_W)
+      uniform(self.om_W, a=-1, b=1)
 
     if self.opt['gnl_measure'] == 'deg_poly':
       ones(self.m_alpha)
@@ -229,7 +231,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       f = f + drift
 
 
-    if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.training:
+    if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and not self.training:
       with torch.no_grad():
         if self.opt['gnl_activation'] == "sigmoid_deriv":
           energy = torch.sum(torch.sigmoid(fOmf))

@@ -162,7 +162,147 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
     pred = logits[mask].max(1)[1]
     acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
     accs.append(acc)
+
+  #need to calc loss again
+  lf = torch.nn.CrossEntropyLoss()
+  loss = lf(logits[data.train_mask], data.y.squeeze()[data.train_mask])
+  wandb_log(data, model, opt, loss, accs[0], accs[1], accs[2], model.odeblock.odefunc.epoch)
+
   return accs
+
+
+@torch.no_grad()
+def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
+  num_nodes = data.num_nodes
+  x0 = model.encoder(data.x)
+  T0_dirichlet = dirichlet_energy(data.edge_index, data.edge_attr, num_nodes, x0)
+  edges = torch.cat([model.odeblock.odefunc.edge_index, model.odeblock.odefunc.self_loops], dim=1)
+  xN = model.forward_XN(data.x)
+  TN_dirichlet = dirichlet_energy(data.edge_index, data.edge_attr, num_nodes, xN)
+  enc_pred = model.m2(model.encoder(data.x)).max(1)[1]
+  pred = model.forward(data.x).max(1)[1]
+  enc_pred_homophil = homophily(edge_index=data.edge_index, y=enc_pred)
+  pred_homophil = homophily(edge_index=data.edge_index, y=pred)
+  label_homophil = homophily(edge_index=data.edge_index, y=data.y)
+
+  if opt['function'] == "greed_linear_hetero":
+    LpR = model.odeblock.odefunc.L_0 + model.odeblock.odefunc.R_0
+    T0_dirichlet_W = dirichlet_energy(edges, LpR, num_nodes, x0)
+    TN_dirichlet_W = dirichlet_energy(edges, LpR, num_nodes, xN)
+
+    if opt['diffusion']:
+      a = model.odeblock.odefunc.mean_attention_0
+      a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
+      a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
+    else:
+      a_row_max = 0
+      a_row_min = 0
+
+    if opt['repulsion']:
+      b = model.odeblock.odefunc.mean_attention_R0
+      b_row_max = scatter_add(b, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
+      b_row_min = scatter_add(b, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
+    else:
+      b_row_max = 0
+      b_row_min = 0
+
+    if opt['alpha_style'] == 'diag':
+      alpha = model.odeblock.odefunc.alpha.mean()
+    elif opt['alpha_style'] == 'free':
+      alpha = model.odeblock.odefunc.alpha.data
+    else:
+      alpha = model.odeblock.odefunc.alpha
+
+    wandb.log({"loss": loss,
+               # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+               "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
+               "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+               "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
+               "T0_dirichlet_W": T0_dirichlet_W, "TN_dirichlet_W": TN_dirichlet_W,
+               "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil,
+               "label_homophil": label_homophil,
+               "a_row_max": a_row_max, "a_row_min": a_row_min, "b_row_max": b_row_max, "b_row_min": b_row_min,
+               "alpha": alpha,
+               "epoch_step": epoch})
+
+  elif opt['function'] == "greed_non_linear":
+    if opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
+      # a = model.odeblock.odefunc.mean_attention_0
+      # a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
+      # a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
+      Omega = model.odeblock.odefunc.Omega
+      L, Q = torch.linalg.eigh(
+        Omega)  # fast version for symmetric atrices https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
+
+      fig, ax = plt.subplots(1, 3, figsize=(24, 8))
+      mat = ax[0].matshow(Omega, interpolation='nearest')
+      ax[0].xaxis.set_tick_params(labelsize=24)
+      ax[0].yaxis.set_tick_params(labelsize=24)
+      cbar = fig.colorbar(mat, ax=ax[0], shrink=0.75)
+      cbar.ax.tick_params(labelsize=20)
+
+      ax[1].bar(range(L.shape[0]), L)
+      ax[1].xaxis.set_tick_params(labelsize=24)
+      ax[1].yaxis.set_tick_params(labelsize=24)
+
+      mat2 = ax[2].matshow(Q, interpolation='nearest')
+      ax[2].xaxis.set_tick_params(labelsize=24)
+      ax[2].yaxis.set_tick_params(labelsize=24)
+      cbar1 = fig.colorbar(mat2, ax=ax[2], shrink=0.75)
+      cbar1.ax.tick_params(labelsize=20)
+      fig.suptitle(f"Omega, E-values, E-vectors, epoch {epoch}", fontsize=24)
+      plt.show()
+      print(
+        f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}, epsilon: {model.odeblock.odefunc.om_W_eps}")  # , nu: {model.odeblock.odefunc.om_W_nu}")
+
+      fOmf = model.odeblock.odefunc.fOmf
+      plt.plot(np.arange(0.0, fOmf.shape[0] * opt['step_size'], opt['step_size']), fOmf)
+      plt.title(f"fOmf, epoch {epoch}")
+      plt.show()
+
+      attentions = model.odeblock.odefunc.attentions
+      model.odeblock.odefunc.attentions = None
+      plt.plot(np.arange(0.0, attentions.shape[0] * opt['step_size'], opt['step_size']), attentions)
+      plt.title(f"Activated fOmf, epoch {epoch}")
+      plt.show()
+
+      L2dist = model.odeblock.odefunc.L2dist
+      plt.plot(np.arange(0.0, L2dist.shape[0] * opt['step_size'], opt['step_size']), L2dist)
+      plt.title(f"L2dist, epoch {epoch}")
+      plt.show()
+
+      train_accs = model.odeblock.odefunc.train_accs
+      val_accs = model.odeblock.odefunc.val_accs
+      test_accs = model.odeblock.odefunc.test_accs
+      plt.plot(np.arange(0.0, len(train_accs) * opt['step_size'], opt['step_size']), train_accs, label="train")
+      plt.plot(np.arange(0.0, len(val_accs) * opt['step_size'], opt['step_size']), val_accs, label="val")
+      plt.plot(np.arange(0.0, len(test_accs) * opt['step_size'], opt['step_size']), test_accs, label="test")
+      plt.title(f"Accuracy evolution, epoch {epoch}")
+      plt.legend(loc="upper right")
+      plt.show()
+
+      model.odeblock.odefunc.fOmf = None
+      model.odeblock.odefunc.attentions = None
+      model.odeblock.odefunc.L2dist = None
+      model.odeblock.odefunc.train_accs = None
+      model.odeblock.odefunc.val_accs = None
+      model.odeblock.odefunc.test_accs = None
+
+    wandb.log({"loss": loss,
+               # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+               "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
+               "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+               "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
+               "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil,
+               "label_homophil": label_homophil, "delta": model.odeblock.odefunc.delta.detach(),
+               # "a_row_max": a_row_max, "a_row_min": a_row_min,
+               "epoch_step": epoch})
+  else:
+    wandb.log({"loss": loss,
+               # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+               "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
+               "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+               "epoch_step": epoch})
 
 
 def print_model_params(model):
@@ -326,136 +466,138 @@ def main(cmd_opt):
 
       if ((epoch) % opt['wandb_log_freq']) == 0:
         if opt['wandb_track_epoch_energy'] and opt['function'] in ["greed_linear_hetero", "greed_non_linear"]:
-          with torch.no_grad():
-            num_nodes = dataset.data.num_nodes
-            x0 = model.encoder(dataset.data.x)
-            T0_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, num_nodes, x0)
-            edges = torch.cat([model.odeblock.odefunc.edge_index, model.odeblock.odefunc.self_loops], dim=1)
-            xN = model.forward_XN(dataset.data.x)
-            TN_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, num_nodes, xN)
-            enc_pred = model.m2(model.encoder(dataset.data.x)).max(1)[1]
-            pred = model.forward(dataset.data.x).max(1)[1]
-            enc_pred_homophil = homophily(edge_index=dataset.data.edge_index, y=enc_pred)
-            pred_homophil = homophily(edge_index=dataset.data.edge_index, y=pred)
-            label_homophil = homophily(edge_index=dataset.data.edge_index, y=dataset.data.y)
-
-            if opt['function'] == "greed_linear_hetero":
-              LpR = model.odeblock.odefunc.L_0 + model.odeblock.odefunc.R_0
-              T0_dirichlet_W = dirichlet_energy(edges, LpR, num_nodes, x0)
-              TN_dirichlet_W = dirichlet_energy(edges, LpR, num_nodes, xN)
-
-              if opt['diffusion']:
-                a = model.odeblock.odefunc.mean_attention_0
-                a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
-                a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
-              else:
-                a_row_max = 0
-                a_row_min = 0
-
-              if opt['repulsion']:
-                b = model.odeblock.odefunc.mean_attention_R0
-                b_row_max = scatter_add(b, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
-                b_row_min = scatter_add(b, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
-              else:
-                b_row_max = 0
-                b_row_min = 0
-
-              if opt['alpha_style'] == 'diag':
-                alpha = model.odeblock.odefunc.alpha.mean()
-              elif opt['alpha_style'] == 'free':
-                alpha = model.odeblock.odefunc.alpha.data
-              else:
-                alpha = model.odeblock.odefunc.alpha
-
-              wandb.log({"loss": loss,
-                         # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
-                         "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
-                         "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
-                         "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
-                         "T0_dirichlet_W": T0_dirichlet_W, "TN_dirichlet_W": TN_dirichlet_W,
-                         "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil, "label_homophil": label_homophil,
-                         "a_row_max": a_row_max, "a_row_min": a_row_min, "b_row_max": b_row_max, "b_row_min": b_row_min,
-                         "alpha": alpha,
-                         "epoch_step": epoch})
-
-            elif opt['function'] == "greed_non_linear":
-              if opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
-                # a = model.odeblock.odefunc.mean_attention_0
-                # a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
-                # a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
-                Omega = model.odeblock.odefunc.Omega
-                L, Q = torch.linalg.eigh(Omega) #fast version for symmetric atrices https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
-
-                fig, ax = plt.subplots(1, 3, figsize=(24,8))
-                mat = ax[0].matshow(Omega, interpolation='nearest')
-                ax[0].xaxis.set_tick_params(labelsize=24)
-                ax[0].yaxis.set_tick_params(labelsize=24)
-                cbar = fig.colorbar(mat, ax=ax[0], shrink=0.75)
-                cbar.ax.tick_params(labelsize=20)
-
-                ax[1].bar(range(L.shape[0]), L)
-                ax[1].xaxis.set_tick_params(labelsize=24)
-                ax[1].yaxis.set_tick_params(labelsize=24)
-
-                mat2 = ax[2].matshow(Q, interpolation='nearest')
-                ax[2].xaxis.set_tick_params(labelsize=24)
-                ax[2].yaxis.set_tick_params(labelsize=24)
-                cbar1 = fig.colorbar(mat2, ax=ax[2], shrink=0.75)
-                cbar1.ax.tick_params(labelsize=20)
-                fig.suptitle(f"Omega, E-values, E-vectors, epoch {epoch}", fontsize=24)
-                plt.show()
-                print(f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}, epsilon: {model.odeblock.odefunc.om_W_eps}")#, nu: {model.odeblock.odefunc.om_W_nu}")
-
-                fOmf = model.odeblock.odefunc.fOmf
-                plt.plot(np.arange(0.0, fOmf.shape[0]*opt['step_size'], opt['step_size']), fOmf)
-                plt.title(f"fOmf, epoch {epoch}")
-                plt.show()
-
-                attentions = model.odeblock.odefunc.attentions
-                model.odeblock.odefunc.attentions = None
-                plt.plot(np.arange(0.0, attentions.shape[0]*opt['step_size'], opt['step_size']), attentions)
-                plt.title(f"Activated fOmf, epoch {epoch}")
-                plt.show()
-
-                L2dist = model.odeblock.odefunc.L2dist
-                plt.plot(np.arange(0.0, L2dist.shape[0]*opt['step_size'], opt['step_size']), L2dist)
-                plt.title(f"L2dist, epoch {epoch}")
-                plt.show()
-
-                train_accs = model.odeblock.odefunc.train_accs
-                val_accs = model.odeblock.odefunc.val_accs
-                test_accs = model.odeblock.odefunc.test_accs
-                plt.plot(np.arange(0.0, len(train_accs)*opt['step_size'], opt['step_size']), train_accs, label="train")
-                plt.plot(np.arange(0.0, len(val_accs)*opt['step_size'], opt['step_size']), val_accs, label="val")
-                plt.plot(np.arange(0.0, len(test_accs)*opt['step_size'], opt['step_size']), test_accs, label="test")
-                plt.title(f"Accuracy evolution, epoch {epoch}")
-                plt.legend(loc="upper right")
-                plt.show()
-
-                model.odeblock.odefunc.fOmf = None
-                model.odeblock.odefunc.attentions = None
-                model.odeblock.odefunc.L2dist = None
-                model.odeblock.odefunc.train_accs = None
-                model.odeblock.odefunc.val_accs = None
-                model.odeblock.odefunc.test_accs = None
-
-
-              wandb.log({"loss": loss,
-                         # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
-                         "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
-                         "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
-                         "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
-                         "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil,
-                         "label_homophil": label_homophil, "delta": model.odeblock.odefunc.delta.detach(),
-                         # "a_row_max": a_row_max, "a_row_min": a_row_min,
-                         "epoch_step": epoch})
-
-        else:
-          wandb.log({"loss": loss,
-                     #"tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
-                     "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
-                     "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
-                     "epoch_step": epoch})
+          # wandb_log(dataset, model, opt, loss, train_acc, val_acc, test_acc, epoch)
+          pass
+        #   with torch.no_grad():
+        #     num_nodes = dataset.data.num_nodes
+        #     x0 = model.encoder(dataset.data.x)
+        #     T0_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, num_nodes, x0)
+        #     edges = torch.cat([model.odeblock.odefunc.edge_index, model.odeblock.odefunc.self_loops], dim=1)
+        #     xN = model.forward_XN(dataset.data.x)
+        #     TN_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, num_nodes, xN)
+        #     enc_pred = model.m2(model.encoder(dataset.data.x)).max(1)[1]
+        #     pred = model.forward(dataset.data.x).max(1)[1]
+        #     enc_pred_homophil = homophily(edge_index=dataset.data.edge_index, y=enc_pred)
+        #     pred_homophil = homophily(edge_index=dataset.data.edge_index, y=pred)
+        #     label_homophil = homophily(edge_index=dataset.data.edge_index, y=dataset.data.y)
+        #
+        #     if opt['function'] == "greed_linear_hetero":
+        #       LpR = model.odeblock.odefunc.L_0 + model.odeblock.odefunc.R_0
+        #       T0_dirichlet_W = dirichlet_energy(edges, LpR, num_nodes, x0)
+        #       TN_dirichlet_W = dirichlet_energy(edges, LpR, num_nodes, xN)
+        #
+        #       if opt['diffusion']:
+        #         a = model.odeblock.odefunc.mean_attention_0
+        #         a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
+        #         a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
+        #       else:
+        #         a_row_max = 0
+        #         a_row_min = 0
+        #
+        #       if opt['repulsion']:
+        #         b = model.odeblock.odefunc.mean_attention_R0
+        #         b_row_max = scatter_add(b, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
+        #         b_row_min = scatter_add(b, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
+        #       else:
+        #         b_row_max = 0
+        #         b_row_min = 0
+        #
+        #       if opt['alpha_style'] == 'diag':
+        #         alpha = model.odeblock.odefunc.alpha.mean()
+        #       elif opt['alpha_style'] == 'free':
+        #         alpha = model.odeblock.odefunc.alpha.data
+        #       else:
+        #         alpha = model.odeblock.odefunc.alpha
+        #
+        #       wandb.log({"loss": loss,
+        #                  # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+        #                  "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
+        #                  "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+        #                  "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
+        #                  "T0_dirichlet_W": T0_dirichlet_W, "TN_dirichlet_W": TN_dirichlet_W,
+        #                  "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil, "label_homophil": label_homophil,
+        #                  "a_row_max": a_row_max, "a_row_min": a_row_min, "b_row_max": b_row_max, "b_row_min": b_row_min,
+        #                  "alpha": alpha,
+        #                  "epoch_step": epoch})
+        #
+        #     elif opt['function'] == "greed_non_linear":
+        #       if opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
+        #         # a = model.odeblock.odefunc.mean_attention_0
+        #         # a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
+        #         # a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
+        #         Omega = model.odeblock.odefunc.Omega
+        #         L, Q = torch.linalg.eigh(Omega) #fast version for symmetric atrices https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
+        #
+        #         fig, ax = plt.subplots(1, 3, figsize=(24,8))
+        #         mat = ax[0].matshow(Omega, interpolation='nearest')
+        #         ax[0].xaxis.set_tick_params(labelsize=24)
+        #         ax[0].yaxis.set_tick_params(labelsize=24)
+        #         cbar = fig.colorbar(mat, ax=ax[0], shrink=0.75)
+        #         cbar.ax.tick_params(labelsize=20)
+        #
+        #         ax[1].bar(range(L.shape[0]), L)
+        #         ax[1].xaxis.set_tick_params(labelsize=24)
+        #         ax[1].yaxis.set_tick_params(labelsize=24)
+        #
+        #         mat2 = ax[2].matshow(Q, interpolation='nearest')
+        #         ax[2].xaxis.set_tick_params(labelsize=24)
+        #         ax[2].yaxis.set_tick_params(labelsize=24)
+        #         cbar1 = fig.colorbar(mat2, ax=ax[2], shrink=0.75)
+        #         cbar1.ax.tick_params(labelsize=20)
+        #         fig.suptitle(f"Omega, E-values, E-vectors, epoch {epoch}", fontsize=24)
+        #         plt.show()
+        #         print(f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}, epsilon: {model.odeblock.odefunc.om_W_eps}")#, nu: {model.odeblock.odefunc.om_W_nu}")
+        #
+        #         fOmf = model.odeblock.odefunc.fOmf
+        #         plt.plot(np.arange(0.0, fOmf.shape[0]*opt['step_size'], opt['step_size']), fOmf)
+        #         plt.title(f"fOmf, epoch {epoch}")
+        #         plt.show()
+        #
+        #         attentions = model.odeblock.odefunc.attentions
+        #         model.odeblock.odefunc.attentions = None
+        #         plt.plot(np.arange(0.0, attentions.shape[0]*opt['step_size'], opt['step_size']), attentions)
+        #         plt.title(f"Activated fOmf, epoch {epoch}")
+        #         plt.show()
+        #
+        #         L2dist = model.odeblock.odefunc.L2dist
+        #         plt.plot(np.arange(0.0, L2dist.shape[0]*opt['step_size'], opt['step_size']), L2dist)
+        #         plt.title(f"L2dist, epoch {epoch}")
+        #         plt.show()
+        #
+        #         train_accs = model.odeblock.odefunc.train_accs
+        #         val_accs = model.odeblock.odefunc.val_accs
+        #         test_accs = model.odeblock.odefunc.test_accs
+        #         plt.plot(np.arange(0.0, len(train_accs)*opt['step_size'], opt['step_size']), train_accs, label="train")
+        #         plt.plot(np.arange(0.0, len(val_accs)*opt['step_size'], opt['step_size']), val_accs, label="val")
+        #         plt.plot(np.arange(0.0, len(test_accs)*opt['step_size'], opt['step_size']), test_accs, label="test")
+        #         plt.title(f"Accuracy evolution, epoch {epoch}")
+        #         plt.legend(loc="upper right")
+        #         plt.show()
+        #
+        #         model.odeblock.odefunc.fOmf = None
+        #         model.odeblock.odefunc.attentions = None
+        #         model.odeblock.odefunc.L2dist = None
+        #         model.odeblock.odefunc.train_accs = None
+        #         model.odeblock.odefunc.val_accs = None
+        #         model.odeblock.odefunc.test_accs = None
+        #
+        #
+        #       wandb.log({"loss": loss,
+        #                  # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+        #                  "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
+        #                  "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+        #                  "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
+        #                  "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil,
+        #                  "label_homophil": label_homophil, "delta": model.odeblock.odefunc.delta.detach(),
+        #                  # "a_row_max": a_row_max, "a_row_min": a_row_min,
+        #                  "epoch_step": epoch})
+        #
+        # else:
+        #   wandb.log({"loss": loss,
+        #              #"tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+        #              "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
+        #              "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+        #              "epoch_step": epoch})
 
       print(f"Epoch: {epoch}, Runtime: {time.time() - start_time:.3f}, Loss: {loss:.3f}, "
             f"forward nfe {model.fm.sum}, backward nfe {model.bm.sum}, "
