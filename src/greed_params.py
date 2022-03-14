@@ -47,7 +47,7 @@ def greed_run_params(opt):
     # TUNING
     # opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 18.295 #10
-    opt['epoch'] = 40 #40 #10
+    opt['epoch'] = 254 #100 #40 #40 #10
     opt['num_splits'] = 1
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
 
@@ -125,16 +125,18 @@ def greed_ablation_params(opt):
     opt['tau_residual'] = True
 
     opt['XN_no_activation'] = True #False
-    opt['m2_mlp'] = True #False #False
+    opt['m2_mlp'] = False #False
 
     #greed_non_linear params
     opt['gnl_style'] = 'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones' #'deg_poly' # 'nodewise'
 
     if opt['gnl_style'] == 'scaled_dot':
-        opt['gnl_omega'] = 'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
+        opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
         opt['dim_p_w'] = 8 #4
         opt['gnl_activation'] = 'squareplus_deriv' # exponential sigmoid_deriv tanh_deriv, squareplus_deriv
+        opt['gnl_omega_norm'] = 'tanh' #"rowSum"
+
 
     if opt['gnl_style'] == 'softmax_attention':
         opt['symmetric_attention'] = True #should be redundant

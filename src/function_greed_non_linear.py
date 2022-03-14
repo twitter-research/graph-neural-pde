@@ -10,7 +10,7 @@ from torch_scatter import scatter_add, scatter_mul
 from torch_geometric.utils.loop import add_remaining_self_loops
 from torch_geometric.utils import degree, softmax
 from torch_sparse import coalesce, transpose
-from torch_geometric.nn.inits import glorot, zeros, ones
+from torch_geometric.nn.inits import glorot, zeros, ones, constant
 from torch.nn import Parameter
 import wandb
 from function_greed import ODEFuncGreed
@@ -21,30 +21,57 @@ from function_transformer_attention import SpGraphTransAttentionLayer
 from function_transformer_attention_greed import SpGraphTransAttentionLayer_greed
 
 
+@torch.no_grad()
+# def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
+def test(logits, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
+  # model.eval()
+  # feat = data.x
+  # if model.opt['use_labels']:
+  #   feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
+  # logits, accs = model(feat, pos_encoding), []
+  accs = []
+  for _, mask in data('train_mask', 'val_mask', 'test_mask'):
+    pred = logits[mask].max(1)[1]
+    acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
+    accs.append(acc)
+  return accs
+
 class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def __init__(self, in_features, out_features, opt, data, device, bias=False):
     super(ODEFuncGreedNonLin, self).__init__(in_features, out_features, opt, data, device, bias=False)
 
+    self.data = data
     self.energy = 0
+    self.fOmf = None
     self.attentions = None
+    self.L2dist = None
+    self.train_accs = None
+    self.val_accs = None
+    self.test_accs = None
+
     self.epoch = 0
     self.wandb_step = 0
     self.prev_grad = None
 
     if self.opt['gnl_omega'] == 'sum':
-      self.om_W = -torch.eye(in_features, in_features)/2
+      # self.om_W = -torch.eye(in_features, in_features)/2
       # self.om_W = Parameter(-torch.eye(in_features, in_features)/2)
-      # self.om_W = Parameter(torch.Tensor(in_features, in_features))
+      self.om_W = Parameter(torch.Tensor(in_features, in_features))
+      self.om_W_eps = 0
     elif self.opt['gnl_omega'] == 'product':
       self.om_W = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
 
     elif self.opt['gnl_omega'] == 'attr_rep':
       self.om_W_attr = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
       self.om_W_rep = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
-      # self.om_W_eps = Parameter(torch.Tensor([0.75]))
-      self.om_W_eps = torch.Tensor([1.0])
+      self.om_W_eps = Parameter(torch.Tensor([0.85]))
+      # self.om_W_eps = torch.Tensor([1.0])
       self.om_W_nu = torch.Tensor([0.1])
+
+    elif self.opt['gnl_omega'] == 'diag':
+      self.om_W = Parameter(torch.Tensor(in_features))
+      self.om_W_eps = 0
 
 
     if opt['gnl_measure'] == 'deg_poly':
@@ -68,17 +95,18 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def reset_nonlinG_parameters(self):
     if self.opt['gnl_omega'] == 'sum':
-      # self.init_eye(self.om_W)
-      # glorot(self.om_W)
-      pass
+      glorot(self.om_W)
     elif self.opt['gnl_omega'] == 'product':
       glorot(self.om_W)
     elif self.opt['gnl_omega'] == 'attr_rep':
       glorot(self.om_W_attr)
       glorot(self.om_W_rep)
-      # zeros(self.om_W_attr)
+      # # zeros(self.om_W_attr)
       # zeros(self.om_W_rep)
-
+      # constant(self.om_W_attr, 0.0001)
+      # constant(self.om_W_rep, 0.0001)
+    elif self.opt['gnl_omega'] == 'diag':
+      zeros(self.om_W)
 
     if self.opt['gnl_measure'] == 'deg_poly':
       ones(self.m_alpha)
@@ -143,8 +171,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         elif self.opt['gnl_omega'] == 'attr_rep':
           # Omega = self.om_W_nu * (1 - 2 * self.om_W_eps) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
           self.Omega =  (1 - 2 * self.om_W_eps) * torch.eye(self.in_features) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
-          # D = Omega.abs().sum(dim=1)
-          # self.Omega = torch.diag(torch.pow(D, -0.5)) @ Omega @ torch.diag(torch.pow(D, -0.5))
+        elif self.opt['gnl_omega'] == 'diag':
+          self.Omega = torch.diag(self.om_W)
+
+
+        if self.opt['gnl_omega_norm'] == 'tanh':
+          self.Omega = torch.tanh(self.Omega)
+        elif self.opt['gnl_omega_norm'] == 'rowSum':
+          D = self.Omega.abs().sum(dim=1)
+          self.Omega = torch.diag(torch.pow(D, -0.5)) @ self.Omega @ torch.diag(torch.pow(D, -0.5))
+        else:
+          pass
 
         src_x, dst_x = self.get_src_dst(x)
         # fOmf = torch.einsum("ij,jj,ij->i", src_x, self.Omega, dst_x)
@@ -191,39 +228,57 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         drift += c
       f = f + drift
 
+
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.training:
-      if self.opt['gnl_activation'] == "sigmoid_deriv":
-        energy = torch.sum(torch.sigmoid(fOmf))
-      elif self.opt['gnl_activation'] == "squareplus_deriv":
-        energy = torch.sum((fOmf + torch.sqrt(fOmf ** 2 + 4)) / 2)
-      elif self.opt['gnl_activation'] == "exponential":
-        energy = torch.sum(torch.exp(fOmf))
+      with torch.no_grad():
+        if self.opt['gnl_activation'] == "sigmoid_deriv":
+          energy = torch.sum(torch.sigmoid(fOmf))
+        elif self.opt['gnl_activation'] == "squareplus_deriv":
+          energy = torch.sum((fOmf + torch.sqrt(fOmf ** 2 + 4)) / 2)
+        elif self.opt['gnl_activation'] == "exponential":
+          energy = torch.sum(torch.exp(fOmf))
 
-      energy = energy + 0.5 * self.delta * torch.sum(x**2)
+        energy = energy + 0.5 * self.delta * torch.sum(x**2)
 
-      if self.opt['test_mu_0'] and self.opt['add_source']:
-        energy = energy - self.beta_train * torch.sum(x * self.x0)
-      elif not self.opt['test_mu_0']:
-        energy = energy + self.mu * torch.sum((x - self.x0) ** 2)
-      else:
-        energy = 0
-        self.energy = energy
+        if self.opt['test_mu_0'] and self.opt['add_source']:
+          energy = energy - self.beta_train * torch.sum(x * self.x0)
+        elif not self.opt['test_mu_0']:
+          energy = energy + self.mu * torch.sum((x - self.x0) ** 2)
+        else:
+          energy = 0
+          self.energy = energy
 
-      wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
-                 f"gf_e{self.epoch}_f": (f**2).sum(),
-                 f"gf_e{self.epoch}_x": (x ** 2).sum(),
-                 "grad_flow_step": self.wandb_step})
+        wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
+                   f"gf_e{self.epoch}_f": (f**2).sum(),
+                   f"gf_e{self.epoch}_x": (x ** 2).sum(),
+                   "grad_flow_step": self.wandb_step})
 
-      # if self.attentions is None:
-      #   self.attentions = self.mean_attention_0
-      # else:
-      #   self.attentions = torch.cat([self.attentions, self.mean_attention_0], dim=-1)
 
-      self.wandb_step += 1
+        logits = self.GNN_m2(x)
+        train_acc, val_acc, test_acc = test(logits, self.data)
 
-    # if self.opt['greed_momentum'] and self.prev_grad:
-    #   f = self.opt['momentum_alpha'] * f + (1 - self.opt['momentum_alpha']) * self.prev_grad
-    #   self.prev_grad = f
+        L2dist = torch.sqrt(torch.sum((src_x - dst_x) ** 2, dim=1))
+        if self.attentions is None:
+          self.attentions = attention.unsqueeze(0)
+          self.fOmf = fOmf.unsqueeze(0)
+          self.L2dist = L2dist.unsqueeze(0)
+          self.train_accs = [train_acc]
+          self.val_accs = [val_acc]
+          self.test_accs = [test_acc]
+
+        else:
+          self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
+          self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
+          self.L2dist = torch.cat([self.L2dist, L2dist.unsqueeze(0)], dim=0)
+          self.train_accs.append(train_acc)
+          self.val_accs.append(val_acc)
+          self.test_accs.append(test_acc)
+
+        self.wandb_step += 1
+
+      # if self.opt['greed_momentum'] and self.prev_grad:
+      #   f = self.opt['momentum_alpha'] * f + (1 - self.opt['momentum_alpha']) * self.prev_grad
+      #   self.prev_grad = f
 
     return f
 

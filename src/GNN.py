@@ -14,6 +14,8 @@ class GNN(BaseGNN):
     time_tensor = torch.tensor([0, self.T]).to(device)
     self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
 
+    self.odeblock.odefunc.GNN_m2 = self.m2
+
   def encoder(self, x, pos_encoding=None):
     # Encode each node based on its feature.
     if self.opt['use_labels']:

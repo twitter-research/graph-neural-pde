@@ -379,32 +379,66 @@ def main(cmd_opt):
                          "epoch_step": epoch})
 
             elif opt['function'] == "greed_non_linear":
+              if opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
+                # a = model.odeblock.odefunc.mean_attention_0
+                # a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
+                # a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
+                Omega = model.odeblock.odefunc.Omega
+                L, Q = torch.linalg.eigh(Omega) #fast version for symmetric atrices https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
 
-              # a = model.odeblock.odefunc.mean_attention_0
-              # a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
-              # a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
-              Omega = model.odeblock.odefunc.Omega
-              L, Q = torch.linalg.eigh(Omega) #fast version for symmetric atrices https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
+                fig, ax = plt.subplots(1, 3, figsize=(24,8))
+                mat = ax[0].matshow(Omega, interpolation='nearest')
+                ax[0].xaxis.set_tick_params(labelsize=24)
+                ax[0].yaxis.set_tick_params(labelsize=24)
+                cbar = fig.colorbar(mat, ax=ax[0], shrink=0.75)
+                cbar.ax.tick_params(labelsize=20)
 
-              fig, ax = plt.subplots(1, 3, figsize=(24,8))
-              mat = ax[0].matshow(Omega, interpolation='nearest')
-              ax[0].xaxis.set_tick_params(labelsize=24)
-              ax[0].yaxis.set_tick_params(labelsize=24)
-              cbar = fig.colorbar(mat, ax=ax[0], shrink=0.75)
-              cbar.ax.tick_params(labelsize=20)
+                ax[1].bar(range(L.shape[0]), L)
+                ax[1].xaxis.set_tick_params(labelsize=24)
+                ax[1].yaxis.set_tick_params(labelsize=24)
 
-              ax[1].bar(range(L.shape[0]), L)
-              ax[1].xaxis.set_tick_params(labelsize=24)
-              ax[1].yaxis.set_tick_params(labelsize=24)
+                mat2 = ax[2].matshow(Q, interpolation='nearest')
+                ax[2].xaxis.set_tick_params(labelsize=24)
+                ax[2].yaxis.set_tick_params(labelsize=24)
+                cbar1 = fig.colorbar(mat2, ax=ax[2], shrink=0.75)
+                cbar1.ax.tick_params(labelsize=20)
+                fig.suptitle(f"Omega, E-values, E-vectors, epoch {epoch}", fontsize=24)
+                plt.show()
+                print(f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}, epsilon: {model.odeblock.odefunc.om_W_eps}")#, nu: {model.odeblock.odefunc.om_W_nu}")
 
-              mat2 = ax[2].matshow(Q, interpolation='nearest')
-              ax[2].xaxis.set_tick_params(labelsize=24)
-              ax[2].yaxis.set_tick_params(labelsize=24)
-              cbar1 = fig.colorbar(mat2, ax=ax[2], shrink=0.75)
-              cbar1.ax.tick_params(labelsize=20)
+                fOmf = model.odeblock.odefunc.fOmf
+                plt.plot(np.arange(0.0, fOmf.shape[0]*opt['step_size'], opt['step_size']), fOmf)
+                plt.title(f"fOmf, epoch {epoch}")
+                plt.show()
 
-              plt.show()
-              print(f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}")#, epsilon: {model.odeblock.odefunc.om_W_eps}, nu: {model.odeblock.odefunc.om_W_nu}")
+                attentions = model.odeblock.odefunc.attentions
+                model.odeblock.odefunc.attentions = None
+                plt.plot(np.arange(0.0, attentions.shape[0]*opt['step_size'], opt['step_size']), attentions)
+                plt.title(f"Activated fOmf, epoch {epoch}")
+                plt.show()
+
+                L2dist = model.odeblock.odefunc.L2dist
+                plt.plot(np.arange(0.0, L2dist.shape[0]*opt['step_size'], opt['step_size']), L2dist)
+                plt.title(f"L2dist, epoch {epoch}")
+                plt.show()
+
+                train_accs = model.odeblock.odefunc.train_accs
+                val_accs = model.odeblock.odefunc.val_accs
+                test_accs = model.odeblock.odefunc.test_accs
+                plt.plot(np.arange(0.0, len(train_accs)*opt['step_size'], opt['step_size']), train_accs, label="train")
+                plt.plot(np.arange(0.0, len(val_accs)*opt['step_size'], opt['step_size']), val_accs, label="val")
+                plt.plot(np.arange(0.0, len(test_accs)*opt['step_size'], opt['step_size']), test_accs, label="test")
+                plt.title(f"Accuracy evolution, epoch {epoch}")
+                plt.legend(loc="upper right")
+                plt.show()
+
+                model.odeblock.odefunc.fOmf = None
+                model.odeblock.odefunc.attentions = None
+                model.odeblock.odefunc.L2dist = None
+                model.odeblock.odefunc.train_accs = None
+                model.odeblock.odefunc.val_accs = None
+                model.odeblock.odefunc.test_accs = None
+
 
               wandb.log({"loss": loss,
                          # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
@@ -425,6 +459,7 @@ def main(cmd_opt):
 
       print(f"Epoch: {epoch}, Runtime: {time.time() - start_time:.3f}, Loss: {loss:.3f}, "
             f"forward nfe {model.fm.sum}, backward nfe {model.bm.sum}, "
+            f"tmp_train: {tmp_train_acc:.4f}, tmp_val: {tmp_val_acc:.4f}, tmp_test: {tmp_test_acc:.4f}, "
             f"Train: {train_acc:.4f}, Val: {val_acc:.4f}, Test: {test_acc:.4f}, Best time: {best_time:.4f}")
       if opt['function'] in ['greed', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero', 'greed_non_linear']:
         model.odeblock.odefunc.epoch = epoch
@@ -627,7 +662,7 @@ if __name__ == '__main__':
   parser.add_argument('--wandb_output_dir', default='./wandb_output',
                       help='folder to output results, images and model checkpoints')
   parser.add_argument('--wandb_log_freq', type=int, default=1, help='Frequency to log metrics.')
-  parser.add_argument('--wandb_epoch_list', nargs='+',  default=[0, 1, 2, 4, 8, 16], help='list of epochs to log gradient flow')
+  parser.add_argument('--wandb_epoch_list', nargs='+',  default=[0, 1, 2, 4, 8, 16, 32, 64, 128, 254], help='list of epochs to log gradient flow')
 
   #wandb setup sweep args
   parser.add_argument('--tau_reg', type=float, default=2)
