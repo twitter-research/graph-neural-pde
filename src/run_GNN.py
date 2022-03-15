@@ -9,8 +9,8 @@ import torch.nn.functional as F
 import wandb
 from ogb.nodeproppred import Evaluator
 import matplotlib.pyplot as plt
-from matplotlib import cm
-from matplotlib.ticker import LinearLocator, FormatStrFormatter
+from matplotlib.backends.backend_pdf import PdfPages
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from GNN import GNN
 from GNN_early import GNNEarly
@@ -163,24 +163,37 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
     acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
     accs.append(acc)
 
+  #wandb tracking
   #need to calc loss again
   lf = torch.nn.CrossEntropyLoss()
   loss = lf(logits[data.train_mask], data.y.squeeze()[data.train_mask])
   wandb_log(data, model, opt, loss, accs[0], accs[1], accs[2], model.odeblock.odefunc.epoch)
+  model.odeblock.odefunc.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
 
   return accs
 
+def make_colorbar_with_padding(ax): #http://chris35wills.github.io/array_plotting/
+  """
+  Create colorbar axis that fits the size of a plot - detailed here: http://chris35wills.github.io/matplotlib_axis/
+  """
+  divider = make_axes_locatable(ax)
+  cax = divider.append_axes("right", size="5%", pad=0.1)
+  return (cax)
 
 @torch.no_grad()
 def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
+
+  #every epoch stats for greed linear and non linear
   num_nodes = data.num_nodes
   x0 = model.encoder(data.x)
   T0_dirichlet = dirichlet_energy(data.edge_index, data.edge_attr, num_nodes, x0)
   edges = torch.cat([model.odeblock.odefunc.edge_index, model.odeblock.odefunc.self_loops], dim=1)
   xN = model.forward_XN(data.x)
   TN_dirichlet = dirichlet_energy(data.edge_index, data.edge_attr, num_nodes, xN)
-  enc_pred = model.m2(model.encoder(data.x)).max(1)[1]
-  pred = model.forward(data.x).max(1)[1]
+  # enc_pred = model.m2(model.encoder(data.x)).max(1)[1]
+  enc_pred = model.m2(x0).max(1)[1]
+  # pred = model.forward(data.x).max(1)[1]
+  pred = model.m2(xN).max(1)[1]
   enc_pred_homophil = homophily(edge_index=data.edge_index, y=enc_pred)
   pred_homophil = homophily(edge_index=data.edge_index, y=pred)
   label_homophil = homophily(edge_index=data.edge_index, y=data.y)
@@ -213,28 +226,49 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
     else:
       alpha = model.odeblock.odefunc.alpha
 
+    if opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
+      pass
+      #placeholder for if we need to apply the evolution visualisations to the linear case
+
     wandb.log({"loss": loss,
-               # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
-               "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
-               "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
-               "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
-               "T0_dirichlet_W": T0_dirichlet_W, "TN_dirichlet_W": TN_dirichlet_W,
-               "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil,
-               "label_homophil": label_homophil,
-               "a_row_max": a_row_max, "a_row_min": a_row_min, "b_row_max": b_row_max, "b_row_min": b_row_min,
-               "alpha": alpha,
-               "epoch_step": epoch})
+             # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+             "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
+             "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+             "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
+             "T0_dirichlet_W": T0_dirichlet_W, "TN_dirichlet_W": TN_dirichlet_W,
+             "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil,
+             "label_homophil": label_homophil,
+             "a_row_max": a_row_max, "a_row_min": a_row_min, "b_row_max": b_row_max, "b_row_min": b_row_min,
+             "alpha": alpha,
+             "epoch_step": epoch})
 
   elif opt['function'] == "greed_non_linear":
+
     if opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
+
+      # find position of current epoch in epoch list
+      idx = opt['wandb_epoch_list'].index(epoch)
+      # determine index % num per page
+      num_rows = 4
+      row = idx % num_rows
+      if row == 0: # create new figs
+        #https://stackoverflow.com/questions/10388462/matplotlib-different-size-subplots
+        spectrum_acc_fig, spectrum_acc_ax = plt.subplots(num_rows, 3, gridspec_kw={'width_ratios': [1,1,1]}, figsize=(24, 32))
+        model.odeblock.odefunc.spectrum_acc_fig_list.append([spectrum_acc_fig, spectrum_acc_ax])
+        # egde_evol_fig, egde_evol_ax = plt.subplots(num_rows, 2, gridspec_kw={'width_ratios': [1,1]}, figsize=(8.27, 11.69), dpi=100)#figsize=(24, 8))
+        # model.odeblock.odefunc.edge_evol_fig_list.append([egde_evol_fig, egde_evol_ax])
+      else:
+        spectrum_acc_fig, spectrum_acc_ax = model.odeblock.odefunc.spectrum_acc_fig_list[-1]
+        # egde_evol_fig, egde_evol_ax = model.odeblock.odefunc.edge_evol_fig_list[-1]
+
+      #forward pass through the model in eval mode to generate the data
       model.odeblock.odefunc.get_evol_stats = True
       pred = model.forward(data.x).max(1)[1]
-      # a = model.odeblock.odefunc.mean_attention_0
-      # a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
-      # a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
+      model.odeblock.odefunc.get_evol_stats = False
+
+      #spectral and accuracy plots
       Omega = model.odeblock.odefunc.Omega
-      L, Q = torch.linalg.eigh(
-        Omega)  # fast version for symmetric atrices https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
+      L, Q = torch.linalg.eigh(Omega)  # fast version for symmetric matrices https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
 
       fig, ax = plt.subplots(1, 3, figsize=(24, 8))
       mat = ax[0].matshow(Omega, interpolation='nearest')
@@ -253,35 +287,62 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       cbar1 = fig.colorbar(mat2, ax=ax[2], shrink=0.75)
       cbar1.ax.tick_params(labelsize=20)
       fig.suptitle(f"Omega, E-values, E-vectors, epoch {epoch}", fontsize=24)
-      plt.show()
-      print(
-        f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}, epsilon: {model.odeblock.odefunc.om_W_eps}")  # , nu: {model.odeblock.odefunc.om_W_nu}")
+      fig.show()
 
-      fOmf = model.odeblock.odefunc.fOmf
-      plt.plot(np.arange(0.0, fOmf.shape[0] * opt['step_size'], opt['step_size']), fOmf)
-      plt.title(f"fOmf, epoch {epoch}")
-      plt.show()
+      ### multi grid Omega spectrum charts
+      mat = spectrum_acc_ax[row,0].matshow(Omega, interpolation='nearest')
+      spectrum_acc_ax[row,0].xaxis.set_tick_params(labelsize=16)
+      spectrum_acc_ax[row,0].yaxis.set_tick_params(labelsize=16)
+      cbar = spectrum_acc_fig.colorbar(mat, ax=spectrum_acc_ax[row,0], shrink=0.75)
+      cbar.ax.tick_params(labelsize=16)
 
-      attentions = model.odeblock.odefunc.attentions
-      model.odeblock.odefunc.attentions = None
-      plt.plot(np.arange(0.0, attentions.shape[0] * opt['step_size'], opt['step_size']), attentions)
-      plt.title(f"Activated fOmf, epoch {epoch}")
-      plt.show()
+      spectrum_acc_ax[row,1].bar(range(L.shape[0]), L)
+      spectrum_acc_ax[row,1].set_title(f"Omega, E-values, E-vectors, epoch {epoch}", fontdict={'fontsize':24})
 
-      L2dist = model.odeblock.odefunc.L2dist
-      plt.plot(np.arange(0.0, L2dist.shape[0] * opt['step_size'], opt['step_size']), L2dist)
-      plt.title(f"L2dist, epoch {epoch}")
-      plt.show()
+      spectrum_acc_ax[row,1].xaxis.set_tick_params(labelsize=16)
+      spectrum_acc_ax[row,1].yaxis.set_tick_params(labelsize=16)
 
+      mat2 = spectrum_acc_ax[row,2].matshow(Q, interpolation='nearest')
+      spectrum_acc_ax[row,2].xaxis.set_tick_params(labelsize=16)
+      spectrum_acc_ax[row,2].yaxis.set_tick_params(labelsize=16)
+      cbar1 = spectrum_acc_fig.colorbar(mat2, ax=spectrum_acc_ax[row,2], shrink=0.75)
+      cbar1.ax.tick_params(labelsize=16)
+      spectrum_acc_fig.show()
+
+
+
+      ### multi grid Omega spectrum charts
       train_accs = model.odeblock.odefunc.train_accs
       val_accs = model.odeblock.odefunc.val_accs
       test_accs = model.odeblock.odefunc.test_accs
+      homophils = model.odeblock.odefunc.homophils
+      fig = plt.figure()
       plt.plot(np.arange(0.0, len(train_accs) * opt['step_size'], opt['step_size']), train_accs, label="train")
       plt.plot(np.arange(0.0, len(val_accs) * opt['step_size'], opt['step_size']), val_accs, label="val")
       plt.plot(np.arange(0.0, len(test_accs) * opt['step_size'], opt['step_size']), test_accs, label="test")
+      plt.plot(np.arange(0.0, len(homophils) * opt['step_size'], opt['step_size']), homophils, label="homophil")
       plt.title(f"Accuracy evolution, epoch {epoch}")
       plt.legend(loc="upper right")
-      plt.show()
+      fig.show()
+
+      #edge value plots
+      # fOmf = model.odeblock.odefunc.fOmf
+      # fig = plt.figure()
+      # plt.plot(np.arange(0.0, fOmf.shape[0] * opt['step_size'], opt['step_size']), fOmf)
+      # plt.title(f"fOmf, epoch {epoch}")
+      # fig.show()
+
+      # attentions = model.odeblock.odefunc.attentions
+      # fig = plt.figure()
+      # plt.plot(np.arange(0.0, attentions.shape[0] * opt['step_size'], opt['step_size']), attentions)
+      # plt.title(f"Activated fOmf, epoch {epoch}")
+      # fig.show()
+
+      # L2dist = model.odeblock.odefunc.L2dist
+      # fig = plt.figure()
+      # plt.plot(np.arange(0.0, L2dist.shape[0] * opt['step_size'], opt['step_size']), L2dist)
+      # plt.title(f"L2dist, epoch {epoch}")
+      # fig.show()
 
       model.odeblock.odefunc.fOmf = None
       model.odeblock.odefunc.attentions = None
@@ -289,7 +350,15 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       model.odeblock.odefunc.train_accs = None
       model.odeblock.odefunc.val_accs = None
       model.odeblock.odefunc.test_accs = None
-      model.odeblock.odefunc.get_evol_stats = False
+
+      if row == num_rows - 1:
+        model.odeblock.odefunc.spectrum_acc_pdf.savefig(spectrum_acc_fig)
+
+      if epoch == opt['wandb_epoch_list'][-1]:
+        model.odeblock.odefunc.spectrum_acc_pdf.close()
+
+
+    print(f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}, epsilon: {model.odeblock.odefunc.om_W_eps}")  # , nu: {model.odeblock.odefunc.om_W_nu}")
 
     wandb.log({"loss": loss,
                # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
@@ -441,16 +510,16 @@ def main(cmd_opt):
       data = get_fixed_splits(data, opt['dataset'], rep)
     for epoch in range(1, opt['epoch']):
       start_time = time.time()
+      if opt['function'] in ['greed', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero', 'greed_non_linear']:
+        model.odeblock.odefunc.epoch = epoch
 
       if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
         ei = apply_KNN(data, pos_encoding, model, opt)
         model.odeblock.odefunc.edge_index = ei
 
       loss = train(model, optimizer, data, pos_encoding)
-      model.odeblock.odefunc.wandb_step = 0 # resets the wandstep in function after train forward pass
 
       tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
-      model.odeblock.odefunc.wandb_step = 0 # resets the wandstep in function after eval forward pass
 
       best_time = opt['time']
       if tmp_val_acc > val_acc:
@@ -466,148 +535,11 @@ def main(cmd_opt):
         train_acc = model.odeblock.test_integrator.solver.best_train
         best_time = model.odeblock.test_integrator.solver.best_time
 
-
-      if ((epoch) % opt['wandb_log_freq']) == 0:
-        if opt['wandb_track_epoch_energy'] and opt['function'] in ["greed_linear_hetero", "greed_non_linear"]:
-          # wandb_log(dataset, model, opt, loss, train_acc, val_acc, test_acc, epoch)
-          pass
-        #   with torch.no_grad():
-        #     num_nodes = dataset.data.num_nodes
-        #     x0 = model.encoder(dataset.data.x)
-        #     T0_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, num_nodes, x0)
-        #     edges = torch.cat([model.odeblock.odefunc.edge_index, model.odeblock.odefunc.self_loops], dim=1)
-        #     xN = model.forward_XN(dataset.data.x)
-        #     TN_dirichlet = dirichlet_energy(dataset.data.edge_index, dataset.data.edge_attr, num_nodes, xN)
-        #     enc_pred = model.m2(model.encoder(dataset.data.x)).max(1)[1]
-        #     pred = model.forward(dataset.data.x).max(1)[1]
-        #     enc_pred_homophil = homophily(edge_index=dataset.data.edge_index, y=enc_pred)
-        #     pred_homophil = homophily(edge_index=dataset.data.edge_index, y=pred)
-        #     label_homophil = homophily(edge_index=dataset.data.edge_index, y=dataset.data.y)
-        #
-        #     if opt['function'] == "greed_linear_hetero":
-        #       LpR = model.odeblock.odefunc.L_0 + model.odeblock.odefunc.R_0
-        #       T0_dirichlet_W = dirichlet_energy(edges, LpR, num_nodes, x0)
-        #       TN_dirichlet_W = dirichlet_energy(edges, LpR, num_nodes, xN)
-        #
-        #       if opt['diffusion']:
-        #         a = model.odeblock.odefunc.mean_attention_0
-        #         a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
-        #         a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
-        #       else:
-        #         a_row_max = 0
-        #         a_row_min = 0
-        #
-        #       if opt['repulsion']:
-        #         b = model.odeblock.odefunc.mean_attention_R0
-        #         b_row_max = scatter_add(b, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
-        #         b_row_min = scatter_add(b, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
-        #       else:
-        #         b_row_max = 0
-        #         b_row_min = 0
-        #
-        #       if opt['alpha_style'] == 'diag':
-        #         alpha = model.odeblock.odefunc.alpha.mean()
-        #       elif opt['alpha_style'] == 'free':
-        #         alpha = model.odeblock.odefunc.alpha.data
-        #       else:
-        #         alpha = model.odeblock.odefunc.alpha
-        #
-        #       wandb.log({"loss": loss,
-        #                  # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
-        #                  "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
-        #                  "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
-        #                  "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
-        #                  "T0_dirichlet_W": T0_dirichlet_W, "TN_dirichlet_W": TN_dirichlet_W,
-        #                  "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil, "label_homophil": label_homophil,
-        #                  "a_row_max": a_row_max, "a_row_min": a_row_min, "b_row_max": b_row_max, "b_row_min": b_row_min,
-        #                  "alpha": alpha,
-        #                  "epoch_step": epoch})
-        #
-        #     elif opt['function'] == "greed_non_linear":
-        #       if opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
-        #         # a = model.odeblock.odefunc.mean_attention_0
-        #         # a_row_max = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).max()
-        #         # a_row_min = scatter_add(a, model.odeblock.odefunc.edge_index[0], dim=0, dim_size=num_nodes).min()
-        #         Omega = model.odeblock.odefunc.Omega
-        #         L, Q = torch.linalg.eigh(Omega) #fast version for symmetric atrices https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
-        #
-        #         fig, ax = plt.subplots(1, 3, figsize=(24,8))
-        #         mat = ax[0].matshow(Omega, interpolation='nearest')
-        #         ax[0].xaxis.set_tick_params(labelsize=24)
-        #         ax[0].yaxis.set_tick_params(labelsize=24)
-        #         cbar = fig.colorbar(mat, ax=ax[0], shrink=0.75)
-        #         cbar.ax.tick_params(labelsize=20)
-        #
-        #         ax[1].bar(range(L.shape[0]), L)
-        #         ax[1].xaxis.set_tick_params(labelsize=24)
-        #         ax[1].yaxis.set_tick_params(labelsize=24)
-        #
-        #         mat2 = ax[2].matshow(Q, interpolation='nearest')
-        #         ax[2].xaxis.set_tick_params(labelsize=24)
-        #         ax[2].yaxis.set_tick_params(labelsize=24)
-        #         cbar1 = fig.colorbar(mat2, ax=ax[2], shrink=0.75)
-        #         cbar1.ax.tick_params(labelsize=20)
-        #         fig.suptitle(f"Omega, E-values, E-vectors, epoch {epoch}", fontsize=24)
-        #         plt.show()
-        #         print(f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}, epsilon: {model.odeblock.odefunc.om_W_eps}")#, nu: {model.odeblock.odefunc.om_W_nu}")
-        #
-        #         fOmf = model.odeblock.odefunc.fOmf
-        #         plt.plot(np.arange(0.0, fOmf.shape[0]*opt['step_size'], opt['step_size']), fOmf)
-        #         plt.title(f"fOmf, epoch {epoch}")
-        #         plt.show()
-        #
-        #         attentions = model.odeblock.odefunc.attentions
-        #         model.odeblock.odefunc.attentions = None
-        #         plt.plot(np.arange(0.0, attentions.shape[0]*opt['step_size'], opt['step_size']), attentions)
-        #         plt.title(f"Activated fOmf, epoch {epoch}")
-        #         plt.show()
-        #
-        #         L2dist = model.odeblock.odefunc.L2dist
-        #         plt.plot(np.arange(0.0, L2dist.shape[0]*opt['step_size'], opt['step_size']), L2dist)
-        #         plt.title(f"L2dist, epoch {epoch}")
-        #         plt.show()
-        #
-        #         train_accs = model.odeblock.odefunc.train_accs
-        #         val_accs = model.odeblock.odefunc.val_accs
-        #         test_accs = model.odeblock.odefunc.test_accs
-        #         plt.plot(np.arange(0.0, len(train_accs)*opt['step_size'], opt['step_size']), train_accs, label="train")
-        #         plt.plot(np.arange(0.0, len(val_accs)*opt['step_size'], opt['step_size']), val_accs, label="val")
-        #         plt.plot(np.arange(0.0, len(test_accs)*opt['step_size'], opt['step_size']), test_accs, label="test")
-        #         plt.title(f"Accuracy evolution, epoch {epoch}")
-        #         plt.legend(loc="upper right")
-        #         plt.show()
-        #
-        #         model.odeblock.odefunc.fOmf = None
-        #         model.odeblock.odefunc.attentions = None
-        #         model.odeblock.odefunc.L2dist = None
-        #         model.odeblock.odefunc.train_accs = None
-        #         model.odeblock.odefunc.val_accs = None
-        #         model.odeblock.odefunc.test_accs = None
-        #
-        #
-        #       wandb.log({"loss": loss,
-        #                  # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
-        #                  "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
-        #                  "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
-        #                  "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
-        #                  "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil,
-        #                  "label_homophil": label_homophil, "delta": model.odeblock.odefunc.delta.detach(),
-        #                  # "a_row_max": a_row_max, "a_row_min": a_row_min,
-        #                  "epoch_step": epoch})
-        #
-        # else:
-        #   wandb.log({"loss": loss,
-        #              #"tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
-        #              "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
-        #              "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
-        #              "epoch_step": epoch})
-
       print(f"Epoch: {epoch}, Runtime: {time.time() - start_time:.3f}, Loss: {loss:.3f}, "
             f"forward nfe {model.fm.sum}, backward nfe {model.bm.sum}, "
             f"tmp_train: {tmp_train_acc:.4f}, tmp_val: {tmp_val_acc:.4f}, tmp_test: {tmp_test_acc:.4f}, "
             f"Train: {train_acc:.4f}, Val: {val_acc:.4f}, Test: {test_acc:.4f}, Best time: {best_time:.4f}")
-      if opt['function'] in ['greed', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero', 'greed_non_linear']:
-        model.odeblock.odefunc.epoch = epoch
+
       if np.isnan(loss):
         wandb_run.finish()
         break
@@ -797,7 +729,6 @@ if __name__ == '__main__':
   parser.add_argument('--wandb_sweep', action='store_true', help="flag if sweeping") #if not it picks up params in greed_params
   parser.add_argument('--wandb_watch_grad', action='store_true', help='allows gradient tracking in train function')
   parser.add_argument('--wandb_track_grad_flow', action='store_true')
-  parser.add_argument('--wandb_track_epoch_energy', action='store_true')
 
   parser.add_argument('--wandb_entity', default="graph_neural_diffusion", type=str,
                       help="jrowbottomwnb, ger__man")  # not used as default set in web browser settings
@@ -806,8 +737,9 @@ if __name__ == '__main__':
   parser.add_argument('--wandb_run_name', default=None, type=str)
   parser.add_argument('--wandb_output_dir', default='./wandb_output',
                       help='folder to output results, images and model checkpoints')
-  parser.add_argument('--wandb_log_freq', type=int, default=1, help='Frequency to log metrics.')
-  parser.add_argument('--wandb_epoch_list', nargs='+',  default=[0, 1, 2, 4, 8, 16, 32, 64, 128, 254], help='list of epochs to log gradient flow')
+  # parser.add_argument('--wandb_log_freq', type=int, default=1, help='Frequency to log metrics.')
+  #replaces the above
+  parser.add_argument('--wandb_epoch_list', nargs='+',  default=[1, 2, 4, 8, 16, 32, 64, 96, 128, 254], help='list of epochs to log gradient flow, 1 based')
 
   #wandb setup sweep args
   parser.add_argument('--tau_reg', type=float, default=2)

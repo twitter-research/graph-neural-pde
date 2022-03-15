@@ -154,7 +154,6 @@ def greed_ablation_params(opt):
     # opt['decay'] = 0
 
     opt['geom_gcn_splits'] = False
-    opt['wandb_track_epoch_energy'] = True
     return opt
     #--dataset Cora --function greed_linear_homo --use_best_params
 
@@ -162,7 +161,7 @@ def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
     opt['wandb'] = True
     opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when testing
-    opt['wandb_track_epoch_energy'] = True
+    opt['wandb_epoch_list'] = [1,2,4,8,16,17,18,19]
     opt['wandb_project'] = project_name #"greed_runs"
     opt['wandb_group'] = group_name #"testing"  # "tuning" eval
     DT = datetime.datetime.now()
@@ -360,7 +359,6 @@ def default_params():
                         help="flag if sweeping")  # if not it picks up params in greed_params
     parser.add_argument('--wandb_watch_grad', action='store_true', help='allows gradient tracking in train function')
     parser.add_argument('--wandb_track_grad_flow', action='store_true')
-    parser.add_argument('--wandb_track_epoch_energy', action='store_true')
 
     parser.add_argument('--wandb_entity', default="graph_neural_diffusion", type=str,
                         help="jrowbottomwnb, ger__man")  # not used as default set in web browser settings
@@ -370,8 +368,8 @@ def default_params():
     parser.add_argument('--wandb_output_dir', default='./wandb_output',
                         help='folder to output results, images and model checkpoints')
     parser.add_argument('--wandb_log_freq', type=int, default=1, help='Frequency to log metrics.')
-    parser.add_argument('--wandb_epoch_list', nargs='+', default=[0, 1, 2, 4, 8, 16],
-                        help='list of epochs to log gradient flow')
+    parser.add_argument('--wandb_epoch_list', nargs='+', default=[1, 2, 4, 8, 16, 32, 64, 96, 128, 254],
+                        help='list of epochs to log gradient flow, 1 based')
 
     # wandb setup sweep args
     parser.add_argument('--tau_reg', type=int, default=2)

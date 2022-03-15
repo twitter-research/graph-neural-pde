@@ -9,33 +9,51 @@ import numpy as np
 import torch_sparse
 from torch_scatter import scatter_add, scatter_mul
 from torch_geometric.utils.loop import add_remaining_self_loops
-from torch_geometric.utils import degree, softmax
+from torch_geometric.utils import degree, softmax, homophily
 from torch_sparse import coalesce, transpose
 from torch_geometric.nn.inits import glorot, zeros, ones, constant
-from torch.nn import Parameter
+from torch.nn import Parameter, Softmax, Softplus
+from torch.distributions import Categorical
 import wandb
+from matplotlib.backends.backend_pdf import PdfPages
+
 from function_greed import ODEFuncGreed
 from utils import MaxNFEException, sym_row_col, sym_row_col_att, sym_row_col_att_measure, gram_schmidt, sym_row_col_att_relaxed, sigmoid_deriv, tanh_deriv, squareplus_deriv
-
 from base_classes import ODEFunc
 from function_transformer_attention import SpGraphTransAttentionLayer
 from function_transformer_attention_greed import SpGraphTransAttentionLayer_greed
 
 
 @torch.no_grad()
-# def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
 def test(logits, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
-  # model.eval()
-  # feat = data.x
-  # if model.opt['use_labels']:
-  #   feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
-  # logits, accs = model(feat, pos_encoding), []
   accs = []
   for _, mask in data('train_mask', 'val_mask', 'test_mask'):
     pred = logits[mask].max(1)[1]
     acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
     accs.append(acc)
   return accs
+
+@torch.no_grad()
+def entropies(logits, data, activation="softmax", pos_encoding=None, opt=None):  # opt required for runtime polymorphism
+  entropies = []
+  # https://discuss.pytorch.org/t/difficulty-understanding-entropy-in-pytorch/51014
+  # https://pytorch.org/docs/stable/distributions.html
+  if activation == "softmax":
+    S = Softmax(dim=1)
+  elif activation == "squaremax":
+    S = Softplus(dim=1)
+
+  for _, mask in data('train_mask', 'val_mask', 'test_mask'):
+    p_matrix = S(logits[mask])
+    pred = logits[mask].max(1)[1]
+    labels = data.y[mask]
+    correct = pred == labels
+    incorrect = pred != labels
+
+    entropy2 = Categorical(probs=p_matrix).entropy()
+    entropies.append(entropy2)
+  return entropies
+
 
 class ODEFuncGreedNonLin(ODEFuncGreed):
 
@@ -51,6 +69,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.train_accs = None
     self.val_accs = None
     self.test_accs = None
+    self.homophils = None
+    self.entropies = None
+    self.spectrum_acc_fig_list = []
+    self.edge_evol_fig_list = []
+    self.spectrum_acc_pdf = PdfPages('./spectrum_acc.pdf')
+    self.edge_evol_pdf = PdfPages('./edge_evol.pdf')
 
     self.epoch = 0
     self.wandb_step = 0
@@ -187,7 +211,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           pass
 
         src_x, dst_x = self.get_src_dst(x)
-        # fOmf = torch.einsum("ij,jj,ij->i", src_x, self.Omega, dst_x)
+        # fOmf = torch.einsum("ij,jj,ij->i", src_x, self.Omega, dst_x) incorrect
         fOmf = torch.einsum("ij,jk,ik->i", src_x, self.Omega, dst_x)
 
         if self.opt['gnl_activation'] == "sigmoid_deriv":
@@ -211,9 +235,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
         self.Omega = self.multihead_att_layer.QK.weight.T @ self.multihead_att_layer.QK.weight
 
-        f1 = torch_sparse.spmm(self.edge_index, -attention / src_meas, x.shape[0], x.shape[0], x @ self.Omega)
+        xOm = x @ self.Omega
+        f1 = torch_sparse.spmm(self.edge_index, -attention / src_meas, x.shape[0], x.shape[0], xOm)
         index_t, att_t = transpose(self.edge_index, attention, x.shape[0], x.shape[0])
-        f2 = torch_sparse.spmm(index_t, -att_t / dst_meas, x.shape[0], x.shape[0], x @ self.Omega)
+        f2 = torch_sparse.spmm(index_t, -att_t / dst_meas, x.shape[0], x.shape[0], xOm)
         f = f1 + f2
 
     f = f - self.delta * x #break point np.isnan(f.sum().detach().numpy())
@@ -255,12 +280,16 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
                    f"gf_e{self.epoch}_f": (f**2).sum(),
                    f"gf_e{self.epoch}_x": (x ** 2).sum(),
                    "grad_flow_step": self.wandb_step})
-
+        #note we could include some of the below stats in the wandb logging
 
         logits = self.GNN_m2(x)
         train_acc, val_acc, test_acc = test(logits, self.data)
-
+        entropy2 = entropies(logits, self.data)
+        pred = logits.max(1)[1]
+        homophil = homophily(edge_index=self.edge_index, y=pred)
         L2dist = torch.sqrt(torch.sum((src_x - dst_x) ** 2, dim=1))
+
+
         if self.attentions is None:
           self.attentions = attention.unsqueeze(0)
           self.fOmf = fOmf.unsqueeze(0)
@@ -268,7 +297,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.train_accs = [train_acc]
           self.val_accs = [val_acc]
           self.test_accs = [test_acc]
-
+          self.homophils = [homophil]
         else:
           self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
           self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
@@ -276,6 +305,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.train_accs.append(train_acc)
           self.val_accs.append(val_acc)
           self.test_accs.append(test_acc)
+          self.homophils.append(homophil)
 
         self.wandb_step += 1
 
