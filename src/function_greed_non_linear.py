@@ -35,7 +35,7 @@ def test(logits, data, pos_encoding=None, opt=None):  # opt required for runtime
 
 @torch.no_grad()
 def entropies(logits, data, activation="softmax", pos_encoding=None, opt=None):  # opt required for runtime polymorphism
-  entropies = []
+  entropies = {} #[]
   # https://discuss.pytorch.org/t/difficulty-understanding-entropy-in-pytorch/51014
   # https://pytorch.org/docs/stable/distributions.html
   if activation == "softmax":
@@ -43,7 +43,7 @@ def entropies(logits, data, activation="softmax", pos_encoding=None, opt=None): 
   elif activation == "squaremax":
     S = Softplus(dim=1)
 
-  for _, mask in data('train_mask', 'val_mask', 'test_mask'):
+  for mask_name, mask in data('train_mask', 'val_mask', 'test_mask'):
     p_matrix = S(logits[mask])
     pred = logits[mask].max(1)[1]
     labels = data.y[mask]
@@ -51,7 +51,9 @@ def entropies(logits, data, activation="softmax", pos_encoding=None, opt=None): 
     incorrect = pred != labels
 
     entropy2 = Categorical(probs=p_matrix).entropy()
-    entropies.append(entropy2)
+    entropies[f"entropy_{mask_name}_correct"] = entropy2[correct]
+    entropies[f"entropy_{mask_name}_incorrect"] = entropy2[incorrect]
+
   return entropies
 
 
