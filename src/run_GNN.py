@@ -313,8 +313,7 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       spectrum_ax[row,2].yaxis.set_tick_params(labelsize=16)
       cbar1 = spectrum_fig.colorbar(mat2, ax=spectrum_ax[row,2], shrink=0.75)
       cbar1.ax.tick_params(labelsize=16)
-
-      spectrum_fig.show()
+      # spectrum_fig.show()
 
       ###2) multi grid accuracy and entropy charts
       train_accs = model.odeblock.odefunc.train_accs
@@ -339,7 +338,7 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       acc_entropy_ax[row,0].yaxis.set_tick_params(labelsize=16)
       acc_entropy_ax[row,0].set_title(f"Accuracy evolution, epoch {epoch}", fontdict={'fontsize':24})
       acc_entropy_ax[row, 0].legend(loc="upper right", fontsize=24)
-      acc_entropy_fig.show()
+      # acc_entropy_fig.show()
 
       #entropy plots
       #https://matplotlib.org/stable/gallery/lines_bars_and_markers/multicolored_line.html
@@ -371,8 +370,7 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
 
       # ax.set_title(f"Train set (num_nodes {entropies['entropy_train_mask'].shape[1]}) Entropy, epoch {epoch}")
       acc_entropy_ax[row, 1].set_title(f"Train set (num_nodes {entropies['entropy_train_mask'].shape[1]}) Entropy, epoch {epoch}", fontdict={'fontsize':24})
-      # fig.show()
-      acc_entropy_fig.show()
+      # acc_entropy_fig.show()
 
       ###3) multi grid edge value plots
 
@@ -384,7 +382,6 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       edge_evol_ax[row,0].xaxis.set_tick_params(labelsize=16)
       edge_evol_ax[row,0].yaxis.set_tick_params(labelsize=16)
       edge_evol_ax[row, 0].set_title(f"fOmf, epoch {epoch}", fontdict={'fontsize':24})
-      # fig.show()
 
       # attentions = model.odeblock.odefunc.attentions
       # fig = plt.figure()
@@ -400,7 +397,6 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       edge_evol_ax[row,1].xaxis.set_tick_params(labelsize=16)
       edge_evol_ax[row,1].yaxis.set_tick_params(labelsize=16)
       edge_evol_ax[row,1].set_title(f"L2dist, epoch {epoch}", fontdict={'fontsize':24})
-      # fig.show()
       edge_evol_fig.show()
 
       model.odeblock.odefunc.fOmf = None
@@ -412,12 +408,12 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       model.odeblock.odefunc.entropies = None
 
       if row == num_rows - 1:
-        model.odeblock.odefunc.spectrum_acc_pdf.savefig(spectrum_fig)
-        model.odeblock.odefunc.spectrum_acc_pdf.savefig(acc_entropy_fig)
-        model.odeblock.odefunc.spectrum_acc_pdf.savefig(edge_evol_fig)
+        model.odeblock.odefunc.spectrum_pdf.savefig(spectrum_fig)
+        model.odeblock.odefunc.acc_entropy_pdf.savefig(acc_entropy_fig)
+        model.odeblock.odefunc.edge_evol_pdf.savefig(edge_evol_fig)
 
       if epoch == opt['wandb_epoch_list'][-1]:
-        model.odeblock.odefunc.spectrum_acc_pdf.close()
+        model.odeblock.odefunc.spectrum_pdf.close()
         model.odeblock.odefunc.acc_entropy_pdf.close()
         model.odeblock.odefunc.edge_evol_pdf.close()
 

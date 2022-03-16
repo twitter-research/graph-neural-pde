@@ -47,7 +47,7 @@ def greed_run_params(opt):
     # TUNING
     # opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 18.295 #10
-    opt['epoch'] = 254 #100 #40 #40 #10
+    opt['epoch'] = 129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
 
@@ -161,7 +161,7 @@ def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
     opt['wandb'] = True
     opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when testing
-    opt['wandb_epoch_list'] = [1,2,4,8,16,17,18,19]
+    opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
     opt['wandb_project'] = project_name #"greed_runs"
     opt['wandb_group'] = group_name #"testing"  # "tuning" eval
     DT = datetime.datetime.now()
