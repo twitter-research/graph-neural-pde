@@ -9,8 +9,11 @@ import torch.nn.functional as F
 import wandb
 from ogb.nodeproppred import Evaluator
 import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
+from matplotlib import colors as mcolors
 from matplotlib.backends.backend_pdf import PdfPages
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.colors import ListedColormap, BoundaryNorm
 
 from GNN import GNN
 from GNN_early import GNNEarly
@@ -252,14 +255,18 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       num_rows = 4
       row = idx % num_rows
       if row == 0: # create new figs
-        #https://stackoverflow.com/questions/10388462/matplotlib-different-size-subplots
-        spectrum_acc_fig, spectrum_acc_ax = plt.subplots(num_rows, 3, gridspec_kw={'width_ratios': [1,1,1]}, figsize=(24, 32))
-        model.odeblock.odefunc.spectrum_acc_fig_list.append([spectrum_acc_fig, spectrum_acc_ax])
-        # egde_evol_fig, egde_evol_ax = plt.subplots(num_rows, 2, gridspec_kw={'width_ratios': [1,1]}, figsize=(8.27, 11.69), dpi=100)#figsize=(24, 8))
-        # model.odeblock.odefunc.edge_evol_fig_list.append([egde_evol_fig, egde_evol_ax])
+        spectrum_fig, spectrum_ax = plt.subplots(num_rows, 3, gridspec_kw={'width_ratios': [1,1,1]}, figsize=(24, 32))
+        model.odeblock.odefunc.spectrum_fig_list.append([spectrum_fig, spectrum_ax])
+
+        acc_entropy_fig, acc_entropy_ax = plt.subplots(num_rows, 2, gridspec_kw={'width_ratios': [1,1]}, figsize=(24, 32))
+        model.odeblock.odefunc.acc_entropy_fig_list.append([acc_entropy_fig, acc_entropy_ax])
+
+        edge_evol_fig, edge_evol_ax = plt.subplots(num_rows, 2, gridspec_kw={'width_ratios': [1,1]}, figsize=(24, 32))
+        model.odeblock.odefunc.edge_evol_fig_list.append([edge_evol_fig, edge_evol_ax])
       else:
-        spectrum_acc_fig, spectrum_acc_ax = model.odeblock.odefunc.spectrum_acc_fig_list[-1]
-        # egde_evol_fig, egde_evol_ax = model.odeblock.odefunc.edge_evol_fig_list[-1]
+        spectrum_fig, spectrum_ax = model.odeblock.odefunc.spectrum_fig_list[-1]
+        acc_entropy_fig, acc_entropy_ax = model.odeblock.odefunc.acc_entropy_fig_list[-1]
+        edge_evol_fig, edge_evol_ax = model.odeblock.odefunc.edge_evol_fig_list[-1]
 
       #forward pass through the model in eval mode to generate the data
       model.odeblock.odefunc.get_evol_stats = True
@@ -270,66 +277,113 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       Omega = model.odeblock.odefunc.Omega
       L, Q = torch.linalg.eigh(Omega)  # fast version for symmetric matrices https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
 
-      fig, ax = plt.subplots(1, 3, figsize=(24, 8))
-      mat = ax[0].matshow(Omega, interpolation='nearest')
-      ax[0].xaxis.set_tick_params(labelsize=24)
-      ax[0].yaxis.set_tick_params(labelsize=24)
-      cbar = fig.colorbar(mat, ax=ax[0], shrink=0.75)
-      cbar.ax.tick_params(labelsize=20)
+      # fig, ax = plt.subplots(1, 3, figsize=(24, 8))
+      # mat = ax[0].matshow(Omega, interpolation='nearest')
+      # ax[0].xaxis.set_tick_params(labelsize=24)
+      # ax[0].yaxis.set_tick_params(labelsize=24)
+      # cbar = fig.colorbar(mat, ax=ax[0], shrink=0.75)
+      # cbar.ax.tick_params(labelsize=20)
+      #
+      # ax[1].bar(range(L.shape[0]), L)
+      # ax[1].xaxis.set_tick_params(labelsize=24)
+      # ax[1].yaxis.set_tick_params(labelsize=24)
+      #
+      # mat2 = ax[2].matshow(Q, interpolation='nearest')
+      # ax[2].xaxis.set_tick_params(labelsize=24)
+      # ax[2].yaxis.set_tick_params(labelsize=24)
+      # cbar1 = fig.colorbar(mat2, ax=ax[2], shrink=0.75)
+      # cbar1.ax.tick_params(labelsize=20)
+      # fig.suptitle(f"Omega, E-values, E-vectors, epoch {epoch}", fontsize=24)
+      # fig.show()
 
-      ax[1].bar(range(L.shape[0]), L)
-      ax[1].xaxis.set_tick_params(labelsize=24)
-      ax[1].yaxis.set_tick_params(labelsize=24)
-
-      mat2 = ax[2].matshow(Q, interpolation='nearest')
-      ax[2].xaxis.set_tick_params(labelsize=24)
-      ax[2].yaxis.set_tick_params(labelsize=24)
-      cbar1 = fig.colorbar(mat2, ax=ax[2], shrink=0.75)
-      cbar1.ax.tick_params(labelsize=20)
-      fig.suptitle(f"Omega, E-values, E-vectors, epoch {epoch}", fontsize=24)
-      fig.show()
-
-      ### multi grid Omega spectrum charts
-      mat = spectrum_acc_ax[row,0].matshow(Omega, interpolation='nearest')
-      spectrum_acc_ax[row,0].xaxis.set_tick_params(labelsize=16)
-      spectrum_acc_ax[row,0].yaxis.set_tick_params(labelsize=16)
-      cbar = spectrum_acc_fig.colorbar(mat, ax=spectrum_acc_ax[row,0], shrink=0.75)
+      ###1) multi grid Omega spectrum charts
+      mat = spectrum_ax[row,0].matshow(Omega, interpolation='nearest')
+      spectrum_ax[row,0].xaxis.set_tick_params(labelsize=16)
+      spectrum_ax[row,0].yaxis.set_tick_params(labelsize=16)
+      cbar = spectrum_fig.colorbar(mat, ax=spectrum_ax[row,0], shrink=0.75)
       cbar.ax.tick_params(labelsize=16)
 
-      spectrum_acc_ax[row,1].bar(range(L.shape[0]), L)
-      spectrum_acc_ax[row,1].set_title(f"Omega, E-values, E-vectors, epoch {epoch}", fontdict={'fontsize':24})
+      spectrum_ax[row,1].bar(range(L.shape[0]), L)
+      spectrum_ax[row,1].set_title(f"Omega, E-values, E-vectors, epoch {epoch}", fontdict={'fontsize':24})
+      spectrum_ax[row,1].xaxis.set_tick_params(labelsize=16)
+      spectrum_ax[row,1].yaxis.set_tick_params(labelsize=16)
 
-      spectrum_acc_ax[row,1].xaxis.set_tick_params(labelsize=16)
-      spectrum_acc_ax[row,1].yaxis.set_tick_params(labelsize=16)
-
-      mat2 = spectrum_acc_ax[row,2].matshow(Q, interpolation='nearest')
-      spectrum_acc_ax[row,2].xaxis.set_tick_params(labelsize=16)
-      spectrum_acc_ax[row,2].yaxis.set_tick_params(labelsize=16)
-      cbar1 = spectrum_acc_fig.colorbar(mat2, ax=spectrum_acc_ax[row,2], shrink=0.75)
+      mat2 = spectrum_ax[row,2].matshow(Q, interpolation='nearest')
+      spectrum_ax[row,2].xaxis.set_tick_params(labelsize=16)
+      spectrum_ax[row,2].yaxis.set_tick_params(labelsize=16)
+      cbar1 = spectrum_fig.colorbar(mat2, ax=spectrum_ax[row,2], shrink=0.75)
       cbar1.ax.tick_params(labelsize=16)
-      spectrum_acc_fig.show()
 
+      spectrum_fig.show()
 
-
-      ### multi grid Omega spectrum charts
+      ###2) multi grid accuracy and entropy charts
       train_accs = model.odeblock.odefunc.train_accs
       val_accs = model.odeblock.odefunc.val_accs
       test_accs = model.odeblock.odefunc.test_accs
       homophils = model.odeblock.odefunc.homophils
-      fig = plt.figure()
-      plt.plot(np.arange(0.0, len(train_accs) * opt['step_size'], opt['step_size']), train_accs, label="train")
-      plt.plot(np.arange(0.0, len(val_accs) * opt['step_size'], opt['step_size']), val_accs, label="val")
-      plt.plot(np.arange(0.0, len(test_accs) * opt['step_size'], opt['step_size']), test_accs, label="test")
-      plt.plot(np.arange(0.0, len(homophils) * opt['step_size'], opt['step_size']), homophils, label="homophil")
-      plt.title(f"Accuracy evolution, epoch {epoch}")
-      plt.legend(loc="upper right")
-      fig.show()
 
-      #edge value plots
-      # fOmf = model.odeblock.odefunc.fOmf
+      # fig = plt.figure()
+      # plt.plot(np.arange(0.0, len(train_accs) * opt['step_size'], opt['step_size']), train_accs, label="train")
+      # plt.plot(np.arange(0.0, len(val_accs) * opt['step_size'], opt['step_size']), val_accs, label="val")
+      # plt.plot(np.arange(0.0, len(test_accs) * opt['step_size'], opt['step_size']), test_accs, label="test")
+      # plt.plot(np.arange(0.0, len(homophils) * opt['step_size'], opt['step_size']), homophils, label="homophil")
+      # plt.title(f"Accuracy evolution, epoch {epoch}")
+      # plt.legend(loc="upper right")
+      # fig.show()
+
+      acc_entropy_ax[row,0].plot(np.arange(0.0, len(train_accs) * opt['step_size'], opt['step_size']), train_accs, label="train")
+      acc_entropy_ax[row,0].plot(np.arange(0.0, len(val_accs) * opt['step_size'], opt['step_size']), val_accs, label="val")
+      acc_entropy_ax[row,0].plot(np.arange(0.0, len(test_accs) * opt['step_size'], opt['step_size']), test_accs, label="test")
+      acc_entropy_ax[row,0].plot(np.arange(0.0, len(homophils) * opt['step_size'], opt['step_size']), homophils, label="homophil")
+      acc_entropy_ax[row,0].xaxis.set_tick_params(labelsize=16)
+      acc_entropy_ax[row,0].yaxis.set_tick_params(labelsize=16)
+      acc_entropy_ax[row,0].set_title(f"Accuracy evolution, epoch {epoch}", fontdict={'fontsize':24})
+      acc_entropy_ax[row, 0].legend(loc="upper right", fontsize=24)
+      acc_entropy_fig.show()
+
+      #entropy plots
+      #https://matplotlib.org/stable/gallery/lines_bars_and_markers/multicolored_line.html
+      #https://matplotlib.org/stable/gallery/shapes_and_collections/line_collection.html
+      #https://matplotlib.org/stable/api/collections_api.html#matplotlib.collections.LineCollection
+      entropies = model.odeblock.odefunc.entropies
+
+      # fig, ax = plt.subplots() #figsize=(8, 16))
+      x = np.arange(0.0, entropies['entropy_train_mask'].shape[0] * opt['step_size'], opt['step_size'])
+      ys = entropies['entropy_train_mask'].detach().numpy()
+      # ax.set_xlim(np.min(x), np.max(x))
+      # ax.set_ylim(np.min(ys), np.max(ys))
+      acc_entropy_ax[row, 1].set_xlim(np.min(x), np.max(x))
+      acc_entropy_ax[row, 1].set_ylim(np.min(ys), np.max(ys))
+      acc_entropy_ax[row,1].xaxis.set_tick_params(labelsize=16)
+      acc_entropy_ax[row,1].yaxis.set_tick_params(labelsize=16)
+
+      cmap = ListedColormap(['r', 'g'])
+      norm = BoundaryNorm([-1, 0.5, 2.0], cmap.N)
+      for i in range(entropies['entropy_train_mask'].shape[1]):
+        tf = entropies['entropy_train_mask_correct'][:,i].float().detach().numpy()
+        points = np.expand_dims(np.concatenate([x.reshape(-1,1),
+                 entropies['entropy_train_mask'][:, i].reshape(-1,1)], axis=1), axis=1)
+        segs = np.concatenate([points[:-1], points[1:]], axis=1)
+        lc = LineCollection(segs, cmap=cmap, norm=norm)
+        lc.set_array(tf[:-1])
+        # ax.add_collection(lc)
+        acc_entropy_ax[row, 1].add_collection(lc)
+
+      # ax.set_title(f"Train set (num_nodes {entropies['entropy_train_mask'].shape[1]}) Entropy, epoch {epoch}")
+      acc_entropy_ax[row, 1].set_title(f"Train set (num_nodes {entropies['entropy_train_mask'].shape[1]}) Entropy, epoch {epoch}", fontdict={'fontsize':24})
+      # fig.show()
+      acc_entropy_fig.show()
+
+      ###3) multi grid edge value plots
+
+      fOmf = model.odeblock.odefunc.fOmf
       # fig = plt.figure()
       # plt.plot(np.arange(0.0, fOmf.shape[0] * opt['step_size'], opt['step_size']), fOmf)
       # plt.title(f"fOmf, epoch {epoch}")
+      edge_evol_ax[row,0].plot(np.arange(0.0, fOmf.shape[0] * opt['step_size'], opt['step_size']), fOmf)
+      edge_evol_ax[row,0].xaxis.set_tick_params(labelsize=16)
+      edge_evol_ax[row,0].yaxis.set_tick_params(labelsize=16)
+      edge_evol_ax[row, 0].set_title(f"fOmf, epoch {epoch}", fontdict={'fontsize':24})
       # fig.show()
 
       # attentions = model.odeblock.odefunc.attentions
@@ -338,11 +392,16 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       # plt.title(f"Activated fOmf, epoch {epoch}")
       # fig.show()
 
-      # L2dist = model.odeblock.odefunc.L2dist
+      L2dist = model.odeblock.odefunc.L2dist
       # fig = plt.figure()
       # plt.plot(np.arange(0.0, L2dist.shape[0] * opt['step_size'], opt['step_size']), L2dist)
       # plt.title(f"L2dist, epoch {epoch}")
+      edge_evol_ax[row,1].plot(np.arange(0.0, L2dist.shape[0] * opt['step_size'], opt['step_size']), L2dist)
+      edge_evol_ax[row,1].xaxis.set_tick_params(labelsize=16)
+      edge_evol_ax[row,1].yaxis.set_tick_params(labelsize=16)
+      edge_evol_ax[row,1].set_title(f"L2dist, epoch {epoch}", fontdict={'fontsize':24})
       # fig.show()
+      edge_evol_fig.show()
 
       model.odeblock.odefunc.fOmf = None
       model.odeblock.odefunc.attentions = None
@@ -350,12 +409,17 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       model.odeblock.odefunc.train_accs = None
       model.odeblock.odefunc.val_accs = None
       model.odeblock.odefunc.test_accs = None
+      model.odeblock.odefunc.entropies = None
 
       if row == num_rows - 1:
-        model.odeblock.odefunc.spectrum_acc_pdf.savefig(spectrum_acc_fig)
+        model.odeblock.odefunc.spectrum_acc_pdf.savefig(spectrum_fig)
+        model.odeblock.odefunc.spectrum_acc_pdf.savefig(acc_entropy_fig)
+        model.odeblock.odefunc.spectrum_acc_pdf.savefig(edge_evol_fig)
 
       if epoch == opt['wandb_epoch_list'][-1]:
         model.odeblock.odefunc.spectrum_acc_pdf.close()
+        model.odeblock.odefunc.acc_entropy_pdf.close()
+        model.odeblock.odefunc.edge_evol_pdf.close()
 
 
     print(f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}, epsilon: {model.odeblock.odefunc.om_W_eps}")  # , nu: {model.odeblock.odefunc.om_W_nu}")

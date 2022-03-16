@@ -34,8 +34,8 @@ def test(logits, data, pos_encoding=None, opt=None):  # opt required for runtime
   return accs
 
 @torch.no_grad()
-def entropies(logits, data, activation="softmax", pos_encoding=None, opt=None):  # opt required for runtime polymorphism
-  entropies = {} #[]
+def get_entropies(logits, data, activation="softmax", pos_encoding=None, opt=None):  # opt required for runtime polymorphism
+  entropies_dic = {} #[]
   # https://discuss.pytorch.org/t/difficulty-understanding-entropy-in-pytorch/51014
   # https://pytorch.org/docs/stable/distributions.html
   if activation == "softmax":
@@ -48,13 +48,11 @@ def entropies(logits, data, activation="softmax", pos_encoding=None, opt=None): 
     pred = logits[mask].max(1)[1]
     labels = data.y[mask]
     correct = pred == labels
-    incorrect = pred != labels
-
     entropy2 = Categorical(probs=p_matrix).entropy()
-    entropies[f"entropy_{mask_name}_correct"] = entropy2[correct]
-    entropies[f"entropy_{mask_name}_incorrect"] = entropy2[incorrect]
+    entropies_dic[f"entropy_{mask_name}_correct"] = correct.unsqueeze(0)
+    entropies_dic[f"entropy_{mask_name}"] = entropy2.unsqueeze(0)
 
-  return entropies
+  return entropies_dic
 
 
 class ODEFuncGreedNonLin(ODEFuncGreed):
@@ -73,9 +71,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.test_accs = None
     self.homophils = None
     self.entropies = None
-    self.spectrum_acc_fig_list = []
+    self.spectrum_fig_list = []
+    self.acc_entropy_fig_list = []
     self.edge_evol_fig_list = []
-    self.spectrum_acc_pdf = PdfPages('./spectrum_acc.pdf')
+    self.spectrum_pdf = PdfPages('./spectrum_acc.pdf')
+    self.acc_entropy_pdf = PdfPages('./acc_entropy.pdf')
     self.edge_evol_pdf = PdfPages('./edge_evol.pdf')
 
     self.epoch = 0
@@ -286,11 +286,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
         logits = self.GNN_m2(x)
         train_acc, val_acc, test_acc = test(logits, self.data)
-        entropy2 = entropies(logits, self.data)
         pred = logits.max(1)[1]
         homophil = homophily(edge_index=self.edge_index, y=pred)
         L2dist = torch.sqrt(torch.sum((src_x - dst_x) ** 2, dim=1))
-
 
         if self.attentions is None:
           self.attentions = attention.unsqueeze(0)
@@ -300,6 +298,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.val_accs = [val_acc]
           self.test_accs = [test_acc]
           self.homophils = [homophil]
+          self.entropies = get_entropies(logits, self.data)
         else:
           self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
           self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
@@ -308,6 +307,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.val_accs.append(val_acc)
           self.test_accs.append(test_acc)
           self.homophils.append(homophil)
+
+          temp_entropies = get_entropies(logits, self.data)
+          for key, value, in self.entropies.items():
+            self.entropies[key] = torch.cat([value, temp_entropies[key]], dim=0)
 
         self.wandb_step += 1
 
