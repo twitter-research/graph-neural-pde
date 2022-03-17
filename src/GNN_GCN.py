@@ -41,13 +41,15 @@ class GCN(torch.nn.Module):
     # def forward(self, data: Data):
     #     x, edge_index, edge_attr = data.x, data.edge_index, data.edge_attr
     def forward(self, x, pos_encoding): #todo pos_encoding
+
         for i, layer in enumerate(self.layers):
+            x = self.dropout(x) #added extra dropouts to match on_local_aggregation
             x = layer(x, self.edge_index, edge_weight=self.edge_attr)
 
             if i == len(self.layers) - 1:
                 break
 
             x = self.act_fn(x)
-            x = self.dropout(x)
-
-        return torch.nn.functional.log_softmax(x, dim=1)
+            # x = self.dropout(x)
+        return x
+        # return torch.nn.functional.log_softmax(x, dim=1)  #cross entropy loss does not require softmax

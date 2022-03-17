@@ -1,9 +1,10 @@
 import os
 import argparse
+from argparse import Namespace
 import numpy as np
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
-from torch_geometric.utils import homophily
+from torch_geometric.utils import homophily, contains_self_loops, add_self_loops, add_remaining_self_loops
 from torch_scatter import scatter_add
 import torch.nn.functional as F
 import wandb
@@ -14,12 +15,14 @@ from matplotlib import colors as mcolors
 from matplotlib.backends.backend_pdf import PdfPages
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import ListedColormap, BoundaryNorm
+from dgl import DGLGraph
 
 from GNN import GNN
 from GNN_early import GNNEarly
 from GNN_KNN import GNN_KNN
 from GNN_KNN_early import GNNKNNEarly
 from GNN_GCN import GCN
+from GNN_GCN_DGL import GNNMLP
 import time, datetime
 from data import get_dataset, set_train_val_test_split
 from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling, dirichlet_energy
@@ -83,7 +86,10 @@ def train(model, optimizer, data, pos_encoding=None):
   else:
     train_pred_idx = data.train_mask
 
-  out = model(feat, pos_encoding)
+  # out = model(feat, pos_encoding)
+
+  graph = DGLGraph((data.edge_index[0],data.edge_index[1]))
+  out = model(graph, feat)
 
   if model.opt['dataset'] == 'ogbn-arxiv':
     # lf = torch.nn.functional.nll_loss
@@ -161,7 +167,10 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
   feat = data.x
   if model.opt['use_labels']:
     feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
-  logits, accs = model(feat, pos_encoding), []
+  # logits, accs = model(feat, pos_encoding), []
+  graph = DGLGraph((data.edge_index[0],data.edge_index[1]))
+  logits, accs = model(graph, feat), []
+
   for _, mask in data('train_mask', 'val_mask', 'test_mask'):
     pred = logits[mask].max(1)[1]
     acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
@@ -535,6 +544,8 @@ def main(cmd_opt):
     wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
+  dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)  ### added self loops for chameleon
+
   if opt['beltrami']:
     pos_encoding = apply_beltrami(dataset.data, opt).to(device)
     opt['pos_enc_dim'] = pos_encoding.shape[1]
@@ -556,7 +567,33 @@ def main(cmd_opt):
     #     device)
     # else:
     #   model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
-    model = GCN(opt, dataset, hidden = [64], dropout = 0.5)
+    # model = GCN(opt, dataset, hidden = [64], dropout = 0.5)
+    model = GCN(opt, dataset, hidden = [512,512], dropout = opt['dropout'])
+
+    def PosixPath(str):
+      return None
+    args_dict = {'hidden_feat_repr_dims': [512, 512], 'learnable_mixing': False, 'small_train_split': False, 'use_sage': False,
+     'use_prelu': False, 'use_gat': False, 'enable_mlp_branch': False, 'enable_gcn_branch': True, 'top_is_proj': False,
+     'gat_num_heads': 1, 'make_bidirectional': True, 'iterations': 2000, 'dropout': 0.6, 'lr': 0.005,
+     'weight_decay': 0.0, 'job_idx': 0, 'datasets_path': PosixPath('datasets'), 'mixhop_dataset_path': '',
+     'custom_split_file': './geom_gcn_splits/chameleon_split_0.6_0.2_0.npz', 'dataset': 'chameleon', 'self_loop': False,
+     'split_seed': 15, 'original_split': False, 'homogeneous_split': True, 'use_synthetic_dataset': False, 'syn_N0': 70,
+     'syn_C': 10, 'syn_m': 6, 'syn_N': 10000, 'syn_homophily': 0.5, 'syn_dump_path': '',
+     'syn_respect_original_split': False}
+    args = Namespace(**args_dict)
+    feat_repr_dims = [dataset.data.x.shape[1]] + args.hidden_feat_repr_dims + [dataset.num_classes]
+    model = GNNMLP(opt, feat_repr_dims,
+           enable_mlp=args.enable_mlp_branch,
+           enable_gcn=args.enable_gcn_branch,
+           learnable_mixing=args.learnable_mixing,
+           use_sage=args.use_sage,
+           use_gat=args.use_gat,
+           gat_num_heads=args.gat_num_heads,
+           top_is_proj=args.top_is_proj,
+           use_prelu=args.use_prelu,
+           dropout=args.dropout
+           ).to(device)
+
     parameters = [p for p in model.parameters() if p.requires_grad]
     print(opt)
     print_model_params(model)
@@ -863,11 +900,11 @@ if __name__ == '__main__':
   if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero', 'greed_non_linear']:
     opt = greed_run_params(opt)  ###basic params for GREED
 
-  if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these
-    opt = not_sweep_args(opt, project_name='greed_runs', group_name='testing')
-    # this includes args for running locally - specified in YAML for tunes
-    #  opt = greed_hyper_params(opt)
-    # opt = greed_ablation_params(opt)
+    if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these
+      opt = not_sweep_args(opt, project_name='greed_runs', group_name='testing')
+      # this includes args for running locally - specified in YAML for tunes
+      #  opt = greed_hyper_params(opt)
+      # opt = greed_ablation_params(opt)
 
   #applied to both sweeps and not sweeps
   opt = tf_ablation_args(opt)

@@ -47,7 +47,7 @@ def greed_run_params(opt):
     # TUNING
     # opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 18.295 #10
-    opt['epoch'] = 129 #254 #100 #40 #40 #10
+    opt['epoch'] = 255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
 
@@ -150,7 +150,7 @@ def greed_ablation_params(opt):
     opt['method'] = 'euler' #'euler'
     opt['step_size'] = 0.25 #25 #25 #10 #25
     # opt['max_iters'] = 10000
-    opt['use_best_params'] = True
+    opt['use_best_params'] = False #True
     # opt['decay'] = 0
 
     opt['geom_gcn_splits'] = False
