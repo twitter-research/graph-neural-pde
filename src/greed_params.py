@@ -146,7 +146,7 @@ def greed_ablation_params(opt):
         opt['attention_normalisation'] = 'none'
 
     #run params
-    opt['function'] = 'greed_non_linear' #'greed_linear_hetero'
+    opt['function'] = 'gcn' #'greed_non_linear' #'greed_linear_hetero'
     opt['method'] = 'euler' #'euler'
     opt['step_size'] = 0.25 #25 #25 #10 #25
     # opt['max_iters'] = 10000

@@ -175,14 +175,6 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
 
   return accs
 
-def make_colorbar_with_padding(ax): #http://chris35wills.github.io/array_plotting/
-  """
-  Create colorbar axis that fits the size of a plot - detailed here: http://chris35wills.github.io/matplotlib_axis/
-  """
-  divider = make_axes_locatable(ax)
-  cax = divider.append_axes("right", size="5%", pad=0.1)
-  return (cax)
-
 @torch.no_grad()
 def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
 
