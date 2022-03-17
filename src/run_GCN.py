@@ -4,7 +4,7 @@ from argparse import Namespace
 import numpy as np
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
-from torch_geometric.utils import homophily, contains_self_loops, add_self_loops, add_remaining_self_loops
+from torch_geometric.utils import homophily, contains_self_loops, add_self_loops, add_remaining_self_loops, is_undirected
 from torch_scatter import scatter_add
 import torch.nn.functional as F
 import wandb
@@ -15,7 +15,11 @@ from matplotlib import colors as mcolors
 from matplotlib.backends.backend_pdf import PdfPages
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import ListedColormap, BoundaryNorm
+
+import dgl
 from dgl import DGLGraph
+from data_utils_DGL import load_dataset,ReadMixhopDataset
+from pathlib import Path, PosixPath
 
 from GNN import GNN
 from GNN_early import GNNEarly
@@ -176,12 +180,13 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
     acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
     accs.append(acc)
 
-  #wandb tracking
-  #need to calc loss again
-  lf = torch.nn.CrossEntropyLoss()
-  loss = lf(logits[data.train_mask], data.y.squeeze()[data.train_mask])
 
   if opt['function'] in ['greed', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero', 'greed_non_linear']:
+    # wandb tracking
+    # need to calc loss again
+    lf = torch.nn.CrossEntropyLoss()
+    loss = lf(logits[data.train_mask], data.y.squeeze()[data.train_mask])
+
     wandb_log(data, model, opt, loss, accs[0], accs[1], accs[2], model.odeblock.odefunc.epoch)
     model.odeblock.odefunc.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
   elif opt['function'] == 'gcn':
@@ -544,7 +549,41 @@ def main(cmd_opt):
     wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
-  dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)  ### added self loops for chameleon
+  # dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)  ### added self loops for chameleon
+
+  # def PosixPath(str):
+  #   return None
+
+  args_dict = {'hidden_feat_repr_dims': [512, 512], 'learnable_mixing': False, 'small_train_split': False,
+               'use_sage': False,
+               'use_prelu': False, 'use_gat': False, 'enable_mlp_branch': False, 'enable_gcn_branch': True,
+               'top_is_proj': False,
+               'gat_num_heads': 1, 'make_bidirectional': True, 'iterations': 2000, 'dropout': 0.6, 'lr': 0.005,
+               # 'weight_decay': 0.0, 'job_idx': 0, 'datasets_path': PosixPath('datasets'), 'mixhop_dataset_path': '',
+               'weight_decay': 0.0, 'job_idx': 0, 'datasets_path': PosixPath('../datasets'), 'mixhop_dataset_path': '',
+               # 'custom_split_file': './geom_gcn_splits/chameleon_split_0.6_0.2_0.npz', 'dataset': 'chameleon',
+               'custom_split_file': '../geom_gcn_splits/chameleon_split_0.6_0.2_0.npz', 'dataset': 'chameleon',
+               'self_loop': False,
+               'split_seed': 15, 'original_split': False, 'homogeneous_split': True, 'use_synthetic_dataset': False,
+               'syn_N0': 70,
+               'syn_C': 10, 'syn_m': 6, 'syn_N': 10000, 'syn_homophily': 0.5, 'syn_dump_path': '',
+               'syn_respect_original_split': False}
+  args = Namespace(**args_dict)
+
+
+  graph, num_labels, features, labels, train_mask, val_mask, test_mask = load_dataset(args, device)
+  if args.make_bidirectional:
+    graph = graph.to(torch.device('cpu'))
+    graph_bi = dgl.to_bidirected(graph)
+    for k, v in graph.ndata.items():
+      graph_bi.ndata[k] = v
+    graph = graph_bi.to(device)
+  dataset.data.edge_index = torch.cat([graph.edges()[0].unsqueeze(0), graph.edges()[1].unsqueeze(0)], dim=0)
+  dataset.data.x = features
+  dataset.data.y = labels
+  dataset.data.train_mask = train_mask
+  dataset.data.val_mask = val_mask
+  dataset.data.test_mask = test_mask
 
   if opt['beltrami']:
     pos_encoding = apply_beltrami(dataset.data, opt).to(device)
@@ -568,19 +607,8 @@ def main(cmd_opt):
     # else:
     #   model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
     # model = GCN(opt, dataset, hidden = [64], dropout = 0.5)
-    model = GCN(opt, dataset, hidden = [512,512], dropout = opt['dropout'])
+    # model = GCN(opt, dataset, hidden = [512,512], dropout = opt['dropout'])
 
-    def PosixPath(str):
-      return None
-    args_dict = {'hidden_feat_repr_dims': [512, 512], 'learnable_mixing': False, 'small_train_split': False, 'use_sage': False,
-     'use_prelu': False, 'use_gat': False, 'enable_mlp_branch': False, 'enable_gcn_branch': True, 'top_is_proj': False,
-     'gat_num_heads': 1, 'make_bidirectional': True, 'iterations': 2000, 'dropout': 0.6, 'lr': 0.005,
-     'weight_decay': 0.0, 'job_idx': 0, 'datasets_path': PosixPath('datasets'), 'mixhop_dataset_path': '',
-     'custom_split_file': './geom_gcn_splits/chameleon_split_0.6_0.2_0.npz', 'dataset': 'chameleon', 'self_loop': False,
-     'split_seed': 15, 'original_split': False, 'homogeneous_split': True, 'use_synthetic_dataset': False, 'syn_N0': 70,
-     'syn_C': 10, 'syn_m': 6, 'syn_N': 10000, 'syn_homophily': 0.5, 'syn_dump_path': '',
-     'syn_respect_original_split': False}
-    args = Namespace(**args_dict)
     feat_repr_dims = [dataset.data.x.shape[1]] + args.hidden_feat_repr_dims + [dataset.num_classes]
     model = GNNMLP(opt, feat_repr_dims,
            enable_mlp=args.enable_mlp_branch,
@@ -594,7 +622,9 @@ def main(cmd_opt):
            dropout=args.dropout
            ).to(device)
 
-    parameters = [p for p in model.parameters() if p.requires_grad]
+    # parameters = [p for p in model.parameters() if p.requires_grad]
+    parameters = model.parameters()
+
     print(opt)
     print_model_params(model)
     optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
