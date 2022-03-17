@@ -313,7 +313,7 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       spectrum_ax[row,2].yaxis.set_tick_params(labelsize=16)
       cbar1 = spectrum_fig.colorbar(mat2, ax=spectrum_ax[row,2], shrink=0.75)
       cbar1.ax.tick_params(labelsize=16)
-      # spectrum_fig.show()
+      spectrum_fig.show()
 
       ###2) multi grid accuracy and entropy charts
       train_accs = model.odeblock.odefunc.train_accs
@@ -370,7 +370,7 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
 
       # ax.set_title(f"Train set (num_nodes {entropies['entropy_train_mask'].shape[1]}) Entropy, epoch {epoch}")
       acc_entropy_ax[row, 1].set_title(f"Train set (num_nodes {entropies['entropy_train_mask'].shape[1]}) Entropy, epoch {epoch}", fontdict={'fontsize':24})
-      # acc_entropy_fig.show()
+      acc_entropy_fig.show()
 
       ###3) multi grid edge value plots
 

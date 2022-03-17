@@ -132,8 +132,8 @@ def greed_ablation_params(opt):
     opt['gnl_measure'] = 'ones' #'deg_poly' # 'nodewise'
 
     if opt['gnl_style'] == 'scaled_dot':
-        opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
-        opt['dim_p_w'] = 8 #4
+        opt['gnl_omega'] = 'sum'#'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
+        opt['dim_p_w'] = 16 #4
         opt['gnl_activation'] = 'squareplus_deriv' # exponential sigmoid_deriv tanh_deriv, squareplus_deriv
         opt['gnl_omega_norm'] = 'tanh' #"rowSum"
 

@@ -74,7 +74,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.spectrum_fig_list = []
     self.acc_entropy_fig_list = []
     self.edge_evol_fig_list = []
-    self.spectrum_pdf = PdfPages('./spectrum_acc.pdf')
+    self.spectrum_pdf = PdfPages('./spectrum.pdf')
     self.acc_entropy_pdf = PdfPages('./acc_entropy.pdf')
     self.edge_evol_pdf = PdfPages('./edge_evol.pdf')
 
