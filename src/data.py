@@ -8,13 +8,13 @@ import numpy as np
 
 import torch
 from torch_geometric.data import Data, InMemoryDataset
-from torch_geometric.datasets import Planetoid, Amazon, Coauthor, KarateClub, WikipediaNetwork
+from torch_geometric.datasets import Planetoid, Amazon, Coauthor, KarateClub#, WikipediaNetwork
 from graph_rewiring import get_two_hop, apply_gdc
 from ogb.nodeproppred import PygNodePropPredDataset
 import torch_geometric.transforms as T
 from torch_geometric.utils import to_undirected, is_undirected
 from graph_rewiring import make_symmetric, apply_pos_dist_rewire
-# from heterophilic import WebKB, WikipediaNetwork, Actor
+from heterophilic import WebKB, WikipediaNetwork, Actor
 
 DATA_PATH = '../data'
 
