@@ -91,7 +91,7 @@ def train(model, optimizer, data, pos_encoding=None):
     train_pred_idx = data.train_mask
 
   if model.opt['function'] in ['gcn_dgl','gcn_res_dgl']:
-    graph = DGLGraph((data.edge_index[0],data.edge_index[1]))
+    graph = DGLGraph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
     out = model(graph, feat)
   elif model.opt['function'] == 'gcn2':
     out = model(data.edge_index, feat)
@@ -178,7 +178,7 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
 
 
   if model.opt['function'] in ['gcn_dgl','gcn_res_dgl']:
-    graph = DGLGraph((data.edge_index[0],data.edge_index[1]))
+    graph = DGLGraph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
     logits, accs = model(graph, feat), []
   elif model.opt['function'] == 'gcn2':
     logits, accs = model(data.edge_index, feat), []
