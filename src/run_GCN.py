@@ -92,12 +92,15 @@ def train(model, optimizer, data, pos_encoding=None):
 
   if model.opt['function'] in ['gcn_dgl','gcn_res_dgl']:
     # graph = DGLGraph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
-    graph = dgl.graph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
+    graph = dgl.graph((data.edge_index[0],data.edge_index[1]))
+    cuda_g = graph.to(data.edge_index.device)
     print(f"device is {data.edge_index.device}")
     print(f"graph is {graph}")
+    print(f"graph device is {graph.device}")
+    print(f"cuda_g is {cuda_g}")
+    print(f"cuda_g device is {cuda_g}")
     print(f"model is {model}")
-
-    out = model(graph, feat)
+    out = model(cuda_g, feat)
   elif model.opt['function'] == 'gcn2':
     out = model(data.edge_index, feat)
   else:
