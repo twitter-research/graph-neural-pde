@@ -311,10 +311,13 @@ def get_fixed_splits(data, dataset_name, seed):
     print("Nodes", data.x.size(0))
     print("Non valid", len(data.non_valid_samples))
   else:
-    print(data.train_mask)
-    print(data.val_mask)
-    print(data.test_mask)
-    print(data.x.size(0))
+    print(data.train_mask.shape)
+    print(torch.count_nonzero(data.train_mask))
+    print(data.val_mask.shape)
+    print(torch.count_nonzero(data.val_mask))
+    print(data.test_mask.shape)
+    print(torch.count_nonzero(data.test_mask))
+    print(data.x.shape)
     assert torch.count_nonzero(data.train_mask + data.val_mask + data.test_mask) == data.x.size(0)
 
   return data
