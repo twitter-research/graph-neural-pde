@@ -35,21 +35,15 @@ class GraphSequential(nn.Module):
 
     def forward(self, graph, features):
         for layer in self.layer_stack:
-            # if self.opt['function'] in ['gcn_dgl', 'gcn_res_dgl'] and any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
-            if self.opt['function'] == 'gcn_dgl' and any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
-                features = layer(graph, features)
-            elif self.opt['function'] == 'gcn_res_dgl' and any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
-                features = features + layer(graph, features)
-            elif self.opt['function'] == 'gcn2' and any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
-                features = layer(features, graph) ##graph is actually ege index
+            if any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
+                if self.opt['function'] == 'gcn_dgl' or layer._in_feats != layer._out_feats:
+                    features = layer(graph, features)
+                elif self.opt['function'] == 'gcn_res_dgl':
+                    features = features + self.opt['step_size'] * layer(graph, features)
+                elif self.opt['function'] == 'gcn2':
+                    features = layer(features, graph) ##here graph is edge index
             else:
                 features = layer(features)
-
-        # for layer in self.layer_stack:
-        #     if any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
-        #         features = layer(graph, features)
-        #     else:
-        #         features = layer(features)
         return features
 
 
@@ -118,11 +112,11 @@ class GNNMLP(nn.Module):
             #     GCN_fixedW = layer_type(stack_dims[0][0], stack_dims[0][1], self.opt, **layer_kwargs)
             # else:
             #     GCN_fixedW = layer_type(stack_dims[0][0], stack_dims[0][1], **layer_kwargs)
-            GCN_fixedW = layer_type(stack_dims[0][0], stack_dims[0][1], **layer_kwargs)
+            GCN_fixedW = layer_type(stack_dims[1][0], stack_dims[1][1], **layer_kwargs)
 
         for indx, (in_feat, out_feat) in enumerate(stack_dims):
             stack.append(nn.Dropout(dropout))
-            if in_feat != out_feat:
+            if in_feat != out_feat: #manual overide to ignore fixed W or residual blocks if on a convolutional encoder decoder
                 stack.append(GraphConv(in_feat, out_feat, **layer_kwargs))
             elif self.opt['gcn_fixed']:
                 stack.append(GCN_fixedW)
