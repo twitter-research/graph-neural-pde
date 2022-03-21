@@ -98,8 +98,8 @@ def train(model, optimizer, data, pos_encoding=None):
     print(f"graph is {graph}")
     print(f"graph device is {graph.device}")
     print(f"cuda_g is {cuda_g}")
-    print(f"cuda_g device is {cuda_g}")
-    print(f"model is {model}")
+    print(f"cuda_g device is {cuda_g.device}")
+    print(f"feat device is {feat.device}")
     out = model(cuda_g, feat)
   elif model.opt['function'] == 'gcn2':
     out = model(data.edge_index, feat)
