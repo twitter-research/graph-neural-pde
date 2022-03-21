@@ -94,6 +94,9 @@ def train(model, optimizer, data, pos_encoding=None):
     # graph = DGLGraph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
     graph = dgl.graph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
     print(f"device is {data.edge_index.device}")
+    print(f"graph is {graph}")
+    print(f"model is {model}")
+
     out = model(graph, feat)
   elif model.opt['function'] == 'gcn2':
     out = model(data.edge_index, feat)
