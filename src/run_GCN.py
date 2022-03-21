@@ -595,7 +595,7 @@ def main(cmd_opt):
 
   args = Namespace(**args_dict)
 
-  graph, num_labels, features, labels, train_mask, val_mask, test_mask = load_dataset(args, device)
+  # graph, num_labels, features, labels, train_mask, val_mask, test_mask = load_dataset(args, device)
   # if args.make_bidirectional:
   #   graph = graph.to(torch.device('cpu'))
   #   graph_bi = dgl.to_bidirected(graph)
