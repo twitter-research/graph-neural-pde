@@ -147,7 +147,9 @@ def greed_ablation_params(opt):
     #gcn params
     # opt['gcn_fixed'] = True #False #True
     # opt['gcn_enc_dec'] = True #False #True
-    # opt['gcn_non_lin'] = False #True
+    # opt['
+    #
+    # '] = False #True
 
     #run params
     # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
@@ -439,6 +441,11 @@ def default_params():
     parser.add_argument('--R_depon_A', type=str, default='', help='R dependancy in A')
     # parser.add_argument('--W_beta', type=float, default=0.5, help='for cgnn Ws orthoganal update')
     parser.add_argument('--tau_residual', type=str, default='False', help='makes tau residual')
+
+    # GCN ablation args
+    parser.add_argument('--gcn_fixed', type=str, default='False', help='fixes layers in gcn')
+    parser.add_argument('--gcn_enc_dec', type=str, default='False', help='uses encoder decoder with GCN')
+    parser.add_argument('--gcn_non_lin', type=str, default='False', help='uses non linearity with GCN')
 
     args = parser.parse_args()
     opt = vars(args)
