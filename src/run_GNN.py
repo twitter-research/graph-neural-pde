@@ -166,12 +166,13 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
     acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
     accs.append(acc)
 
-  #wandb tracking
-  #need to calc loss again
-  lf = torch.nn.CrossEntropyLoss()
-  loss = lf(logits[data.train_mask], data.y.squeeze()[data.train_mask])
-  wandb_log(data, model, opt, loss, accs[0], accs[1], accs[2], model.odeblock.odefunc.epoch)
-  model.odeblock.odefunc.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
+  if opt['wandb']:
+    # wandb tracking
+    # need to calc loss again
+    lf = torch.nn.CrossEntropyLoss()
+    loss = lf(logits[data.train_mask], data.y.squeeze()[data.train_mask])
+    wandb_log(data, model, opt, loss, accs[0], accs[1], accs[2], model.odeblock.odefunc.epoch)
+    model.odeblock.odefunc.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
 
   return accs
 
@@ -884,3 +885,5 @@ if __name__ == '__main__':
 #--dataset Cora --epoch 100 --function greed_linear_homo --method euler --step_size 0.25 --self_loop_weight 0 --test_tau_symmetric True --symmetric_QK True --symmetric_attention False --attention_activation sigmoid --attention_normalisation sym_row_col --test_tau_ones True --use_best_params --T0term_normalisation T0_identity --T1term_normalisation T1_noNorm
 
 #--dataset Cora --use_best_params --function greed_linear_homo --attention_activation exponential --attention_normalisation none --T0term_normalisation T0_rowSum --laplacian_norm lap_symmAttM_RowSumnorm
+
+#--dataset chameleon --function greed_non_linear --use_best_params

@@ -1,8 +1,8 @@
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
-import dgl
-from dgl import DGLGraph
+# import dgl
+# from dgl import DGLGraph
 from dgl.nn.pytorch import GraphConv, SAGEConv, GATConv
 from torch_geometric.nn import GCNConv
 
@@ -10,29 +10,46 @@ from torch_geometric.nn import GCNConv
 class PyG_GCN(nn.Module):
     def __init__(self, in_feat, out_feat, **layer_kwargs):
         super(PyG_GCN, self).__init__()
-        # layer_type(in_feat, out_feat,**layer_kwargs))
         self.GCNConv = GCNConv(in_feat, out_feat)
 
     def forward(self, graph, features):
-        # layer(graph,features)
-        x = features
         edge_index = torch.cat([graph.edges()[0].unsqueeze(0), graph.edges()[1].unsqueeze(0)], dim=0)
-        return self.GCNConv(x, edge_index)
-        # forward(self, x: Tensor, edge_index: Adj, edge_weight: OptTensor = None)
+        return self.GCNConv(features, edge_index)
 
+# class ResGraphConv(nn.Module):
+#     def __init__(self, in_feat, out_feat, opt, **layer_kwargs):
+#         super(ResGraphConv, self).__init__()
+#         self.GCNConv = GCNConv(in_feat, out_feat)
+#         self.opt = opt
+#
+#     def forward(self, graph, features):
+#         edge_index = torch.cat([graph.edges()[0].unsqueeze(0), graph.edges()[1].unsqueeze(0)], dim=0)
+#         return features +  self.opt['step_size'] * self.GCNConv(features, edge_index)
 
 class GraphSequential(nn.Module):
-    def __init__(self, layer_stack):
+    def __init__(self, layer_stack, opt):
         super().__init__()
         self.layer_stack = nn.ModuleList(layer_stack)
-        self.gcn_layer_types = [GraphConv, SAGEConv, GATConv, PyG_GCN]
+        self.gcn_layer_types = [GraphConv, SAGEConv, GATConv, PyG_GCN, GCNConv]#, ResGraphConv]
+        self.opt = opt
 
     def forward(self, graph, features):
         for layer in self.layer_stack:
-            if any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
+            # if self.opt['function'] in ['gcn_dgl', 'gcn_res_dgl'] and any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
+            if self.opt['function'] == 'gcn_dgl' and any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
                 features = layer(graph, features)
+            elif self.opt['function'] == 'gcn_res_dgl' and any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
+                features = features + layer(graph, features)
+            elif self.opt['function'] == 'gcn2' and any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
+                features = layer(features, graph) ##graph is actually ege index
             else:
                 features = layer(features)
+
+        # for layer in self.layer_stack:
+        #     if any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
+        #         features = layer(graph, features)
+        #     else:
+        #         features = layer(features)
         return features
 
 
@@ -63,8 +80,15 @@ class GNNMLP(nn.Module):
                 gcn_layer_type = GATConv
                 gcn_kwargs = {'num_heads': gat_num_heads}
             else:
-                gcn_layer_type = GraphConv
-                # gcn_layer_type = PyG_GCN
+                ### choice of PyG and DGL GCNConv
+                if self.opt['function'] == 'gcn_dgl':
+                    gcn_layer_type = GraphConv
+                elif self.opt['function'] == 'gcn_res_dgl':
+                    gcn_layer_type = GraphConv #ResGraphConv
+                elif self.opt['function'] == 'gcn2':
+                    # gcn_layer_type = PyG_GCN #changed input signature instead of using slow wrapper
+                    gcn_layer_type = GCNConv
+
                 gcn_kwargs = {}
             self.gcn_stack = self._make_stack(dims, top_is_proj, dropout, gcn_layer_type, gcn_kwargs)
 
@@ -83,12 +107,37 @@ class GNNMLP(nn.Module):
     def _make_stack(self, dims, top_is_proj, dropout, layer_type, layer_kwargs):
         stack_dims = dims[:-1] if top_is_proj else dims
         stack = []
+
+        if self.opt['gcn_enc_dec']:
+            stack.append(nn.Dropout(dropout))
+            stack.append(nn.Linear(stack_dims[0][0], stack_dims[0][1]))
+            stack_dims = dims[1:-1]
+
+        if self.opt['gcn_fixed']:
+            # if self.opt['function'] == 'gcn_res_dgl':
+            #     GCN_fixedW = layer_type(stack_dims[0][0], stack_dims[0][1], self.opt, **layer_kwargs)
+            # else:
+            #     GCN_fixedW = layer_type(stack_dims[0][0], stack_dims[0][1], **layer_kwargs)
+            GCN_fixedW = layer_type(stack_dims[0][0], stack_dims[0][1], **layer_kwargs)
+
         for indx, (in_feat, out_feat) in enumerate(stack_dims):
             stack.append(nn.Dropout(dropout))
-            stack.append(layer_type(in_feat, out_feat, **layer_kwargs))
+            if in_feat != out_feat:
+                stack.append(GraphConv(in_feat, out_feat, **layer_kwargs))
+            elif self.opt['gcn_fixed']:
+                stack.append(GCN_fixedW)
+            else:
+                stack.append(layer_type(in_feat, out_feat, **layer_kwargs))
+
             if indx < len(stack_dims) - 1 or top_is_proj:
-                stack.append(self.nonlinearity())
-        return GraphSequential(stack)
+                if self.opt['gcn_non_lin']:
+                    stack.append(self.nonlinearity())
+
+        if self.opt['gcn_enc_dec']:
+            stack.append(nn.Dropout(dropout))
+            stack.append(nn.Linear(dims[-1][0], dims[-1][1]))
+
+        return GraphSequential(stack, self.opt)
 
     def forward(self, graph, features):
         if self.enable_gcn and self.enable_mlp:

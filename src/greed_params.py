@@ -47,7 +47,7 @@ def greed_run_params(opt):
     # TUNING
     # opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 18.295 #10
-    opt['epoch'] = 255#129 #254 #100 #40 #40 #10
+    opt['epoch'] = 129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
 
@@ -132,11 +132,10 @@ def greed_ablation_params(opt):
     opt['gnl_measure'] = 'ones' #'deg_poly' # 'nodewise'
 
     if opt['gnl_style'] == 'scaled_dot':
-        opt['gnl_omega'] = 'sum'#'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
+        opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
         opt['dim_p_w'] = 16 #4
         opt['gnl_activation'] = 'squareplus_deriv' # exponential sigmoid_deriv tanh_deriv, squareplus_deriv
         opt['gnl_omega_norm'] = 'tanh' #"rowSum"
-
 
     if opt['gnl_style'] == 'softmax_attention':
         opt['symmetric_attention'] = True #should be redundant
@@ -145,21 +144,25 @@ def greed_ablation_params(opt):
         opt['attention_activation'] = 'softmax'#'softmax' #, exponential
         opt['attention_normalisation'] = 'none'
 
+    #gcn params
+    opt['gcn_fixed'] = True
+    opt['gcn_enc_dec'] = True
+    opt['gcn_non_lin'] = True
+
     #run params
-    opt['function'] = 'gcn' #'greed_non_linear' #'greed_linear_hetero'
+    opt['function'] = 'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
     opt['method'] = 'euler' #'euler'
     opt['step_size'] = 0.25 #25 #25 #10 #25
     # opt['max_iters'] = 10000
     opt['use_best_params'] = False #True
     # opt['decay'] = 0
 
-    opt['geom_gcn_splits'] = False
     return opt
     #--dataset Cora --function greed_linear_homo --use_best_params
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = True
+    opt['wandb'] = False #True
     opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when testing
     opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
     opt['wandb_project'] = project_name #"greed_runs"
@@ -186,7 +189,8 @@ def tf_ablation_args(opt):
                 'use_mlp', 'use_best_params', 'no_early',
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
-                'XN_no_activation','m2_mlp']:
+                'XN_no_activation','m2_mlp',
+                'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin']:
 
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)

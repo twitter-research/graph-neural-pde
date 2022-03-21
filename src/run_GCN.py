@@ -4,7 +4,7 @@ from argparse import Namespace
 import numpy as np
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
-from torch_geometric.utils import homophily, contains_self_loops, add_self_loops, add_remaining_self_loops, is_undirected
+from torch_geometric.utils import homophily, contains_self_loops, add_self_loops, add_remaining_self_loops, is_undirected, to_undirected
 from torch_scatter import scatter_add
 import torch.nn.functional as F
 import wandb
@@ -90,10 +90,14 @@ def train(model, optimizer, data, pos_encoding=None):
   else:
     train_pred_idx = data.train_mask
 
-  # out = model(feat, pos_encoding)
+  if model.opt['function'] in ['gcn_dgl','gcn_res_dgl']:
+    graph = DGLGraph((data.edge_index[0],data.edge_index[1]))
+    out = model(graph, feat)
+  elif model.opt['function'] == 'gcn2':
+    out = model(data.edge_index, feat)
+  else:
+    out = model(feat, pos_encoding)
 
-  graph = DGLGraph((data.edge_index[0],data.edge_index[1]))
-  out = model(graph, feat)
 
   if model.opt['dataset'] == 'ogbn-arxiv':
     # lf = torch.nn.functional.nll_loss
@@ -171,9 +175,15 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
   feat = data.x
   if model.opt['use_labels']:
     feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
-  # logits, accs = model(feat, pos_encoding), []
-  graph = DGLGraph((data.edge_index[0],data.edge_index[1]))
-  logits, accs = model(graph, feat), []
+
+
+  if model.opt['function'] in ['gcn_dgl','gcn_res_dgl']:
+    graph = DGLGraph((data.edge_index[0],data.edge_index[1]))
+    logits, accs = model(graph, feat), []
+  elif model.opt['function'] == 'gcn2':
+    logits, accs = model(data.edge_index, feat), []
+  else:
+    logits, accs = model(feat, pos_encoding), []
 
   for _, mask in data('train_mask', 'val_mask', 'test_mask'):
     pred = logits[mask].max(1)[1]
@@ -189,7 +199,7 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
 
     wandb_log(data, model, opt, loss, accs[0], accs[1], accs[2], model.odeblock.odefunc.epoch)
     model.odeblock.odefunc.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
-  elif opt['function'] == 'gcn':
+  elif opt['function'] in ['gcn','gcn2','gcn_dgl']:
     model.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
 
   return accs
@@ -513,6 +523,7 @@ def merge_cmd_args(cmd_opt, opt):
 
 
 def main(cmd_opt):
+  assert cmd_opt['function'] in ['gcn','gcn2','gcn_dgl', 'gcn_res_dgl'], 'script for GCN type model' #todo, incorporate the GCN logic in run_GNN
 
   if cmd_opt['use_best_params']:
     best_opt = best_params_dict[cmd_opt['dataset']]
@@ -549,18 +560,31 @@ def main(cmd_opt):
     wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
-  # dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)  ### added self loops for chameleon
+  dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)  ### added self loops for chameleon
+  dataset.data.edge_index = to_undirected(dataset.data.edge_index)
 
-  # def PosixPath(str):
-  #   return None
+  # args_dict = {'hidden_feat_repr_dims': [512, 512], 'learnable_mixing': False, 'small_train_split': False,
+  #              'use_sage': False,
+  #              'use_prelu': False, 'use_gat': False, 'enable_mlp_branch': False, 'enable_gcn_branch': True,
+  #              'top_is_proj': False,
+  #              'gat_num_heads': 1, 'make_bidirectional': True, 'iterations': 2000, 'dropout': 0.6, 'lr': 0.005,
+  #              # 'weight_decay': 0.0, 'job_idx': 0, 'datasets_path': PosixPath('datasets'), 'mixhop_dataset_path': '',
+  #              'weight_decay': 0.0, 'job_idx': 0, 'datasets_path': PosixPath('../datasets'), 'mixhop_dataset_path': '',
+  #              # 'custom_split_file': './geom_gcn_splits/chameleon_split_0.6_0.2_0.npz', 'dataset': 'chameleon',
+  #              'custom_split_file': '../geom_gcn_splits/chameleon_split_0.6_0.2_0.npz', 'dataset': 'chameleon',
+  #              'self_loop': False,
+  #              'split_seed': 15, 'original_split': False, 'homogeneous_split': True, 'use_synthetic_dataset': False,
+  #              'syn_N0': 70,
+  #              'syn_C': 10, 'syn_m': 6, 'syn_N': 10000, 'syn_homophily': 0.5, 'syn_dump_path': '',
+  #              'syn_respect_original_split': False}
 
-  args_dict = {'hidden_feat_repr_dims': [512, 512], 'learnable_mixing': False, 'small_train_split': False,
+  args_dict = {'hidden_feat_repr_dims': int(opt['time']//opt['step_size'])*[opt['hidden_dim']], 'learnable_mixing': False, 'small_train_split': False,
                'use_sage': False,
                'use_prelu': False, 'use_gat': False, 'enable_mlp_branch': False, 'enable_gcn_branch': True,
                'top_is_proj': False,
-               'gat_num_heads': 1, 'make_bidirectional': True, 'iterations': 2000, 'dropout': 0.6, 'lr': 0.005,
+               'gat_num_heads': 1, 'make_bidirectional': True, 'iterations': opt['epoch'], 'dropout': opt['dropout'], 'lr': opt['lr'],
                # 'weight_decay': 0.0, 'job_idx': 0, 'datasets_path': PosixPath('datasets'), 'mixhop_dataset_path': '',
-               'weight_decay': 0.0, 'job_idx': 0, 'datasets_path': PosixPath('../datasets'), 'mixhop_dataset_path': '',
+               'weight_decay': opt['decay'], 'job_idx': 0, 'datasets_path': PosixPath('../datasets'), 'mixhop_dataset_path': '',
                # 'custom_split_file': './geom_gcn_splits/chameleon_split_0.6_0.2_0.npz', 'dataset': 'chameleon',
                'custom_split_file': '../geom_gcn_splits/chameleon_split_0.6_0.2_0.npz', 'dataset': 'chameleon',
                'self_loop': False,
@@ -568,22 +592,24 @@ def main(cmd_opt):
                'syn_N0': 70,
                'syn_C': 10, 'syn_m': 6, 'syn_N': 10000, 'syn_homophily': 0.5, 'syn_dump_path': '',
                'syn_respect_original_split': False}
+
   args = Namespace(**args_dict)
 
-
   graph, num_labels, features, labels, train_mask, val_mask, test_mask = load_dataset(args, device)
-  if args.make_bidirectional:
-    graph = graph.to(torch.device('cpu'))
-    graph_bi = dgl.to_bidirected(graph)
-    for k, v in graph.ndata.items():
-      graph_bi.ndata[k] = v
-    graph = graph_bi.to(device)
-  dataset.data.edge_index = torch.cat([graph.edges()[0].unsqueeze(0), graph.edges()[1].unsqueeze(0)], dim=0)
-  dataset.data.x = features
-  dataset.data.y = labels
-  dataset.data.train_mask = train_mask
-  dataset.data.val_mask = val_mask
-  dataset.data.test_mask = test_mask
+  # if args.make_bidirectional:
+  #   graph = graph.to(torch.device('cpu'))
+  #   graph_bi = dgl.to_bidirected(graph)
+  #   for k, v in graph.ndata.items():
+  #     graph_bi.ndata[k] = v
+  #   graph = graph_bi.to(device)
+  #
+  # graph_edge_index = torch.cat([graph.edges()[0].unsqueeze(0), graph.edges()[1].unsqueeze(0)], dim=0)
+  # dataset.data.edge_index = graph_edge_index
+  # dataset.data.x = features
+  # dataset.data.y = labels
+  # dataset.data.train_mask = train_mask
+  # dataset.data.val_mask = val_mask
+  # dataset.data.test_mask = test_mask
 
   if opt['beltrami']:
     pos_encoding = apply_beltrami(dataset.data, opt).to(device)
@@ -600,27 +626,32 @@ def main(cmd_opt):
       dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data,
                                               num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
     data = dataset.data.to(device)
+    if opt['geom_gcn_splits']:
+      data = get_fixed_splits(data, opt['dataset'], rep)
 
-    # if opt['rewire_KNN'] or opt['fa_layer']:
-    #   model = GNN_KNN(opt, dataset, device).to(device) if opt["no_early"] else GNNKNNEarly(opt, dataset, device).to(
-    #     device)
-    # else:
-    #   model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
-    # model = GCN(opt, dataset, hidden = [64], dropout = 0.5)
-    # model = GCN(opt, dataset, hidden = [512,512], dropout = opt['dropout'])
+    if opt['function'] in ['gcn2', 'gcn_dgl', 'gcn_res_dgl']:
+      feat_repr_dims = [dataset.data.x.shape[1]] + args.hidden_feat_repr_dims + [dataset.num_classes]
+      model = GNNMLP(opt, feat_repr_dims,
+             enable_mlp=args.enable_mlp_branch,
+             enable_gcn=args.enable_gcn_branch,
+             learnable_mixing=args.learnable_mixing,
+             use_sage=args.use_sage,
+             use_gat=args.use_gat,
+             gat_num_heads=args.gat_num_heads,
+             top_is_proj=args.top_is_proj,
+             use_prelu=args.use_prelu,
+             dropout=args.dropout
+             ).to(device)
+    elif opt['function'] in ['gcn']:
+      # model = GCN(opt, dataset, hidden = [64], dropout = 0.5)
+      model = GCN(opt, dataset, hidden=args.hidden_feat_repr_dims, dropout=opt['dropout'])
+    else:
+      if opt['rewire_KNN'] or opt['fa_layer']:
+        model = GNN_KNN(opt, dataset, device).to(device) if opt["no_early"] else GNNKNNEarly(opt, dataset, device).to(
+          device)
+      else:
+        model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
 
-    feat_repr_dims = [dataset.data.x.shape[1]] + args.hidden_feat_repr_dims + [dataset.num_classes]
-    model = GNNMLP(opt, feat_repr_dims,
-           enable_mlp=args.enable_mlp_branch,
-           enable_gcn=args.enable_gcn_branch,
-           learnable_mixing=args.learnable_mixing,
-           use_sage=args.use_sage,
-           use_gat=args.use_gat,
-           gat_num_heads=args.gat_num_heads,
-           top_is_proj=args.top_is_proj,
-           use_prelu=args.use_prelu,
-           dropout=args.dropout
-           ).to(device)
 
     # parameters = [p for p in model.parameters() if p.requires_grad]
     parameters = model.parameters()
@@ -630,8 +661,6 @@ def main(cmd_opt):
     optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
     best_time = best_epoch = train_acc = val_acc = test_acc = 0
 
-    if opt['geom_gcn_splits']:
-      data = get_fixed_splits(data, opt['dataset'], rep)
     for epoch in range(1, opt['epoch']):
       start_time = time.time()
       if opt['function'] in ['greed', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero', 'greed_non_linear']:
@@ -655,7 +684,7 @@ def main(cmd_opt):
         test_acc = tmp_test_acc
         best_time = opt['time']
 
-      if not opt['function'] == 'gcn':
+      if not opt['function'] in ['gcn', 'gcn_dgl', 'gcn2']:
         if not opt['no_early'] and model.odeblock.test_integrator.solver.best_val > val_acc:
           best_epoch = epoch
           val_acc = model.odeblock.test_integrator.solver.best_val
@@ -924,10 +953,17 @@ if __name__ == '__main__':
   # parser.add_argument('--W_beta', type=float, default=0.5, help='for cgnn Ws orthoganal update')
   parser.add_argument('--tau_residual', type=str, default='False', help='makes tau residual')
 
+  #GCN ablation args
+  parser.add_argument('--gcn_fixed', type=str, default='False', help='fixes layers in gcn')
+  parser.add_argument('--gcn_enc_dec', type=str, default='False', help='uses encoder decoder with GCN')
+  parser.add_argument('--gcn_non_lin', type=str, default='False', help='uses non linearity with GCN')
+  # parser.add_argument('--gcn_hidden_dims', type=int,  default=1, help='number of internal GCN hidden dimensions')
+
   args = parser.parse_args()
   opt = vars(args)
 
-  if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero', 'greed_non_linear']:
+  if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero', 'greed_non_linear'
+                         'gcn', 'gcn2', 'gcn_dgl', 'gcn_res_dgl']:
     opt = greed_run_params(opt)  ###basic params for GREED
 
     if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these
