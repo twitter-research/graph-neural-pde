@@ -17,7 +17,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import ListedColormap, BoundaryNorm
 
 import dgl
-from dgl import DGLGraph
 from data_utils_DGL import load_dataset,ReadMixhopDataset
 from pathlib import Path, PosixPath
 
@@ -91,21 +90,12 @@ def train(model, optimizer, data, pos_encoding=None):
     train_pred_idx = data.train_mask
 
   if model.opt['function'] in ['gcn_dgl','gcn_res_dgl']:
-    # graph = DGLGraph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
-    graph = dgl.graph((data.edge_index[0],data.edge_index[1]))
-    cuda_g = graph.to(data.edge_index.device)
-    print(f"device is {data.edge_index.device}")
-    print(f"graph is {graph}")
-    print(f"graph device is {graph.device}")
-    print(f"cuda_g is {cuda_g}")
-    print(f"cuda_g device is {cuda_g.device}")
-    print(f"feat device is {feat.device}")
-    out = model(cuda_g, feat)
+    graph = dgl.graph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
+    out = model(graph, feat)
   elif model.opt['function'] == 'gcn2':
     out = model(data.edge_index, feat)
   else:
     out = model(feat, pos_encoding)
-
 
   if model.opt['dataset'] == 'ogbn-arxiv':
     # lf = torch.nn.functional.nll_loss
@@ -186,7 +176,6 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
 
 
   if model.opt['function'] in ['gcn_dgl','gcn_res_dgl']:
-    # graph = DGLGraph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
     graph = dgl.graph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
     logits, accs = model(graph, feat), []
   elif model.opt['function'] == 'gcn2':
