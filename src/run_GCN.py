@@ -91,7 +91,8 @@ def train(model, optimizer, data, pos_encoding=None):
     train_pred_idx = data.train_mask
 
   if model.opt['function'] in ['gcn_dgl','gcn_res_dgl']:
-    graph = DGLGraph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
+    # graph = DGLGraph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
+    graph = dgl.graph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
     print(f"device is {data.edge_index.device}")
     out = model(graph, feat)
   elif model.opt['function'] == 'gcn2':
@@ -179,7 +180,8 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
 
 
   if model.opt['function'] in ['gcn_dgl','gcn_res_dgl']:
-    graph = DGLGraph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
+    # graph = DGLGraph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
+    graph = dgl.graph((data.edge_index[0],data.edge_index[1])).to(data.edge_index.device)
     logits, accs = model(graph, feat), []
   elif model.opt['function'] == 'gcn2':
     logits, accs = model(data.edge_index, feat), []
@@ -645,7 +647,7 @@ def main(cmd_opt):
              ).to(device)
     elif opt['function'] in ['gcn']:
       # model = GCN(opt, dataset, hidden = [64], dropout = 0.5)
-      model = GCN(opt, dataset, hidden=args.hidden_feat_repr_dims, dropout=opt['dropout'])
+      model = GCN(opt, dataset, hidden=args.hidden_feat_repr_dims, dropout=opt['dropout']).to(device)
     else:
       if opt['rewire_KNN'] or opt['fa_layer']:
         model = GNN_KNN(opt, dataset, device).to(device) if opt["no_early"] else GNNKNNEarly(opt, dataset, device).to(
