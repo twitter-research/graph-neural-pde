@@ -106,13 +106,11 @@ class GNNMLP(nn.Module):
             stack.append(nn.Dropout(dropout))
             stack.append(nn.Linear(stack_dims[0][0], stack_dims[0][1]))
             stack_dims = dims[1:-1]
-
-        if self.opt['gcn_fixed']:
-            # if self.opt['function'] == 'gcn_res_dgl':
-            #     GCN_fixedW = layer_type(stack_dims[0][0], stack_dims[0][1], self.opt, **layer_kwargs)
-            # else:
-            #     GCN_fixedW = layer_type(stack_dims[0][0], stack_dims[0][1], **layer_kwargs)
-            GCN_fixedW = layer_type(stack_dims[1][0], stack_dims[1][1], **layer_kwargs)
+            if self.opt['gcn_fixed']:
+                GCN_fixedW = layer_type(stack_dims[0][0], stack_dims[0][1], **layer_kwargs)
+        else:
+            if self.opt['gcn_fixed']:
+                GCN_fixedW = layer_type(stack_dims[1][0], stack_dims[1][1], **layer_kwargs)
 
         for indx, (in_feat, out_feat) in enumerate(stack_dims):
             stack.append(nn.Dropout(dropout))
