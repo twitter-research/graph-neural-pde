@@ -145,10 +145,11 @@ def greed_ablation_params(opt):
         opt['attention_normalisation'] = 'none'
 
     #gcn params
-    opt['gcn_enc_dec'] = True #False #True
+    opt['gcn_enc_dec'] = False #False #True
     opt['gcn_non_lin'] = True #False #True
-    opt['gcn_fixed'] = True #False #True
-    opt['time'] = 2
+    opt['gcn_fixed'] = False #False #True
+    opt['gcn_symm'] = True
+    opt['gcn_bias'] = False
     opt['step_size'] = 1
 
     #run params
@@ -192,7 +193,7 @@ def tf_ablation_args(opt):
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
                 'XN_no_activation','m2_mlp',
-                'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin']:
+                'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm']:
 
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)
@@ -446,6 +447,7 @@ def default_params():
     parser.add_argument('--gcn_fixed', type=str, default='False', help='fixes layers in gcn')
     parser.add_argument('--gcn_enc_dec', type=str, default='False', help='uses encoder decoder with GCN')
     parser.add_argument('--gcn_non_lin', type=str, default='False', help='uses non linearity with GCN')
+    parser.add_argument('--gcn_symm', type=str, default='False', help='make weight matrix in GCN symmetric')
 
     args = parser.parse_args()
     opt = vars(args)

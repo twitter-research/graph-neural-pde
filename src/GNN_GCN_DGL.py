@@ -36,12 +36,26 @@ class GraphSequential(nn.Module):
     def forward(self, graph, features):
         for layer in self.layer_stack:
             if any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
-                if self.opt['function'] == 'gcn_dgl' or layer._in_feats != layer._out_feats:
-                    features = layer(graph, features)
-                elif self.opt['function'] == 'gcn_res_dgl':
-                    features = features + self.opt['step_size'] * layer(graph, features)
-                elif self.opt['function'] == 'gcn2':
-                    features = layer(features, graph) ##here graph is edge index
+                if self.opt['gcn_symm']:
+                    # encoder conv
+                    if layer._in_feats != layer._out_feats:
+                        features = layer(graph, features)
+                    # symmetric gcn
+                    elif self.opt['function'] == 'gcn_dgl':
+                        #todo double check the encoder conv is initialised with weights
+                        symm_weight = layer.symm_weight + layer.symm_weight.T
+                        features = layer(graph, features, weight=symm_weight)
+                    # symmetric res gcn
+                    elif self.opt['function'] == 'gcn_res_dgl':
+                        symm_weight = layer.symm_weight + layer.symm_weight.T
+                        features = features + self.opt['step_size'] * layer(graph, features, weight=symm_weight)
+                else:
+                    if self.opt['function'] == 'gcn_dgl' or layer._in_feats != layer._out_feats:
+                        features = layer(graph, features)
+                    elif self.opt['function'] == 'gcn_res_dgl':
+                        features = features + self.opt['step_size'] * layer(graph, features)
+                    elif self.opt['function'] == 'gcn2':
+                        features = layer(features, graph) ##here graph is edge index
             else:
                 features = layer(features)
         return features
@@ -102,24 +116,44 @@ class GNNMLP(nn.Module):
         stack_dims = dims[:-1] if top_is_proj else dims
         stack = []
 
-        if self.opt['gcn_enc_dec']:
-            stack.append(nn.Dropout(dropout))
-            stack.append(nn.Linear(stack_dims[0][0], stack_dims[0][1]))
-            stack_dims = dims[1:-1]
-            if self.opt['gcn_fixed']:
-                GCN_fixedW = layer_type(stack_dims[0][0], stack_dims[0][1], **layer_kwargs)
-        else:
-            if self.opt['gcn_fixed']:
-                GCN_fixedW = layer_type(stack_dims[1][0], stack_dims[1][1], **layer_kwargs)
+        #initialise the fixed shared layer if required
+        if self.opt['gcn_fixed']:
+            if self.opt['gcn_enc_dec']:
+                stack.append(nn.Dropout(dropout))
+                stack.append(nn.Linear(stack_dims[0][0], stack_dims[0][1]))
+                stack_dims = dims[1:-1]
+                if self.opt['gcn_symm']:
+                    #init layer without weights
+                    GCN_fixedW = layer_type(stack_dims[0][0], stack_dims[0][1], weight=False, bias=self.opt['gcn_bias'], **layer_kwargs)
+                    #insert parameter
+                    GCN_fixedW.symm_weight = nn.Parameter(torch.Tensor(stack_dims[0][0], stack_dims[0][1]))
+                    #check it is in the model.parameters
+                else:
+                    GCN_fixedW = layer_type(stack_dims[0][0], stack_dims[0][1], bias=self.opt['gcn_bias'],  **layer_kwargs)
+            else:
+                # GCN_fixedW = layer_type(stack_dims[1][0], stack_dims[1][1], **layer_kwargs)
+                if self.opt['gcn_symm']:
+                    GCN_fixedW = layer_type(stack_dims[1][0], stack_dims[1][1], weight=False, bias=self.opt['gcn_bias'], **layer_kwargs)
+                    GCN_fixedW.symm_weight = nn.Parameter(torch.Tensor(stack_dims[1][0], stack_dims[1][1]))
+                else:
+                    GCN_fixedW = layer_type(stack_dims[1][0], stack_dims[1][1], bias=self.opt['gcn_bias'], **layer_kwargs)
+
 
         for indx, (in_feat, out_feat) in enumerate(stack_dims):
             stack.append(nn.Dropout(dropout))
             if in_feat != out_feat: #manual overide to ignore fixed W or residual blocks if on a convolutional encoder decoder
-                stack.append(GraphConv(in_feat, out_feat, **layer_kwargs))
+                #note can't have a symmetric W here
+                stack.append(GraphConv(in_feat, out_feat, bias=self.opt['gcn_bias'], **layer_kwargs))
             elif self.opt['gcn_fixed']:
                 stack.append(GCN_fixedW)
             else:
-                stack.append(layer_type(in_feat, out_feat, **layer_kwargs))
+                if self.opt['gcn_symm']:
+                    layerConv = layer_type(in_feat, out_feat, weight=False, bias=self.opt['gcn_bias'], **layer_kwargs)
+                    layerConv.symm_weight = nn.Parameter(torch.Tensor(in_feat, out_feat))
+                else:
+                    layerConv = layer_type(in_feat, out_feat, bias=self.opt['gcn_bias'], **layer_kwargs)
+                # stack.append(layer_type(in_feat, out_feat, **layer_kwargs))
+                stack.append(layerConv)
 
             if indx < len(stack_dims) - 1 or top_is_proj:
                 if self.opt['gcn_non_lin']:
