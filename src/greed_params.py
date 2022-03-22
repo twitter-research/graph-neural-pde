@@ -193,7 +193,7 @@ def tf_ablation_args(opt):
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
                 'XN_no_activation','m2_mlp',
-                'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm']:
+                'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias']:
 
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)
@@ -448,6 +448,7 @@ def default_params():
     parser.add_argument('--gcn_enc_dec', type=str, default='False', help='uses encoder decoder with GCN')
     parser.add_argument('--gcn_non_lin', type=str, default='False', help='uses non linearity with GCN')
     parser.add_argument('--gcn_symm', type=str, default='False', help='make weight matrix in GCN symmetric')
+    parser.add_argument('--gcn_bias', type=str, default='False', help='make GCN include bias')
 
     args = parser.parse_args()
     opt = vars(args)
