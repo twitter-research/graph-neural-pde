@@ -57,6 +57,7 @@ class GraphSequential(nn.Module):
                     elif self.opt['function'] == 'gcn2':
                         features = layer(features, graph) ##here graph is edge index
             else:
+                print(layer)
                 features = layer(features)
         return features
 
@@ -116,12 +117,14 @@ class GNNMLP(nn.Module):
         stack_dims = dims[:-1] if top_is_proj else dims
         stack = []
 
+        if self.opt['gcn_enc_dec']:
+            stack.append(nn.Dropout(dropout))
+            stack.append(nn.Linear(stack_dims[0][0], stack_dims[0][1]))
+            stack_dims = dims[1:-1]
+
         #initialise the fixed shared layer if required
         if self.opt['gcn_fixed']:
             if self.opt['gcn_enc_dec']:
-                stack.append(nn.Dropout(dropout))
-                stack.append(nn.Linear(stack_dims[0][0], stack_dims[0][1]))
-                stack_dims = dims[1:-1]
                 if self.opt['gcn_symm']:
                     #init layer without weights
                     GCN_fixedW = layer_type(stack_dims[0][0], stack_dims[0][1], weight=False, bias=self.opt['gcn_bias'], **layer_kwargs)

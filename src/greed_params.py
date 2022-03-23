@@ -145,12 +145,17 @@ def greed_ablation_params(opt):
         opt['attention_normalisation'] = 'none'
 
     #gcn params
-    opt['gcn_enc_dec'] = False #False #True
-    opt['gcn_non_lin'] = True #False #True
+    opt['gcn_enc_dec'] = True #False #True
+    opt['gcn_non_lin'] = False #False #True
     opt['gcn_fixed'] = False #False #True
-    opt['gcn_symm'] = True
-    opt['gcn_bias'] = False
+    opt['gcn_symm'] = 'symm'
+    opt['gcn_bias'] = True
+    opt['time'] = 3.0
     opt['step_size'] = 1
+
+    # 'gcn_bias': True, 'gcn_enc_dec': True, 'gcn_fixed': False, 'gcn_non_lin': False, 'gcn_symm': 'symm'
+
+
 
     #run params
     # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
