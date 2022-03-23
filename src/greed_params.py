@@ -148,7 +148,7 @@ def greed_ablation_params(opt):
     opt['gcn_enc_dec'] = True #False #True
     opt['gcn_non_lin'] = False #False #True
     opt['gcn_fixed'] = False #False #True
-    opt['gcn_symm'] = 'symm'
+    opt['gcn_symm'] = True
     opt['gcn_bias'] = True
 
     opt['step_size'] = 1

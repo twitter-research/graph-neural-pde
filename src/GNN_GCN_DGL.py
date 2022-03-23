@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+from torch.nn import init
 # import dgl
 # from dgl import DGLGraph
 from dgl.nn.pytorch import GraphConv, SAGEConv, GATConv
@@ -35,8 +36,8 @@ class GraphSequential(nn.Module):
 
     def forward(self, graph, features):
         for layer in self.layer_stack:
-            print(layer)
-            print(features)
+            # print(layer)
+            # print(features)
             if any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
                 if self.opt['gcn_symm']:
                     # encoder conv
@@ -45,11 +46,11 @@ class GraphSequential(nn.Module):
                     # symmetric gcn
                     elif self.opt['function'] == 'gcn_dgl':
                         #todo double check the encoder conv is initialised with weights
-                        symm_weight = layer.symm_weight #(layer.symm_weight + layer.symm_weight.T) / 2
+                        symm_weight = (layer.symm_weight + layer.symm_weight.T) / 2
                         features = layer(graph, features, weight=symm_weight)
                     # symmetric res gcn
                     elif self.opt['function'] == 'gcn_res_dgl':
-                        symm_weight = layer.symm_weight# (layer.symm_weight + layer.symm_weight.T) / 2
+                        symm_weight = (layer.symm_weight + layer.symm_weight.T) / 2
                         features = features + self.opt['step_size'] * layer(graph, features, weight=symm_weight)
                 else:
                     if self.opt['function'] == 'gcn_dgl' or layer._in_feats != layer._out_feats:
@@ -131,6 +132,7 @@ class GNNMLP(nn.Module):
                     GCN_fixedW = layer_type(stack_dims[0][0], stack_dims[0][1], weight=False, bias=self.opt['gcn_bias'], **layer_kwargs)
                     #insert parameter
                     GCN_fixedW.symm_weight = nn.Parameter(torch.Tensor(stack_dims[0][0], stack_dims[0][1]))
+                    init.xavier_uniform_(GCN_fixedW.symm_weight)
                     #check it is in the model.parameters
                 else:
                     GCN_fixedW = layer_type(stack_dims[0][0], stack_dims[0][1], bias=self.opt['gcn_bias'],  **layer_kwargs)
@@ -139,6 +141,7 @@ class GNNMLP(nn.Module):
                 if self.opt['gcn_symm']:
                     GCN_fixedW = layer_type(stack_dims[1][0], stack_dims[1][1], weight=False, bias=self.opt['gcn_bias'], **layer_kwargs)
                     GCN_fixedW.symm_weight = nn.Parameter(torch.Tensor(stack_dims[1][0], stack_dims[1][1]))
+                    init.xavier_uniform_(GCN_fixedW.symm_weight)
                 else:
                     GCN_fixedW = layer_type(stack_dims[1][0], stack_dims[1][1], bias=self.opt['gcn_bias'], **layer_kwargs)
 
@@ -154,6 +157,7 @@ class GNNMLP(nn.Module):
                 if self.opt['gcn_symm']:
                     layerConv = layer_type(in_feat, out_feat, weight=False, bias=self.opt['gcn_bias'], **layer_kwargs)
                     layerConv.symm_weight = nn.Parameter(torch.Tensor(in_feat, out_feat))
+                    init.xavier_uniform_(layerConv.symm_weight)
                 else:
                     layerConv = layer_type(in_feat, out_feat, bias=self.opt['gcn_bias'], **layer_kwargs)
                 # stack.append(layer_type(in_feat, out_feat, **layer_kwargs))
