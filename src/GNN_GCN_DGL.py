@@ -35,6 +35,8 @@ class GraphSequential(nn.Module):
 
     def forward(self, graph, features):
         for layer in self.layer_stack:
+            print(layer)
+            print(features)
             if any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
                 if self.opt['gcn_symm']:
                     # encoder conv

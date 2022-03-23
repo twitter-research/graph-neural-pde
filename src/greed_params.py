@@ -145,9 +145,9 @@ def greed_ablation_params(opt):
         opt['attention_normalisation'] = 'none'
 
     #gcn params
-    opt['gcn_enc_dec'] = False #False #True
-    opt['gcn_non_lin'] = True #False #True
-    opt['gcn_fixed'] = True #False #True
+    opt['gcn_enc_dec'] = True #False #True
+    opt['gcn_non_lin'] = False #False #True
+    opt['gcn_fixed'] = False #False #True
     opt['gcn_symm'] = 'symm'
     opt['gcn_bias'] = True
 
@@ -156,6 +156,12 @@ def greed_ablation_params(opt):
     opt['epoch'] = 50 #129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 4#1
     opt['geom_gcn_splits'] = True
+
+    opt['optimizer'] = 'adam'
+    opt['lr'] = 0.005
+    opt['dropout'] = 0.6
+    opt['decay'] = 0.0
+    opt['hidden_dim'] = 512
     # 'gcn_bias': True, 'gcn_enc_dec': True, 'gcn_fixed': False, 'gcn_non_lin': False, 'gcn_symm': 'symm'
 
 
