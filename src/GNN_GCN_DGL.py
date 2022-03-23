@@ -57,7 +57,6 @@ class GraphSequential(nn.Module):
                     elif self.opt['function'] == 'gcn2':
                         features = layer(features, graph) ##here graph is edge index
             else:
-                print(layer)
                 features = layer(features)
         return features
 
