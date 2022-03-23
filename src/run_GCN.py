@@ -521,7 +521,7 @@ def merge_cmd_args(cmd_opt, opt):
 
 
 def main(cmd_opt):
-  assert cmd_opt['function'] in ['gcn','gcn2','gcn_dgl', 'gcn_res_dgl'], 'script for GCN type model' #todo, incorporate the GCN logic in run_GNN
+  assert cmd_opt['function'] in ['gcn','gcn2','gcn_dgl','gcn_res_dgl'], 'script for GCN type model' #todo, incorporate the GCN logic in run_GNN
 
   if cmd_opt['use_best_params']:
     best_opt = best_params_dict[cmd_opt['dataset']]
@@ -537,6 +537,9 @@ def main(cmd_opt):
       os.environ["WANDB_MODE"] = "run"
   else:
     os.environ["WANDB_MODE"] = "disabled"  # sets as NOOP, saves keep writing: if opt['wandb']:
+
+  wandb_num_nans = 10
+  os.environ["WANDB_AGENT_MAX_INITIAL_FAILURES"] = wandb_num_nans
 
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   opt['device'] = device
@@ -695,8 +698,11 @@ def main(cmd_opt):
             f"tmp_train: {tmp_train_acc:.4f}, tmp_val: {tmp_val_acc:.4f}, tmp_test: {tmp_test_acc:.4f}, "
             f"Train: {train_acc:.4f}, Val: {val_acc:.4f}, Test: {test_acc:.4f}, Best time: {best_time:.4f}")
 
-      if np.isnan(loss):
+      if np.isnan(loss): #todo if loss is nan do we need to wandb finish and then reinit?
         wandb_run.finish()
+        # wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
+        #                        reinit=True, config=opt,
+        #                        allow_val_change=True)  # required when update hidden_dim in beltrami
         break
 
       #todo check this
