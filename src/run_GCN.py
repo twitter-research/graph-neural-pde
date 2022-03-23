@@ -538,7 +538,7 @@ def main(cmd_opt):
   else:
     os.environ["WANDB_MODE"] = "disabled"  # sets as NOOP, saves keep writing: if opt['wandb']:
 
-  wandb_num_nans = 10
+  wandb_num_nans = "10"
   os.environ["WANDB_AGENT_MAX_INITIAL_FAILURES"] = wandb_num_nans
 
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
