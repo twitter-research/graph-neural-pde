@@ -10,7 +10,7 @@ parameters:
   gcn_non_lin:
     values: [True, False]
   gcn_symm:
-    values: [symm]
+    values: [True]
   gcn_bias:
     values: [True, False]
   dataset:
