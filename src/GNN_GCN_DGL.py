@@ -45,11 +45,11 @@ class GraphSequential(nn.Module):
                     # symmetric gcn
                     elif self.opt['function'] == 'gcn_dgl':
                         #todo double check the encoder conv is initialised with weights
-                        symm_weight = layer.symm_weight + layer.symm_weight.T
+                        symm_weight = (layer.symm_weight + layer.symm_weight.T) / 2
                         features = layer(graph, features, weight=symm_weight)
                     # symmetric res gcn
                     elif self.opt['function'] == 'gcn_res_dgl':
-                        symm_weight = layer.symm_weight + layer.symm_weight.T
+                        symm_weight = (layer.symm_weight + layer.symm_weight.T) / 2
                         features = features + self.opt['step_size'] * layer(graph, features, weight=symm_weight)
                 else:
                     if self.opt['function'] == 'gcn_dgl' or layer._in_feats != layer._out_feats:
