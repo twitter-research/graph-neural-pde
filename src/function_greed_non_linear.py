@@ -4,7 +4,7 @@ Implementation of the functions proposed in Graph embedding energies and diffusi
 
 import torch
 from torch import nn
-from torch.nn.init import uniform
+from torch.nn.init import uniform, xavier_uniform_
 import numpy as np
 import torch_sparse
 from torch_scatter import scatter_add, scatter_mul
@@ -111,10 +111,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif opt['gnl_measure'] == 'ones':
       pass
 
+    #'gnl_style' in 'scaled_dot' / 'softmax_attention' / 'general_graph'
+
     if self.opt['gnl_style'] == 'softmax_attention':
       self.multihead_att_layer = SpGraphTransAttentionLayer_greed(in_features, out_features, opt,
                                                                   # check out_features is attention_dim
                                                                   device, edge_weights=self.edge_weight).to(device)
+
+    if self.opt['gnl_style'] == 'general_graph':
+      # gnl_omega -> "gnl_W"
+      self.W_W = Parameter(torch.Tensor(in_features, in_features))
+      self.W_W_eps = 0
 
     self.delta = Parameter(torch.Tensor([1.]))
     # self.delta = torch.Tensor([2.0])
@@ -137,14 +144,16 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # zeros(self.om_W)
       uniform(self.om_W, a=-1, b=1)
 
+    if self.opt['gnl_style'] == 'general_graph':
+      glorot(self.W_W)
+      # xavier_uniform_(self.W_W)
+
     if self.opt['gnl_measure'] == 'deg_poly':
       ones(self.m_alpha)
       ones(self.m_beta)
       ones(self.m_gamma)
     elif self.opt['gnl_measure'] == 'nodewise':
       ones(self.measure)
-    elif self.opt['gnl_measure'] == 'ones':
-      pass
 
     # ones(self.delta)
     # zeros(self.delta)
@@ -184,9 +193,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         src_meas, dst_meas = self.get_src_dst(measure)
         measures_src_dst = 1 / (src_meas * dst_meas)
       elif self.opt['gnl_measure'] == 'nodewise':
+        measure = self.measure
         src_meas, dst_meas = self.get_src_dst(self.measure)
         measures_src_dst = 1 / (src_meas * dst_meas)
       elif self.opt['gnl_measure'] == 'ones':
+        measure = torch.ones(x.shape[0])
         src_meas = 1
         dst_meas = 1
         measures_src_dst = 1
@@ -203,7 +214,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         elif self.opt['gnl_omega'] == 'diag':
           self.Omega = torch.diag(self.om_W)
 
-
+        #method for normalising Omega to control the eigen values
         if self.opt['gnl_omega_norm'] == 'tanh':
           self.Omega = torch.tanh(self.Omega)
         elif self.opt['gnl_omega_norm'] == 'rowSum':
@@ -224,11 +235,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           attention = squareplus_deriv(fOmf)
         elif self.opt['gnl_activation'] == "exponential":
           attention = torch.exp(fOmf)
+        elif self.opt['gnl_activation'] == 'identity':
+          attention = fOmf
         else:
           attention = fOmf
 
         MThM = measures_src_dst * attention
         f = torch_sparse.spmm(self.edge_index, -MThM, x.shape[0], x.shape[0], x @ self.Omega)
+        f = f - self.delta * x  # break point np.isnan(f.sum().detach().numpy())
 
       #softmax_attention method
       elif self.opt['gnl_style'] == 'softmax_attention':
@@ -242,8 +256,42 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         index_t, att_t = transpose(self.edge_index, attention, x.shape[0], x.shape[0])
         f2 = torch_sparse.spmm(index_t, -att_t / dst_meas, x.shape[0], x.shape[0], xOm)
         f = f1 + f2
+        f = f - self.delta * x  # break point np.isnan(f.sum().detach().numpy())
 
-    f = f - self.delta * x #break point np.isnan(f.sum().detach().numpy())
+      elif self.opt['gnl_style'] == 'general_graph':
+        # self.Omega = torch.zeros(self.om_W.shape)
+        self.Omega = (self.om_W + self.om_W.T) / 2
+        self.gnl_W = (self.W_W + self.W_W.T) / 2
+
+        #get degrees
+        src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)
+
+        #calc bilinear form
+        src_x, dst_x = self.get_src_dst(x)
+        # fWf = torch.einsum("ij,jk,ik->i", src_x * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W, dst_x * dst_deginvsqrt.unsqueeze(dim=1))
+        if self.opt['gnl_activation'] == "sigmoid_deriv":
+          attention = sigmoid_deriv(fWf)
+        elif self.opt['gnl_activation'] == "tanh_deriv":
+          attention = tanh_deriv(fWf)
+        elif self.opt['gnl_activation'] == "squareplus_deriv":
+          attention = squareplus_deriv(fWf)
+        elif self.opt['gnl_activation'] == "exponential":
+          attention = torch.exp(fWf)
+        elif self.opt['gnl_activation'] == 'identity':
+          # attention = torch.ones(fWf.shape)
+          attention = torch.ones(src_deginvsqrt.shape)
+
+        else:
+          attention = fWf
+
+
+        P = attention * src_deginvsqrt * dst_deginvsqrt
+        xW = x @ self.gnl_W
+        f1 = torch_sparse.spmm(self.edge_index, P / src_meas, x.shape[0], x.shape[0], xW) / 2   #breaks here
+        f2 = torch_sparse.spmm(self.edge_index, P / dst_meas, x.shape[0], x.shape[0], xW) / 2
+        f = f1 + f2
+
+        f = f - torch.diag(1 / measure) @ x @ self.Omega
 
     if self.opt['test_mu_0']:
       if self.opt['add_source']:

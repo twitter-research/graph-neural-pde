@@ -45,8 +45,8 @@ def greed_run_params(opt):
     opt['self_loop_weight'] = 0.0 #1.0 #0 #needed for greed
     # opt['method'] = 'euler' #'dopri5' #'dopri5' #'euler' #need to comment this out for tuning
     # TUNING
-    # opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
-    opt['time'] = 18.295 #10
+    opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
+    opt['time'] = 3 #4 #18.295 #10
     opt['epoch'] = 129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
@@ -128,7 +128,7 @@ def greed_ablation_params(opt):
     opt['m2_mlp'] = False #False
 
     #greed_non_linear params
-    opt['gnl_style'] = 'scaled_dot' #'softmax_attention' #'scaled_dot'
+    opt['gnl_style'] = 'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones' #'deg_poly' # 'nodewise'
 
     if opt['gnl_style'] == 'scaled_dot':
@@ -144,25 +144,32 @@ def greed_ablation_params(opt):
         opt['attention_activation'] = 'softmax'#'softmax' #, exponential
         opt['attention_normalisation'] = 'none'
 
+    if opt['gnl_style'] == 'general_graph':
+        opt['gnl_omega'] = 'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
+        opt['gnl_activation'] = 'identity'
+
     #gcn params
+    opt['geom_gcn_splits'] = True
     opt['gcn_enc_dec'] = True #False #True
     opt['gcn_non_lin'] = False #False #True
     opt['gcn_fixed'] = False #False #True
     opt['gcn_symm'] = True
     opt['gcn_bias'] = True
-
+    opt['gcn_mid_dropout'] = False
+    #
     opt['step_size'] = 1
     opt['time'] = 3.0
-    opt['epoch'] = 50 #129 #255#129 #254 #100 #40 #40 #10
-    opt['num_splits'] = 4#1
-    opt['geom_gcn_splits'] = True
 
+    # opt['epoch'] = 50 #129 #255#129 #254 #100 #40 #40 #10
+    # opt['num_splits'] = 4#1
+    # opt['geom_gcn_splits'] = True
+    #
     opt['optimizer'] = 'adam'
     opt['lr'] = 0.005
     opt['dropout'] = 0.6
     opt['decay'] = 0.0
     opt['hidden_dim'] = 512
-    # 'gcn_bias': True, 'gcn_enc_dec': True, 'gcn_fixed': False, 'gcn_non_lin': False, 'gcn_symm': 'symm'
+    # # 'gcn_bias': True, 'gcn_enc_dec': True, 'gcn_fixed': False, 'gcn_non_lin': False, 'gcn_symm': 'symm'
 
 
 
@@ -207,7 +214,7 @@ def tf_ablation_args(opt):
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
                 'XN_no_activation','m2_mlp',
-                'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias']:
+                'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout']:
 
         str_tf = opt[arg]
         bool_tf = t_or_f(str_tf)
@@ -463,6 +470,7 @@ def default_params():
     parser.add_argument('--gcn_non_lin', type=str, default='False', help='uses non linearity with GCN')
     parser.add_argument('--gcn_symm', type=str, default='False', help='make weight matrix in GCN symmetric')
     parser.add_argument('--gcn_bias', type=str, default='False', help='make GCN include bias')
+    parser.add_argument('--gcn_mid_dropout', type=str, default='False', help='dropout between GCN layers')
 
     args = parser.parse_args()
     opt = vars(args)

@@ -147,7 +147,9 @@ class GNNMLP(nn.Module):
 
 
         for indx, (in_feat, out_feat) in enumerate(stack_dims):
-            stack.append(nn.Dropout(dropout))
+            if self.opt['gcn_mid_dropout']:
+                stack.append(nn.Dropout(dropout))
+
             if in_feat != out_feat: #manual overide to ignore fixed W or residual blocks if on a convolutional encoder decoder
                 #note can't have a symmetric W here
                 stack.append(GraphConv(in_feat, out_feat, bias=self.opt['gcn_bias'], **layer_kwargs))

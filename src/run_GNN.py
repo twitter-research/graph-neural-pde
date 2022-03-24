@@ -3,7 +3,7 @@ import argparse
 import numpy as np
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
-from torch_geometric.utils import homophily
+from torch_geometric.utils import homophily, add_remaining_self_loops, to_undirected
 from torch_scatter import scatter_add
 import torch.nn.functional as F
 import wandb
@@ -531,6 +531,9 @@ def main(cmd_opt):
     wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
+  dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)  ### added self loops for chameleon
+  dataset.data.edge_index = to_undirected(dataset.data.edge_index)
+
   if opt['beltrami']:
     pos_encoding = apply_beltrami(dataset.data, opt).to(device)
     opt['pos_enc_dim'] = pos_encoding.shape[1]
@@ -848,6 +851,14 @@ if __name__ == '__main__':
   parser.add_argument('--R_depon_A', type=str, default='', help='R dependancy in A')
   # parser.add_argument('--W_beta', type=float, default=0.5, help='for cgnn Ws orthoganal update')
   parser.add_argument('--tau_residual', type=str, default='False', help='makes tau residual')
+
+  #GCN ablation args
+  parser.add_argument('--gcn_fixed', type=str, default='False', help='fixes layers in gcn')
+  parser.add_argument('--gcn_enc_dec', type=str, default='False', help='uses encoder decoder with GCN')
+  parser.add_argument('--gcn_non_lin', type=str, default='False', help='uses non linearity with GCN')
+  parser.add_argument('--gcn_symm', type=str, default='False', help='make weight matrix in GCN symmetric')
+  parser.add_argument('--gcn_bias', type=str, default='False', help='make GCN include bias')
+  parser.add_argument('--gcn_mid_dropout', type=str, default='False', help='dropout between GCN layers')
 
   args = parser.parse_args()
   opt = vars(args)

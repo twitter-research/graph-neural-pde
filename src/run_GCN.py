@@ -963,6 +963,7 @@ if __name__ == '__main__':
   parser.add_argument('--gcn_non_lin', type=str, default='False', help='uses non linearity with GCN')
   parser.add_argument('--gcn_symm', type=str, default='False', help='make weight matrix in GCN symmetric')
   parser.add_argument('--gcn_bias', type=str, default='False', help='make GCN include bias')
+  parser.add_argument('--gcn_mid_dropout', type=str, default='False', help='dropout between GCN layers')
 
   # parser.add_argument('--gcn_hidden_dims', type=int,  default=1, help='number of internal GCN hidden dimensions')
 
