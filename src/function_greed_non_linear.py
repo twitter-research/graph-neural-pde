@@ -227,6 +227,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         # fOmf = torch.einsum("ij,jj,ij->i", src_x, self.Omega, dst_x) incorrect
         fOmf = torch.einsum("ij,jk,ik->i", src_x, self.Omega, dst_x)
 
+        #todo don't need derivatives of activation functions here
         if self.opt['gnl_activation'] == "sigmoid_deriv":
           attention = sigmoid_deriv(fOmf)
         elif self.opt['gnl_activation'] == "tanh_deriv":
@@ -268,7 +269,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
         #calc bilinear form
         src_x, dst_x = self.get_src_dst(x)
-        # fWf = torch.einsum("ij,jk,ik->i", src_x * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W, dst_x * dst_deginvsqrt.unsqueeze(dim=1))
+        if not self.opt['gnl_activation'] == 'identity':
+          fWf = torch.einsum("ij,jk,ik->i", src_x * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W, dst_x * dst_deginvsqrt.unsqueeze(dim=1))
+
+        #todo don't need derivatives of activation functions here
         if self.opt['gnl_activation'] == "sigmoid_deriv":
           attention = sigmoid_deriv(fWf)
         elif self.opt['gnl_activation'] == "tanh_deriv":
@@ -278,7 +282,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         elif self.opt['gnl_activation'] == "exponential":
           attention = torch.exp(fWf)
         elif self.opt['gnl_activation'] == 'identity':
-          # attention = torch.ones(fWf.shape)
           attention = torch.ones(src_deginvsqrt.shape)
 
         else:

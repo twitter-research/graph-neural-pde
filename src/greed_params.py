@@ -129,7 +129,7 @@ def greed_ablation_params(opt):
 
     #greed_non_linear params
     opt['gnl_style'] = 'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
-    opt['gnl_measure'] = 'ones' #'deg_poly' # 'nodewise'
+    opt['gnl_measure'] = 'deg_poly' #'ones' #'deg_poly' # 'nodewise'
 
     if opt['gnl_style'] == 'scaled_dot':
         opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
@@ -146,7 +146,7 @@ def greed_ablation_params(opt):
 
     if opt['gnl_style'] == 'general_graph':
         opt['gnl_omega'] = 'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
-        opt['gnl_activation'] = 'identity'
+        opt['gnl_activation'] = 'squareplus_deriv' #'identity'
 
     #gcn params
     opt['geom_gcn_splits'] = True

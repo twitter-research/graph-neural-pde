@@ -1,0 +1,44 @@
+program: run_GCN.py
+method: grid
+parameters:
+  function:
+    values: [gcn_dgl, gcn_res_dgl]
+  dataset:
+    values: ['chameleon']
+  epoch:
+    values: [ 100 ]
+  num_splits:
+    values: [ 10 ]
+  step_size:
+    values: [ 1, 0.5, 0.25 ]
+  hidden_dim:
+    values: [256, 512]
+  time:
+    values: [2, 3, 4]
+  dropout:
+    values: [0.6]
+  lr:
+    values: [0.005]
+  decay:
+    values: [0.0]
+  gnl_style:
+    values: []
+  gnl_measure:
+    values: [ones, deg_poly, nodewise]
+  gnl_activation:
+    values: [identity, exponential, sigmoid_deriv, squareplus_deriv]
+  gnl_omega:
+    values: [sum, diag]
+
+
+
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --geom_gcn_splits
+entity: graph_neural_diffusion
+project: GCN_sweep_2
