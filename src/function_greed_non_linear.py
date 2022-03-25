@@ -199,7 +199,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         src_meas, dst_meas = self.get_src_dst(self.measure)
         measures_src_dst = 1 / (src_meas * dst_meas)
       elif self.opt['gnl_measure'] == 'ones':
-        measure = torch.ones(x.shape[0])
+        measure = torch.ones(x.shape[0], device=self.device)
         src_meas = 1
         dst_meas = 1
         measures_src_dst = 1
