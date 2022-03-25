@@ -101,7 +101,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.om_W = Parameter(torch.Tensor(in_features))
       self.om_W_eps = 0
     elif self.opt['gnl_omega'] == 'zero':
-      self.om_W = torch.zero((in_features,in_features), device=device)
+      self.om_W = torch.zeros((in_features,in_features), device=device)
 
 
     if opt['gnl_measure'] == 'deg_poly':
