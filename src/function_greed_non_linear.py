@@ -101,7 +101,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.om_W = Parameter(torch.Tensor(in_features))
       self.om_W_eps = 0
     elif self.opt['gnl_omega'] == 'zero':
-      self.om_W = torch.zero((in_features,in_features))
+      self.om_W = torch.zero((in_features,in_features), device=device)
 
 
     if opt['gnl_measure'] == 'deg_poly':
@@ -221,7 +221,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.Omega = torch.tanh(self.Omega)
         elif self.opt['gnl_omega_norm'] == 'rowSum':
           D = self.Omega.abs().sum(dim=1)
-          self.Omega = torch.diag(torch.pow(D, -0.5)) @ self.Omega @ torch.diag(torch.pow(D, -0.5))
+          self.Omega = torch.diag(torch.pow(D, -0.5), device=self.device) @ self.Omega @ torch.diag(torch.pow(D, -0.5), device=self.device)
         else:
           pass
 
@@ -270,7 +270,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         if self.opt['gnl_omega'] == 'zero':
           self.Omega = self.om_W
         elif self.opt['gnl_omega'] == 'diag':
-          self.Omega = torch.diag(self.om_W)
+          self.Omega = torch.diag(self.om_W, device=self.device)
         else:
           self.Omega = (self.om_W + self.om_W.T) / 2
 

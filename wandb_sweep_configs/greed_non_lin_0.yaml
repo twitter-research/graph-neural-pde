@@ -14,7 +14,7 @@ parameters:
   step_size:
     values: [ 1, 0.5, 0.25 ]
   hidden_dim:
-    values: [128, 256, 512]
+    values: [64, 128, 256, 512]
   time:
     values: [2, 3, 4]
   dropout:
