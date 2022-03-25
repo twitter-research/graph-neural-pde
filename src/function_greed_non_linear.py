@@ -297,7 +297,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         elif self.opt['gnl_activation'] == "exponential":
           attention = torch.exp(fWf)
         elif self.opt['gnl_activation'] == 'identity':
-          attention = torch.ones(src_deginvsqrt.shape)
+          attention = torch.ones(src_deginvsqrt.shape, device=self.device)
 
         else:
           attention = fWf
