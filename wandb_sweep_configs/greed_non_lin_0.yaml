@@ -1,4 +1,4 @@
-program: run_GCN.py
+program: run_GNN.py
 method: grid
 parameters:
   function:
