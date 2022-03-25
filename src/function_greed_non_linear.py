@@ -221,7 +221,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.Omega = torch.tanh(self.Omega)
         elif self.opt['gnl_omega_norm'] == 'rowSum':
           D = self.Omega.abs().sum(dim=1)
-          self.Omega = torch.diag(torch.pow(D, -0.5), device=self.device) @ self.Omega @ torch.diag(torch.pow(D, -0.5), device=self.device)
+          self.Omega = torch.diag(torch.pow(D, -0.5)) @ self.Omega @ torch.diag(torch.pow(D, -0.5))
         else:
           pass
 
@@ -270,7 +270,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         if self.opt['gnl_omega'] == 'zero':
           self.Omega = self.om_W
         elif self.opt['gnl_omega'] == 'diag':
-          self.Omega = torch.diag(self.om_W, device=self.device)
+          self.Omega = torch.diag(self.om_W)
         else:
           self.Omega = (self.om_W + self.om_W.T) / 2
 
