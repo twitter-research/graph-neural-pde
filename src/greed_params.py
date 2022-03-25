@@ -145,8 +145,8 @@ def greed_ablation_params(opt):
         opt['attention_normalisation'] = 'none'
 
     if opt['gnl_style'] == 'general_graph':
-        opt['gnl_omega'] = 'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
-        opt['gnl_activation'] = 'squareplus_deriv' #'identity'
+        opt['gnl_omega'] = 'diag' #'sum' #'attr_rep' 'product'  #method to make Omega symmetric
+        opt['gnl_activation'] = 'sigmoid' #'identity'
 
     #gcn params
     opt['geom_gcn_splits'] = True

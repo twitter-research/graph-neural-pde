@@ -2,17 +2,19 @@ program: run_GCN.py
 method: grid
 parameters:
   function:
-    values: [gcn_dgl, gcn_res_dgl]
+    values: [greed_non_linear]
   dataset:
     values: ['chameleon']
   epoch:
     values: [ 100 ]
   num_splits:
     values: [ 10 ]
+  method:
+    values: [euler]
   step_size:
     values: [ 1, 0.5, 0.25 ]
   hidden_dim:
-    values: [256, 512]
+    values: [128, 256, 512]
   time:
     values: [2, 3, 4]
   dropout:
@@ -22,16 +24,13 @@ parameters:
   decay:
     values: [0.0]
   gnl_style:
-    values: []
+    values: [general_graph]
   gnl_measure:
     values: [ones, deg_poly, nodewise]
   gnl_activation:
-    values: [identity, exponential, sigmoid_deriv, squareplus_deriv]
+    values: [identity, sigmoid, squareplus]
   gnl_omega:
-    values: [sum, diag]
-
-
-
+    values: [zero, sum, diag]
 command:
   - ${env}
   - python3
@@ -41,4 +40,4 @@ command:
   - --wandb_sweep
   - --geom_gcn_splits
 entity: graph_neural_diffusion
-project: GCN_sweep_2
+project: greed_non_lin_0

@@ -227,8 +227,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         # fOmf = torch.einsum("ij,jj,ij->i", src_x, self.Omega, dst_x) incorrect
         fOmf = torch.einsum("ij,jk,ik->i", src_x, self.Omega, dst_x)
 
-        #todo don't need derivatives of activation functions here
-        if self.opt['gnl_activation'] == "sigmoid_deriv":
+        if self.opt['gnl_activation'] == 'sigmoid':
+          attention = torch.sigmoid(fOmf)
+        elif self.opt['gnl_activation'] == "squareplus":
+          attention = (fOmf + torch.sqrt(fOmf ** 2 + 4)) / 2
+        elif self.opt['gnl_activation'] == "sigmoid_deriv":
           attention = sigmoid_deriv(fOmf)
         elif self.opt['gnl_activation'] == "tanh_deriv":
           attention = tanh_deriv(fOmf)
@@ -260,8 +263,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         f = f - self.delta * x  # break point np.isnan(f.sum().detach().numpy())
 
       elif self.opt['gnl_style'] == 'general_graph':
-        # self.Omega = torch.zeros(self.om_W.shape)
-        self.Omega = (self.om_W + self.om_W.T) / 2
+
+        if self.opt['gnl_omega'] == 'zero':
+          self.Omega = torch.zeros(self.om_W.shape)
+        elif self.opt['gnl_omega'] == 'diag':
+          self.Omega = torch.diag(self.om_W)
+        else:
+          self.Omega = (self.om_W + self.om_W.T) / 2
+
         self.gnl_W = (self.W_W + self.W_W.T) / 2
 
         #get degrees
@@ -272,8 +281,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         if not self.opt['gnl_activation'] == 'identity':
           fWf = torch.einsum("ij,jk,ik->i", src_x * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W, dst_x * dst_deginvsqrt.unsqueeze(dim=1))
 
-        #todo don't need derivatives of activation functions here
-        if self.opt['gnl_activation'] == "sigmoid_deriv":
+        if self.opt['gnl_activation'] == 'sigmoid':
+          attention = torch.sigmoid(fWf)
+        elif self.opt['gnl_activation'] == "squareplus":
+          attention = (fWf + torch.sqrt(fWf ** 2 + 4)) / 2
+        elif self.opt['gnl_activation'] == "sigmoid_deriv":
           attention = sigmoid_deriv(fWf)
         elif self.opt['gnl_activation'] == "tanh_deriv":
           attention = tanh_deriv(fWf)
