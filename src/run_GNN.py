@@ -531,6 +531,7 @@ def main(cmd_opt):
     wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
+  # todo this is in place as needed for chameleon, tidy up
   dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)  ### added self loops for chameleon
   dataset.data.edge_index = to_undirected(dataset.data.edge_index)
 
@@ -886,6 +887,8 @@ if __name__ == '__main__':
 #terminal commands for sweeps
 #wandb sweep ../wandb_sweep_configs/greed_sweep_grid.yaml
 #./run_sweeps.sh XXX
+#nohup ./run_sweeps.sh XXX &
+
 
 #--dataset texas --geom_gcn_splits --num_splits 10 --epoch 2 --function greed --use_best_params --method euler --step_size 0.25
 #--dataset texas --geom_gcn_splits --num_splits 10 --epoch 2 --function greed_lin_homo --beltrami --pos_enc_type GDC --method euler --step_size 0.25 --self_loop_weight 0
