@@ -89,7 +89,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.om_W_eps = 0
     elif self.opt['gnl_omega'] == 'product':
       self.om_W = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
-
     elif self.opt['gnl_omega'] == 'attr_rep':
       self.om_W_attr = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
       self.om_W_rep = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
@@ -255,6 +254,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         attention_h, _ = self.multihead_att_layer(x, self.edge_index)
         attention = attention_h.mean(dim=1)
 
+        #there's only one option for Omega because it has 2 jobs and is rectangle in general
         self.Omega = self.multihead_att_layer.QK.weight.T @ self.multihead_att_layer.QK.weight
 
         xOm = x @ self.Omega
@@ -298,10 +298,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           attention = torch.exp(fWf)
         elif self.opt['gnl_activation'] == 'identity':
           attention = torch.ones(src_deginvsqrt.shape, device=self.device)
-
         else:
           attention = fWf
-
 
         P = attention * src_deginvsqrt * dst_deginvsqrt
         xW = x @ self.gnl_W
@@ -323,7 +321,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       for c in self.attractors.values():
         drift += c
       f = f + drift
-
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
       with torch.no_grad():

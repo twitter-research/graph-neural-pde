@@ -1,0 +1,51 @@
+program: run_GNN.py
+method: grid
+parameters:
+  function:
+    values: [greed_non_linear]
+  dataset:
+    values: ['chameleon','Cora']
+  epoch:
+    values: [ 100 ]
+  num_splits:
+    values: [ 10 ]
+  method:
+    values: [euler]
+  step_size:
+    values: [ 1, 0.5, 0.25 ]
+  hidden_dim:
+    values: [32, 64, 128, 256]
+  attention_dim:
+    values: [32, 64]
+  time:
+    values: [2, 3, 4, 8]
+  dropout:
+    values: [0.6]
+  lr:
+    values: [0.005]
+  decay:
+    values: [0.0]
+  gnl_style:
+    values: [softmax_attention]
+  gnl_measure:
+    values: [ones, deg_poly, nodewise]
+  attention_activation:
+    values: [softmax]
+  symmetric_attention:
+    values: [True]
+  attention_type:
+    values: [scaled_dot]
+  symmetric_QK:
+    values: [True]
+  attention_normalisation:
+    values: [none]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --geom_gcn_splits
+entity: graph_neural_diffusion
+project: greed_non_lin_1

@@ -128,7 +128,7 @@ def greed_ablation_params(opt):
     opt['m2_mlp'] = False #False
 
     #greed_non_linear params
-    opt['gnl_style'] = 'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
+    opt['gnl_style'] = 'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'deg_poly' #'ones' #'deg_poly' # 'nodewise'
 
     if opt['gnl_style'] == 'scaled_dot':

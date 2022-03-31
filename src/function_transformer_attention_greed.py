@@ -230,7 +230,7 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
     if self.opt['attention_type'] == "scaled_dot":
       prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
 
-    #todo norm wrt to f, slightly different to cosine sym
+    #todo norm wrt to f, slightly different to cosine sym to account for scale
     elif self.opt['attention_type'] == "scaled_normf":
       prods = torch.sum(src * dst_k, dim=1) / np.sqrt(self.d_k)
 
