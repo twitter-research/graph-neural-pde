@@ -4,7 +4,7 @@ parameters:
   function:
     values: [greed_non_linear]
   dataset:
-    values: ['chameleon','Cora']
+    values: ['chameleon']
   epoch:
     values: [ 100 ]
   num_splits:
