@@ -134,6 +134,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     self.delta = Parameter(torch.Tensor([1.]))
     # self.delta = torch.Tensor([2.0])
+    if opt['drift']:
+      self.C = (data.y.max()+1).item() #num class for drift
+      self.m2 = None #placeholder for decoder
 
     self.reset_nonlinG_parameters()
 
@@ -312,8 +315,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         elif self.opt['gnl_activation'] == 'identity':
           if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt[
             'wandb_epoch_list'] and self.get_evol_stats:  # not self.training:
-            fOmf = torch.ones(src_deginvsqrt.shape, device=self.device)
-
+            # fOmf = torch.ones(src_deginvsqrt.shape, device=self.device)
+            fOmf = torch.einsum("ij,jk,ik->i", src_x * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W,
+                       dst_x * dst_deginvsqrt.unsqueeze(dim=1))
           attention = torch.ones(src_deginvsqrt.shape, device=self.device)
 
         P = attention * src_deginvsqrt * dst_deginvsqrt
@@ -332,10 +336,21 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
 
     if self.opt['drift']:
-      drift = -self.C * f
-      for c in self.attractors.values():
-        drift += c
-      f = f + drift
+      #old style found in greed linear hetero
+      # drift = -self.C * f
+      # for c in self.attractors.values():
+      #   drift += c
+      # f = f + drift
+      logits = self.GNN_m2(x)
+      eye = torch.eye(logits.shape[1], device=self.device)
+      d = logits.unsqueeze(-1) - eye.unsqueeze(0)
+      eta_hat = torch.sum(torch.abs(d),dim=1)
+      index = list(range(self.C))
+      P = self.GNN_m2.weight
+      for l in range(self.C):
+        idx = index[:l] + index[l + 1:]
+        eta_l = torch.prod(eta_hat[:,idx], dim=1)
+        f -= -0.5 * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(logits.shape[1], device=self.device)) * logits @ P
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
       with torch.no_grad():
