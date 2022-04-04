@@ -66,17 +66,24 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.fOmf = None
     self.attentions = None
     self.L2dist = None
+    self.node_magnitudes = None
+    self.node_measures = None
+
     self.train_accs = None
     self.val_accs = None
     self.test_accs = None
     self.homophils = None
     self.entropies = None
+
     self.spectrum_fig_list = []
     self.acc_entropy_fig_list = []
     self.edge_evol_fig_list = []
-    self.spectrum_pdf = PdfPages('./spectrum.pdf')
-    self.acc_entropy_pdf = PdfPages('./acc_entropy.pdf')
-    self.edge_evol_pdf = PdfPages('./edge_evol.pdf')
+    self.node_evol_fig_list = []
+
+    self.spectrum_pdf = PdfPages('./plots/spectrum.pdf')
+    self.acc_entropy_pdf = PdfPages('./plots/acc_entropy.pdf')
+    self.edge_evol_pdf = PdfPages('./plots/edge_evol.pdf')
+    self.node_evol_pdf = PdfPages('./plots/node_evol.pdf')
 
     self.epoch = 0
     self.wandb_step = 0
@@ -254,8 +261,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         attention_h, _ = self.multihead_att_layer(x, self.edge_index)
         attention = attention_h.mean(dim=1)
 
-        #there's only one option for Omega because it has 2 jobs and is rectangle in general
-        self.Omega = self.multihead_att_layer.QK.weight.T @ self.multihead_att_layer.QK.weight
+        if self.opt['symmetric_QK']:
+          self.Omega = self.multihead_att_layer.QK.weight.T @ self.multihead_att_layer.QK.weight
+        else:
+          self.Omega = (self.multihead_att_layer.Q.weight.T @ self.multihead_att_layer.K.weight +
+                        self.multihead_att_layer.K.weight.T @ self.multihead_att_layer.Q.weight) / 2
 
         xOm = x @ self.Omega
         f1 = torch_sparse.spmm(self.edge_index, -attention / src_meas, x.shape[0], x.shape[0], xOm)
@@ -282,24 +292,28 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         #calc bilinear form
         src_x, dst_x = self.get_src_dst(x)
         if not self.opt['gnl_activation'] == 'identity':
-          fWf = torch.einsum("ij,jk,ik->i", src_x * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W, dst_x * dst_deginvsqrt.unsqueeze(dim=1))
-
-        if self.opt['gnl_activation'] == 'sigmoid':
-          attention = torch.sigmoid(fWf)
-        elif self.opt['gnl_activation'] == "squareplus":
-          attention = (fWf + torch.sqrt(fWf ** 2 + 4)) / 2
-        elif self.opt['gnl_activation'] == "sigmoid_deriv":
-          attention = sigmoid_deriv(fWf)
-        elif self.opt['gnl_activation'] == "tanh_deriv":
-          attention = tanh_deriv(fWf)
-        elif self.opt['gnl_activation'] == "squareplus_deriv":
-          attention = squareplus_deriv(fWf)
-        elif self.opt['gnl_activation'] == "exponential":
-          attention = torch.exp(fWf)
+          fOmf = torch.einsum("ij,jk,ik->i", src_x * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W, dst_x * dst_deginvsqrt.unsqueeze(dim=1))
+          #in the overleaf this is actually fWf just keeping for code homogeniety
+          if self.opt['gnl_activation'] == 'sigmoid':
+            attention = torch.sigmoid(fOmf)
+          elif self.opt['gnl_activation'] == "squareplus":
+            attention = (fOmf + torch.sqrt(fOmf ** 2 + 4)) / 2
+          elif self.opt['gnl_activation'] == "sigmoid_deriv":
+            attention = sigmoid_deriv(fOmf)
+          elif self.opt['gnl_activation'] == "tanh_deriv":
+            attention = tanh_deriv(fOmf)
+          elif self.opt['gnl_activation'] == "squareplus_deriv":
+            attention = squareplus_deriv(fOmf)
+          elif self.opt['gnl_activation'] == "exponential":
+            attention = torch.exp(fOmf)
+          else:
+            attention = fOmf
         elif self.opt['gnl_activation'] == 'identity':
+          if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt[
+            'wandb_epoch_list'] and self.get_evol_stats:  # not self.training:
+            fOmf = torch.ones(src_deginvsqrt.shape, device=self.device)
+
           attention = torch.ones(src_deginvsqrt.shape, device=self.device)
-        else:
-          attention = fWf
 
         P = attention * src_deginvsqrt * dst_deginvsqrt
         xW = x @ self.gnl_W
@@ -324,12 +338,18 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
       with torch.no_grad():
-        if self.opt['gnl_activation'] == "sigmoid_deriv":
-          energy = torch.sum(torch.sigmoid(fOmf))
-        elif self.opt['gnl_activation'] == "squareplus_deriv":
-          energy = torch.sum((fOmf + torch.sqrt(fOmf ** 2 + 4)) / 2)
-        elif self.opt['gnl_activation'] == "exponential":
-          energy = torch.sum(torch.exp(fOmf))
+        #todo these energy formulas need checking
+        if self.opt['gnl_style'] == 'scaled_dot':
+          if self.opt['gnl_activation'] == "sigmoid_deriv":
+            energy = torch.sum(torch.sigmoid(fOmf))
+          elif self.opt['gnl_activation'] == "squareplus_deriv":
+            energy = torch.sum((fOmf + torch.sqrt(fOmf ** 2 + 4)) / 2)
+          elif self.opt['gnl_activation'] == "exponential":
+            energy = torch.sum(torch.exp(fOmf))
+          elif self.opt['gnl_activation'] == "identity":
+            energy = fOmf ** 2 / 2
+        else:
+          energy = 0
 
         energy = energy + 0.5 * self.delta * torch.sum(x**2)
 
@@ -357,6 +377,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.attentions = attention.unsqueeze(0)
           self.fOmf = fOmf.unsqueeze(0)
           self.L2dist = L2dist.unsqueeze(0)
+          self.node_magnitudes = torch.sqrt(torch.sum(x**2,dim=1)).unsqueeze(0)
+          self.node_measures = measure.detach().unsqueeze(0)
           self.train_accs = [train_acc]
           self.val_accs = [val_acc]
           self.test_accs = [test_acc]
@@ -366,6 +388,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
           self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
           self.L2dist = torch.cat([self.L2dist, L2dist.unsqueeze(0)], dim=0)
+          self.node_magnitudes = torch.cat([self.node_magnitudes, torch.sqrt(torch.sum(x**2,dim=1)).unsqueeze(0)], dim=0)
+          self.node_measures = torch.cat([self.node_measures, measure.detach().unsqueeze(0)], dim=0)
           self.train_accs.append(train_acc)
           self.val_accs.append(val_acc)
           self.test_accs.append(test_acc)

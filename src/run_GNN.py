@@ -256,10 +256,14 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
 
         edge_evol_fig, edge_evol_ax = plt.subplots(num_rows, 2, gridspec_kw={'width_ratios': [1,1]}, figsize=(24, 32))
         model.odeblock.odefunc.edge_evol_fig_list.append([edge_evol_fig, edge_evol_ax])
+
+        node_evol_fig, node_evol_ax = plt.subplots(num_rows, 2, gridspec_kw={'width_ratios': [1,1]}, figsize=(24, 32))
+        model.odeblock.odefunc.node_evol_fig_list.append([node_evol_fig, node_evol_ax])
       else:
         spectrum_fig, spectrum_ax = model.odeblock.odefunc.spectrum_fig_list[-1]
         acc_entropy_fig, acc_entropy_ax = model.odeblock.odefunc.acc_entropy_fig_list[-1]
         edge_evol_fig, edge_evol_ax = model.odeblock.odefunc.edge_evol_fig_list[-1]
+        node_evol_fig, node_evol_ax = model.odeblock.odefunc.node_evol_fig_list[-1]
 
       #forward pass through the model in eval mode to generate the data
       model.odeblock.odefunc.get_evol_stats = True
@@ -267,27 +271,12 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       model.odeblock.odefunc.get_evol_stats = False
 
       #spectral and accuracy plots
-      Omega = model.odeblock.odefunc.Omega
-      L, Q = torch.linalg.eigh(Omega)  # fast version for symmetric matrices https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
+      if opt['gnl_style'] == 'scaled_dot':
+        Omega = model.odeblock.odefunc.Omega
+      elif opt['gnl_style'] == 'general_graph':
+        Omega = model.odeblock.odefunc.gnl_W
 
-      # fig, ax = plt.subplots(1, 3, figsize=(24, 8))
-      # mat = ax[0].matshow(Omega, interpolation='nearest')
-      # ax[0].xaxis.set_tick_params(labelsize=24)
-      # ax[0].yaxis.set_tick_params(labelsize=24)
-      # cbar = fig.colorbar(mat, ax=ax[0], shrink=0.75)
-      # cbar.ax.tick_params(labelsize=20)
-      #
-      # ax[1].bar(range(L.shape[0]), L)
-      # ax[1].xaxis.set_tick_params(labelsize=24)
-      # ax[1].yaxis.set_tick_params(labelsize=24)
-      #
-      # mat2 = ax[2].matshow(Q, interpolation='nearest')
-      # ax[2].xaxis.set_tick_params(labelsize=24)
-      # ax[2].yaxis.set_tick_params(labelsize=24)
-      # cbar1 = fig.colorbar(mat2, ax=ax[2], shrink=0.75)
-      # cbar1.ax.tick_params(labelsize=20)
-      # fig.suptitle(f"Omega, E-values, E-vectors, epoch {epoch}", fontsize=24)
-      # fig.show()
+      L, Q = torch.linalg.eigh(Omega)  # fast version for symmetric matrices https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
 
       ###1) multi grid Omega spectrum charts
       mat = spectrum_ax[row,0].matshow(Omega, interpolation='nearest')
@@ -296,7 +285,7 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       cbar = spectrum_fig.colorbar(mat, ax=spectrum_ax[row,0], shrink=0.75)
       cbar.ax.tick_params(labelsize=16)
 
-      spectrum_ax[row,1].bar(range(L.shape[0]), L)
+      spectrum_ax[row,1].bar(range(L.shape[0]), L, width=1.0)
       spectrum_ax[row,1].set_title(f"Omega, E-values, E-vectors, epoch {epoch}", fontdict={'fontsize':24})
       spectrum_ax[row,1].xaxis.set_tick_params(labelsize=16)
       spectrum_ax[row,1].yaxis.set_tick_params(labelsize=16)
@@ -314,15 +303,6 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       test_accs = model.odeblock.odefunc.test_accs
       homophils = model.odeblock.odefunc.homophils
 
-      # fig = plt.figure()
-      # plt.plot(np.arange(0.0, len(train_accs) * opt['step_size'], opt['step_size']), train_accs, label="train")
-      # plt.plot(np.arange(0.0, len(val_accs) * opt['step_size'], opt['step_size']), val_accs, label="val")
-      # plt.plot(np.arange(0.0, len(test_accs) * opt['step_size'], opt['step_size']), test_accs, label="test")
-      # plt.plot(np.arange(0.0, len(homophils) * opt['step_size'], opt['step_size']), homophils, label="homophil")
-      # plt.title(f"Accuracy evolution, epoch {epoch}")
-      # plt.legend(loc="upper right")
-      # fig.show()
-
       acc_entropy_ax[row,0].plot(np.arange(0.0, len(train_accs) * opt['step_size'], opt['step_size']), train_accs, label="train")
       acc_entropy_ax[row,0].plot(np.arange(0.0, len(val_accs) * opt['step_size'], opt['step_size']), val_accs, label="val")
       acc_entropy_ax[row,0].plot(np.arange(0.0, len(test_accs) * opt['step_size'], opt['step_size']), test_accs, label="test")
@@ -333,7 +313,7 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       acc_entropy_ax[row, 0].legend(loc="upper right", fontsize=24)
       # acc_entropy_fig.show()
 
-      #entropy plots
+      #entropy plots #getting the line colour to change
       #https://matplotlib.org/stable/gallery/lines_bars_and_markers/multicolored_line.html
       #https://matplotlib.org/stable/gallery/shapes_and_collections/line_collection.html
       #https://matplotlib.org/stable/api/collections_api.html#matplotlib.collections.LineCollection
@@ -366,35 +346,38 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       acc_entropy_fig.show()
 
       ###3) multi grid edge value plots
-
       fOmf = model.odeblock.odefunc.fOmf
-      # fig = plt.figure()
-      # plt.plot(np.arange(0.0, fOmf.shape[0] * opt['step_size'], opt['step_size']), fOmf)
-      # plt.title(f"fOmf, epoch {epoch}")
       edge_evol_ax[row,0].plot(np.arange(0.0, fOmf.shape[0] * opt['step_size'], opt['step_size']), fOmf)
       edge_evol_ax[row,0].xaxis.set_tick_params(labelsize=16)
       edge_evol_ax[row,0].yaxis.set_tick_params(labelsize=16)
       edge_evol_ax[row, 0].set_title(f"fOmf, epoch {epoch}", fontdict={'fontsize':24})
 
-      # attentions = model.odeblock.odefunc.attentions
-      # fig = plt.figure()
-      # plt.plot(np.arange(0.0, attentions.shape[0] * opt['step_size'], opt['step_size']), attentions)
-      # plt.title(f"Activated fOmf, epoch {epoch}")
-      # fig.show()
-
       L2dist = model.odeblock.odefunc.L2dist
-      # fig = plt.figure()
-      # plt.plot(np.arange(0.0, L2dist.shape[0] * opt['step_size'], opt['step_size']), L2dist)
-      # plt.title(f"L2dist, epoch {epoch}")
       edge_evol_ax[row,1].plot(np.arange(0.0, L2dist.shape[0] * opt['step_size'], opt['step_size']), L2dist)
       edge_evol_ax[row,1].xaxis.set_tick_params(labelsize=16)
       edge_evol_ax[row,1].yaxis.set_tick_params(labelsize=16)
       edge_evol_ax[row,1].set_title(f"L2dist, epoch {epoch}", fontdict={'fontsize':24})
       edge_evol_fig.show()
 
+      ###4) multi grid node value plots
+      magnitudes = model.odeblock.odefunc.node_magnitudes
+      node_evol_ax[row,0].plot(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size']), magnitudes)
+      node_evol_ax[row,0].xaxis.set_tick_params(labelsize=16)
+      node_evol_ax[row,0].yaxis.set_tick_params(labelsize=16)
+      node_evol_ax[row, 0].set_title(f"f magnitudes, epoch {epoch}", fontdict={'fontsize':24})
+
+      measures = model.odeblock.odefunc.node_measures
+      node_evol_ax[row,1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']), measures)
+      node_evol_ax[row,1].xaxis.set_tick_params(labelsize=16)
+      node_evol_ax[row,1].yaxis.set_tick_params(labelsize=16)
+      node_evol_ax[row,1].set_title(f"Node measures, epoch {epoch}", fontdict={'fontsize':24})
+      node_evol_fig.show()
+
       model.odeblock.odefunc.fOmf = None
       model.odeblock.odefunc.attentions = None
       model.odeblock.odefunc.L2dist = None
+      model.odeblock.odefunc.node_magnitudes = None
+      model.odeblock.odefunc.node_measures = None
       model.odeblock.odefunc.train_accs = None
       model.odeblock.odefunc.val_accs = None
       model.odeblock.odefunc.test_accs = None
@@ -404,12 +387,13 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
         model.odeblock.odefunc.spectrum_pdf.savefig(spectrum_fig)
         model.odeblock.odefunc.acc_entropy_pdf.savefig(acc_entropy_fig)
         model.odeblock.odefunc.edge_evol_pdf.savefig(edge_evol_fig)
+        model.odeblock.odefunc.node_evol_pdf.savefig(node_evol_fig)
 
       if epoch == opt['wandb_epoch_list'][-1]:
         model.odeblock.odefunc.spectrum_pdf.close()
         model.odeblock.odefunc.acc_entropy_pdf.close()
         model.odeblock.odefunc.edge_evol_pdf.close()
-
+        model.odeblock.odefunc.node_evol_pdf.close()
 
     print(f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}, epsilon: {model.odeblock.odefunc.om_W_eps}")  # , nu: {model.odeblock.odefunc.om_W_nu}")
 

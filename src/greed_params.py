@@ -128,8 +128,8 @@ def greed_ablation_params(opt):
     opt['m2_mlp'] = False #False
 
     #greed_non_linear params
-    opt['gnl_style'] = 'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
-    opt['gnl_measure'] = 'deg_poly' #'ones' #'deg_poly' # 'nodewise'
+    opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
+    opt['gnl_measure'] = 'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
 
     if opt['gnl_style'] == 'scaled_dot':
         opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
@@ -145,8 +145,8 @@ def greed_ablation_params(opt):
         opt['attention_normalisation'] = 'none'
 
     if opt['gnl_style'] == 'general_graph':
-        opt['gnl_omega'] = 'diag' #'sum' #'attr_rep' 'product'  #method to make Omega symmetric
-        opt['gnl_activation'] = 'sigmoid' #'identity'
+        opt['gnl_omega'] = 'zero'#'diag' #'sum' #'attr_rep' 'product'  #method to make Omega symmetric
+        opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
 
     #gcn params
     opt['geom_gcn_splits'] = True
@@ -159,19 +159,15 @@ def greed_ablation_params(opt):
     #
     opt['step_size'] = 1
     opt['time'] = 3.0
+    opt['epoch'] = 129 #255#129 #254 #100 #40 #40 #10
+    opt['num_splits'] = 1#4#1
 
-    # opt['epoch'] = 50 #129 #255#129 #254 #100 #40 #40 #10
-    # opt['num_splits'] = 4#1
-    # opt['geom_gcn_splits'] = True
-    #
     opt['optimizer'] = 'adam'
     opt['lr'] = 0.005
     opt['dropout'] = 0.6
     opt['decay'] = 0.0
     opt['hidden_dim'] = 512
     # # 'gcn_bias': True, 'gcn_enc_dec': True, 'gcn_fixed': False, 'gcn_non_lin': False, 'gcn_symm': 'symm'
-
-
 
     #run params
     # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
@@ -186,7 +182,7 @@ def greed_ablation_params(opt):
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = False #True
+    opt['wandb'] = True #False #True
     opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when testing
     opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
     opt['wandb_project'] = project_name #"greed_runs"
