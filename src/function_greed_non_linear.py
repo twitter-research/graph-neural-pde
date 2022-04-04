@@ -75,15 +75,16 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.homophils = None
     self.entropies = None
 
-    self.spectrum_fig_list = []
-    self.acc_entropy_fig_list = []
-    self.edge_evol_fig_list = []
-    self.node_evol_fig_list = []
+    if self.opt['wandb_track_grad_flow']:
+      self.spectrum_fig_list = []
+      self.acc_entropy_fig_list = []
+      self.edge_evol_fig_list = []
+      self.node_evol_fig_list = []
 
-    self.spectrum_pdf = PdfPages('./plots/spectrum.pdf')
-    self.acc_entropy_pdf = PdfPages('./plots/acc_entropy.pdf')
-    self.edge_evol_pdf = PdfPages('./plots/edge_evol.pdf')
-    self.node_evol_pdf = PdfPages('./plots/node_evol.pdf')
+      self.spectrum_pdf = PdfPages('./plots/spectrum.pdf')
+      self.acc_entropy_pdf = PdfPages('./plots/acc_entropy.pdf')
+      self.edge_evol_pdf = PdfPages('./plots/edge_evol.pdf')
+      self.node_evol_pdf = PdfPages('./plots/node_evol.pdf')
 
     self.epoch = 0
     self.wandb_step = 0
