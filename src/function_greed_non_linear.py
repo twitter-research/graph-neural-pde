@@ -1,7 +1,8 @@
 """
 Implementation of the functions proposed in Graph embedding energies and diffusion
 """
-
+import os
+import shutil
 import torch
 from torch import nn
 from torch.nn.init import uniform, xavier_uniform_
@@ -12,6 +13,7 @@ from torch_geometric.utils.loop import add_remaining_self_loops
 from torch_geometric.utils import degree, softmax, homophily
 from torch_sparse import coalesce, transpose
 from torch_geometric.nn.inits import glorot, zeros, ones, constant
+from torch_scatter import scatter_mean
 from torch.nn import Parameter, Softmax, Softplus
 from torch.distributions import Categorical
 import wandb
@@ -75,16 +77,40 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.homophils = None
     self.entropies = None
 
+    self.graph_edge_homophily = homophily(edge_index=self.edge_index, y=data.y, method='edge')
+    self.graph_node_homophily = homophily(edge_index=self.edge_index, y=data.y, method='node')
+    self.labels = data.y
+
+    row, col = data.edge_index
+    edge_homophils = torch.zeros(row.size(0), device=row.device)
+    edge_homophils[data.y[row] == data.y[col]] = 1.
+    node_homophils = scatter_mean(edge_homophils, col, 0, dim_size=data.y.size(0))
+    self.edge_homophils = edge_homophils
+    self.node_homophils = node_homophils
+
     if self.opt['wandb_track_grad_flow']:
+      savefolder = f"./plots/{opt['gnl_savefolder']}"
+      try:
+        os.mkdir(savefolder)
+      except OSError:
+        if os.path.exists(savefolder):
+          shutil.rmtree(savefolder)
+          os.mkdir(savefolder)
+          print("%s exists, clearing existing images" % savefolder)
+        else:
+          print("Creation of the directory %s failed" % savefolder)
+      else:
+        print("Successfully created the directory %s " % savefolder)
+
       self.spectrum_fig_list = []
       self.acc_entropy_fig_list = []
       self.edge_evol_fig_list = []
       self.node_evol_fig_list = []
 
-      self.spectrum_pdf = PdfPages('./plots/spectrum.pdf')
-      self.acc_entropy_pdf = PdfPages('./plots/acc_entropy.pdf')
-      self.edge_evol_pdf = PdfPages('./plots/edge_evol.pdf')
-      self.node_evol_pdf = PdfPages('./plots/node_evol.pdf')
+      self.spectrum_pdf = PdfPages(f"{savefolder}/spectrum.pdf")
+      self.acc_entropy_pdf = PdfPages(f"{savefolder}/acc_entropy.pdf")
+      self.edge_evol_pdf = PdfPages(f"{savefolder}/edge_evol.pdf")
+      self.node_evol_pdf = PdfPages(f"{savefolder}/node_evol.pdf")
 
     self.epoch = 0
     self.wandb_step = 0
@@ -341,7 +367,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # for c in self.attractors.values():
       #   drift += c
       # f = f + drift
-      logits = self.GNN_m2(x)
+
+      logits = torch.softmax(self.GNN_m2(x), dim=1)
       eye = torch.eye(logits.shape[1], device=self.device)
       d = logits.unsqueeze(-1) - eye.unsqueeze(0) #[num_nodes, d, 1] - [1, d, d]
       eta_hat = torch.sum(torch.abs(d),dim=1)  #sum abs distances for each node over features
@@ -349,10 +376,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       index = list(range(self.C))
       for l in range(self.C):
         idx = index[:l] + index[l + 1:]
-        eta_l = torch.prod(eta_hat[:,idx], dim=1)
+        q_l = eta_hat[:,l] * logits[:,l]
+        eta_l = torch.prod(eta_hat[:,idx]**2, dim=1) * q_l
         f -= -0.5 * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(logits.shape[1], device=self.device)) * logits @ P
 
-      # f = f - self.delta * x #testing if dampening helps, no
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
       with torch.no_grad():

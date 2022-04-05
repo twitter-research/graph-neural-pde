@@ -10,6 +10,7 @@ import wandb
 from ogb.nodeproppred import Evaluator
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
+import matplotlib.cm as cm
 from matplotlib import colors as mcolors
 from matplotlib.backends.backend_pdf import PdfPages
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -346,28 +347,62 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       acc_entropy_fig.show()
 
       ###3) multi grid edge value plots
-      fOmf = model.odeblock.odefunc.fOmf
-      edge_evol_ax[row,0].plot(np.arange(0.0, fOmf.shape[0] * opt['step_size'], opt['step_size']), fOmf)
-      edge_evol_ax[row,0].xaxis.set_tick_params(labelsize=16)
-      edge_evol_ax[row,0].yaxis.set_tick_params(labelsize=16)
-      edge_evol_ax[row, 0].set_title(f"fOmf, epoch {epoch}", fontdict={'fontsize':24})
-
-      L2dist = model.odeblock.odefunc.L2dist
-      edge_evol_ax[row,1].plot(np.arange(0.0, L2dist.shape[0] * opt['step_size'], opt['step_size']), L2dist)
-      edge_evol_ax[row,1].xaxis.set_tick_params(labelsize=16)
-      edge_evol_ax[row,1].yaxis.set_tick_params(labelsize=16)
-      edge_evol_ax[row,1].set_title(f"L2dist, epoch {epoch}", fontdict={'fontsize':24})
-      edge_evol_fig.show()
+      # fOmf = model.odeblock.odefunc.fOmf
+      # edge_homophils = model.odeblock.odefunc.edge_homophils
+      # # edge_evol_ax[row,0].plot(np.arange(0.0, fOmf.shape[0] * opt['step_size'], opt['step_size']), fOmf)
+      # cmap = plt.cm.Spectral
+      # edge_evol_ax[row,0].plot(np.arange(0.0, fOmf.shape[0] * opt['step_size'], opt['step_size']),
+      #                          fOmf, c=cmap(edge_homophils).tolist())
+      # edge_evol_ax[row,0].xaxis.set_tick_params(labelsize=16)
+      # edge_evol_ax[row,0].yaxis.set_tick_params(labelsize=16)
+      # edge_evol_ax[row, 0].set_title(f"fOmf, epoch {epoch}", fontdict={'fontsize':24})
+      #
+      # L2dist = model.odeblock.odefunc.L2dist
+      # edge_evol_ax[row,1].plot(np.arange(0.0, L2dist.shape[0] * opt['step_size'], opt['step_size']), L2dist)
+      # edge_evol_ax[row,1].xaxis.set_tick_params(labelsize=16)
+      # edge_evol_ax[row,1].yaxis.set_tick_params(labelsize=16)
+      # edge_evol_ax[row,1].set_title(f"L2dist, epoch {epoch}", fontdict={'fontsize':24})
+      # edge_evol_fig.show()
 
       ###4) multi grid node value plots
       magnitudes = model.odeblock.odefunc.node_magnitudes
-      node_evol_ax[row,0].plot(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size']), magnitudes)
+      labels  = model.odeblock.odefunc.labels
+      # node_evol_ax[row,0].plot(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size']), magnitudes)
+      # node_evol_ax[row,0].plot(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size']),
+      #                          magnitudes, c=labels.ravel().tolist(), cmap=cmap)
+      # node_evol_ax[row,0].plot(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size']),
+      #                          magnitudes, c=cmap(labels).ravel().tolist())
+      # four_list = (cmap(labels)[:,0].tolist(), cmap(labels)[:,1].tolist(), cmap(labels)[:,2].tolist(), cmap(labels)[:,3].tolist())
+      # node_evol_ax[row,0].plot(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size']),
+      #                          magnitudes, color=four_list)#labels.tolist())#cmap(labels)) #list(map(tuple, cmap(labels))))
+
+      for n in range(magnitudes.shape[1]):
+        normalize = mcolors.Normalize(vmin=labels.min(), vmax=labels.max())
+        colormap = cm.jet
+        color = colormap(normalize(labels[n]))
+        # color = cmap(labels[n])
+        node_evol_ax[row, 0].plot(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size']),
+                                  magnitudes[:,n], color=color)
+
       node_evol_ax[row,0].xaxis.set_tick_params(labelsize=16)
       node_evol_ax[row,0].yaxis.set_tick_params(labelsize=16)
       node_evol_ax[row, 0].set_title(f"f magnitudes, epoch {epoch}", fontdict={'fontsize':24})
 
       measures = model.odeblock.odefunc.node_measures
-      node_evol_ax[row,1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']), measures)
+      node_homophils = model.odeblock.odefunc.node_homophils
+      # node_evol_ax[row,1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']), measures)
+      # for_list = (cmap(node_homophils)[:,0].tolist(), cmap(node_homophils)[:,1].tolist(), cmap(node_homophils)[:,2].tolist(), cmap(node_homophils)[:,3].tolist())
+      # node_evol_ax[row,1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size'])
+      #                          , measures, color=for_list)#node_homophils.tolist())#cmap(node_homophils))
+      for n in range(measures.shape[1]):
+        normalize = mcolors.Normalize(vmin=node_homophils.min(), vmax=node_homophils.max())
+        colormap = cm.jet
+        color = colormap(normalize(node_homophils[n]))
+        # color = cmap(node_homophils[n])
+        node_evol_ax[row, 1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']),
+                                  measures[:,n], color=color)
+
+
       node_evol_ax[row,1].xaxis.set_tick_params(labelsize=16)
       node_evol_ax[row,1].yaxis.set_tick_params(labelsize=16)
       node_evol_ax[row,1].set_title(f"Node measures, epoch {epoch}", fontdict={'fontsize':24})
@@ -851,6 +886,7 @@ if __name__ == '__main__':
   parser.add_argument('--gnl_activation', type=str, default='idenity', help='identity, sigmoid, ...')
   parser.add_argument('--gnl_measure', type=str, default='ones', help='ones, deg_poly, nodewise')
   parser.add_argument('--gnl_omega', type=str, default='zero', help='zero, diag, sum')
+  parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
 
   args = parser.parse_args()
   opt = vars(args)

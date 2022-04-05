@@ -130,7 +130,8 @@ def greed_ablation_params(opt):
     #greed_non_linear params
     opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
-    opt['drift'] = True
+    opt['drift'] = True #False
+    opt['gnl_savefolder'] = 'chameleon_testing'
 
     if opt['gnl_style'] == 'scaled_dot':
         opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
@@ -146,7 +147,7 @@ def greed_ablation_params(opt):
         opt['attention_normalisation'] = 'none'
 
     if opt['gnl_style'] == 'general_graph':
-        opt['gnl_omega'] = 'zero'#'diag' #'sum' #'attr_rep' 'product'  #method to make Omega symmetric
+        opt['gnl_omega'] = 'zero' #'diag' #'sum' #'attr_rep' 'product'  #method to make Omega symmetric
         opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
 
     #gcn params
@@ -158,7 +159,7 @@ def greed_ablation_params(opt):
     opt['gcn_bias'] = True
     opt['gcn_mid_dropout'] = False
     #
-    opt['step_size'] = 1
+    opt['step_size'] = 1.0
     opt['time'] = 3.0
     opt['epoch'] = 129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1#4#1
@@ -183,7 +184,7 @@ def greed_ablation_params(opt):
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = False #True
+    opt['wandb'] = True #False #True
     opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when testing
     opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
     opt['wandb_project'] = project_name #"greed_runs"
@@ -474,6 +475,7 @@ def default_params():
     parser.add_argument('--gnl_activation', type=str, default='idenity', help='identity, sigmoid, ...')
     parser.add_argument('--gnl_measure', type=str, default='ones', help='ones, deg_poly, nodewise')
     parser.add_argument('--gnl_omega', type=str, default='zero', help='zero, diag, sum')
+    parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
 
     args = parser.parse_args()
     opt = vars(args)
