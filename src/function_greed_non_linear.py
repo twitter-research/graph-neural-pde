@@ -322,7 +322,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
         P = attention * src_deginvsqrt * dst_deginvsqrt
         xW = x @ self.gnl_W
-        f1 = torch_sparse.spmm(self.edge_index, P / src_meas, x.shape[0], x.shape[0], xW) / 2   #breaks here
+        f1 = torch_sparse.spmm(self.edge_index, P / src_meas, x.shape[0], x.shape[0], xW) / 2
         f2 = torch_sparse.spmm(self.edge_index, P / dst_meas, x.shape[0], x.shape[0], xW) / 2
         f = f1 + f2
 
@@ -343,14 +343,16 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # f = f + drift
       logits = self.GNN_m2(x)
       eye = torch.eye(logits.shape[1], device=self.device)
-      d = logits.unsqueeze(-1) - eye.unsqueeze(0)
-      eta_hat = torch.sum(torch.abs(d),dim=1)
-      index = list(range(self.C))
+      d = logits.unsqueeze(-1) - eye.unsqueeze(0) #[num_nodes, d, 1] - [1, d, d]
+      eta_hat = torch.sum(torch.abs(d),dim=1)  #sum abs distances for each node over features
       P = self.GNN_m2.weight
+      index = list(range(self.C))
       for l in range(self.C):
         idx = index[:l] + index[l + 1:]
         eta_l = torch.prod(eta_hat[:,idx], dim=1)
         f -= -0.5 * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(logits.shape[1], device=self.device)) * logits @ P
+
+      # f = f - self.delta * x #testing if dampening helps, no
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
       with torch.no_grad():
