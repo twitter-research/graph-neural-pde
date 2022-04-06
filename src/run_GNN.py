@@ -408,14 +408,14 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       #node magnitude against degree or homophilly, colour is class
       magnitudes = model.odeblock.odefunc.node_magnitudes
       labels  = model.odeblock.odefunc.labels
-      node_scatter_ax[row,0].scatter(x=magnitudes[-1,:], y=node_homophils, c=labels, cmap='Set1')
+      node_scatter_ax[row,0].scatter(x=magnitudes[-1,:], y=node_homophils, c=labels)#, cmap='Set1')
       node_scatter_ax[row,0].xaxis.set_tick_params(labelsize=16)
       node_scatter_ax[row,0].yaxis.set_tick_params(labelsize=16)
       node_scatter_ax[row, 0].set_title(f"f magnitudes v node homophils, epoch {epoch}", fontdict={'fontsize':24})
 
       #node measure against degree or homophilly, colour is class
       measures = model.odeblock.odefunc.node_measures
-      node_scatter_ax[row,1].scatter(x=measures[-1,:], y=node_homophils, c=labels, cmap='Set1')
+      node_scatter_ax[row,1].scatter(x=measures[-1,:], y=node_homophils, c=labels)#, cmap='Set1')
       node_scatter_ax[row,1].xaxis.set_tick_params(labelsize=16)
       node_scatter_ax[row,1].yaxis.set_tick_params(labelsize=16)
       node_scatter_ax[row,1].set_title(f"Node measures v node homophils, epoch {epoch}", fontdict={'fontsize':24})
@@ -423,7 +423,11 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
 
       ###6) scatter plot for edges
       #edge dot product against edge distance, coloured by edge homopholliy
-      edge_scatter_ax[row].scatter(x=fOmf[-1,:], y=L2dist[-1,:], c=edge_homophils)
+
+      mask = edge_homophils == 1
+      edge_scatter_ax[row].scatter(x=fOmf[-1,:][mask], y=L2dist[-1,:][mask], label='edge:1', c='gold')#c=edge_homophils[mask])
+      edge_scatter_ax[row].scatter(x=fOmf[-1,:][~mask], y=L2dist[-1,:][~mask], label='edge:0', c='indigo')#c=edge_homophils[~mask])
+
       edge_scatter_ax[row].xaxis.set_tick_params(labelsize=16)
       edge_scatter_ax[row].yaxis.set_tick_params(labelsize=16)
       edge_scatter_ax[row].set_title(f"Edge fOmf against L2, epoch {epoch}", fontdict={'fontsize':24})
