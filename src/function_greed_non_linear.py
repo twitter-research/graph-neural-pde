@@ -87,6 +87,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     node_homophils = scatter_mean(edge_homophils, col, 0, dim_size=data.y.size(0))
     self.edge_homophils = edge_homophils
     self.node_homophils = node_homophils
+    self.degree = degree(self.edge_index[0], self.n_nodes)
 
     if self.opt['wandb_track_grad_flow']:
       savefolder = f"./plots/{opt['gnl_savefolder']}"
@@ -106,11 +107,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.acc_entropy_fig_list = []
       self.edge_evol_fig_list = []
       self.node_evol_fig_list = []
+      self.node_scatter_fig_list = []
+      self.edge_scatter_fig_list = []
 
       self.spectrum_pdf = PdfPages(f"{savefolder}/spectrum.pdf")
       self.acc_entropy_pdf = PdfPages(f"{savefolder}/acc_entropy.pdf")
       self.edge_evol_pdf = PdfPages(f"{savefolder}/edge_evol.pdf")
       self.node_evol_pdf = PdfPages(f"{savefolder}/node_evol.pdf")
+      self.node_scatter_pdf = PdfPages(f"{savefolder}/node_scatter.pdf")
+      self.edge_scatter_pdf = PdfPages(f"{savefolder}/edge_scatter.pdf")
 
     self.epoch = 0
     self.wandb_step = 0
