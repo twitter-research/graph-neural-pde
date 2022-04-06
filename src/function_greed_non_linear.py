@@ -6,6 +6,7 @@ import shutil
 import torch
 from torch import nn
 from torch.nn.init import uniform, xavier_uniform_
+import torch.nn.functional as F
 import numpy as np
 import torch_sparse
 from torch_scatter import scatter_add, scatter_mul
@@ -167,7 +168,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     # self.delta = torch.Tensor([2.0])
     if opt['drift']:
       self.C = (data.y.max()+1).item() #num class for drift
-      self.m2 = None #placeholder for decoder
+      self.drift_eps = Parameter(torch.Tensor([1.])) #placeholder for decoder
 
     self.reset_nonlinG_parameters()
 
@@ -367,6 +368,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
 
     if self.opt['drift']:
+      f = torch.exp(self.drift_eps) * f
       #old style found in greed linear hetero
       # drift = -self.C * f
       # for c in self.attractors.values():
@@ -383,7 +385,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         idx = index[:l] + index[l + 1:]
         q_l = eta_hat[:,l] * logits[:,l]
         eta_l = torch.prod(eta_hat[:,idx]**2, dim=1) * q_l
-        f -= -0.5 * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(logits.shape[1], device=self.device)) * logits @ P
+        f -= (-0.5 * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(logits.shape[1], device=self.device)) * logits @ P)\
+             / torch.exp(self.drift_eps)
 
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
@@ -417,7 +420,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
                    "grad_flow_step": self.wandb_step})
         #note we could include some of the below stats in the wandb logging
 
-        logits = self.GNN_m2(x)
+
+        z = x
+        # Activation.
+        if not self.opt['XN_no_activation']:
+          z = F.relu(z)
+        if self.opt['fc_out']:
+          z = self.fc(z)
+          z = F.relu(z)
+        logits = self.GNN_m2(z)
         train_acc, val_acc, test_acc = test(logits, self.data)
         pred = logits.max(1)[1]
         homophil = homophily(edge_index=self.edge_index, y=pred)
@@ -445,6 +456,63 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.test_accs.append(test_acc)
           self.homophils.append(homophil)
 
+          temp_entropies = get_entropies(logits, self.data)
+          for key, value, in self.entropies.items():
+            self.entropies[key] = torch.cat([value, temp_entropies[key]], dim=0)
+
+        #extra values for terminal step
+        if t == self.opt['time'] - self.opt['step_size']:
+          z = x + self.opt['step_size'] * f #take an euler step
+
+          src_z, dst_z = self.get_src_dst(z)
+          if not self.opt['gnl_activation'] == 'identity':
+            fOmf = torch.einsum("ij,jk,ik->i", src_z * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W,
+                                dst_z * dst_deginvsqrt.unsqueeze(dim=1))
+            # in the overleaf this is actually fWf just keeping for code homogeniety
+            if self.opt['gnl_activation'] == 'sigmoid':
+              attention = torch.sigmoid(fOmf)
+            elif self.opt['gnl_activation'] == "squareplus":
+              attention = (fOmf + torch.sqrt(fOmf ** 2 + 4)) / 2
+            elif self.opt['gnl_activation'] == "sigmoid_deriv":
+              attention = sigmoid_deriv(fOmf)
+            elif self.opt['gnl_activation'] == "tanh_deriv":
+              attention = tanh_deriv(fOmf)
+            elif self.opt['gnl_activation'] == "squareplus_deriv":
+              attention = squareplus_deriv(fOmf)
+            elif self.opt['gnl_activation'] == "exponential":
+              attention = torch.exp(fOmf)
+            else:
+              attention = fOmf
+          elif self.opt['gnl_activation'] == 'identity':
+            if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt[
+              'wandb_epoch_list'] and self.get_evol_stats:  # not self.training:
+              # fOmf = torch.ones(src_deginvsqrt.shape, device=self.device)
+              fOmf = torch.einsum("ij,jk,ik->i", src_z * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W,
+                                  dst_z * dst_deginvsqrt.unsqueeze(dim=1))
+            attention = torch.ones(src_deginvsqrt.shape, device=self.device)
+
+          # Activation.
+          if not self.opt['XN_no_activation']:
+            z = F.relu(z)
+          if self.opt['fc_out']:
+            z = self.fc(z)
+            z = F.relu(z)
+          logits = self.GNN_m2(z)
+          train_acc, val_acc, test_acc = test(logits, self.data)
+          pred = logits.max(1)[1]
+          homophil = homophily(edge_index=self.edge_index, y=pred)
+          L2dist = torch.sqrt(torch.sum((src_z - dst_z) ** 2, dim=1))
+
+          self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
+          self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
+          self.L2dist = torch.cat([self.L2dist, L2dist.unsqueeze(0)], dim=0)
+          self.node_magnitudes = torch.cat([self.node_magnitudes, torch.sqrt(torch.sum(z ** 2, dim=1)).unsqueeze(0)],
+                                           dim=0)
+          self.node_measures = torch.cat([self.node_measures, measure.detach().unsqueeze(0)], dim=0)
+          self.train_accs.append(train_acc)
+          self.val_accs.append(val_acc)
+          self.test_accs.append(test_acc)
+          self.homophils.append(homophil)
           temp_entropies = get_entropies(logits, self.data)
           for key, value, in self.entropies.items():
             self.entropies[key] = torch.cat([value, temp_entropies[key]], dim=0)

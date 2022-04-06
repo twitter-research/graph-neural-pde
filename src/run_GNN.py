@@ -179,7 +179,7 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
 
 @torch.no_grad()
 def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
-
+  model.eval()
   #every epoch stats for greed linear and non linear
   num_nodes = data.num_nodes
   x0 = model.encoder(data.x)
@@ -391,14 +391,14 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       node_evol_ax[row, 0].set_title(f"f magnitudes, epoch {epoch}", fontdict={'fontsize':24})
 
       measures = model.odeblock.odefunc.node_measures
-      # node_evol_ax[row,1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']), measures)
+      node_evol_ax[row,1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']), measures)
       node_homophils = model.odeblock.odefunc.node_homophils
-      for n in range(measures.shape[1]):
-        normalize = mcolors.Normalize(vmin=node_homophils.min(), vmax=node_homophils.max())
-        colormap = cm.Spectral #jet
-        color = colormap(normalize(node_homophils[n]))
-        node_evol_ax[row, 1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']),
-                                  measures[:,n], color=color)
+      # for n in range(measures.shape[1]):
+      #   normalize = mcolors.Normalize(vmin=node_homophils.min(), vmax=node_homophils.max())
+      #   colormap = cm.Spectral #jet
+      #   color = colormap(normalize(node_homophils[n]))
+      #   node_evol_ax[row, 1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']),
+      #                             measures[:,n], color=color)
       node_evol_ax[row,1].xaxis.set_tick_params(labelsize=16)
       node_evol_ax[row,1].yaxis.set_tick_params(labelsize=16)
       node_evol_ax[row,1].set_title(f"Node measures, epoch {epoch}", fontdict={'fontsize':24})
@@ -408,14 +408,14 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       #node magnitude against degree or homophilly, colour is class
       magnitudes = model.odeblock.odefunc.node_magnitudes
       labels  = model.odeblock.odefunc.labels
-      node_scatter_ax[row,0].scatter(x=magnitudes[-1,:], y=node_homophils, c=labels)
+      node_scatter_ax[row,0].scatter(x=magnitudes[-1,:], y=node_homophils, c=labels, cmap='Set1')
       node_scatter_ax[row,0].xaxis.set_tick_params(labelsize=16)
       node_scatter_ax[row,0].yaxis.set_tick_params(labelsize=16)
       node_scatter_ax[row, 0].set_title(f"f magnitudes v node homophils, epoch {epoch}", fontdict={'fontsize':24})
 
       #node measure against degree or homophilly, colour is class
       measures = model.odeblock.odefunc.node_measures
-      node_scatter_ax[row,1].scatter(x=measures[-1,:], y=node_homophils, c=labels)
+      node_scatter_ax[row,1].scatter(x=measures[-1,:], y=node_homophils, c=labels, cmap='Set1')
       node_scatter_ax[row,1].xaxis.set_tick_params(labelsize=16)
       node_scatter_ax[row,1].yaxis.set_tick_params(labelsize=16)
       node_scatter_ax[row,1].set_title(f"Node measures v node homophils, epoch {epoch}", fontdict={'fontsize':24})
@@ -427,6 +427,7 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       edge_scatter_ax[row].xaxis.set_tick_params(labelsize=16)
       edge_scatter_ax[row].yaxis.set_tick_params(labelsize=16)
       edge_scatter_ax[row].set_title(f"Edge fOmf against L2, epoch {epoch}", fontdict={'fontsize':24})
+      edge_scatter_ax[row].legend(loc="upper right", fontsize=24)
       edge_scatter_fig.show()
 
 
@@ -559,21 +560,21 @@ def main(cmd_opt):
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   opt['device'] = device
 
+  if opt['wandb']:
+    if 'wandb_run_name' in opt.keys():
+      wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
+                 name=opt['wandb_run_name'], reinit=True, config=opt, allow_val_change=True)
+    else:
+      wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
+                 reinit=True, config=opt, allow_val_change=True) #required when update hidden_dim in beltrami
 
-  if 'wandb_run_name' in opt.keys():
-    wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
-               name=opt['wandb_run_name'], reinit=True, config=opt, allow_val_change=True)
-  else:
-    wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
-               reinit=True, config=opt, allow_val_change=True) #required when update hidden_dim in beltrami
+    # wandb.config.update(opt, allow_val_change=True) #required when update hidden_dim in beltrami
+    opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
 
-  # wandb.config.update(opt, allow_val_change=True) #required when update hidden_dim in beltrami
-  opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
-
-  wandb.define_metric("epoch_step") #Customize axes - https://docs.wandb.ai/guides/track/log
-  if opt['wandb_track_grad_flow']:
-    wandb.define_metric("grad_flow_step") #Customize axes - https://docs.wandb.ai/guides/track/log
-    wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
+    wandb.define_metric("epoch_step") #Customize axes - https://docs.wandb.ai/guides/track/log
+    if opt['wandb_track_grad_flow']:
+      wandb.define_metric("grad_flow_step") #Customize axes - https://docs.wandb.ai/guides/track/log
+      wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
   # todo this is in place as needed for chameleon, tidy up

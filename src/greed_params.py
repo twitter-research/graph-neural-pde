@@ -130,8 +130,8 @@ def greed_ablation_params(opt):
     #greed_non_linear params
     opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
-    opt['drift'] = True #False
-    opt['gnl_savefolder'] = 'chameleon_general_drift'#'chameleon_testing'
+    opt['drift'] = False#True #False
+    opt['gnl_savefolder'] = 'chameleon_general_nodrift'#'chameleon_general_drift'#'chameleon_testing'
 
     if opt['gnl_style'] == 'scaled_dot':
         opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
