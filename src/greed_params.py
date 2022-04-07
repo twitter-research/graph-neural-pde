@@ -130,9 +130,10 @@ def greed_ablation_params(opt):
     #greed_non_linear params
     opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
-    opt['drift'] = True #False
+    opt['drift'] = True
     opt['gnl_savefolder'] = 'chameleon_general_drift'#'chameleon_general_drift'#'chameleon_testing'
     opt['gnl_W_style'] = 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
+    opt['gnl_thresholding'] = False
 
     if opt['gnl_style'] == 'scaled_dot':
         opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
@@ -477,7 +478,7 @@ def default_params():
     parser.add_argument('--gnl_measure', type=str, default='ones', help='ones, deg_poly, nodewise')
     parser.add_argument('--gnl_omega', type=str, default='zero', help='zero, diag, sum')
 
-    parser.add_argument('--gnl_thresholding', type=str, default='True', help='turns on GL thresholding')
+    parser.add_argument('--gnl_thresholding', type=str, default='False', help='turns on GL thresholding')
     parser.add_argument('--gnl_thresholding_reps', type=int, default=2, help='number of thresholding iterations')
 
     parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
