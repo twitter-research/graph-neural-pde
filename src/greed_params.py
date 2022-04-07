@@ -132,6 +132,7 @@ def greed_ablation_params(opt):
     opt['gnl_measure'] = 'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
     opt['drift'] = True #False
     opt['gnl_savefolder'] = 'chameleon_general_drift'#'chameleon_general_drift'#'chameleon_testing'
+    opt['gnl_W_style'] = 'cgnn'# 'GS'#sum, prod, GS, cgnn
 
     if opt['gnl_style'] == 'scaled_dot':
         opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
@@ -184,7 +185,7 @@ def greed_ablation_params(opt):
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = True #False #True
+    opt['wandb'] = False #True #False #True
     opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when testing
     opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
     opt['wandb_project'] = project_name #"greed_runs"
@@ -459,7 +460,7 @@ def default_params():
     parser.add_argument('--W_type', type=str, default='identity', help='identity, diag, full')
     parser.add_argument('--R_W_type', type=str, default='identity', help='for repulsion: identity, diag, full')
     parser.add_argument('--R_depon_A', type=str, default='', help='R dependancy in A')
-    # parser.add_argument('--W_beta', type=float, default=0.5, help='for cgnn Ws orthoganal update')
+    parser.add_argument('--W_beta', type=float, default=0.5, help='for cgnn Ws orthoganal update')
     parser.add_argument('--tau_residual', type=str, default='False', help='makes tau residual')
 
     # GCN ablation args

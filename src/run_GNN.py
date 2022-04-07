@@ -564,21 +564,20 @@ def main(cmd_opt):
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   opt['device'] = device
 
-  if opt['wandb']:
-    if 'wandb_run_name' in opt.keys():
-      wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
-                 name=opt['wandb_run_name'], reinit=True, config=opt, allow_val_change=True)
-    else:
-      wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
-                 reinit=True, config=opt, allow_val_change=True) #required when update hidden_dim in beltrami
+  if 'wandb_run_name' in opt.keys():
+    wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
+               name=opt['wandb_run_name'], reinit=True, config=opt, allow_val_change=True)
+  else:
+    wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
+               reinit=True, config=opt, allow_val_change=True) #required when update hidden_dim in beltrami
 
-    # wandb.config.update(opt, allow_val_change=True) #required when update hidden_dim in beltrami
-    opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
+  # wandb.config.update(opt, allow_val_change=True) #required when update hidden_dim in beltrami
+  opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
 
-    wandb.define_metric("epoch_step") #Customize axes - https://docs.wandb.ai/guides/track/log
-    if opt['wandb_track_grad_flow']:
-      wandb.define_metric("grad_flow_step") #Customize axes - https://docs.wandb.ai/guides/track/log
-      wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
+  wandb.define_metric("epoch_step") #Customize axes - https://docs.wandb.ai/guides/track/log
+  if opt['wandb_track_grad_flow']:
+    wandb.define_metric("grad_flow_step") #Customize axes - https://docs.wandb.ai/guides/track/log
+    wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
   # todo this is in place as needed for chameleon, tidy up
@@ -900,7 +899,7 @@ if __name__ == '__main__':
   parser.add_argument('--W_type', type=str, default='identity', help='identity, diag, full')
   parser.add_argument('--R_W_type', type=str, default='identity', help='for repulsion: identity, diag, full')
   parser.add_argument('--R_depon_A', type=str, default='', help='R dependancy in A')
-  # parser.add_argument('--W_beta', type=float, default=0.5, help='for cgnn Ws orthoganal update')
+  parser.add_argument('--W_beta', type=float, default=0.5, help='for cgnn Ws orthoganal update')
   parser.add_argument('--tau_residual', type=str, default='False', help='makes tau residual')
 
   #GCN ablation args
@@ -917,6 +916,8 @@ if __name__ == '__main__':
   parser.add_argument('--gnl_activation', type=str, default='idenity', help='identity, sigmoid, ...')
   parser.add_argument('--gnl_measure', type=str, default='ones', help='ones, deg_poly, nodewise')
   parser.add_argument('--gnl_omega', type=str, default='zero', help='zero, diag, sum')
+  parser.add_argument('--gnl_W_style', type=str, default='sum', help='sum, prod, GS, cgnn')
+
   parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
 
   args = parser.parse_args()

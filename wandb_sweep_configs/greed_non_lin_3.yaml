@@ -1,0 +1,47 @@
+program: run_GNN.py
+method: grid
+parameters:
+  function:
+    values: [greed_non_linear]
+  dataset:
+    values: ['chameleon']
+  epoch:
+    values: [ 100 ]
+  num_splits:
+    values: [ 10 ]
+  method:
+    values: [euler]
+  step_size:
+    values: [ 1, 0.5, 0.25 ]
+  hidden_dim:
+    values: [64, 128, 256, 512]
+  time:
+    values: [2, 3, 4]
+  dropout:
+    values: [0.6]
+  lr:
+    values: [0.005]
+  decay:
+    values: [0.0]
+  gnl_style:
+    values: [general_graph]
+  drift:
+    values: [True]
+  gnl_measure:
+    values: [nodewise]
+  gnl_activation:
+    values: [identity]
+  gnl_omega:
+    values: [zero]
+  gnl_W_style:
+    values: [GS, cgnn]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --geom_gcn_splits
+entity: graph_neural_diffusion
+project: greed_non_lin_2

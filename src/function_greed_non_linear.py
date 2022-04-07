@@ -161,8 +161,16 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     if self.opt['gnl_style'] == 'general_graph':
       # gnl_omega -> "gnl_W"
-      self.W_W = Parameter(torch.Tensor(in_features, in_features))
-      self.W_W_eps = 0
+      if self.opt['gnl_W_style'] == 'GS':
+        self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
+        self.gnl_W_D = Parameter(torch.ones(in_features))
+      elif self.opt['gnl_W_style'] == 'cgnn':
+        self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
+        self.gnl_W_D = Parameter(torch.ones(in_features))
+      else:
+        self.W_W = Parameter(torch.Tensor(in_features, in_features))
+        self.W_W_eps = 0 #what's this?
+
 
     self.delta = Parameter(torch.Tensor([1.]))
     # self.delta = torch.Tensor([2.0])
@@ -189,8 +197,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       uniform(self.om_W, a=-1, b=1)
 
     if self.opt['gnl_style'] == 'general_graph':
-      glorot(self.W_W)
-      # xavier_uniform_(self.W_W)
+      if self.opt['gnl_W_style'] == 'GS':
+        glorot(self.gnl_W_U)
+        # self.gnl_W_D
+      elif self.opt['gnl_W_style'] == 'cgnn':
+        glorot(self.gnl_W_U)
+        # self.gnl_W_D
+      else:
+        glorot(self.W_W)      # xavier_uniform_(self.W_W)
 
     if self.opt['gnl_measure'] == 'deg_poly':
       ones(self.m_alpha)
@@ -201,6 +215,42 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     # ones(self.delta)
     # zeros(self.delta)
+
+  def set_WS(self, x):
+    if self.opt['gnl_W_style'] in ['prod']:
+      return self.W_W @ self.W_W.t()  # output a [d,d] tensor
+    if self.opt['gnl_W_style'] in ['sum']:
+      return (self.W_W + self.W_W.t()) / 2
+    # elif self.opt['W_type'] == 'diag':
+    #   return torch.diag(self.W)
+    # elif self.opt['W_type'] == 'residual_prod':
+    #   return torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
+
+    elif self.opt['gnl_W_style'] == 'GS':#'residual_GS':
+      V_hat = gram_schmidt(self.gnl_W_U)
+      W_D = torch.clamp(self.gnl_W_D, min=0, max=1)
+      W_hat = V_hat @ torch.diag(W_D) @ V_hat.t()
+      return W_hat
+      # W_hat = V_hat @ torch.diag(torch.exp(self.gnl_W_D) - 1.5) @ V_hat.t()
+      # return torch.eye(self.gnl_W.shape[0], device=self.device) + W_hat
+
+    elif self.opt['gnl_W_style'] == 'cgnn':
+      beta = self.opt['W_beta']
+      with torch.no_grad():
+        W_U = self.gnl_W_U.clone()
+        W_U = self.gnl_W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
+
+      W_D = torch.clamp(self.gnl_W_D, min=0, max=1) #self.gnl_W_D
+      W_hat = W_U @ torch.diag(W_D) @ W_U.t()
+      return W_hat
+      # d = torch.clamp(self.d, min=0, max=1)
+      # w = torch.mm(self.w * d, torch.t(self.w))
+      # xw = torch.spmm(x, w)
+      # # https://github.com/JRowbottomGit/ContinuousGNN/blob/85d47b0748a19e06e305c21e99e1dd03d36ad314/src/trainer.py
+      # W = self.model.odeblock.odefunc.w.data
+      # beta = 0.5
+      # W.copy_((1 + beta) * W - beta * W.mm(W.transpose(0, 1).mm(W)))
+
 
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
     row_sum = scatter_add(attentions, edge_index[0], dim=0, dim_size=n)
@@ -320,7 +370,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         else:
           self.Omega = (self.om_W + self.om_W.T) / 2
 
-        self.gnl_W = (self.W_W + self.W_W.T) / 2
+        # self.gnl_W = (self.W_W + self.W_W.T) / 2 #set at GNN level
 
         #get degrees
         src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)
@@ -417,9 +467,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
                    f"gf_e{self.epoch}_f": (f**2).sum(),
                    f"gf_e{self.epoch}_x": (x ** 2).sum(),
+                   f"gf_e{self.epoch}_drift_eps": self.drift_eps,
                    "grad_flow_step": self.wandb_step})
         #note we could include some of the below stats in the wandb logging
-
 
         z = x
         # Activation.

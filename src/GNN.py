@@ -69,6 +69,10 @@ class GNN(BaseGNN):
           self.odeblock.odefunc.set_R0()
           self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_WS(x)
 
+    if self.opt['function'] == "greed_non_linear":
+          self.odeblock.odefunc.gnl_W = self.odeblock.odefunc.set_WS(x)
+
+
     if self.training and self.odeblock.nreg > 0:
       z, self.reg_states = self.odeblock(x)
     else:
