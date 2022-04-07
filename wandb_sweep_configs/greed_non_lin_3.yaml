@@ -34,7 +34,7 @@ parameters:
   gnl_omega:
     values: [zero]
   gnl_W_style:
-    values: [GS, cgnn]
+    values: [cgnn]
 command:
   - ${env}
   - python3
