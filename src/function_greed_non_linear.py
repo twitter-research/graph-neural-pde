@@ -216,7 +216,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     # ones(self.delta)
     # zeros(self.delta)
 
-  def set_WS(self, x):
+  def set_gnlWS(self):
     if self.opt['gnl_W_style'] in ['prod']:
       return self.W_W @ self.W_W.t()  # output a [d,d] tensor
     if self.opt['gnl_W_style'] in ['sum']:
@@ -228,7 +228,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     elif self.opt['gnl_W_style'] == 'GS':#'residual_GS':
       V_hat = gram_schmidt(self.gnl_W_U)
-      W_D = torch.clamp(self.gnl_W_D, min=0, max=1)
+      # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1)
+      W_D = torch.tanh(self.gnl_W_D)
       W_hat = V_hat @ torch.diag(W_D) @ V_hat.t()
       return W_hat
       # W_hat = V_hat @ torch.diag(torch.exp(self.gnl_W_D) - 1.5) @ V_hat.t()
@@ -240,7 +241,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         W_U = self.gnl_W_U.clone()
         W_U = self.gnl_W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
 
-      W_D = torch.clamp(self.gnl_W_D, min=0, max=1) #self.gnl_W_D
+      # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1) #self.gnl_W_D
+      W_D = torch.tanh(self.gnl_W_D) #self.gnl_W_D
+
       W_hat = W_U @ torch.diag(W_D) @ W_U.t()
       return W_hat
       # d = torch.clamp(self.d, min=0, max=1)

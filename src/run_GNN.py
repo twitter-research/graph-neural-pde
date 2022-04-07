@@ -918,6 +918,9 @@ if __name__ == '__main__':
   parser.add_argument('--gnl_omega', type=str, default='zero', help='zero, diag, sum')
   parser.add_argument('--gnl_W_style', type=str, default='sum', help='sum, prod, GS, cgnn')
 
+  parser.add_argument('--gnl_thresholding', type=str, default='True', help='turns on GL thresholding')
+  parser.add_argument('--gnl_thresholding_reps', type=int, default=2, help='number of thresholding iterations')
+
   parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
 
   args = parser.parse_args()

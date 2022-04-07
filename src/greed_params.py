@@ -132,7 +132,7 @@ def greed_ablation_params(opt):
     opt['gnl_measure'] = 'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
     opt['drift'] = True #False
     opt['gnl_savefolder'] = 'chameleon_general_drift'#'chameleon_general_drift'#'chameleon_testing'
-    opt['gnl_W_style'] = 'cgnn'# 'GS'#sum, prod, GS, cgnn
+    opt['gnl_W_style'] = 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
 
     if opt['gnl_style'] == 'scaled_dot':
         opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
@@ -212,7 +212,7 @@ def tf_ablation_args(opt):
                 'use_mlp', 'use_best_params', 'no_early',
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
-                'XN_no_activation','m2_mlp',
+                'XN_no_activation','m2_mlp', 'gnl_thresholding',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout']:
 
         str_tf = opt[arg]
@@ -476,6 +476,10 @@ def default_params():
     parser.add_argument('--gnl_activation', type=str, default='idenity', help='identity, sigmoid, ...')
     parser.add_argument('--gnl_measure', type=str, default='ones', help='ones, deg_poly, nodewise')
     parser.add_argument('--gnl_omega', type=str, default='zero', help='zero, diag, sum')
+
+    parser.add_argument('--gnl_thresholding', type=str, default='True', help='turns on GL thresholding')
+    parser.add_argument('--gnl_thresholding_reps', type=int, default=2, help='number of thresholding iterations')
+
     parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
 
     args = parser.parse_args()
