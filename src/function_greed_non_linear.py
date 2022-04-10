@@ -253,8 +253,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       return W_hat
 
     elif self.opt['gnl_W_style'] == 'diag_dom':
-      # W_sum = self.t_a * self.W_W.sum(dim=1) + self.t_b
-      W_sum = torch.zeros(self.in_features)
+      W_sum = self.t_a * self.W_W.sum(dim=1) + self.t_b
       W_temp = torch.cat([self.W_W, W_sum.unsqueeze(-1)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
       return W

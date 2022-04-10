@@ -582,15 +582,9 @@ def main(cmd_opt):
     wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
-
-
-  # XXXXXXXXXXXXXXXXXX
-  # todo this is in place as needed for chameleon, tidy up
-  dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)  ### added self loops for chameleon
-  dataset.data.edge_index = to_undirected(dataset.data.edge_index)
-
-
-
+  if opt['dataset'] in ['chameleon']:
+      dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)  ### added self loops for chameleon
+      dataset.data.edge_index = to_undirected(dataset.data.edge_index)
 
   if opt['beltrami']:
     pos_encoding = apply_beltrami(dataset.data, opt).to(device)
