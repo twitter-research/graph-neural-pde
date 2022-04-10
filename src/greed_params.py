@@ -132,7 +132,7 @@ def greed_ablation_params(opt):
     opt['gnl_measure'] = 'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
     opt['drift'] = True
     opt['gnl_savefolder'] = 'chameleon_general_drift'#'chameleon_general_drift'#'chameleon_testing'
-    opt['gnl_W_style'] = 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
+    opt['gnl_W_style'] = 'diag_dom' # 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
     opt['gnl_thresholding'] = False
 
     if opt['gnl_style'] == 'scaled_dot':
@@ -153,7 +153,7 @@ def greed_ablation_params(opt):
         opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
 
     #gcn params
-    opt['geom_gcn_splits'] = True
+    opt['geom_gcn_splits'] = False#True
     opt['gcn_enc_dec'] = True #False #True
     opt['gcn_non_lin'] = False #False #True
     opt['gcn_fixed'] = False #False #True
@@ -477,6 +477,7 @@ def default_params():
     parser.add_argument('--gnl_activation', type=str, default='idenity', help='identity, sigmoid, ...')
     parser.add_argument('--gnl_measure', type=str, default='ones', help='ones, deg_poly, nodewise')
     parser.add_argument('--gnl_omega', type=str, default='zero', help='zero, diag, sum')
+    parser.add_argument('--gnl_W_style', type=str, default='sum', help='sum, prod, GS, cgnn, diag_dom')
 
     parser.add_argument('--gnl_thresholding', type=str, default='False', help='turns on GL thresholding')
     parser.add_argument('--gnl_thresholding_reps', type=int, default=2, help='number of thresholding iterations')

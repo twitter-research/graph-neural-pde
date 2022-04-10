@@ -167,6 +167,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'cgnn':
         self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
         self.gnl_W_D = Parameter(torch.ones(in_features))
+      elif self.opt['gnl_W_style'] == 'diag_dom':
+        self.W_W = Parameter(torch.Tensor(in_features, in_features - 1))
+        self.t_a = Parameter(torch.ones(in_features))
+        self.t_b = Parameter(torch.zeros(in_features))
       else:
         self.W_W = Parameter(torch.Tensor(in_features, in_features))
         self.W_W_eps = 0 #what's this?
@@ -203,7 +207,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'cgnn':
         glorot(self.gnl_W_U)
         # self.gnl_W_D
-      else:
+      else: #sum or diag_dom
         glorot(self.W_W)      # xavier_uniform_(self.W_W)
 
     if self.opt['gnl_measure'] == 'deg_poly':
@@ -236,6 +240,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # return torch.eye(self.gnl_W.shape[0], device=self.device) + W_hat
 
     elif self.opt['gnl_W_style'] == 'cgnn':
+      # # https://github.com/JRowbottomGit/ContinuousGNN/blob/85d47b0748a19e06e305c21e99e1dd03d36ad314/src/trainer.py
       beta = self.opt['W_beta']
       with torch.no_grad():
         W_U = self.gnl_W_U.clone()
@@ -246,14 +251,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
       W_hat = W_U @ torch.diag(W_D) @ W_U.t()
       return W_hat
-      # d = torch.clamp(self.d, min=0, max=1)
-      # w = torch.mm(self.w * d, torch.t(self.w))
-      # xw = torch.spmm(x, w)
-      # # https://github.com/JRowbottomGit/ContinuousGNN/blob/85d47b0748a19e06e305c21e99e1dd03d36ad314/src/trainer.py
-      # W = self.model.odeblock.odefunc.w.data
-      # beta = 0.5
-      # W.copy_((1 + beta) * W - beta * W.mm(W.transpose(0, 1).mm(W)))
 
+    elif self.opt['gnl_W_style'] == 'diag_dom':
+      # W_sum = self.t_a * self.W_W.sum(dim=1) + self.t_b
+      W_sum = torch.zeros(self.in_features)
+      W_temp = torch.cat([self.W_W, W_sum.unsqueeze(-1)], dim=1)
+      W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
+      return W
 
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
     row_sum = scatter_add(attentions, edge_index[0], dim=0, dim_size=n)
@@ -470,7 +474,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
                    f"gf_e{self.epoch}_f": (f**2).sum(),
                    f"gf_e{self.epoch}_x": (x ** 2).sum(),
-                   f"gf_e{self.epoch}_drift_eps": self.drift_eps,
                    "grad_flow_step": self.wandb_step})
         #note we could include some of the below stats in the wandb logging
 

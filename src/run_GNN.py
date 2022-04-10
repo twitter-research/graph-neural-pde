@@ -242,8 +242,29 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
   elif opt['function'] == "greed_non_linear":
 
     if opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
+      run_reports(epoch, model, data)
 
-      # find position of current epoch in epoch list
+    print(f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}, epsilon: {model.odeblock.odefunc.om_W_eps}")  # , nu: {model.odeblock.odefunc.om_W_nu}")
+
+    wandb.log({"loss": loss,
+               # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+               "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
+               "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+               "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
+               "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil,
+               "label_homophil": label_homophil, "delta": model.odeblock.odefunc.delta.detach(),
+               "drift_eps": model.odeblock.odefunc.drift_eps.detach(),
+               # "a_row_max": a_row_max, "a_row_min": a_row_min,
+               "epoch_step": epoch})
+  else:
+    wandb.log({"loss": loss,
+               # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
+               "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
+               "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+               "epoch_step": epoch})
+
+def run_reports(epoch, model, data):
+  # find position of current epoch in epoch list
       idx = opt['wandb_epoch_list'].index(epoch)
       # determine index % num per page
       num_rows = 4
@@ -434,7 +455,6 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
       edge_scatter_ax[row].legend(loc="upper right", fontsize=24)
       edge_scatter_fig.show()
 
-
       model.odeblock.odefunc.fOmf = None
       model.odeblock.odefunc.attentions = None
       model.odeblock.odefunc.L2dist = None
@@ -460,24 +480,6 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
         model.odeblock.odefunc.node_evol_pdf.close()
         model.odeblock.odefunc.node_scatter_pdf.close()
         model.odeblock.odefunc.edge_scatter_pdf.close()
-
-    print(f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}, epsilon: {model.odeblock.odefunc.om_W_eps}")  # , nu: {model.odeblock.odefunc.om_W_nu}")
-
-    wandb.log({"loss": loss,
-               # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
-               "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
-               "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
-               "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
-               "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil,
-               "label_homophil": label_homophil, "delta": model.odeblock.odefunc.delta.detach(),
-               # "a_row_max": a_row_max, "a_row_min": a_row_min,
-               "epoch_step": epoch})
-  else:
-    wandb.log({"loss": loss,
-               # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
-               "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
-               "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
-               "epoch_step": epoch})
 
 
 def print_model_params(model):
@@ -580,9 +582,15 @@ def main(cmd_opt):
     wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
+
+
+  # XXXXXXXXXXXXXXXXXX
   # todo this is in place as needed for chameleon, tidy up
   dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)  ### added self loops for chameleon
   dataset.data.edge_index = to_undirected(dataset.data.edge_index)
+
+
+
 
   if opt['beltrami']:
     pos_encoding = apply_beltrami(dataset.data, opt).to(device)
@@ -649,12 +657,6 @@ def main(cmd_opt):
       if np.isnan(loss):
         wandb_run.finish()
         break
-
-      #todo check this
-      # if model.odeblock.odefunc.opt['wandb_track_grad_flow'] and epoch in opt['wandb_epoch_list']:
-      #   wandb.log({f"gf_e{epoch}_attentions": wandb.plot.line_series(
-      #     xs=model.odeblock.odefunc.wandb_step, ys=model.odeblock.odefunc.mean_attention_0)})
-
 
     print(f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
 
@@ -916,7 +918,7 @@ if __name__ == '__main__':
   parser.add_argument('--gnl_activation', type=str, default='idenity', help='identity, sigmoid, ...')
   parser.add_argument('--gnl_measure', type=str, default='ones', help='ones, deg_poly, nodewise')
   parser.add_argument('--gnl_omega', type=str, default='zero', help='zero, diag, sum')
-  parser.add_argument('--gnl_W_style', type=str, default='sum', help='sum, prod, GS, cgnn')
+  parser.add_argument('--gnl_W_style', type=str, default='sum', help='sum, prod, GS, cgnn, diag_dom')
 
   parser.add_argument('--gnl_thresholding', type=str, default='False', help='turns on GL thresholding')
   parser.add_argument('--gnl_thresholding_reps', type=int, default=2, help='number of thresholding iterations')

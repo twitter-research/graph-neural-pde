@@ -185,6 +185,7 @@ class GNN(BaseGNN):
         Ek = F.one_hot(pred, num_classes=self.num_classes)
         #pseudo inverse
         P = self.m2.weight
+        #https://pytorch.org/docs/stable/generated/torch.matrix_rank.html
         b = self.m2.bias
         P_dagg = torch.linalg.pinv(P).T  #sometimes get RuntimeError: svd_cpu: the updating process of SBDSDC did not converge (error: 4)
         z = (Ek - b.unsqueeze(0)) @ P_dagg + z @ (torch.eye(self.hidden_dim, device=self.device) - P_dagg.T @ P).T
