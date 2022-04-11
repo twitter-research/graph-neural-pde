@@ -111,7 +111,6 @@ def greed_ablation_params(opt):
 
     opt['diffusion'] = True
     opt['repulsion'] = False #True
-    opt['drift'] = False
     opt['R_depon_A'] = 'none' #'inverse'
     opt['alpha_style'] = 'sigmoid' #0.5 'sigmoid' #"sigmoid", "free", "forced", "diag"
 
@@ -129,11 +128,11 @@ def greed_ablation_params(opt):
 
     #greed_non_linear params
     opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
-    opt['gnl_measure'] = 'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
-    opt['drift'] = True
-    opt['gnl_savefolder'] = 'chameleon_general_drift'#'chameleon_general_drift'#'chameleon_testing'
+    opt['gnl_measure'] = 'nodewise_exp' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
+    opt['drift'] = True #False#True
+    opt['gnl_savefolder'] = 'chameleon_general_nodrift_diagdom'#'chameleon_general_drift'#'chameleon_testing'
     opt['gnl_W_style'] = 'diag_dom' # 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
-    opt['gnl_thresholding'] = False
+    opt['gnl_thresholding'] = False #True #todo plot C^2 matrix of distances between centres in feature space / maybe TSNE aswell
 
     if opt['gnl_style'] == 'scaled_dot':
         opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
@@ -186,8 +185,11 @@ def greed_ablation_params(opt):
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = False #True #False #True
+    opt['wandb'] = True #False #True
     opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when testing
+    opt['wandb_watch_grad'] = False
+    opt['run_track_reports'] = True
+    opt['wandb_reports'] = True
     opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
     opt['wandb_project'] = project_name #"greed_runs"
     opt['wandb_group'] = group_name #"testing"  # "tuning" eval

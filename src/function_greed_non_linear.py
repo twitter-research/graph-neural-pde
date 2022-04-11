@@ -19,6 +19,7 @@ from torch.nn import Parameter, Softmax, Softplus
 from torch.distributions import Categorical
 import wandb
 from matplotlib.backends.backend_pdf import PdfPages
+from sklearn.metrics import confusion_matrix
 
 from function_greed import ODEFuncGreed
 from utils import MaxNFEException, sym_row_col, sym_row_col_att, sym_row_col_att_measure, gram_schmidt, sym_row_col_att_relaxed, sigmoid_deriv, tanh_deriv, squareplus_deriv
@@ -77,6 +78,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.test_accs = None
     self.homophils = None
     self.entropies = None
+    self.confusions = None
 
     self.graph_edge_homophily = homophily(edge_index=self.edge_index, y=data.y, method='edge')
     self.graph_node_homophily = homophily(edge_index=self.edge_index, y=data.y, method='node')
@@ -111,6 +113,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.node_scatter_fig_list = []
       self.edge_scatter_fig_list = []
 
+      self.pdf_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter']
       self.spectrum_pdf = PdfPages(f"{savefolder}/spectrum.pdf")
       self.acc_entropy_pdf = PdfPages(f"{savefolder}/acc_entropy.pdf")
       self.edge_evol_pdf = PdfPages(f"{savefolder}/edge_evol.pdf")
@@ -143,11 +146,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.om_W = torch.zeros((in_features,in_features), device=device)
       self.om_W_eps = 0
 
-    if opt['gnl_measure'] == 'deg_poly':
+    if opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
       self.m_alpha = Parameter(torch.Tensor([1.]))
       self.m_beta = Parameter(torch.Tensor([1.]))
       self.m_gamma = Parameter(torch.Tensor([0.]))
-    elif opt['gnl_measure'] == 'nodewise':
+    elif opt['gnl_measure'] in ['nodewise', 'nodewise_exp']:
       self.measure = Parameter(torch.Tensor(self.n_nodes))
     elif opt['gnl_measure'] == 'ones':
       pass
@@ -170,7 +173,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'diag_dom':
         self.W_W = Parameter(torch.Tensor(in_features, in_features - 1))
         self.t_a = Parameter(torch.ones(in_features))
-        self.t_b = Parameter(torch.zeros(in_features))
+        self.r_a = Parameter(torch.zeros(in_features))
       else:
         self.W_W = Parameter(torch.Tensor(in_features, in_features))
         self.W_W_eps = 0 #what's this?
@@ -210,11 +213,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       else: #sum or diag_dom
         glorot(self.W_W)      # xavier_uniform_(self.W_W)
 
-    if self.opt['gnl_measure'] == 'deg_poly':
+    if self.opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
       ones(self.m_alpha)
       ones(self.m_beta)
       ones(self.m_gamma)
-    elif self.opt['gnl_measure'] == 'nodewise':
+    elif self.opt['gnl_measure'] in ['nodewise', 'nodewise_exp']:
       ones(self.measure)
 
     # ones(self.delta)
@@ -253,7 +256,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       return W_hat
 
     elif self.opt['gnl_W_style'] == 'diag_dom':
-      W_sum = self.t_a * self.W_W.sum(dim=1) + self.t_b
+      W_sum = self.t_a * self.W_W.sum(dim=1) + self.r_a
       W_temp = torch.cat([self.W_W, W_sum.unsqueeze(-1)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
       return W
@@ -294,6 +297,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         measures_src_dst = 1 / (src_meas * dst_meas)
       elif self.opt['gnl_measure'] == 'nodewise':
         measure = self.measure
+        src_meas, dst_meas = self.get_src_dst(self.measure)
+        measures_src_dst = 1 / (src_meas * dst_meas)
+      elif self.opt['gnl_measure'] == 'deg_poly_exp':
+        deg = degree(self.edge_index[0], self.n_nodes)
+        measure = torch.exp(self.m_alpha * deg ** self.m_beta + self.m_gamma)
+        src_meas, dst_meas = self.get_src_dst(measure)
+        measures_src_dst = 1 / (src_meas * dst_meas)
+      elif self.opt['gnl_measure'] == 'nodewise_exp':
+        measure = torch.exp(self.measure)
         src_meas, dst_meas = self.get_src_dst(self.measure)
         measures_src_dst = 1 / (src_meas * dst_meas)
       elif self.opt['gnl_measure'] == 'ones':
@@ -442,12 +454,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         q_l = eta_hat[:,l] * logits[:,l]
         eta_l = torch.prod(eta_hat[:,idx]**2, dim=1) * q_l
         f -= (-0.5 * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(logits.shape[1], device=self.device)) * logits @ P)\
-             / torch.exp(self.drift_eps)
+             / (torch.exp(self.drift_eps) * measure.unsqueeze(-1))
 
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
       with torch.no_grad():
-        #todo these energy formulas need checking
+        #todo these energy formulas are wrong
         if self.opt['gnl_style'] == 'scaled_dot':
           if self.opt['gnl_activation'] == "sigmoid_deriv":
             energy = torch.sum(torch.sigmoid(fOmf))
@@ -488,6 +500,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         pred = logits.max(1)[1]
         homophil = homophily(edge_index=self.edge_index, y=pred)
         L2dist = torch.sqrt(torch.sum((src_x - dst_x) ** 2, dim=1))
+        conf_mat, train_cm, val_cm, test_cm = self.get_confusion(self.data, pred, norm_type='true') #'all')
 
         if self.attentions is None:
           self.attentions = attention.unsqueeze(0)
@@ -500,6 +513,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.test_accs = [test_acc]
           self.homophils = [homophil]
           self.entropies = get_entropies(logits, self.data)
+          self.confusions = [conf_mat, train_cm, val_cm, test_cm]
         else:
           self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
           self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
@@ -514,6 +528,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           temp_entropies = get_entropies(logits, self.data)
           for key, value, in self.entropies.items():
             self.entropies[key] = torch.cat([value, temp_entropies[key]], dim=0)
+
+          if len(self.confusions[0].shape) == 2:
+            self.confusions[0] = np.stack((self.confusions[0], conf_mat), axis=-1)
+            self.confusions[1] = np.stack((self.confusions[1], train_cm), axis=-1)
+            self.confusions[2] = np.stack((self.confusions[2], val_cm), axis=-1)
+            self.confusions[3] = np.stack((self.confusions[3], test_cm), axis=-1)
+          else:
+            self.confusions[0] = np.concatenate((self.confusions[0], conf_mat[..., np.newaxis]), axis=-1)
+            self.confusions[1] = np.concatenate((self.confusions[1], train_cm[..., np.newaxis]), axis=-1)
+            self.confusions[2] = np.concatenate((self.confusions[2], val_cm[..., np.newaxis]), axis=-1)
+            self.confusions[3] = np.concatenate((self.confusions[3], test_cm[..., np.newaxis]), axis=-1)
 
         #extra values for terminal step
         if t == self.opt['time'] - self.opt['step_size']:
@@ -557,6 +582,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           pred = logits.max(1)[1]
           homophil = homophily(edge_index=self.edge_index, y=pred)
           L2dist = torch.sqrt(torch.sum((src_z - dst_z) ** 2, dim=1))
+          conf_mat, train_cm, val_cm, test_cm = self.get_confusion(self.data, pred, norm_type='true')  # 'all')
 
           self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
           self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
@@ -572,6 +598,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           for key, value, in self.entropies.items():
             self.entropies[key] = torch.cat([value, temp_entropies[key]], dim=0)
 
+          self.confusions[0] = np.concatenate((self.confusions[0], conf_mat[..., np.newaxis]), axis=-1)
+          self.confusions[1] = np.concatenate((self.confusions[1], train_cm[..., np.newaxis]), axis=-1)
+          self.confusions[2] = np.concatenate((self.confusions[2], val_cm[..., np.newaxis]), axis=-1)
+          self.confusions[3] = np.concatenate((self.confusions[3], test_cm[..., np.newaxis]), axis=-1)
+
         self.wandb_step += 1
 
       # if self.opt['greed_momentum'] and self.prev_grad:
@@ -579,6 +610,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       #   self.prev_grad = f
 
     return f
+
+  def get_confusion(self, data, pred, norm_type):
+    conf_mat = confusion_matrix(data.y, pred, normalize=norm_type)
+    train_cm = confusion_matrix(data.y[data.train_mask], pred[data.train_mask], normalize=norm_type)
+    val_cm = confusion_matrix(data.y[data.val_mask], pred[data.val_mask], normalize=norm_type)
+    test_cm = confusion_matrix(data.y[data.test_mask], pred[data.test_mask], normalize=norm_type)
+    return conf_mat, train_cm, val_cm, test_cm
 
   def __repr__(self):
     return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'
