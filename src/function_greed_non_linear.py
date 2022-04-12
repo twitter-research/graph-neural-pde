@@ -658,7 +658,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     return f
 
   def get_confusion(self, data, pred, norm_type):
-    conf_mat = confusion_matrix(data.y, pred, normalize=norm_type)
+    # conf_mat = confusion_matrix(data.y, pred, normalize=norm_type)
     # torch_conf_mat = self.torch_confusion(data.y, pred, norm_type)
     # print(torch.allclose(torch.from_numpy(conf_mat), torch_conf_mat, rtol=0.001))
     # train_cm = confusion_matrix(data.y[data.train_mask], pred[data.train_mask], normalize=norm_type)
