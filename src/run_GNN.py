@@ -983,7 +983,7 @@ if __name__ == '__main__':
     # greed non linear args
     parser.add_argument('--gnl_style', type=str, default='scaled_dot',
                         help='scaled_dot, softmax_attention, general_graph')
-    parser.add_argument('--gnl_activation', type=str, default='idenity', help='identity, sigmoid, ...')
+    parser.add_argument('--gnl_activation', type=str, default='identity', help='identity, sigmoid, ...')
     parser.add_argument('--gnl_measure', type=str, default='ones', help='ones, deg_poly, nodewise')
     parser.add_argument('--gnl_omega', type=str, default='zero', help='zero, diag, sum')
     parser.add_argument('--gnl_W_style', type=str, default='sum', help='sum, prod, GS, cgnn, diag_dom')

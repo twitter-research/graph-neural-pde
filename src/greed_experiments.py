@@ -7,7 +7,7 @@ def run_experiments():
 
     #wandb args
     opt['wandb'] = True #False #True
-    opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when testing
+    opt['wandb_track_grad_flow'] = True
     opt['wandb_watch_grad'] = False
     opt['run_track_reports'] = True
     opt['wandb_reports'] = True
