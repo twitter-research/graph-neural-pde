@@ -269,8 +269,8 @@ def default_params():
     parser.add_argument('--function', type=str, help='laplacian, transformer, greed, GAT')
     # parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
     #                     help='Add a fully connected layer to the encoder.')
-    parser.add_argument('--add_source', dest='add_source', action='store_true',
-                        help='If try get rid of alpha param and the beta*x0 source term')
+    # parser.add_argument('--add_source', dest='add_source', action='store_true',
+    #                     help='If try get rid of alpha param and the beta*x0 source term')
 
     # ODE args
     parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
@@ -417,6 +417,8 @@ def default_params():
     parser.add_argument('--test_tau_outside', type=str, default='True')  # action='store_true')
     parser.add_argument('--test_linear_L0', type=str, default='True')  # action='store_true')
     parser.add_argument('--test_R1R2_0', type=str, default='True')  # action='store_true')
+    parser.add_argument('--test_grand_metric', type=str, default='True')  # action='store_true')
+    parser.add_argument('--test_tau_ones', type=str, default='True')  # action='store_true')
 
     # Temp changing these to be strings so can tune over
     parser.add_argument('--use_mlp', type=str, default='False')  # action='store_true')

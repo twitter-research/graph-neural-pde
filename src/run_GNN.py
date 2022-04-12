@@ -242,7 +242,7 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
 
     elif opt['function'] == "greed_non_linear":
         if opt['run_track_reports'] and epoch in opt['wandb_epoch_list']:
-            run_reports(epoch, model, data)
+            run_reports(epoch, model, data, opt)
 
         print(
             f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}, epsilon: {model.odeblock.odefunc.om_W_eps}")  # , nu: {model.odeblock.odefunc.om_W_nu}")
@@ -266,7 +266,7 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
                    "epoch_step": epoch})
 
 
-def run_reports(epoch, model, data):
+def run_reports(epoch, model, data, opt):
     # find position of current epoch in epoch list
     idx = opt['wandb_epoch_list'].index(epoch)
     # determine index % num per page
