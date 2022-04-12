@@ -316,24 +316,24 @@ def run_reports(epoch, model, data):
         Omega)  # fast version for symmetric matrices https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
 
     ###1) multi grid Omega spectrum charts
-    mat = spectrum_ax[row, 0].matshow(Omega, interpolation='nearest')
+    mat = spectrum_ax[row, 0].matshow(Omega.cpu().numpy(), interpolation='nearest')
     spectrum_ax[row, 0].xaxis.set_tick_params(labelsize=16)
     spectrum_ax[row, 0].yaxis.set_tick_params(labelsize=16)
     cbar = spectrum_fig.colorbar(mat, ax=spectrum_ax[row, 0], shrink=0.75)
     cbar.ax.tick_params(labelsize=16)
 
-    spectrum_ax[row, 1].bar(range(L.shape[0]), L, width=1.0)
+    spectrum_ax[row, 1].bar(range(L.shape[0]), L.cpu().numpy(), width=1.0)
     if opt['gnl_W_style'] == 'diag_dom':
         sort_ta = torch.sort(model.odeblock.odefunc.t_a)[0]
         sort_ra = torch.sort(model.odeblock.odefunc.r_a)[0]
-        spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ta)
-        spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ra)
+        spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ta.cpu().numpy())
+        spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ra.cpu().numpy())
 
     spectrum_ax[row, 1].set_title(f"Omega, E-values, E-vectors, epoch {epoch}", fontdict={'fontsize': 24})
     spectrum_ax[row, 1].xaxis.set_tick_params(labelsize=16)
     spectrum_ax[row, 1].yaxis.set_tick_params(labelsize=16)
 
-    mat2 = spectrum_ax[row, 2].matshow(Q, interpolation='nearest')
+    mat2 = spectrum_ax[row, 2].matshow(Q.cpu().numpy(), interpolation='nearest')
     spectrum_ax[row, 2].xaxis.set_tick_params(labelsize=16)
     spectrum_ax[row, 2].yaxis.set_tick_params(labelsize=16)
     cbar1 = spectrum_fig.colorbar(mat2, ax=spectrum_ax[row, 2], shrink=0.75)
@@ -397,7 +397,7 @@ def run_reports(epoch, model, data):
     ###3) multi grid edge value plots
     fOmf = model.odeblock.odefunc.fOmf
     edge_homophils = model.odeblock.odefunc.edge_homophils
-    edge_evol_ax[row, 0].plot(np.arange(0.0, fOmf.shape[0] * opt['step_size'], opt['step_size']), fOmf)
+    edge_evol_ax[row, 0].plot(np.arange(0.0, fOmf.shape[0] * opt['step_size'], opt['step_size']), fOmf.cpu().numpy())
     # too slow potentially can use pandas for the color map
     # colormap = cm.Spectral  # jet
     # normalize = mcolors.Normalize(vmin=edge_homophils.min(), vmax=edge_homophils.max())
@@ -410,7 +410,7 @@ def run_reports(epoch, model, data):
     edge_evol_ax[row, 0].set_title(f"fOmf, epoch {epoch}", fontdict={'fontsize': 24})
 
     L2dist = model.odeblock.odefunc.L2dist
-    edge_evol_ax[row, 1].plot(np.arange(0.0, L2dist.shape[0] * opt['step_size'], opt['step_size']), L2dist)
+    edge_evol_ax[row, 1].plot(np.arange(0.0, L2dist.shape[0] * opt['step_size'], opt['step_size']), L2dist.cpu().numpy())
     edge_evol_ax[row, 1].xaxis.set_tick_params(labelsize=16)
     edge_evol_ax[row, 1].yaxis.set_tick_params(labelsize=16)
     edge_evol_ax[row, 1].set_title(f"L2dist, epoch {epoch}", fontdict={'fontsize': 24})
@@ -419,7 +419,7 @@ def run_reports(epoch, model, data):
     ###4) multi grid node evol plots
     #node magnitudes
     magnitudes = model.odeblock.odefunc.node_magnitudes
-    node_evol_ax[row, 0].plot(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size']), magnitudes)
+    node_evol_ax[row, 0].plot(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size']), magnitudes.cpu().numpy())
     # labels  = model.odeblock.odefunc.labels
     # colormap = cm.Spectral  # jet
     # normalize = mcolors.Normalize(vmin=labels.min(), vmax=labels.max())
@@ -432,7 +432,7 @@ def run_reports(epoch, model, data):
     node_evol_ax[row, 0].set_title(f"f magnitudes, epoch {epoch}", fontdict={'fontsize': 24})
 
     measures = model.odeblock.odefunc.node_measures
-    node_evol_ax[row, 1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']), measures)
+    node_evol_ax[row, 1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']), measures.cpu().numpy())
     node_homophils = model.odeblock.odefunc.node_homophils
     # for n in range(measures.shape[1]):
     #   normalize = mcolors.Normalize(vmin=node_homophils.min(), vmax=node_homophils.max())
@@ -453,7 +453,7 @@ def run_reports(epoch, model, data):
         for c in range(conf_mat.shape[0]):
             correct = conf_mat[c,c,:]
             node_evol_ax[row, 2].plot(np.arange(0.0, correct.shape[0] * opt['step_size'], opt['step_size']),
-                                  correct, color=colormap(c), linestyle=linestyles[i], label=f"{conf_set[i]}_c{c}")
+                                  correct.cpu().numpy(), color=colormap(c), linestyle=linestyles[i], label=f"{conf_set[i]}_c{c}")
             # incorrect = torch.sum(conf_mat[c], dim=0) - correct #https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html - sum over predictions j=cols
             # node_evol_ax[row, 1].plot(np.arange(0.0, incorrect.shape[0] * opt['step_size'], opt['step_size']),
             #                       incorrect, color=colormap(c), linestyle=linestyles[i], label=f"{conf_set[i]}_c{c}")
@@ -469,14 +469,14 @@ def run_reports(epoch, model, data):
     magnitudes = model.odeblock.odefunc.node_magnitudes
     node_homophils = model.odeblock.odefunc.node_homophils
     labels = model.odeblock.odefunc.labels
-    node_scatter_ax[row, 0].scatter(x=magnitudes[-1, :], y=node_homophils, c=labels)  # , cmap='Set1')
+    node_scatter_ax[row, 0].scatter(x=magnitudes[-1, :].cpu().numpy(), y=node_homophils.cpu().numpy(), c=labels.cpu().numpy())  # , cmap='Set1')
     node_scatter_ax[row, 0].xaxis.set_tick_params(labelsize=16)
     node_scatter_ax[row, 0].yaxis.set_tick_params(labelsize=16)
     node_scatter_ax[row, 0].set_title(f"f magnitudes v node homophils, epoch {epoch}", fontdict={'fontsize': 24})
 
     # node measure against degree or homophilly, colour is class
     measures = model.odeblock.odefunc.node_measures
-    node_scatter_ax[row, 1].scatter(x=measures[-1, :], y=node_homophils, c=labels)  # , cmap='Set1')
+    node_scatter_ax[row, 1].scatter(x=measures[-1, :].cpu().numpy(), y=node_homophils.cpu().numpy(), c=labels.cpu().numpy())  # , cmap='Set1')
     node_scatter_ax[row, 1].xaxis.set_tick_params(labelsize=16)
     node_scatter_ax[row, 1].yaxis.set_tick_params(labelsize=16)
     node_scatter_ax[row, 1].set_title(f"Node measures v node homophils, epoch {epoch}", fontdict={'fontsize': 24})
@@ -488,9 +488,9 @@ def run_reports(epoch, model, data):
     L2dist = model.odeblock.odefunc.L2dist
     edge_homophils = model.odeblock.odefunc.edge_homophils
     mask = edge_homophils == 1
-    edge_scatter_ax[row].scatter(x=fOmf[-1, :][mask], y=L2dist[-1, :][mask], label='edge:1',
+    edge_scatter_ax[row].scatter(x=fOmf[-1, :][mask].cpu().numpy(), y=L2dist[-1, :][mask].cpu().numpy(), label='edge:1',
                                  c='gold')  # c=edge_homophils[mask])
-    edge_scatter_ax[row].scatter(x=fOmf[-1, :][~mask], y=L2dist[-1, :][~mask], label='edge:0',
+    edge_scatter_ax[row].scatter(x=fOmf[-1, :][~mask].cpu().numpy(), y=L2dist[-1, :][~mask].cpu().numpy(), label='edge:0',
                                  c='indigo')  # c=edge_homophils[~mask])
 
     edge_scatter_ax[row].xaxis.set_tick_params(labelsize=16)
