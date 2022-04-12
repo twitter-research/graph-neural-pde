@@ -338,7 +338,8 @@ def run_reports(epoch, model, data):
     spectrum_ax[row, 2].yaxis.set_tick_params(labelsize=16)
     cbar1 = spectrum_fig.colorbar(mat2, ax=spectrum_ax[row, 2], shrink=0.75)
     cbar1.ax.tick_params(labelsize=16)
-    # spectrum_fig.show()
+    if not torch.cuda.is_available():
+        spectrum_fig.show()
 
     ###2) multi grid accuracy and entropy charts
     train_accs = model.odeblock.odefunc.train_accs
@@ -392,7 +393,8 @@ def run_reports(epoch, model, data):
     acc_entropy_ax[row, 1].set_title(
         f"Train set (num_nodes {entropies['entropy_train_mask'].shape[1]}) Entropy, epoch {epoch}",
         fontdict={'fontsize': 24})
-    # acc_entropy_fig.show()
+    if not torch.cuda.is_available():
+        acc_entropy_fig.show()
 
     ###3) multi grid edge value plots
     fOmf = model.odeblock.odefunc.fOmf
@@ -414,7 +416,8 @@ def run_reports(epoch, model, data):
     edge_evol_ax[row, 1].xaxis.set_tick_params(labelsize=16)
     edge_evol_ax[row, 1].yaxis.set_tick_params(labelsize=16)
     edge_evol_ax[row, 1].set_title(f"L2dist, epoch {epoch}", fontdict={'fontsize': 24})
-    # edge_evol_fig.show()
+    if not torch.cuda.is_available():
+        edge_evol_fig.show()
 
     ###4) multi grid node evol plots
     #node magnitudes
@@ -462,7 +465,8 @@ def run_reports(epoch, model, data):
     node_evol_ax[row, 2].yaxis.set_tick_params(labelsize=16)
     node_evol_ax[row, 2].set_title(f"Correct preds evol, epoch {epoch}", fontdict={'fontsize': 24})
     node_evol_ax[row, 2].legend()
-    # node_evol_fig.show()
+    if not torch.cuda.is_available():
+        node_evol_fig.show()
 
     ###5) multi grid node scatter plots
     # node magnitude against degree or homophilly, colour is class
@@ -480,7 +484,8 @@ def run_reports(epoch, model, data):
     node_scatter_ax[row, 1].xaxis.set_tick_params(labelsize=16)
     node_scatter_ax[row, 1].yaxis.set_tick_params(labelsize=16)
     node_scatter_ax[row, 1].set_title(f"Node measures v node homophils, epoch {epoch}", fontdict={'fontsize': 24})
-    # node_scatter_fig.show()
+    if not torch.cuda.is_available():
+        node_scatter_fig.show()
 
     ###6) scatter plot for edges
     # edge dot product against edge distance, coloured by edge homopholliy
@@ -497,7 +502,8 @@ def run_reports(epoch, model, data):
     edge_scatter_ax[row].yaxis.set_tick_params(labelsize=16)
     edge_scatter_ax[row].set_title(f"Edge fOmf against L2, epoch {epoch}", fontdict={'fontsize': 24})
     edge_scatter_ax[row].legend(loc="upper right", fontsize=24)
-    # edge_scatter_fig.show()
+    if not torch.cuda.is_available():
+        edge_scatter_fig.show()
 
     model.odeblock.odefunc.fOmf = None
     model.odeblock.odefunc.attentions = None

@@ -157,7 +157,6 @@ def greed_ablation_params(opt):
             opt['k_diags'] = 13
 
     #gcn params
-    opt['geom_gcn_splits'] = False#True
     opt['gcn_enc_dec'] = True #False #True
     opt['gcn_non_lin'] = False #False #True
     opt['gcn_fixed'] = False #False #True
@@ -165,6 +164,7 @@ def greed_ablation_params(opt):
     opt['gcn_bias'] = True
     opt['gcn_mid_dropout'] = False
     #
+    opt['geom_gcn_splits'] = True #False#True
     opt['step_size'] = 1.0
     opt['time'] = 3.0
     opt['epoch'] = 129 #255#129 #254 #100 #40 #40 #10
