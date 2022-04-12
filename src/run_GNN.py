@@ -368,7 +368,7 @@ def run_reports(epoch, model, data):
 
     # fig, ax = plt.subplots() #figsize=(8, 16))
     x = np.arange(0.0, entropies['entropy_train_mask'].shape[0] * opt['step_size'], opt['step_size'])
-    ys = entropies['entropy_train_mask'].detach().numpy()
+    ys = entropies['entropy_train_mask'].cpu().numpy()
     # ax.set_xlim(np.min(x), np.max(x))
     # ax.set_ylim(np.min(ys), np.max(ys))
     acc_entropy_ax[row, 1].set_xlim(np.min(x), np.max(x))
@@ -379,7 +379,7 @@ def run_reports(epoch, model, data):
     cmap = ListedColormap(['r', 'g'])
     norm = BoundaryNorm([-1, 0.5, 2.0], cmap.N)
     for i in range(entropies['entropy_train_mask'].shape[1]):
-        tf = entropies['entropy_train_mask_correct'][:, i].float().detach().numpy()
+        tf = entropies['entropy_train_mask_correct'][:, i].float().cpu().numpy()
         points = np.expand_dims(np.concatenate([x.reshape(-1, 1),
                                                 entropies['entropy_train_mask'][:, i].reshape(-1, 1)], axis=1), axis=1)
         segs = np.concatenate([points[:-1], points[1:]], axis=1)
