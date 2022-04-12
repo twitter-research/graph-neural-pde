@@ -381,7 +381,7 @@ def run_reports(epoch, model, data):
     for i in range(entropies['entropy_train_mask'].shape[1]):
         tf = entropies['entropy_train_mask_correct'][:, i].float().cpu().numpy()
         points = np.expand_dims(np.concatenate([x.reshape(-1, 1),
-                                                entropies['entropy_train_mask'][:, i].reshape(-1, 1)], axis=1), axis=1)
+                                                entropies['entropy_train_mask'][:, i].reshape(-1, 1).cpu().numpy()], axis=1), axis=1)
         segs = np.concatenate([points[:-1], points[1:]], axis=1)
         lc = LineCollection(segs, cmap=cmap, norm=norm)
         lc.set_array(tf[:-1])
