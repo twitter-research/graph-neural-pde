@@ -64,7 +64,7 @@ class GNN(BaseGNN):
         if self.opt['repulsion']:
           self.odeblock.odefunc.set_R0()
           self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_WS(x)
-    if self.opt['function'] == "greed_non_linear":
+    if self.opt['function'] == "greed_non_linear" and self.opt['gnl_style'] == 'general_graph':
           self.odeblock.odefunc.gnl_W = self.odeblock.odefunc.set_gnlWS()
 
   def forward_XN(self, x):

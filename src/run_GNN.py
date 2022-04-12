@@ -323,10 +323,11 @@ def run_reports(epoch, model, data):
     cbar.ax.tick_params(labelsize=16)
 
     spectrum_ax[row, 1].bar(range(L.shape[0]), L, width=1.0)
-    sort_ta = torch.sort(model.odeblock.odefunc.t_a)[0]
-    sort_ra = torch.sort(model.odeblock.odefunc.r_a)[0]
-    spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ta)
-    spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ra)
+    if opt['gnl_W_style'] == 'diag_dom':
+        sort_ta = torch.sort(model.odeblock.odefunc.t_a)[0]
+        sort_ra = torch.sort(model.odeblock.odefunc.r_a)[0]
+        spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ta)
+        spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ra)
 
     spectrum_ax[row, 1].set_title(f"Omega, E-values, E-vectors, epoch {epoch}", fontdict={'fontsize': 24})
     spectrum_ax[row, 1].xaxis.set_tick_params(labelsize=16)
@@ -451,9 +452,9 @@ def run_reports(epoch, model, data):
     for i, conf_mat in enumerate(confusions):
         for c in range(conf_mat.shape[0]):
             correct = conf_mat[c,c,:]
-            incorrect = np.sum(conf_mat[c], axis=0) - correct #https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html - sum over predictions j=cols
             node_evol_ax[row, 2].plot(np.arange(0.0, correct.shape[0] * opt['step_size'], opt['step_size']),
                                   correct, color=colormap(c), linestyle=linestyles[i], label=f"{conf_set[i]}_c{c}")
+            # incorrect = torch.sum(conf_mat[c], dim=0) - correct #https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html - sum over predictions j=cols
             # node_evol_ax[row, 1].plot(np.arange(0.0, incorrect.shape[0] * opt['step_size'], opt['step_size']),
             #                       incorrect, color=colormap(c), linestyle=linestyles[i], label=f"{conf_set[i]}_c{c}")
 

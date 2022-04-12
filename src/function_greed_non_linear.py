@@ -137,7 +137,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.om_W_rep = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
       self.om_W_eps = Parameter(torch.Tensor([0.85]))
       # self.om_W_eps = torch.Tensor([1.0])
-      self.om_W_nu = torch.Tensor([0.1])
+      self.om_W_nu = torch.Tensor([0.1], device=self.device)
 
     elif self.opt['gnl_omega'] == 'diag':
       self.om_W = Parameter(torch.Tensor(in_features))
@@ -172,18 +172,24 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.gnl_W_D = Parameter(torch.ones(in_features))
       elif self.opt['gnl_W_style'] == 'diag_dom':
         self.W_W = Parameter(torch.Tensor(in_features, in_features - 1))
-        self.t_a = Parameter(torch.ones(in_features))
-        self.r_a = Parameter(torch.zeros(in_features))
+        self.t_a = Parameter(torch.Tensor(in_features))#torch.ones(in_features))
+        self.r_a = Parameter(torch.Tensor(in_features))#torch.zeros(in_features))
+      elif self.opt['gnl_W_style'] == 'k_block':
+        assert opt['k_blocks'] * opt['block_size'] <= in_features, 'blocks exceeded hidden dim'
+        self.gnl_W_blocks = Parameter(torch.Tensor(opt['k_blocks'] * opt['block_size'], opt['block_size']))
+        self.gnl_W_D = Parameter(torch.Tensor(in_features - opt['k_blocks'] * opt['block_size']))
+      elif self.opt['gnl_W_style'] == 'k_diag':
+        assert opt['k_diags'] % 2 == 1 and opt['k_diags'] <= in_features, 'must have odd number of k diags'
+        self.gnl_W_diags = Parameter(torch.Tensor(in_features, opt['k_diags'])) #or (2k-1) * n + k * (k - 1)
       else:
         self.W_W = Parameter(torch.Tensor(in_features, in_features))
         self.W_W_eps = 0 #what's this?
-
 
     self.delta = Parameter(torch.Tensor([1.]))
     # self.delta = torch.Tensor([2.0])
     if opt['drift']:
       self.C = (data.y.max()+1).item() #num class for drift
-      self.drift_eps = Parameter(torch.Tensor([1.])) #placeholder for decoder
+      self.drift_eps = Parameter(torch.Tensor([0.])) #placeholder for decoder
 
     self.reset_nonlinG_parameters()
 
@@ -210,6 +216,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'cgnn':
         glorot(self.gnl_W_U)
         # self.gnl_W_D
+      elif self.opt['gnl_W_style'] == 'diag_dom':
+        glorot(self.W_W)
+        glorot(self.t_a)
+        glorot(self.r_a)
+      elif self.opt['gnl_W_style'] == 'k_block':
+        glorot(self.gnl_W_blocks)
+        uniform(self.gnl_W_D, a=-1, b=1)
+      elif self.opt['gnl_W_style'] == 'k_diag':
+        glorot(self.gnl_W_diags) #maybe sample U(-1,1)
       else: #sum or diag_dom
         glorot(self.W_W)      # xavier_uniform_(self.W_W)
 
@@ -217,13 +232,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       ones(self.m_alpha)
       ones(self.m_beta)
       ones(self.m_gamma)
-    elif self.opt['gnl_measure'] in ['nodewise', 'nodewise_exp']:
+    elif self.opt['gnl_measure'] in ['nodewise']:
       ones(self.measure)
+    elif self.opt['gnl_measure'] in ['nodewise_exp']:
+      zeros(self.measure)
 
     # ones(self.delta)
     # zeros(self.delta)
 
   def set_gnlWS(self):
+    "note every W is made symetric before returning here"
+
     if self.opt['gnl_W_style'] in ['prod']:
       return self.W_W @ self.W_W.t()  # output a [d,d] tensor
     if self.opt['gnl_W_style'] in ['sum']:
@@ -239,8 +258,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W_D = torch.tanh(self.gnl_W_D)
       W_hat = V_hat @ torch.diag(W_D) @ V_hat.t()
       return W_hat
-      # W_hat = V_hat @ torch.diag(torch.exp(self.gnl_W_D) - 1.5) @ V_hat.t()
-      # return torch.eye(self.gnl_W.shape[0], device=self.device) + W_hat
+      #todo check if I make an orthoganal matrix symetric is it still orthoganal
+      # Ws = (W_hat+W_hat.T) / 2
+      # return Ws
 
     elif self.opt['gnl_W_style'] == 'cgnn':
       # # https://github.com/JRowbottomGit/ContinuousGNN/blob/85d47b0748a19e06e305c21e99e1dd03d36ad314/src/trainer.py
@@ -248,18 +268,33 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       with torch.no_grad():
         W_U = self.gnl_W_U.clone()
         W_U = self.gnl_W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
-
       # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1) #self.gnl_W_D
       W_D = torch.tanh(self.gnl_W_D) #self.gnl_W_D
-
       W_hat = W_U @ torch.diag(W_D) @ W_U.t()
       return W_hat
+      #todo check if I make an orthoganal matrix symetric is it still orthoganal
+      # Ws = (W_hat+W_hat.T) / 2
+      # return Ws
 
     elif self.opt['gnl_W_style'] == 'diag_dom':
-      W_sum = self.t_a * self.W_W.sum(dim=1) + self.r_a
+      W_sum = self.t_a * torch.abs(self.W_W).sum(dim=1) + self.r_a
       W_temp = torch.cat([self.W_W, W_sum.unsqueeze(-1)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
-      return W
+      Ws = (W+W.T) / 2
+      return Ws
+    elif self.opt['gnl_W_style'] == 'k_block':
+      W_temp = torch.cat([self.gnl_W_blocks, torch.zeros((self.opt['k_blocks'] * self.opt['block_size'], self.in_features - self.opt['block_size']), device=self.device)], dim=1)
+      W_roll = torch.cat([torch.roll(W_temp[i:i+self.opt['block_size']], shifts=i*self.opt['block_size'], dims=1) for i in range(self.opt['k_blocks'])])
+      W_zero_fill = torch.zeros(max(self.in_features - self.opt['block_size'] * self.opt['k_blocks'], 0), self.in_features, device=self.device)
+      W = torch.cat((W_roll, W_zero_fill), dim=0)
+      W[self.opt['k_blocks'] * self.opt['block_size']:,self.opt['k_blocks'] * self.opt['block_size']:] = torch.diag(self.gnl_W_D)
+      Ws = (W+W.T) / 2
+      return Ws
+    elif self.opt['gnl_W_style'] == 'k_diag':
+      W_temp = torch.cat([self.gnl_W_diags, torch.zeros((self.in_features, self.in_features - self.opt['k_diags']), device=self.device)], dim=1)
+      W = torch.stack([torch.roll(W_temp[i], shifts=int(i-(self.opt['k_diags']-1)/2), dims=-1) for i in range(self.in_features)])
+      Ws = (W+W.T) / 2
+      return Ws
 
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
     row_sum = scatter_add(attentions, edge_index[0], dim=0, dim_size=n)
@@ -297,7 +332,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         measures_src_dst = 1 / (src_meas * dst_meas)
       elif self.opt['gnl_measure'] == 'nodewise':
         measure = self.measure
-        src_meas, dst_meas = self.get_src_dst(self.measure)
+        src_meas, dst_meas = self.get_src_dst(measure)
         measures_src_dst = 1 / (src_meas * dst_meas)
       elif self.opt['gnl_measure'] == 'deg_poly_exp':
         deg = degree(self.edge_index[0], self.n_nodes)
@@ -306,7 +341,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         measures_src_dst = 1 / (src_meas * dst_meas)
       elif self.opt['gnl_measure'] == 'nodewise_exp':
         measure = torch.exp(self.measure)
-        src_meas, dst_meas = self.get_src_dst(self.measure)
+        src_meas, dst_meas = self.get_src_dst(measure)
         measures_src_dst = 1 / (src_meas * dst_meas)
       elif self.opt['gnl_measure'] == 'ones':
         measure = torch.ones(x.shape[0], device=self.device)
@@ -322,7 +357,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.Omega = self.om_W @ self.om_W.T
         elif self.opt['gnl_omega'] == 'attr_rep':
           # Omega = self.om_W_nu * (1 - 2 * self.om_W_eps) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
-          self.Omega =  (1 - 2 * self.om_W_eps) * torch.eye(self.in_features) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
+          self.Omega =  (1 - 2 * self.om_W_eps) * torch.eye(self.in_features, device=self.device) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
         elif self.opt['gnl_omega'] == 'diag':
           self.Omega = torch.diag(self.om_W)
 
@@ -388,7 +423,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         else:
           self.Omega = (self.om_W + self.om_W.T) / 2
 
-        # self.gnl_W = (self.W_W + self.W_W.T) / 2 #set at GNN level
+        # self.gnl_W = (self.W_W + self.W_W.T) / 2 #instead set at GNN level using set_gnlWS
 
         #get degrees
         src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)
@@ -453,8 +488,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         idx = index[:l] + index[l + 1:]
         q_l = eta_hat[:,l] * logits[:,l]
         eta_l = torch.prod(eta_hat[:,idx]**2, dim=1) * q_l
-        f -= (-0.5 * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(logits.shape[1], device=self.device)) * logits @ P)\
-             / (torch.exp(self.drift_eps) * measure.unsqueeze(-1))
+        f -= (-0.5 * measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
 
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
@@ -530,15 +564,23 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             self.entropies[key] = torch.cat([value, temp_entropies[key]], dim=0)
 
           if len(self.confusions[0].shape) == 2:
-            self.confusions[0] = np.stack((self.confusions[0], conf_mat), axis=-1)
-            self.confusions[1] = np.stack((self.confusions[1], train_cm), axis=-1)
-            self.confusions[2] = np.stack((self.confusions[2], val_cm), axis=-1)
-            self.confusions[3] = np.stack((self.confusions[3], test_cm), axis=-1)
+            # self.confusions[0] = np.stack((self.confusions[0], conf_mat), axis=-1)
+            # self.confusions[1] = np.stack((self.confusions[1], train_cm), axis=-1)
+            # self.confusions[2] = np.stack((self.confusions[2], val_cm), axis=-1)
+            # self.confusions[3] = np.stack((self.confusions[3], test_cm), axis=-1)
+            self.confusions[0] = torch.stack((self.confusions[0], conf_mat), dim=-1)
+            self.confusions[1] = torch.stack((self.confusions[1], train_cm), dim=-1)
+            self.confusions[2] = torch.stack((self.confusions[2], val_cm), dim=-1)
+            self.confusions[3] = torch.stack((self.confusions[3], test_cm), dim=-1)
           else:
-            self.confusions[0] = np.concatenate((self.confusions[0], conf_mat[..., np.newaxis]), axis=-1)
-            self.confusions[1] = np.concatenate((self.confusions[1], train_cm[..., np.newaxis]), axis=-1)
-            self.confusions[2] = np.concatenate((self.confusions[2], val_cm[..., np.newaxis]), axis=-1)
-            self.confusions[3] = np.concatenate((self.confusions[3], test_cm[..., np.newaxis]), axis=-1)
+            # self.confusions[0] = np.concatenate((self.confusions[0], conf_mat[..., torch.newdim]), axis=-1)
+            # self.confusions[1] = np.concatenate((self.confusions[1], train_cm[..., torch.newdim]), axis=-1)
+            # self.confusions[2] = np.concatenate((self.confusions[2], val_cm[..., torch.newdim]), axis=-1)
+            # self.confusions[3] = np.concatenate((self.confusions[3], test_cm[..., torch.newdim]), axis=-1)
+            self.confusions[0] = torch.cat((self.confusions[0], conf_mat.unsqueeze(-1)), dim=-1)
+            self.confusions[1] = torch.cat((self.confusions[1], train_cm.unsqueeze(-1)), dim=-1)
+            self.confusions[2] = torch.cat((self.confusions[2], val_cm.unsqueeze(-1)), dim=-1)
+            self.confusions[3] = torch.cat((self.confusions[3], test_cm.unsqueeze(-1)), dim=-1)
 
         #extra values for terminal step
         if t == self.opt['time'] - self.opt['step_size']:
@@ -598,10 +640,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           for key, value, in self.entropies.items():
             self.entropies[key] = torch.cat([value, temp_entropies[key]], dim=0)
 
-          self.confusions[0] = np.concatenate((self.confusions[0], conf_mat[..., np.newaxis]), axis=-1)
-          self.confusions[1] = np.concatenate((self.confusions[1], train_cm[..., np.newaxis]), axis=-1)
-          self.confusions[2] = np.concatenate((self.confusions[2], val_cm[..., np.newaxis]), axis=-1)
-          self.confusions[3] = np.concatenate((self.confusions[3], test_cm[..., np.newaxis]), axis=-1)
+          # self.confusions[0] = np.concatenate((self.confusions[0], conf_mat[..., np.newaxis]), axis=-1)
+          # self.confusions[1] = np.concatenate((self.confusions[1], train_cm[..., np.newaxis]), axis=-1)
+          # self.confusions[2] = np.concatenate((self.confusions[2], val_cm[..., np.newaxis]), axis=-1)
+          # self.confusions[3] = np.concatenate((self.confusions[3], test_cm[..., np.newaxis]), axis=-1)
+          self.confusions[0] = torch.cat((self.confusions[0], conf_mat.unsqueeze(-1)), dim=-1)
+          self.confusions[1] = torch.cat((self.confusions[1], train_cm.unsqueeze(-1)), dim=-1)
+          self.confusions[2] = torch.cat((self.confusions[2], val_cm.unsqueeze(-1)), dim=-1)
+          self.confusions[3] = torch.cat((self.confusions[3], test_cm.unsqueeze(-1)), dim=-1)
 
         self.wandb_step += 1
 
@@ -613,10 +659,43 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def get_confusion(self, data, pred, norm_type):
     conf_mat = confusion_matrix(data.y, pred, normalize=norm_type)
-    train_cm = confusion_matrix(data.y[data.train_mask], pred[data.train_mask], normalize=norm_type)
-    val_cm = confusion_matrix(data.y[data.val_mask], pred[data.val_mask], normalize=norm_type)
-    test_cm = confusion_matrix(data.y[data.test_mask], pred[data.test_mask], normalize=norm_type)
+    # torch_conf_mat = self.torch_confusion(data.y, pred, norm_type)
+    # print(torch.allclose(torch.from_numpy(conf_mat), torch_conf_mat, rtol=0.001))
+    # train_cm = confusion_matrix(data.y[data.train_mask], pred[data.train_mask], normalize=norm_type)
+    # val_cm = confusion_matrix(data.y[data.val_mask], pred[data.val_mask], normalize=norm_type)
+    # test_cm = confusion_matrix(data.y[data.test_mask], pred[data.test_mask], normalize=norm_type)
+    num_class = data.y.max() + 1 #hack!
+    conf_mat = self.torch_confusion(data.y, pred, num_class, norm_type)
+    train_cm = self.torch_confusion(data.y[data.train_mask], pred[data.train_mask], num_class, norm_type)
+    val_cm = self.torch_confusion(data.y[data.val_mask], pred[data.val_mask], num_class, norm_type)
+    test_cm = self.torch_confusion(data.y[data.test_mask], pred[data.test_mask], num_class, norm_type)
     return conf_mat, train_cm, val_cm, test_cm
+
+  def torch_confusion(self, labels, pred, num_class, norm_type):
+    '''
+    Truth - row i
+    Pred - col j
+    '''
+    num_nodes = labels.shape[0]
+    conf_mat = torch.zeros((num_class, num_class), dtype=torch.double, device=self.device)
+    for i in range(num_class):
+      for j in range(num_class):
+        conf_mat[i,j] = ((labels==i).long() * (pred==j).long()).sum()
+    if norm_type == None:
+      pass
+    elif norm_type == 'true':
+      trues = torch.zeros(num_class, dtype=torch.double, device=self.device)
+      for c in range(num_class):
+        trues[c] = (labels == c).sum()
+      conf_mat = conf_mat / trues.unsqueeze(-1)
+    elif norm_type == 'pred':
+      preds = torch.zeros(num_class, dtype=torch.double, device=self.device)
+      for c in range(num_class):
+        preds[c] = (pred == c).sum()
+      conf_mat = conf_mat / preds.unsqueeze(0)
+    elif norm_type == 'all':
+      conf_mat / num_nodes
+    return conf_mat
 
   def __repr__(self):
     return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'

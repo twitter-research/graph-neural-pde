@@ -130,8 +130,8 @@ def greed_ablation_params(opt):
     opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'nodewise_exp' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
     opt['drift'] = True #False#True
-    opt['gnl_savefolder'] = 'chameleon_general_nodrift_diagdom'#'chameleon_general_drift'#'chameleon_testing'
-    opt['gnl_W_style'] = 'diag_dom' # 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
+    opt['gnl_savefolder'] = 'chameleon_testing'#'chameleon_general_drift'#'chameleon_testing'
+    opt['gnl_W_style'] = 'sum' #'k_diag'#'k_block'#k_diag #'diag_dom' # 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
     opt['gnl_thresholding'] = False #True #todo plot C^2 matrix of distances between centres in feature space / maybe TSNE aswell
 
     if opt['gnl_style'] == 'scaled_dot':
@@ -139,17 +139,22 @@ def greed_ablation_params(opt):
         opt['dim_p_w'] = 16 #4
         opt['gnl_activation'] = 'squareplus_deriv' # exponential sigmoid_deriv tanh_deriv, squareplus_deriv
         opt['gnl_omega_norm'] = 'tanh' #"rowSum"
-
-    if opt['gnl_style'] == 'softmax_attention':
+    elif opt['gnl_style'] == 'softmax_attention':
         opt['symmetric_attention'] = True #should be redundant
         opt['attention_type'] = "scaled_dot"
         opt['symmetric_QK'] = True
         opt['attention_activation'] = 'softmax'#'softmax' #, exponential
         opt['attention_normalisation'] = 'none'
-
-    if opt['gnl_style'] == 'general_graph':
+    elif opt['gnl_style'] == 'general_graph':
         opt['gnl_omega'] = 'zero' #'diag' #'sum' #'attr_rep' 'product'  #method to make Omega symmetric
         opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
+        if opt['gnl_W_style'] == 'k_block':
+        # assert in_features % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= in_features, 'must have odd number of k diags'
+            opt['k_blocks'] = 2#1
+            opt['block_size'] = 5
+        elif opt['gnl_W_style'] == 'k_diag':
+            # assert opt['k_diags'] % 2 == 1 and opt['k_diags'] <= in_features, 'must have odd number of k diags'
+            opt['k_diags'] = 13
 
     #gcn params
     opt['geom_gcn_splits'] = False#True
