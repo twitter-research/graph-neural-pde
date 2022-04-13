@@ -326,8 +326,8 @@ def run_reports(epoch, model, data, opt):
     if opt['gnl_W_style'] == 'diag_dom':
         sort_ta = torch.sort(model.odeblock.odefunc.t_a)[0]
         sort_ra = torch.sort(model.odeblock.odefunc.r_a)[0]
-        spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ta.cpu().numpy(), c='g', label='t_a', zorder=10)
-        spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ra.cpu().numpy(), c='o', label='r_a', zorder=5)
+        spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ta.cpu().numpy(), c='tab:green', label='t_a', zorder=10)
+        spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ra.cpu().numpy(), c='tab:orange', label='r_a', zorder=5)
         spectrum_ax[row, 1].legend()
 
     spectrum_ax[row, 1].set_title(f"Omega, E-values, E-vectors, epoch {epoch}", fontdict={'fontsize': 24})
