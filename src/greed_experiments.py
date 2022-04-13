@@ -54,8 +54,13 @@ def run_experiments():
             for drift in [False, True]:
                 opt['drift'] = drift
 
-                for gnl_W_style in ['sum', 'prod', 'k_diag', 'k_block' 'cgnn']:
+                for gnl_W_style in ['k_diag', 'k_block' 'cgnn']:#'sum', 'prod', 'k_diag', 'k_block' 'cgnn']:
                     opt['gnl_W_style'] = gnl_W_style
+                    if opt['gnl_W_style'] == 'k_block':
+                        opt['k_blocks'] = 5
+                        opt['block_size'] = 5
+                    elif opt['gnl_W_style'] == 'k_diag':
+                        opt['k_diags'] = 21
 
                     for time in [3, 8]:
                         opt['time'] = time
