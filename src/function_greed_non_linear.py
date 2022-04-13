@@ -278,11 +278,20 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # return Ws
 
     elif self.opt['gnl_W_style'] == 'diag_dom':
-      W_sum = self.t_a * torch.abs(self.W_W).sum(dim=1) + self.r_a
-      W_temp = torch.cat([self.W_W, W_sum.unsqueeze(-1)], dim=1)
+      # W_sum = self.t_a * torch.abs(self.W_W).sum(dim=1) + self.r_a
+      # W_temp = torch.cat([self.W_W, W_sum.unsqueeze(-1)], dim=1)
+      # W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
+      # Ws = (W+W.T) / 2
+
+      W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
-      Ws = (W+W.T) / 2
+      W = (W+W.T) / 2
+      W_sum = self.t_a * torch.abs(self.W).sum(dim=1) + self.r_a
+      Ws = W + torch.diag(W_sum)
+
       return Ws
+
+
     elif self.opt['gnl_W_style'] == 'k_block':
       W_temp = torch.cat([self.gnl_W_blocks, torch.zeros((self.opt['k_blocks'] * self.opt['block_size'], self.in_features - self.opt['block_size']), device=self.device)], dim=1)
       W_roll = torch.cat([torch.roll(W_temp[i:i+self.opt['block_size']], shifts=i*self.opt['block_size'], dims=1) for i in range(self.opt['k_blocks'])])
