@@ -218,13 +218,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         # self.gnl_W_D
       elif self.opt['gnl_W_style'] == 'diag_dom':
         glorot(self.W_W)
-        xavier_uniform_(self.t_a) #glorot from torch instead of PyG
-        xavier_uniform_(self.r_a)
+        uniform(self.t_a, a=-1, b=1)
+        uniform(self.r_a, a=-1, b=1)
       elif self.opt['gnl_W_style'] == 'k_block':
         glorot(self.gnl_W_blocks)
         uniform(self.gnl_W_D, a=-1, b=1)
       elif self.opt['gnl_W_style'] == 'k_diag':
-        glorot(self.gnl_W_diags) #maybe sample U(-1,1)
+        uniform(self.gnl_W_diags, a=-1, b=1)
       else: #sum or
         glorot(self.W_W)      # xavier_uniform_(self.W_W)
 
