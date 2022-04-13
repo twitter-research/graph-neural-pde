@@ -322,12 +322,13 @@ def run_reports(epoch, model, data, opt):
     cbar = spectrum_fig.colorbar(mat, ax=spectrum_ax[row, 0], shrink=0.75)
     cbar.ax.tick_params(labelsize=16)
 
-    spectrum_ax[row, 1].bar(range(L.shape[0]), L.cpu().numpy(), width=1.0)
+    spectrum_ax[row, 1].bar(range(L.shape[0]), L.cpu().numpy(), width=1.0, zorder=0)
     if opt['gnl_W_style'] == 'diag_dom':
         sort_ta = torch.sort(model.odeblock.odefunc.t_a)[0]
         sort_ra = torch.sort(model.odeblock.odefunc.r_a)[0]
-        spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ta.cpu().numpy())
-        spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ra.cpu().numpy())
+        spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ta.cpu().numpy(), c='g', labels='t_a', zorder=10)
+        spectrum_ax[row, 1].plot(range(L.shape[0]), sort_ra.cpu().numpy(), c='o', labels='r_a', zorder=5)
+        spectrum_ax[row, 1].legend()
 
     spectrum_ax[row, 1].set_title(f"Omega, E-values, E-vectors, epoch {epoch}", fontdict={'fontsize': 24})
     spectrum_ax[row, 1].xaxis.set_tick_params(labelsize=16)
