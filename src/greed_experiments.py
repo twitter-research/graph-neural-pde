@@ -52,10 +52,10 @@ def run_experiments():
         for gnl_measure in ['ones', 'deg_poly', 'nodewise', 'nodewise_exp', 'deg_poly_exp']:
             opt['gnl_measure'] = gnl_measure
 
-            for drift in [False, True]:
+            for drift in [True]: #False, True]:
                 opt['drift'] = drift
 
-                for gnl_W_style in ['diag_dom', 'k_block', 'cgnn']:#'sum', 'prod', 'k_diag', 'k_block' 'cgnn']:
+                for gnl_W_style in ['sum', 'prod', 'k_diag', 'k_block', 'cgnn']:#'sum', 'prod', 'k_diag', 'k_block' 'cgnn']:
                     opt['gnl_W_style'] = gnl_W_style
                     if opt['gnl_W_style'] == 'k_block':
                         opt['k_blocks'] = 5
