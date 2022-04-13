@@ -11,6 +11,7 @@ def run_experiments():
     opt['wandb_watch_grad'] = False
     opt['run_track_reports'] = True
     opt['wandb_reports'] = True
+    opt['save_local_reports'] = False
     opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
     opt['wandb_entity'] = "graph_neural_diffusion"
     opt['wandb_project'] = "reporting_runs"

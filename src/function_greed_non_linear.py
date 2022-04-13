@@ -113,13 +113,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.node_scatter_fig_list = []
       self.edge_scatter_fig_list = []
 
-      self.pdf_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter']
-      self.spectrum_pdf = PdfPages(f"{savefolder}/spectrum.pdf")
-      self.acc_entropy_pdf = PdfPages(f"{savefolder}/acc_entropy.pdf")
-      self.edge_evol_pdf = PdfPages(f"{savefolder}/edge_evol.pdf")
-      self.node_evol_pdf = PdfPages(f"{savefolder}/node_evol.pdf")
-      self.node_scatter_pdf = PdfPages(f"{savefolder}/node_scatter.pdf")
-      self.edge_scatter_pdf = PdfPages(f"{savefolder}/edge_scatter.pdf")
+      if opt['save_local_reports']:
+        self.pdf_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter']
+        self.spectrum_pdf = PdfPages(f"{savefolder}/spectrum.pdf")
+        self.acc_entropy_pdf = PdfPages(f"{savefolder}/acc_entropy.pdf")
+        self.edge_evol_pdf = PdfPages(f"{savefolder}/edge_evol.pdf")
+        self.node_evol_pdf = PdfPages(f"{savefolder}/node_evol.pdf")
+        self.node_scatter_pdf = PdfPages(f"{savefolder}/node_scatter.pdf")
+        self.edge_scatter_pdf = PdfPages(f"{savefolder}/edge_scatter.pdf")
 
     self.epoch = 0
     self.wandb_step = 0

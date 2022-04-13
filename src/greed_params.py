@@ -195,6 +195,7 @@ def not_sweep_args(opt, project_name, group_name):
     opt['wandb_watch_grad'] = False
     opt['run_track_reports'] = True
     opt['wandb_reports'] = True
+    opt['save_local_reports'] = False
     opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
     opt['wandb_project'] = project_name #"greed_runs"
     opt['wandb_group'] = group_name #"testing"  # "tuning" eval

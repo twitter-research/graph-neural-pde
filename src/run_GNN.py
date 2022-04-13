@@ -517,7 +517,7 @@ def run_reports(epoch, model, data, opt):
     model.odeblock.odefunc.entropies = None
 
     #todo if flagged to save reports in wandb, then save every full page as a jpeg in wandb
-    if row == num_rows - 1 or epoch == opt['wandb_epoch_list'][-1]:
+    if (row == num_rows - 1 or epoch == opt['wandb_epoch_list'][-1]) and opt['save_local_reports']:
         model.odeblock.odefunc.spectrum_pdf.savefig(spectrum_fig)
         model.odeblock.odefunc.acc_entropy_pdf.savefig(acc_entropy_fig)
         model.odeblock.odefunc.edge_evol_pdf.savefig(edge_evol_fig)
@@ -525,15 +525,15 @@ def run_reports(epoch, model, data, opt):
         model.odeblock.odefunc.node_scatter_pdf.savefig(node_scatter_fig)
         model.odeblock.odefunc.edge_scatter_pdf.savefig(edge_scatter_fig)
 
-        if opt['wandb_reports']:
-            wandb.log({f"spectrum_fig_{idx//num_rows}": wandb.Image(spectrum_fig),
-                f"acc_entropy_fig_{idx//num_rows}": wandb.Image(acc_entropy_fig),
-                f"edge_evol_fig_{idx//num_rows}": wandb.Image(edge_evol_fig),
-                f"node_evol_fig_{idx//num_rows}": wandb.Image(node_evol_fig),
-                f"node_scatter_fig_{idx//num_rows}": wandb.Image(node_scatter_fig),
-                f"edge_scatter_fig_{idx//num_rows}": wandb.Image(edge_scatter_fig)})
+    if (row == num_rows - 1 or epoch == opt['wandb_epoch_list'][-1]) and opt['wandb_reports']:
+        wandb.log({f"spectrum_fig_{idx//num_rows}": wandb.Image(spectrum_fig),
+            f"acc_entropy_fig_{idx//num_rows}": wandb.Image(acc_entropy_fig),
+            f"edge_evol_fig_{idx//num_rows}": wandb.Image(edge_evol_fig),
+            f"node_evol_fig_{idx//num_rows}": wandb.Image(node_evol_fig),
+            f"node_scatter_fig_{idx//num_rows}": wandb.Image(node_scatter_fig),
+            f"edge_scatter_fig_{idx//num_rows}": wandb.Image(edge_scatter_fig)})
 
-    if epoch == opt['wandb_epoch_list'][-1]:
+    if epoch == opt['wandb_epoch_list'][-1] and opt['save_local_reports']:
         model.odeblock.odefunc.spectrum_pdf.close()
         model.odeblock.odefunc.acc_entropy_pdf.close()
         model.odeblock.odefunc.edge_evol_pdf.close()
