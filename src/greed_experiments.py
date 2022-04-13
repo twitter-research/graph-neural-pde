@@ -55,7 +55,7 @@ def run_experiments():
             for drift in [False, True]:
                 opt['drift'] = drift
 
-                for gnl_W_style in ['diag_dom', 'k_diag', 'k_block' 'cgnn']:#'sum', 'prod', 'k_diag', 'k_block' 'cgnn']:
+                for gnl_W_style in ['k_diag', 'diag_dom', 'k_block', 'cgnn']:#'sum', 'prod', 'k_diag', 'k_block' 'cgnn']:
                     opt['gnl_W_style'] = gnl_W_style
                     if opt['gnl_W_style'] == 'k_block':
                         opt['k_blocks'] = 5
