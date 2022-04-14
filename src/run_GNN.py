@@ -641,7 +641,7 @@ def main(cmd_opt):
         wandb.define_metric("gf_e*", step_metric="grad_flow_step")  # grad_flow_epoch*
 
     dataset = get_dataset(opt, '../data', opt['not_lcc'])
-    if opt['dataset'] in ['chameleon','other hetero?']:
+    if opt['dataset'] in ['chameleon','squirrel','other hetero?']: #todo put this in data loader
         dataset.data.edge_index, _ = add_remaining_self_loops(
             dataset.data.edge_index)  ### added self loops for chameleon
         dataset.data.edge_index = to_undirected(dataset.data.edge_index)
