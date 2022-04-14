@@ -6,7 +6,7 @@ parameters:
   block:
     values: [constant]
   function:
-    values: [greed_linear_hetero]
+    values: [greed_non_linear]
   epoch:
     values: [100]
   num_splits:
