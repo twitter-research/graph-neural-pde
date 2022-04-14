@@ -80,6 +80,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.entropies = None
     self.confusions = None
 
+    self.val_dist_mean_feat = None
+    self.val_dist_sd_feat = None
+    self.test_dist_mean_feat = None
+    self.test_dist_sd_feat = None
+    self.val_dist_mean_label = None
+    self.val_dist_sd_label = None
+    self.test_dist_mean_label = None
+    self.test_dist_sd_label = None
+
     self.graph_edge_homophily = homophily(edge_index=self.edge_index, y=data.y, method='edge')
     self.graph_node_homophily = homophily(edge_index=self.edge_index, y=data.y, method='node')
     self.labels = data.y
@@ -188,8 +197,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     self.delta = Parameter(torch.Tensor([1.]))
     # self.delta = torch.Tensor([2.0])
+    self.C = (data.y.max() + 1).item()  #hack!, num class for drift
     if opt['drift']:
-      self.C = (data.y.max()+1).item() #num class for drift
       self.drift_eps = Parameter(torch.Tensor([0.])) #placeholder for decoder
 
     self.reset_nonlinG_parameters()
@@ -489,9 +498,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # f = f + drift
 
       logits = torch.softmax(self.GNN_m2(x), dim=1)
-      eye = torch.eye(logits.shape[1], device=self.device)
-      d = logits.unsqueeze(-1) - eye.unsqueeze(0) #[num_nodes, d, 1] - [1, d, d]
-      eta_hat = torch.sum(torch.abs(d),dim=1)  #sum abs distances for each node over features
+      eye = torch.eye(self.C, device=self.device)
+      dist_labels = logits.unsqueeze(-1) - eye.unsqueeze(0) #[num_nodes, d, 1] - [1, d, d]
+      eta_hat = torch.sum(torch.abs(dist_labels),dim=1)  #sum abs distances for each node over features
       P = self.GNN_m2.weight
       index = list(range(self.C))
       for l in range(self.C):
@@ -499,6 +508,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         q_l = eta_hat[:,l] * logits[:,l]
         eta_l = torch.prod(eta_hat[:,idx]**2, dim=1) * q_l
         f -= (-0.5 * measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
+
+    #todo project every node onto embedding TSNE coordinate basis
 
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
@@ -545,6 +556,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         homophil = homophily(edge_index=self.edge_index, y=pred)
         L2dist = torch.sqrt(torch.sum((src_x - dst_x) ** 2, dim=1))
         conf_mat, train_cm, val_cm, test_cm = self.get_confusion(self.data, pred, norm_type='true') #'all')
+        eval_means, eval_sds = self.get_distances(self.data, x, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask])
 
         if self.attentions is None:
           self.attentions = attention.unsqueeze(0)
@@ -558,6 +570,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.homophils = [homophil]
           self.entropies = get_entropies(logits, self.data)
           self.confusions = [conf_mat, train_cm, val_cm, test_cm]
+
+          self.val_dist_mean_feat = eval_means[0]
+          self.val_dist_sd_feat = eval_sds[0]
+          self.test_dist_mean_feat = eval_means[1]
+          self.test_dist_sd_feat = eval_sds[1]
+
+
         else:
           self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
           self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
@@ -574,25 +593,22 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             self.entropies[key] = torch.cat([value, temp_entropies[key]], dim=0)
 
           if len(self.confusions[0].shape) == 2:
-            # self.confusions[0] = np.stack((self.confusions[0], conf_mat), axis=-1)
-            # self.confusions[1] = np.stack((self.confusions[1], train_cm), axis=-1)
-            # self.confusions[2] = np.stack((self.confusions[2], val_cm), axis=-1)
-            # self.confusions[3] = np.stack((self.confusions[3], test_cm), axis=-1)
             self.confusions[0] = torch.stack((self.confusions[0], conf_mat), dim=-1)
             self.confusions[1] = torch.stack((self.confusions[1], train_cm), dim=-1)
             self.confusions[2] = torch.stack((self.confusions[2], val_cm), dim=-1)
             self.confusions[3] = torch.stack((self.confusions[3], test_cm), dim=-1)
           else:
-            # self.confusions[0] = np.concatenate((self.confusions[0], conf_mat[..., torch.newdim]), axis=-1)
-            # self.confusions[1] = np.concatenate((self.confusions[1], train_cm[..., torch.newdim]), axis=-1)
-            # self.confusions[2] = np.concatenate((self.confusions[2], val_cm[..., torch.newdim]), axis=-1)
-            # self.confusions[3] = np.concatenate((self.confusions[3], test_cm[..., torch.newdim]), axis=-1)
             self.confusions[0] = torch.cat((self.confusions[0], conf_mat.unsqueeze(-1)), dim=-1)
             self.confusions[1] = torch.cat((self.confusions[1], train_cm.unsqueeze(-1)), dim=-1)
             self.confusions[2] = torch.cat((self.confusions[2], val_cm.unsqueeze(-1)), dim=-1)
             self.confusions[3] = torch.cat((self.confusions[3], test_cm.unsqueeze(-1)), dim=-1)
 
-        #extra values for terminal step
+            self.val_dist_mean_feat = torch.cat((self.val_dist_mean_feat, eval_means[0].unsqueeze(-1)),dim=-1)
+            self.val_dist_sd_feat = torch.cat((self.val_dist_sd_feat, eval_sds[0].unsqueeze(-1)),dim=-1)
+            self.test_dist_mean_feat = torch.cat((self.test_dist_mean_feat, eval_means[1].unsqueeze(-1)),dim=-1)
+            self.test_dist_sd_feat = torch.cat((self.test_dist_sd_feat, eval_sds[1].unsqueeze(-1)),dim=-1)
+
+        ### extra values for terminal step
         if t == self.opt['time'] - self.opt['step_size']:
           z = x + self.opt['step_size'] * f #take an euler step
 
@@ -650,10 +666,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           for key, value, in self.entropies.items():
             self.entropies[key] = torch.cat([value, temp_entropies[key]], dim=0)
 
-          # self.confusions[0] = np.concatenate((self.confusions[0], conf_mat[..., np.newaxis]), axis=-1)
-          # self.confusions[1] = np.concatenate((self.confusions[1], train_cm[..., np.newaxis]), axis=-1)
-          # self.confusions[2] = np.concatenate((self.confusions[2], val_cm[..., np.newaxis]), axis=-1)
-          # self.confusions[3] = np.concatenate((self.confusions[3], test_cm[..., np.newaxis]), axis=-1)
           self.confusions[0] = torch.cat((self.confusions[0], conf_mat.unsqueeze(-1)), dim=-1)
           self.confusions[1] = torch.cat((self.confusions[1], train_cm.unsqueeze(-1)), dim=-1)
           self.confusions[2] = torch.cat((self.confusions[2], val_cm.unsqueeze(-1)), dim=-1)
@@ -674,7 +686,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     # train_cm = confusion_matrix(data.y[data.train_mask], pred[data.train_mask], normalize=norm_type)
     # val_cm = confusion_matrix(data.y[data.val_mask], pred[data.val_mask], normalize=norm_type)
     # test_cm = confusion_matrix(data.y[data.test_mask], pred[data.test_mask], normalize=norm_type)
-    num_class = data.y.max() + 1 #hack!
+    num_class = self.C
     conf_mat = self.torch_confusion(data.y, pred, num_class, norm_type)
     train_cm = self.torch_confusion(data.y[data.train_mask], pred[data.train_mask], num_class, norm_type)
     val_cm = self.torch_confusion(data.y[data.val_mask], pred[data.val_mask], num_class, norm_type)
@@ -706,6 +718,36 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif norm_type == 'all':
       conf_mat / num_nodes
     return conf_mat
+
+  def get_distances(self, data, x, num_class, base_mask, eval_masks):
+    #this should work for features or preds/label space depending on data passed??
+    base_av = torch.zeros((num_class, self.in_features), device=self.device)
+    #calculate average hidden state per class in the baseline set - [C, d]
+    for c in range(num_class):
+      base_c_mask = data.y[base_mask] == c
+      base_av_c = x[base_mask][base_c_mask].mean(dim=0)
+      base_av[c] = base_av_c
+
+    #for every node calcualte the L2 distance - [N_v, C] and [N_t, C]
+    dist_features = x.unsqueeze(-1) - base_av.T.unsqueeze(0)
+    L2_dist_features = torch.sqrt(torch.sum(dist_features**2, dim=1))
+
+    #for every node in each true class in the val/test sets calc the distances away from the average train set for each class
+    eval_means = []
+    eval_sds = []
+    for eval_mask in eval_masks:
+      eval_dist_mean = torch.zeros((num_class, num_class), device=self.device)
+      eval_dist_sd = torch.zeros((num_class, num_class), device=self.device)
+      for c in range(num_class):
+        base_c_mask = data.y[eval_mask] == c
+        eval_dist_mean[c] = L2_dist_features[eval_mask][base_c_mask].mean(dim=0)
+        eval_dist_sd[c] = L2_dist_features[eval_mask][base_c_mask].std(dim=0)
+
+      eval_means.append(eval_dist_mean)
+      eval_sds.append(eval_dist_sd)
+
+    return eval_means, eval_sds
+
 
   def __repr__(self):
     return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'

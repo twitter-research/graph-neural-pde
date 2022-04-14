@@ -166,14 +166,17 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
         pred = logits[mask].max(1)[1]
         acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
         accs.append(acc)
-
+    epoch = model.odeblock.odefunc.epoch
     if opt['wandb']:
         # wandb tracking
         # need to calc loss again
         lf = torch.nn.CrossEntropyLoss()
         loss = lf(logits[data.train_mask], data.y.squeeze()[data.train_mask])
-        wandb_log(data, model, opt, loss, accs[0], accs[1], accs[2], model.odeblock.odefunc.epoch)
+        wandb_log(data, model, opt, loss, accs[0], accs[1], accs[2], epoch)
         model.odeblock.odefunc.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
+
+    if opt['run_track_reports'] and epoch in opt['wandb_epoch_list']:
+        run_reports(epoch, model, data, opt)
 
     return accs
 
@@ -241,9 +244,6 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
                    "epoch_step": epoch})
 
     elif opt['function'] == "greed_non_linear":
-        if opt['run_track_reports'] and epoch in opt['wandb_epoch_list']:
-            run_reports(epoch, model, data, opt)
-
         print(
             f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}, epsilon: {model.odeblock.odefunc.om_W_eps}")  # , nu: {model.odeblock.odefunc.om_W_nu}")
 

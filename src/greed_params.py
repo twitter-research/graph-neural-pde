@@ -190,7 +190,7 @@ def greed_ablation_params(opt):
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = True #False #True
+    opt['wandb'] = False #True #False #True
     opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when testing
     opt['wandb_watch_grad'] = False
     opt['run_track_reports'] = True
