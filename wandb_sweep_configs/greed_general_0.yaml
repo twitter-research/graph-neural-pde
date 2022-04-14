@@ -3,8 +3,6 @@ method: random
 parameters:
   dataset:
     values: [chameleon, squirrel]
-  geom_gcn_splits:
-    values: [True]
   wandb_track_grad_flow:
     values: [False]
   wandb_watch_grad:
@@ -76,5 +74,6 @@ command:
   - ${args}
   - --wandb
   - --wandb_sweep
+  - --geom_gcn_splits
 entity: graph_neural_diffusion
 project: greed_general_0
