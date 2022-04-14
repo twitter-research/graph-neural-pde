@@ -3,16 +3,6 @@ method: random
 parameters:
   dataset:
     values: [chameleon, squirrel]
-  wandb_track_grad_flow:
-    values: [False]
-  wandb_watch_grad:
-    values: [False]
-  run_track_reports:
-    values: [False]
-  save_wandb_reports:
-    values: [False]
-  save_local_reports:
-    values: [False]
   block:
     values: [constant]
   function:
