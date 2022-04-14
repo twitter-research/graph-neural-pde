@@ -194,7 +194,7 @@ def not_sweep_args(opt, project_name, group_name):
     opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when testing
     opt['wandb_watch_grad'] = False
     opt['run_track_reports'] = True
-    opt['wandb_reports'] = True
+    opt['save_wandb_reports'] = True
     opt['save_local_reports'] = False
     opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
     opt['wandb_project'] = project_name #"greed_runs"
@@ -406,6 +406,9 @@ def default_params():
     parser.add_argument('--wandb_log_freq', type=int, default=1, help='Frequency to log metrics.')
     parser.add_argument('--wandb_epoch_list', nargs='+', default=[1, 2, 4, 8, 16, 32, 64, 96, 128, 254],
                         help='list of epochs to log gradient flow, 1 based')
+    parser.add_argument('--run_track_reports', action='store_true', help="run_track_reports")
+    parser.add_argument('--save_wandb_reports', action='store_true', help="save_wandb_reports")
+    parser.add_argument('--save_local_reports', action='store_true', help="save_local_reports")
 
     # wandb setup sweep args
     parser.add_argument('--tau_reg', type=int, default=2)

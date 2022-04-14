@@ -1,0 +1,80 @@
+program: run_GNN.py
+method: grid
+parameters:
+  dataset:
+    values: [chameleon, squirrel]
+  geom_gcn_splits:
+    values: [True]
+  wandb_track_grad_flow:
+    values: [False]
+  wandb_watch_grad:
+    values: [False]
+  run_track_reports:
+    values: [False]
+  save_wandb_reports:
+    values: [False]
+  save_local_reports:
+    values: [False]
+  block:
+    values: [constant]
+  function:
+    values: [greed_linear_hetero]
+  epoch:
+    values: [100]
+  num_splits:
+    values: [3]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_activation:
+    values: [identity]
+  gnl_W_style:
+    values: [sum, diag_dom]
+  gnl_measure:
+    values: [ones, nodewise]
+  gnl_omega:
+    values: [diag, zero]
+  drift:
+    values: [False]
+  test_mu_0:
+    values: [True]
+  add_source:
+    values: [True, False]
+  step_size:
+    values: [0.25, 1.0]
+  hidden_dim:
+    distribution: int_uniform
+    min: 32
+    max: 512
+  time:
+    distribution: uniform
+    min: 1.0
+    max: 8.0
+  input_dropout:
+    distribution: uniform
+    min: 0.1
+    max: 0.5
+  dropout:
+    distribution: uniform
+    min: 0.1
+    max: 0.5
+  optimizer:
+    values: [adam]
+  lr:
+    distribution: uniform
+    min: 0.001
+    max: 0.1
+  decay:
+    distribution: uniform
+    min: 0.0001
+    max: 0.02
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+entity: graph_neural_diffusion
+project: greed_general_0

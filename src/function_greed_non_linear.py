@@ -597,6 +597,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             self.confusions[1] = torch.stack((self.confusions[1], train_cm), dim=-1)
             self.confusions[2] = torch.stack((self.confusions[2], val_cm), dim=-1)
             self.confusions[3] = torch.stack((self.confusions[3], test_cm), dim=-1)
+
+            self.val_dist_mean_feat = torch.stack((self.val_dist_mean_feat, eval_means[0]), dim=-1)
+            self.val_dist_sd_feat = torch.stack((self.val_dist_sd_feat, eval_sds[0]), dim=-1)
+            self.test_dist_mean_feat = torch.stack((self.test_dist_mean_feat, eval_means[1]), dim=-1)
+            self.test_dist_sd_feat = torch.stack((self.test_dist_sd_feat, eval_sds[1]), dim=-1)
           else:
             self.confusions[0] = torch.cat((self.confusions[0], conf_mat.unsqueeze(-1)), dim=-1)
             self.confusions[1] = torch.cat((self.confusions[1], train_cm.unsqueeze(-1)), dim=-1)

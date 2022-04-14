@@ -525,7 +525,7 @@ def run_reports(epoch, model, data, opt):
         model.odeblock.odefunc.node_scatter_pdf.savefig(node_scatter_fig)
         model.odeblock.odefunc.edge_scatter_pdf.savefig(edge_scatter_fig)
 
-    if (row == num_rows - 1 or epoch == opt['wandb_epoch_list'][-1]) and opt['wandb_reports']:
+    if (row == num_rows - 1 or epoch == opt['wandb_epoch_list'][-1]) and opt['save_wandb_reports']:
         wandb.log({f"spectrum_fig_{idx//num_rows}": wandb.Image(spectrum_fig),
             f"acc_entropy_fig_{idx//num_rows}": wandb.Image(acc_entropy_fig),
             f"edge_evol_fig_{idx//num_rows}": wandb.Image(edge_evol_fig),
@@ -910,8 +910,11 @@ if __name__ == '__main__':
     # replaces the above
     parser.add_argument('--wandb_epoch_list', nargs='+', default=[1, 2, 4, 8, 16, 32, 64, 96, 128, 254],
                         help='list of epochs to log gradient flow, 1 based')
+    parser.add_argument('--run_track_reports', action='store_true', help="run_track_reports")
+    parser.add_argument('--save_wandb_reports', action='store_true', help="save_wandb_reports")
+    parser.add_argument('--save_local_reports', action='store_true', help="save_local_reports")
 
-    # wandb setup sweep args
+# wandb setup sweep args
     parser.add_argument('--tau_reg', type=float, default=2)
     parser.add_argument('--test_mu_0', type=str, default='True')  # action='store_true')
     parser.add_argument('--test_no_chanel_mix', type=str, default='True')  # action='store_true')
