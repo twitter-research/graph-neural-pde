@@ -194,7 +194,7 @@ def not_sweep_args(opt, project_name, group_name):
     opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when testing
     opt['wandb_watch_grad'] = False
     opt['run_track_reports'] = True
-    opt['save_wandb_reports'] = True
+    opt['save_wandb_reports'] = False
     opt['save_local_reports'] = False
     opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
     opt['wandb_project'] = project_name #"greed_runs"

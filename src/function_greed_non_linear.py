@@ -121,6 +121,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.node_evol_fig_list = []
       self.node_scatter_fig_list = []
       self.edge_scatter_fig_list = []
+      self.class_dist_fig_list = []
 
       if opt['save_local_reports']:
         self.pdf_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter']
@@ -130,14 +131,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.node_evol_pdf = PdfPages(f"{savefolder}/node_evol.pdf")
         self.node_scatter_pdf = PdfPages(f"{savefolder}/node_scatter.pdf")
         self.edge_scatter_pdf = PdfPages(f"{savefolder}/edge_scatter.pdf")
+        self.class_dist_pdf = PdfPages(f"{savefolder}/class_dist.pdf")
 
     self.epoch = 0
     self.wandb_step = 0
     self.prev_grad = None
 
     if self.opt['gnl_omega'] == 'sum':
-      # self.om_W = -torch.eye(in_features, in_features)/2
-      # self.om_W = Parameter(-torch.eye(in_features, in_features)/2)
       self.om_W = Parameter(torch.Tensor(in_features, in_features))
       self.om_W_eps = 0
     elif self.opt['gnl_omega'] == 'product':
@@ -146,7 +146,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.om_W_attr = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
       self.om_W_rep = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
       self.om_W_eps = Parameter(torch.Tensor([0.85]))
-      # self.om_W_eps = torch.Tensor([1.0])
       self.om_W_nu = torch.Tensor([0.1], device=self.device)
 
     elif self.opt['gnl_omega'] == 'diag':
@@ -193,13 +192,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.gnl_W_diags = Parameter(torch.Tensor(in_features, opt['k_diags'])) #or (2k-1) * n + k * (k - 1)
       else:
         self.W_W = Parameter(torch.Tensor(in_features, in_features))
-        self.W_W_eps = 0 #what's this?
 
     self.delta = Parameter(torch.Tensor([1.]))
-    # self.delta = torch.Tensor([2.0])
     self.C = (data.y.max() + 1).item()  #hack!, num class for drift
     if opt['drift']:
-      self.drift_eps = Parameter(torch.Tensor([0.])) #placeholder for decoder
+      self.drift_eps = Parameter(torch.Tensor([0.]))
 
     self.reset_nonlinG_parameters()
 
@@ -725,7 +722,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     return conf_mat
 
   def get_distances(self, data, x, num_class, base_mask, eval_masks):
-    #this should work for features or preds/label space depending on data passed??
+    #this should work for features or preds/label space
     base_av = torch.zeros((num_class, self.in_features), device=self.device)
     #calculate average hidden state per class in the baseline set - [C, d]
     for c in range(num_class):
@@ -733,9 +730,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       base_av_c = x[base_mask][base_c_mask].mean(dim=0)
       base_av[c] = base_av_c
 
-    #for every node calcualte the L2 distance - [N_v, C] and [N_t, C]
-    dist_features = x.unsqueeze(-1) - base_av.T.unsqueeze(0)
-    L2_dist_features = torch.sqrt(torch.sum(dist_features**2, dim=1))
+    #for every node calcualte the L2 distance - [N, C] and [N, C]
+    dist = x.unsqueeze(-1) - base_av.T.unsqueeze(0)
+    L2_dist = torch.sqrt(torch.sum(dist**2, dim=1))
 
     #for every node in each true class in the val/test sets calc the distances away from the average train set for each class
     eval_means = []
@@ -745,12 +742,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       eval_dist_sd = torch.zeros((num_class, num_class), device=self.device)
       for c in range(num_class):
         base_c_mask = data.y[eval_mask] == c
-        eval_dist_mean[c] = L2_dist_features[eval_mask][base_c_mask].mean(dim=0)
-        eval_dist_sd[c] = L2_dist_features[eval_mask][base_c_mask].std(dim=0)
+        eval_dist_mean[c] = L2_dist[eval_mask][base_c_mask].mean(dim=0)
+        eval_dist_sd[c] = L2_dist[eval_mask][base_c_mask].std(dim=0)
 
       eval_means.append(eval_dist_mean)
       eval_sds.append(eval_dist_sd)
-
+    #output: rows base_class, cols eval_class
     return eval_means, eval_sds
 
 

@@ -293,6 +293,9 @@ def run_reports(epoch, model, data, opt):
         edge_scatter_fig, edge_scatter_ax = plt.subplots(num_rows, 1, gridspec_kw={'width_ratios': [1]},
                                                          figsize=(24, 32))
         model.odeblock.odefunc.edge_scatter_fig_list.append([edge_scatter_fig, edge_scatter_ax])
+
+        class_dist_fig, class_dist_ax = plt.subplots(num_rows, 2, gridspec_kw={'width_ratios': [1, 1]}, figsize=(24, 32))
+        model.odeblock.odefunc.class_dist_fig_list.append([class_dist_fig, class_dist_ax])
     else:
         spectrum_fig, spectrum_ax = model.odeblock.odefunc.spectrum_fig_list[-1]
         acc_entropy_fig, acc_entropy_ax = model.odeblock.odefunc.acc_entropy_fig_list[-1]
@@ -300,6 +303,7 @@ def run_reports(epoch, model, data, opt):
         node_evol_fig, node_evol_ax = model.odeblock.odefunc.node_evol_fig_list[-1]
         node_scatter_fig, node_scatter_ax = model.odeblock.odefunc.node_scatter_fig_list[-1]
         edge_scatter_fig, edge_scatter_ax = model.odeblock.odefunc.edge_scatter_fig_list[-1]
+        class_dist_fig, class_dist_ax = model.odeblock.odefunc.class_dist_fig_list[-1]
 
     # forward pass through the model in eval mode to generate the data
     model.odeblock.odefunc.get_evol_stats = True
@@ -506,6 +510,34 @@ def run_reports(epoch, model, data, opt):
     if not torch.cuda.is_available():
         edge_scatter_fig.show()
 
+    ###7) class distqances
+    val_dist_mean_feat = model.odeblock.odefunc.val_dist_mean_feat
+    val_dist_sd_feat = model.odeblock.odefunc.val_dist_sd_feat
+    test_dist_mean_feat = model.odeblock.odefunc.test_dist_mean_feat
+    test_dist_sd_feat = model.odeblock.odefunc.test_dist_sd_feat
+    colormap = cm.get_cmap(name="Set1")
+    linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
+    conf_set = ['all','train', 'val', 'test']
+    for c in range(val_dist_mean_feat.shape[0]):
+        # plot diags
+        class_dist_ax[row, 0].plot(np.arange(0.0, val_dist_mean_feat.shape[-1] * opt['step_size'], opt['step_size']),
+                                  val_dist_mean_feat[c,c,:].cpu().numpy(), color=colormap(c), linestyle=linestyles[0],
+                                  label=f"base_{c}_eval_{c}")
+        # output: rows base_class, cols eval_class
+        for i in range(val_dist_mean_feat.shape[0]):
+            class_dist_ax[row, 0].plot(np.arange(0.0, val_dist_mean_feat.shape[-1] * opt['step_size'], opt['step_size']),
+                                       val_dist_mean_feat[i, c, :].cpu().numpy(), color=colormap(c),
+                                       linestyle=linestyles[1],
+                                       label=f"base_non{c}_eval_{c}")
+
+    class_dist_ax[row, 0].xaxis.set_tick_params(labelsize=16)
+    class_dist_ax[row, 0].yaxis.set_tick_params(labelsize=16)
+    class_dist_ax[row, 0].set_title(f"Class feature L2 distances evol, epoch {epoch}", fontdict={'fontsize': 24})
+    class_dist_ax[row, 0].legend()
+    if not torch.cuda.is_available():
+        class_dist_fig.show()
+
+
     model.odeblock.odefunc.fOmf = None
     model.odeblock.odefunc.attentions = None
     model.odeblock.odefunc.L2dist = None
@@ -515,6 +547,15 @@ def run_reports(epoch, model, data, opt):
     model.odeblock.odefunc.val_accs = None
     model.odeblock.odefunc.test_accs = None
     model.odeblock.odefunc.entropies = None
+
+    model.odeblock.odefunc.val_dist_mean_feat = None
+    model.odeblock.odefunc.val_dist_sd_feat = None
+    model.odeblock.odefunc.test_dist_mean_feat = None
+    model.odeblock.odefunc.test_dist_sd_feat = None
+    model.odeblock.odefunc.val_dist_mean_label = None
+    model.odeblock.odefunc.val_dist_sd_label = None
+    model.odeblock.odefunc.test_dist_mean_label = None
+    model.odeblock.odefunc.test_dist_sd_label = None
 
     #todo if flagged to save reports in wandb, then save every full page as a jpeg in wandb
     if (row == num_rows - 1 or epoch == opt['wandb_epoch_list'][-1]) and opt['save_local_reports']:
