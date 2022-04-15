@@ -499,7 +499,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
       logits = torch.softmax(self.GNN_m2(x), dim=1)
       eye = torch.eye(self.C, device=self.device)
-      dist_labels = logits.unsqueeze(-1) - eye.unsqueeze(0) #[num_nodes, d, 1] - [1, d, d]
+      dist_labels = logits.unsqueeze(-1) - eye.unsqueeze(0) #[num_nodes, c, 1] - [1, c, c]
       eta_hat = torch.sum(torch.abs(dist_labels),dim=1)  #sum abs distances for each node over features
       P = self.GNN_m2.weight
       index = list(range(self.C))

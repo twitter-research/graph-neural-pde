@@ -37,12 +37,12 @@ parameters:
     max: 512
   time:
     distribution: uniform
-    min: 1.0
-    max: 8.0
+    min: 3.0
+    max: 5.0
   input_dropout:
     distribution: uniform
-    min: 0.2
-    max: 0.5
+    min: 0.4
+    max: 0.65
   dropout:
     distribution: uniform
     min: 0.2
@@ -52,11 +52,11 @@ parameters:
   lr:
     distribution: uniform
     min: 0.0001
-    max: 0.02
+    max: 0.001
   decay:
     distribution: uniform
-    min: 0.0001
-    max: 0.01
+    min: 0.000
+    max: 0.002
 command:
   - ${env}
   - python3
