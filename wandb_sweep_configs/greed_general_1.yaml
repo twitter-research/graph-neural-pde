@@ -64,6 +64,5 @@ command:
   - ${args}
   - --wandb
   - --wandb_sweep
-  - --geom_gcn_splits
 entity: graph_neural_diffusion
 project: greed_general_1
