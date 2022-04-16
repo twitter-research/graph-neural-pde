@@ -1013,12 +1013,15 @@ if __name__ == '__main__':
     parser.add_argument('--fix_alpha', type=float, default=None, help='control balance between diffusion and repulsion')
     parser.add_argument('--diffusion', type=str, default='True', help='turns on diffusion')
     parser.add_argument('--repulsion', type=str, default='False', help='turns on repulsion')
-    parser.add_argument('--drift', type=str, default='False', help='turns on drift')
+    # parser.add_argument('--drift', type=str, default='False', help='turns on drift')
     parser.add_argument('--W_type', type=str, default='identity', help='identity, diag, full')
     parser.add_argument('--R_W_type', type=str, default='identity', help='for repulsion: identity, diag, full')
     parser.add_argument('--R_depon_A', type=str, default='', help='R dependancy in A')
     parser.add_argument('--W_beta', type=float, default=0.5, help='for cgnn Ws orthoganal update')
     parser.add_argument('--tau_residual', type=str, default='False', help='makes tau residual')
+
+    parser.add_argument('--drift', type=str, default='False', help='turns on drift')
+    parser.add_argument('--lie_trotter', type=str, default='False', help='turns on lie_trotter')
 
     # GCN ablation args
     parser.add_argument('--gcn_fixed', type=str, default='False', help='fixes layers in gcn')
