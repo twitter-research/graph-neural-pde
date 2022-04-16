@@ -510,7 +510,7 @@ def run_reports(epoch, model, data, opt):
     if not torch.cuda.is_available():
         edge_scatter_fig.show()
 
-    ###7) class distqances
+    ###7) class distances
     val_dist_mean_feat = model.odeblock.odefunc.val_dist_mean_feat
     val_dist_sd_feat = model.odeblock.odefunc.val_dist_sd_feat
     test_dist_mean_feat = model.odeblock.odefunc.test_dist_mean_feat
@@ -565,6 +565,7 @@ def run_reports(epoch, model, data, opt):
         model.odeblock.odefunc.node_evol_pdf.savefig(node_evol_fig)
         model.odeblock.odefunc.node_scatter_pdf.savefig(node_scatter_fig)
         model.odeblock.odefunc.edge_scatter_pdf.savefig(edge_scatter_fig)
+        model.odeblock.odefunc.class_dist_pdf.savefig(class_dist_fig)
 
     if (row == num_rows - 1 or epoch == opt['wandb_epoch_list'][-1]) and opt['save_wandb_reports']:
         wandb.log({f"spectrum_fig_{idx//num_rows}": wandb.Image(spectrum_fig),
@@ -572,7 +573,8 @@ def run_reports(epoch, model, data, opt):
             f"edge_evol_fig_{idx//num_rows}": wandb.Image(edge_evol_fig),
             f"node_evol_fig_{idx//num_rows}": wandb.Image(node_evol_fig),
             f"node_scatter_fig_{idx//num_rows}": wandb.Image(node_scatter_fig),
-            f"edge_scatter_fig_{idx//num_rows}": wandb.Image(edge_scatter_fig)})
+            f"edge_scatter_fig_{idx//num_rows}": wandb.Image(edge_scatter_fig),
+            f"class_dist_fig_{idx // num_rows}": wandb.Image(class_dist_fig)})
 
     if epoch == opt['wandb_epoch_list'][-1] and opt['save_local_reports']:
         model.odeblock.odefunc.spectrum_pdf.close()
@@ -581,6 +583,7 @@ def run_reports(epoch, model, data, opt):
         model.odeblock.odefunc.node_evol_pdf.close()
         model.odeblock.odefunc.node_scatter_pdf.close()
         model.odeblock.odefunc.edge_scatter_pdf.close()
+        model.odeblock.odefunc.class_dist_pdf.close()
 
 def print_model_params(model):
     print(model)
@@ -683,8 +686,8 @@ def main(cmd_opt):
 
     dataset = get_dataset(opt, '../data', opt['not_lcc'])
     if opt['dataset'] in ['chameleon','squirrel','other hetero?']: #todo put this in data loader
-        dataset.data.edge_index, _ = add_remaining_self_loops(
-            dataset.data.edge_index)  ### added self loops for chameleon
+        ### added self loops and make undirected for chameleon
+        dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)
         dataset.data.edge_index = to_undirected(dataset.data.edge_index)
 
     if opt['beltrami']:

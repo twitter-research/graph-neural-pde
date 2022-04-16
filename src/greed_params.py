@@ -129,9 +129,11 @@ def greed_ablation_params(opt):
     #greed_non_linear params
     opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'nodewise_exp' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
-    opt['drift'] = True #False#True
     opt['gnl_savefolder'] = 'chameleon_testing'#'chameleon_general_drift'#'chameleon_testing'
     opt['gnl_W_style'] = 'diag_dom'#'sum' #'k_diag'#'k_block'#k_diag #'diag_dom' # 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
+
+    opt['drift'] = False #False#True
+    opt['lie_trotter'] = False
     opt['gnl_thresholding'] = False #True #todo plot C^2 matrix of distances between centres in feature space / maybe TSNE aswell
 
     if opt['gnl_style'] == 'scaled_dot':

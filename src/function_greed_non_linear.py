@@ -322,6 +322,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     energy_gradient = (src_term - dst_term) @ self.W
     return energy_gradient
 
+
+  def dynamics_type(self, t):
+    arg_lower = min(self.opt['dynamics_ranges'], key=lambda x: (abs(x - t), x))
+    if arg_lower % 2 == 0:
+      return "diffusion"
+    else:
+      return "icing"
+
   def forward(self, t, x):  # t is needed when called by the integrator
     if self.nfe > self.opt["max_nfe"]:
       raise MaxNFEException
@@ -340,115 +348,58 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # f = torch.cat([ff, fp], dim=1)
       pass
     else:
+      dynamics_type = "diffusion"#self.dynamics_type(t)
+      if dynamics_type == "diffusion":
 
-      if self.opt['gnl_measure'] == 'deg_poly':
-        deg = degree(self.edge_index[0], self.n_nodes)
-        measure = self.m_alpha * deg ** self.m_beta + self.m_gamma
-        src_meas, dst_meas = self.get_src_dst(measure)
-        measures_src_dst = 1 / (src_meas * dst_meas)
-      elif self.opt['gnl_measure'] == 'nodewise':
-        measure = self.measure
-        src_meas, dst_meas = self.get_src_dst(measure)
-        measures_src_dst = 1 / (src_meas * dst_meas)
-      elif self.opt['gnl_measure'] == 'deg_poly_exp':
-        deg = degree(self.edge_index[0], self.n_nodes)
-        measure = torch.exp(self.m_alpha * deg ** self.m_beta + self.m_gamma)
-        src_meas, dst_meas = self.get_src_dst(measure)
-        measures_src_dst = 1 / (src_meas * dst_meas)
-      elif self.opt['gnl_measure'] == 'nodewise_exp':
-        measure = torch.exp(self.measure)
-        src_meas, dst_meas = self.get_src_dst(measure)
-        measures_src_dst = 1 / (src_meas * dst_meas)
-      elif self.opt['gnl_measure'] == 'ones':
-        measure = torch.ones(x.shape[0], device=self.device)
-        src_meas = 1
-        dst_meas = 1
-        measures_src_dst = 1
+        if self.opt['gnl_measure'] == 'deg_poly':
+          deg = degree(self.edge_index[0], self.n_nodes)
+          measure = self.m_alpha * deg ** self.m_beta + self.m_gamma
+          src_meas, dst_meas = self.get_src_dst(measure)
+          measures_src_dst = 1 / (src_meas * dst_meas)
+        elif self.opt['gnl_measure'] == 'nodewise':
+          measure = self.measure
+          src_meas, dst_meas = self.get_src_dst(measure)
+          measures_src_dst = 1 / (src_meas * dst_meas)
+        elif self.opt['gnl_measure'] == 'deg_poly_exp':
+          deg = degree(self.edge_index[0], self.n_nodes)
+          measure = torch.exp(self.m_alpha * deg ** self.m_beta + self.m_gamma)
+          src_meas, dst_meas = self.get_src_dst(measure)
+          measures_src_dst = 1 / (src_meas * dst_meas)
+        elif self.opt['gnl_measure'] == 'nodewise_exp':
+          measure = torch.exp(self.measure)
+          src_meas, dst_meas = self.get_src_dst(measure)
+          measures_src_dst = 1 / (src_meas * dst_meas)
+        elif self.opt['gnl_measure'] == 'ones':
+          measure = torch.ones(x.shape[0], device=self.device)
+          src_meas = 1
+          dst_meas = 1
+          measures_src_dst = 1
 
-      #scaled-dot method
-      if self.opt['gnl_style'] == 'scaled_dot':
-        if self.opt['gnl_omega'] == 'sum':
-          self.Omega = self.om_W + self.om_W.T
-        elif self.opt['gnl_omega'] == 'product':
-          self.Omega = self.om_W @ self.om_W.T
-        elif self.opt['gnl_omega'] == 'attr_rep':
-          # Omega = self.om_W_nu * (1 - 2 * self.om_W_eps) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
-          self.Omega =  (1 - 2 * self.om_W_eps) * torch.eye(self.in_features, device=self.device) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
-        elif self.opt['gnl_omega'] == 'diag':
-          self.Omega = torch.diag(self.om_W)
+        #scaled-dot method
+        if self.opt['gnl_style'] == 'scaled_dot':
+          if self.opt['gnl_omega'] == 'sum':
+            self.Omega = self.om_W + self.om_W.T
+          elif self.opt['gnl_omega'] == 'product':
+            self.Omega = self.om_W @ self.om_W.T
+          elif self.opt['gnl_omega'] == 'attr_rep':
+            # Omega = self.om_W_nu * (1 - 2 * self.om_W_eps) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
+            self.Omega =  (1 - 2 * self.om_W_eps) * torch.eye(self.in_features, device=self.device) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
+          elif self.opt['gnl_omega'] == 'diag':
+            self.Omega = torch.diag(self.om_W)
 
-        #method for normalising Omega to control the eigen values
-        if self.opt['gnl_omega_norm'] == 'tanh':
-          self.Omega = torch.tanh(self.Omega)
-        elif self.opt['gnl_omega_norm'] == 'rowSum':
-          D = self.Omega.abs().sum(dim=1)
-          self.Omega = torch.diag(torch.pow(D, -0.5)) @ self.Omega @ torch.diag(torch.pow(D, -0.5))
-        else:
-          pass
+          #method for normalising Omega to control the eigen values
+          if self.opt['gnl_omega_norm'] == 'tanh':
+            self.Omega = torch.tanh(self.Omega)
+          elif self.opt['gnl_omega_norm'] == 'rowSum':
+            D = self.Omega.abs().sum(dim=1)
+            self.Omega = torch.diag(torch.pow(D, -0.5)) @ self.Omega @ torch.diag(torch.pow(D, -0.5))
+          else:
+            pass
 
-        src_x, dst_x = self.get_src_dst(x)
-        # fOmf = torch.einsum("ij,jj,ij->i", src_x, self.Omega, dst_x) incorrect
-        fOmf = torch.einsum("ij,jk,ik->i", src_x, self.Omega, dst_x)
+          src_x, dst_x = self.get_src_dst(x)
+          # fOmf = torch.einsum("ij,jj,ij->i", src_x, self.Omega, dst_x) incorrect
+          fOmf = torch.einsum("ij,jk,ik->i", src_x, self.Omega, dst_x)
 
-        if self.opt['gnl_activation'] == 'sigmoid':
-          attention = torch.sigmoid(fOmf)
-        elif self.opt['gnl_activation'] == "squareplus":
-          attention = (fOmf + torch.sqrt(fOmf ** 2 + 4)) / 2
-        elif self.opt['gnl_activation'] == "sigmoid_deriv":
-          attention = sigmoid_deriv(fOmf)
-        elif self.opt['gnl_activation'] == "tanh_deriv":
-          attention = tanh_deriv(fOmf)
-        elif self.opt['gnl_activation'] == "squareplus_deriv":
-          attention = squareplus_deriv(fOmf)
-        elif self.opt['gnl_activation'] == "exponential":
-          attention = torch.exp(fOmf)
-        elif self.opt['gnl_activation'] == 'identity':
-          attention = fOmf
-        else:
-          attention = fOmf
-
-        MThM = measures_src_dst * attention
-        f = torch_sparse.spmm(self.edge_index, -MThM, x.shape[0], x.shape[0], x @ self.Omega)
-        f = f - self.delta * x  # break point np.isnan(f.sum().detach().numpy())
-
-      #softmax_attention method
-      elif self.opt['gnl_style'] == 'softmax_attention':
-        attention_h, _ = self.multihead_att_layer(x, self.edge_index)
-        attention = attention_h.mean(dim=1)
-
-        if self.opt['symmetric_QK']:
-          self.Omega = self.multihead_att_layer.QK.weight.T @ self.multihead_att_layer.QK.weight
-        else:
-          self.Omega = (self.multihead_att_layer.Q.weight.T @ self.multihead_att_layer.K.weight +
-                        self.multihead_att_layer.K.weight.T @ self.multihead_att_layer.Q.weight) / 2
-
-        xOm = x @ self.Omega
-        f1 = torch_sparse.spmm(self.edge_index, -attention / src_meas, x.shape[0], x.shape[0], xOm)
-        index_t, att_t = transpose(self.edge_index, attention, x.shape[0], x.shape[0])
-        f2 = torch_sparse.spmm(index_t, -att_t / dst_meas, x.shape[0], x.shape[0], xOm)
-        f = f1 + f2
-        f = f - self.delta * x  # break point np.isnan(f.sum().detach().numpy())
-
-      #general graph (GCN/GraphSage) method
-      elif self.opt['gnl_style'] == 'general_graph':
-
-        if self.opt['gnl_omega'] == 'zero':
-          self.Omega = self.om_W
-        elif self.opt['gnl_omega'] == 'diag':
-          self.Omega = torch.diag(self.om_W)
-        else:
-          self.Omega = (self.om_W + self.om_W.T) / 2
-
-        # self.gnl_W = (self.W_W + self.W_W.T) / 2 #instead set at GNN level using set_gnlWS
-
-        #get degrees
-        src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)
-
-        #calc bilinear form
-        src_x, dst_x = self.get_src_dst(x)
-        if not self.opt['gnl_activation'] == 'identity':
-          fOmf = torch.einsum("ij,jk,ik->i", src_x * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W, dst_x * dst_deginvsqrt.unsqueeze(dim=1))
-          #in the overleaf this is actually fWf just keeping for code homogeniety
           if self.opt['gnl_activation'] == 'sigmoid':
             attention = torch.sigmoid(fOmf)
           elif self.opt['gnl_activation'] == "squareplus":
@@ -461,53 +412,112 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             attention = squareplus_deriv(fOmf)
           elif self.opt['gnl_activation'] == "exponential":
             attention = torch.exp(fOmf)
+          elif self.opt['gnl_activation'] == 'identity':
+            attention = fOmf
           else:
             attention = fOmf
-        elif self.opt['gnl_activation'] == 'identity':
-          if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt[
-            'wandb_epoch_list'] and self.get_evol_stats:  # not self.training:
-            # fOmf = torch.ones(src_deginvsqrt.shape, device=self.device)
-            fOmf = torch.einsum("ij,jk,ik->i", src_x * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W,
-                       dst_x * dst_deginvsqrt.unsqueeze(dim=1))
-          attention = torch.ones(src_deginvsqrt.shape, device=self.device)
 
-        P = attention * src_deginvsqrt * dst_deginvsqrt
-        xW = x @ self.gnl_W
-        f1 = torch_sparse.spmm(self.edge_index, P / src_meas, x.shape[0], x.shape[0], xW) / 2
-        f2 = torch_sparse.spmm(self.edge_index, P / dst_meas, x.shape[0], x.shape[0], xW) / 2
-        f = f1 + f2
+          MThM = measures_src_dst * attention
+          f = torch_sparse.spmm(self.edge_index, -MThM, x.shape[0], x.shape[0], x @ self.Omega)
+          f = f - self.delta * x  # break point np.isnan(f.sum().detach().numpy())
 
-        f = f - torch.diag(1 / measure) @ x @ self.Omega
+        #softmax_attention method
+        elif self.opt['gnl_style'] == 'softmax_attention':
+          attention_h, _ = self.multihead_att_layer(x, self.edge_index)
+          attention = attention_h.mean(dim=1)
 
-    if self.opt['test_mu_0']:
-      if self.opt['add_source']:
-        f = f + self.beta_train * self.x0
-    else:
-      f = f - 0.5 * self.mu * (x - self.x0)
-      # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
+          if self.opt['symmetric_QK']:
+            self.Omega = self.multihead_att_layer.QK.weight.T @ self.multihead_att_layer.QK.weight
+          else:
+            self.Omega = (self.multihead_att_layer.Q.weight.T @ self.multihead_att_layer.K.weight +
+                          self.multihead_att_layer.K.weight.T @ self.multihead_att_layer.Q.weight) / 2
 
-    if self.opt['drift']:
-      f = torch.exp(self.drift_eps) * f
-      #old style found in greed linear hetero
-      # drift = -self.C * f
-      # for c in self.attractors.values():
-      #   drift += c
-      # f = f + drift
+          xOm = x @ self.Omega
+          f1 = torch_sparse.spmm(self.edge_index, -attention / src_meas, x.shape[0], x.shape[0], xOm)
+          index_t, att_t = transpose(self.edge_index, attention, x.shape[0], x.shape[0])
+          f2 = torch_sparse.spmm(index_t, -att_t / dst_meas, x.shape[0], x.shape[0], xOm)
+          f = f1 + f2
+          f = f - self.delta * x  # break point np.isnan(f.sum().detach().numpy())
 
-      logits = torch.softmax(self.GNN_m2(x), dim=1)
-      eye = torch.eye(self.C, device=self.device)
-      dist_labels = logits.unsqueeze(-1) - eye.unsqueeze(0) #[num_nodes, c, 1] - [1, c, c]
-      eta_hat = torch.sum(torch.abs(dist_labels),dim=1)  #sum abs distances for each node over features
-      P = self.GNN_m2.weight
-      index = list(range(self.C))
-      for l in range(self.C):
-        idx = index[:l] + index[l + 1:]
-        q_l = eta_hat[:,l] * logits[:,l]
-        eta_l = torch.prod(eta_hat[:,idx]**2, dim=1) * q_l
-        f -= (-0.5 * measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
+        #general graph (GCN/GraphSage) method
+        elif self.opt['gnl_style'] == 'general_graph':
+
+          if self.opt['gnl_omega'] == 'zero':
+            self.Omega = self.om_W
+          elif self.opt['gnl_omega'] == 'diag':
+            self.Omega = torch.diag(self.om_W)
+          else:
+            self.Omega = (self.om_W + self.om_W.T) / 2
+
+          # self.gnl_W = (self.W_W + self.W_W.T) / 2 #instead set at GNN level using set_gnlWS
+
+          #get degrees
+          src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)
+
+          #calc bilinear form
+          src_x, dst_x = self.get_src_dst(x)
+          if not self.opt['gnl_activation'] == 'identity':
+            fOmf = torch.einsum("ij,jk,ik->i", src_x * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W, dst_x * dst_deginvsqrt.unsqueeze(dim=1))
+            #in the overleaf this is actually fWf just keeping for code homogeniety
+            if self.opt['gnl_activation'] == 'sigmoid':
+              attention = torch.sigmoid(fOmf)
+            elif self.opt['gnl_activation'] == "squareplus":
+              attention = (fOmf + torch.sqrt(fOmf ** 2 + 4)) / 2
+            elif self.opt['gnl_activation'] == "sigmoid_deriv":
+              attention = sigmoid_deriv(fOmf)
+            elif self.opt['gnl_activation'] == "tanh_deriv":
+              attention = tanh_deriv(fOmf)
+            elif self.opt['gnl_activation'] == "squareplus_deriv":
+              attention = squareplus_deriv(fOmf)
+            elif self.opt['gnl_activation'] == "exponential":
+              attention = torch.exp(fOmf)
+            else:
+              attention = fOmf
+          elif self.opt['gnl_activation'] == 'identity':
+            if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt[
+              'wandb_epoch_list'] and self.get_evol_stats:  # not self.training:
+              # fOmf = torch.ones(src_deginvsqrt.shape, device=self.device)
+              fOmf = torch.einsum("ij,jk,ik->i", src_x * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W,
+                         dst_x * dst_deginvsqrt.unsqueeze(dim=1))
+            attention = torch.ones(src_deginvsqrt.shape, device=self.device)
+
+          P = attention * src_deginvsqrt * dst_deginvsqrt
+          xW = x @ self.gnl_W
+          f1 = torch_sparse.spmm(self.edge_index, P / src_meas, x.shape[0], x.shape[0], xW) / 2
+          f2 = torch_sparse.spmm(self.edge_index, P / dst_meas, x.shape[0], x.shape[0], xW) / 2
+          f = f1 + f2
+
+          f = f - torch.diag(1 / measure) @ x @ self.Omega
+
+      if self.opt['test_mu_0']:
+        if self.opt['add_source']:
+          f = f + self.beta_train * self.x0
+      else:
+        f = f - 0.5 * self.mu * (x - self.x0)
+        # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
+
+      if self.opt['drift'] or self.opt['lie_trotter'] or dynamics_type == 'icing':
+        f = torch.exp(self.drift_eps) * f
+        #old style found in greed linear hetero
+        # drift = -self.C * f
+        # for c in self.attractors.values():
+        #   drift += c
+        # f = f + drift
+
+        logits = torch.softmax(self.GNN_m2(x), dim=1)
+        eye = torch.eye(self.C, device=self.device)
+        dist_labels = logits.unsqueeze(-1) - eye.unsqueeze(0) #[num_nodes, c, 1] - [1, c, c]
+        eta_hat = torch.sum(torch.abs(dist_labels),dim=1)  #sum abs distances for each node over features
+        P = self.GNN_m2.weight
+        index = list(range(self.C))
+        for l in range(self.C):
+          idx = index[:l] + index[l + 1:]
+          q_l = eta_hat[:,l] * logits[:,l]
+          eta_l = torch.prod(eta_hat[:,idx]**2, dim=1) * q_l
+          f -= (-0.5 * measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
+
 
     #todo project every node onto embedding TSNE coordinate basis
-
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
       with torch.no_grad():
@@ -550,10 +560,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         logits = self.GNN_m2(z)
         train_acc, val_acc, test_acc = test(logits, self.data)
         pred = logits.max(1)[1]
+        sm_logits = torch.softmax(logits, dim=1)
         homophil = homophily(edge_index=self.edge_index, y=pred)
         L2dist = torch.sqrt(torch.sum((src_x - dst_x) ** 2, dim=1))
         conf_mat, train_cm, val_cm, test_cm = self.get_confusion(self.data, pred, norm_type='true') #'all')
-        eval_means, eval_sds = self.get_distances(self.data, x, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask])
+        eval_means_feat, eval_sds_feat = self.get_distances(self.data, x, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask])
+        eval_means_label, eval_sds_label = self.get_distances(self.data, sm_logits, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask])
 
         if self.attentions is None:
           self.attentions = attention.unsqueeze(0)
@@ -568,11 +580,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.entropies = get_entropies(logits, self.data)
           self.confusions = [conf_mat, train_cm, val_cm, test_cm]
 
-          self.val_dist_mean_feat = eval_means[0]
-          self.val_dist_sd_feat = eval_sds[0]
-          self.test_dist_mean_feat = eval_means[1]
-          self.test_dist_sd_feat = eval_sds[1]
+          self.val_dist_mean_feat = eval_means_feat[0]
+          self.val_dist_sd_feat = eval_sds_feat[0]
+          self.test_dist_mean_feat = eval_means_feat[1]
+          self.test_dist_sd_feat = eval_sds_feat[1]
 
+          self.val_dist_mean_label = eval_means_label[0]
+          self.val_dist_sd_label = eval_sds_label[0]
+          self.test_dist_mean_label = eval_means_label[1]
+          self.test_dist_sd_label = eval_sds_label[1]
 
         else:
           self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
@@ -595,20 +611,31 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             self.confusions[2] = torch.stack((self.confusions[2], val_cm), dim=-1)
             self.confusions[3] = torch.stack((self.confusions[3], test_cm), dim=-1)
 
-            self.val_dist_mean_feat = torch.stack((self.val_dist_mean_feat, eval_means[0]), dim=-1)
-            self.val_dist_sd_feat = torch.stack((self.val_dist_sd_feat, eval_sds[0]), dim=-1)
-            self.test_dist_mean_feat = torch.stack((self.test_dist_mean_feat, eval_means[1]), dim=-1)
-            self.test_dist_sd_feat = torch.stack((self.test_dist_sd_feat, eval_sds[1]), dim=-1)
+            self.val_dist_mean_feat = torch.stack((self.val_dist_mean_feat, eval_means_feat[0]), dim=-1)
+            self.val_dist_sd_feat = torch.stack((self.val_dist_sd_feat, eval_sds_feat[0]), dim=-1)
+            self.test_dist_mean_feat = torch.stack((self.test_dist_mean_feat, eval_means_feat[1]), dim=-1)
+            self.test_dist_sd_feat = torch.stack((self.test_dist_sd_feat, eval_sds_feat[1]), dim=-1)
+
+            self.val_dist_mean_label = torch.stack((self.val_dist_mean_label, eval_means_label[0]), dim=-1)
+            self.val_dist_sd_label = torch.stack((self.val_dist_sd_label, eval_sds_label[0]), dim=-1)
+            self.test_dist_mean_label = torch.stack((self.test_dist_mean_label, eval_means_label[1]), dim=-1)
+            self.test_dist_sd_label = torch.stack((self.test_dist_sd_label, eval_sds_label[1]), dim=-1)
+
           else:
             self.confusions[0] = torch.cat((self.confusions[0], conf_mat.unsqueeze(-1)), dim=-1)
             self.confusions[1] = torch.cat((self.confusions[1], train_cm.unsqueeze(-1)), dim=-1)
             self.confusions[2] = torch.cat((self.confusions[2], val_cm.unsqueeze(-1)), dim=-1)
             self.confusions[3] = torch.cat((self.confusions[3], test_cm.unsqueeze(-1)), dim=-1)
 
-            self.val_dist_mean_feat = torch.cat((self.val_dist_mean_feat, eval_means[0].unsqueeze(-1)),dim=-1)
-            self.val_dist_sd_feat = torch.cat((self.val_dist_sd_feat, eval_sds[0].unsqueeze(-1)),dim=-1)
-            self.test_dist_mean_feat = torch.cat((self.test_dist_mean_feat, eval_means[1].unsqueeze(-1)),dim=-1)
-            self.test_dist_sd_feat = torch.cat((self.test_dist_sd_feat, eval_sds[1].unsqueeze(-1)),dim=-1)
+            self.val_dist_mean_feat = torch.cat((self.val_dist_mean_feat, eval_means_feat[0].unsqueeze(-1)),dim=-1)
+            self.val_dist_sd_feat = torch.cat((self.val_dist_sd_feat, eval_sds_feat[0].unsqueeze(-1)),dim=-1)
+            self.test_dist_mean_feat = torch.cat((self.test_dist_mean_feat, eval_means_feat[1].unsqueeze(-1)),dim=-1)
+            self.test_dist_sd_feat = torch.cat((self.test_dist_sd_feat, eval_sds_feat[1].unsqueeze(-1)),dim=-1)
+
+            self.val_dist_mean_label = torch.cat((self.val_dist_mean_label, eval_means_label[0].unsqueeze(-1)),dim=-1)
+            self.val_dist_sd_label = torch.cat((self.val_dist_sd_label, eval_sds_label[0].unsqueeze(-1)),dim=-1)
+            self.test_dist_mean_label = torch.cat((self.test_dist_mean_label, eval_means_label[1].unsqueeze(-1)),dim=-1)
+            self.test_dist_sd_label = torch.cat((self.test_dist_sd_label, eval_sds_label[1].unsqueeze(-1)),dim=-1)
 
         ### extra values for terminal step
         if t == self.opt['time'] - self.opt['step_size']:
@@ -648,11 +675,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             z = self.fc(z)
             z = F.relu(z)
           logits = self.GNN_m2(z)
+          sm_logits = torch.softmax(logits, dim=1)
           train_acc, val_acc, test_acc = test(logits, self.data)
           pred = logits.max(1)[1]
           homophil = homophily(edge_index=self.edge_index, y=pred)
           L2dist = torch.sqrt(torch.sum((src_z - dst_z) ** 2, dim=1))
           conf_mat, train_cm, val_cm, test_cm = self.get_confusion(self.data, pred, norm_type='true')  # 'all')
+          eval_means_feat, eval_sds_feat = self.get_distances(self.data, z, self.C, base_mask=self.data.train_mask,
+                                                              eval_masks=[self.data.val_mask, self.data.test_mask])
+          eval_means_label, eval_sds_label = self.get_distances(self.data, sm_logits, self.C,
+                                                                base_mask=self.data.train_mask,
+                                                                eval_masks=[self.data.val_mask, self.data.test_mask])
 
           self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
           self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
@@ -672,6 +705,16 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.confusions[1] = torch.cat((self.confusions[1], train_cm.unsqueeze(-1)), dim=-1)
           self.confusions[2] = torch.cat((self.confusions[2], val_cm.unsqueeze(-1)), dim=-1)
           self.confusions[3] = torch.cat((self.confusions[3], test_cm.unsqueeze(-1)), dim=-1)
+
+          self.val_dist_mean_feat = torch.cat((self.val_dist_mean_feat, eval_means_feat[0].unsqueeze(-1)), dim=-1)
+          self.val_dist_sd_feat = torch.cat((self.val_dist_sd_feat, eval_sds_feat[0].unsqueeze(-1)), dim=-1)
+          self.test_dist_mean_feat = torch.cat((self.test_dist_mean_feat, eval_means_feat[1].unsqueeze(-1)), dim=-1)
+          self.test_dist_sd_feat = torch.cat((self.test_dist_sd_feat, eval_sds_feat[1].unsqueeze(-1)), dim=-1)
+
+          self.val_dist_mean_label = torch.cat((self.val_dist_mean_label, eval_means_label[0].unsqueeze(-1)), dim=-1)
+          self.val_dist_sd_label = torch.cat((self.val_dist_sd_label, eval_sds_label[0].unsqueeze(-1)), dim=-1)
+          self.test_dist_mean_label = torch.cat((self.test_dist_mean_label, eval_means_label[1].unsqueeze(-1)), dim=-1)
+          self.test_dist_sd_label = torch.cat((self.test_dist_sd_label, eval_sds_label[1].unsqueeze(-1)), dim=-1)
 
         self.wandb_step += 1
 
@@ -723,7 +766,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def get_distances(self, data, x, num_class, base_mask, eval_masks):
     #this should work for features or preds/label space
-    base_av = torch.zeros((num_class, self.in_features), device=self.device)
+    base_av = torch.zeros((num_class, x.shape[-1]), device=self.device)
     #calculate average hidden state per class in the baseline set - [C, d]
     for c in range(num_class):
       base_c_mask = data.y[base_mask] == c

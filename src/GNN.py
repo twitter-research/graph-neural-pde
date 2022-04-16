@@ -181,6 +181,7 @@ class GNN(BaseGNN):
           z = F.relu(z)
         logits = self.m2(z)
         pred = logits.max(1)[1]
+
         #threshold label space
         Ek = F.one_hot(pred, num_classes=self.num_classes)
         #pseudo inverse
@@ -192,7 +193,7 @@ class GNN(BaseGNN):
     else:
       z = self.forward_XN(x)
 
-    ##todo need to implement if self.opt['m2_mlp']: for GNN_early also
+    ##todo: need to implement if self.opt['m2_mlp']: from base classfor GNN_early also
     # Decode each node embedding to get node label.
     z = self.m2(z)
 
