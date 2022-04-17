@@ -34,7 +34,7 @@ parameters:
   hidden_dim:
     distribution: int_uniform
     min: 64
-    max: 400
+    max: 512
   time:
     distribution: uniform
     min: 2.0
