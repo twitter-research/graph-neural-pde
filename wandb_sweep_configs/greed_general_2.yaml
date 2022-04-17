@@ -30,7 +30,7 @@ parameters:
   add_source:
     values: [True, False]
   step_size:
-    values: [0.25, 1.0]
+    values: [1.0]
   hidden_dim:
     distribution: int_uniform
     min: 32
@@ -51,12 +51,12 @@ parameters:
     values: [adam]
   lr:
     distribution: uniform
-    min: 0.0001
-    max: 0.005
+    min: 0.0025
+    max: 0.01
   decay:
     distribution: uniform
     min: 0.000
-    max: 0.005
+    max: 0.002
 command:
   - ${env}
   - python3
