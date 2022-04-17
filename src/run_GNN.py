@@ -511,13 +511,13 @@ def run_reports(epoch, model, data, opt):
         edge_scatter_fig.show()
 
     ###7) class distances
+    #column 0
     val_dist_mean_feat = model.odeblock.odefunc.val_dist_mean_feat
     val_dist_sd_feat = model.odeblock.odefunc.val_dist_sd_feat
     test_dist_mean_feat = model.odeblock.odefunc.test_dist_mean_feat
     test_dist_sd_feat = model.odeblock.odefunc.test_dist_sd_feat
     colormap = cm.get_cmap(name="Set1")
     linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
-    conf_set = ['all','train', 'val', 'test']
     for c in range(val_dist_mean_feat.shape[0]):
         # plot diags
         class_dist_ax[row, 0].plot(np.arange(0.0, val_dist_mean_feat.shape[-1] * opt['step_size'], opt['step_size']),
@@ -529,14 +529,31 @@ def run_reports(epoch, model, data, opt):
                                        val_dist_mean_feat[i, c, :].cpu().numpy(), color=colormap(c),
                                        linestyle=linestyles[1],
                                        label=f"base_non{c}_eval_{c}")
-
     class_dist_ax[row, 0].xaxis.set_tick_params(labelsize=16)
     class_dist_ax[row, 0].yaxis.set_tick_params(labelsize=16)
     class_dist_ax[row, 0].set_title(f"Class feature L2 distances evol, epoch {epoch}", fontdict={'fontsize': 24})
     class_dist_ax[row, 0].legend()
+
+    #column 1
+    val_dist_mean_label = model.odeblock.odefunc.val_dist_mean_label
+    for c in range(val_dist_mean_label.shape[0]):
+        # plot diags
+        class_dist_ax[row, 1].plot(np.arange(0.0, val_dist_mean_label.shape[-1] * opt['step_size'], opt['step_size']),
+                                  val_dist_mean_label[c,c,:].cpu().numpy(), color=colormap(c), linestyle=linestyles[0],
+                                  label=f"base_{c}_eval_{c}")
+        # output: rows base_class, cols eval_class
+        for i in range(val_dist_mean_label.shape[0]):
+            class_dist_ax[row, 1].plot(np.arange(0.0, val_dist_mean_label.shape[-1] * opt['step_size'], opt['step_size']),
+                                       val_dist_mean_label[i, c, :].cpu().numpy(), color=colormap(c),
+                                       linestyle=linestyles[1],
+                                       label=f"base_non{c}_eval_{c}")
+    class_dist_ax[row, 1].xaxis.set_tick_params(labelsize=16)
+    class_dist_ax[row, 1].yaxis.set_tick_params(labelsize=16)
+    class_dist_ax[row, 1].set_title(f"Class feature L2 distances evol, epoch {epoch}", fontdict={'fontsize': 24})
+    class_dist_ax[row, 1].legend()
+
     if not torch.cuda.is_available():
         class_dist_fig.show()
-
 
     model.odeblock.odefunc.fOmf = None
     model.odeblock.odefunc.attentions = None
@@ -1021,7 +1038,7 @@ if __name__ == '__main__':
     parser.add_argument('--tau_residual', type=str, default='False', help='makes tau residual')
 
     parser.add_argument('--drift', type=str, default='False', help='turns on drift')
-    parser.add_argument('--lie_trotter', type=str, default='False', help='turns on lie_trotter')
+    parser.add_argument('--lie_trotter', type=str, default='gen_0', help='gen_0, gen_1, gen_2')
 
     # GCN ablation args
     parser.add_argument('--gcn_fixed', type=str, default='False', help='fixes layers in gcn')

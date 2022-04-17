@@ -195,7 +195,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     self.delta = Parameter(torch.Tensor([1.]))
     self.C = (data.y.max() + 1).item()  #hack!, num class for drift
-    if opt['drift']:
+    if opt['drift'] or opt['lie_trotter'] in ['gen_0','gen_1','gen_2']:
       self.drift_eps = Parameter(torch.Tensor([0.]))
 
     self.reset_nonlinG_parameters()
@@ -323,12 +323,34 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     return energy_gradient
 
 
-  def dynamics_type(self, t):
-    arg_lower = min(self.opt['dynamics_ranges'], key=lambda x: (abs(x - t), x))
-    if arg_lower % 2 == 0:
-      return "diffusion"
-    else:
-      return "icing"
+  def do_diffusion(self, t):
+    if self.opt['drift']:
+      return True
+    if self.opt['lie_trotter'] == 'gen_0':
+      return True
+    if self.opt['lie_trotter'] == 'gen_1':
+      for rng in self.opt['diffusion_ranges']:
+        if t >= rng[0] and t < rng[1]:
+          return True
+    if self.opt['lie_trotter'] == 'gen_2':
+      if self.opt['lie_trotter_block'] == 'diffusion':
+        return True
+    return False
+
+  def do_drift(self, t):
+    if self.opt['drift']:
+      return True
+    if self.opt['lie_trotter'] == 'gen_0':
+      return True
+    if self.opt['lie_trotter'] == 'gen_1':
+      for rng in self.opt['drift_ranges']:
+        if t >= rng[0] and t < rng[1]:
+          return True
+    if self.opt['lie_trotter'] == 'gen_2':
+      if self.opt['lie_trotter_block'] == 'drift':
+        return True
+    return False
+
 
   def forward(self, t, x):  # t is needed when called by the integrator
     if self.nfe > self.opt["max_nfe"]:
@@ -348,9 +370,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # f = torch.cat([ff, fp], dim=1)
       pass
     else:
-      dynamics_type = "diffusion"#self.dynamics_type(t)
-      if dynamics_type == "diffusion":
-
+      # dynamics_type = "diffusion"#self.dynamics_type(t)
+      # if dynamics_type == "diffusion":
+      if self.do_diffusion(t):
         if self.opt['gnl_measure'] == 'deg_poly':
           deg = degree(self.edge_index[0], self.n_nodes)
           measure = self.m_alpha * deg ** self.m_beta + self.m_gamma
@@ -489,20 +511,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
           f = f - torch.diag(1 / measure) @ x @ self.Omega
 
-      if self.opt['test_mu_0']:
-        if self.opt['add_source']:
-          f = f + self.beta_train * self.x0
-      else:
-        f = f - 0.5 * self.mu * (x - self.x0)
-        # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
+        if self.opt['test_mu_0']:
+          if self.opt['add_source']:
+            f = f + self.beta_train * self.x0
+        else:
+          f = f - 0.5 * self.mu * (x - self.x0)
+          # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
 
-      if self.opt['drift'] or self.opt['lie_trotter'] or dynamics_type == 'icing':
+      if self.do_drift(t):
+        if not self.do_diffusion(t):
+          f = 0
         f = torch.exp(self.drift_eps) * f
-        #old style found in greed linear hetero
-        # drift = -self.C * f
-        # for c in self.attractors.values():
-        #   drift += c
-        # f = f + drift
 
         logits = torch.softmax(self.GNN_m2(x), dim=1)
         eye = torch.eye(self.C, device=self.device)
@@ -517,7 +536,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           f -= (-0.5 * measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
 
 
-    #todo project every node onto embedding TSNE coordinate basis
+    #todo project every node onto embedding TSNE coordinate basis - https://discuss.pytorch.org/t/t-sne-for-pytorch/44264
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
       with torch.no_grad():

@@ -133,7 +133,10 @@ def greed_ablation_params(opt):
     opt['gnl_W_style'] = 'diag_dom'#'sum' #'k_diag'#'k_block'#k_diag #'diag_dom' # 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
 
     opt['drift'] = False #False#True
-    opt['lie_trotter'] = False
+    opt['lie_trotter'] = 'gen_1'
+    opt['diffusion_ranges'] = [[0,2],[3,5]]
+    opt['drift_ranges'] = [[2,3],[5,6]]
+
     opt['gnl_thresholding'] = False #True #todo plot C^2 matrix of distances between centres in feature space / maybe TSNE aswell
 
     if opt['gnl_style'] == 'scaled_dot':
@@ -195,7 +198,7 @@ def not_sweep_args(opt, project_name, group_name):
     opt['wandb'] = False #True #False #True
     opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when testing
     opt['wandb_watch_grad'] = False
-    opt['run_track_reports'] = True
+    opt['run_track_reports'] = False#True
     opt['save_wandb_reports'] = False
     opt['save_local_reports'] = False
     opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
@@ -223,7 +226,6 @@ def tf_ablation_args(opt):
                 'use_mlp', 'use_best_params', 'no_early',
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
-                'lie_trotter',
                 'XN_no_activation','m2_mlp', 'gnl_thresholding',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout']:
 
@@ -481,7 +483,7 @@ def default_params():
     parser.add_argument('--tau_residual', type=str, default='False', help='makes tau residual')
 
     parser.add_argument('--drift', type=str, default='False', help='turns on drift')
-    parser.add_argument('--lie_trotter', type=str, default='False', help='turns on lie_trotter')
+    parser.add_argument('--lie_trotter', type=str, default='gen_0', help='gen_0, gen_1, gen_2')
 
     # GCN ablation args
     parser.add_argument('--gcn_fixed', type=str, default='False', help='fixes layers in gcn')
