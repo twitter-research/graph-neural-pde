@@ -33,12 +33,12 @@ parameters:
     values: [1.0]
   hidden_dim:
     distribution: int_uniform
-    min: 32
+    min: 64
     max: 512
   time:
     distribution: uniform
-    min: 3.0
-    max: 5.0
+    min: 2.0
+    max: 4.0
   input_dropout:
     distribution: uniform
     min: 0.4
