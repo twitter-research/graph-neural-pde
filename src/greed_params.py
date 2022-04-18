@@ -133,11 +133,24 @@ def greed_ablation_params(opt):
     opt['gnl_W_style'] = 'diag_dom'#'sum' #'k_diag'#'k_block'#k_diag #'diag_dom' # 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
 
     opt['drift'] = False #False#True
-    opt['lie_trotter'] = 'gen_1'
+    opt['lie_trotter'] = 'gen_0'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    #gen1 args
     opt['diffusion_ranges'] = [[0,2],[3,5]]
     opt['drift_ranges'] = [[2,3],[5,6]]
+    #gen2 args
+    #lt_block_type : 'diffusion / drift / label / threshold
+    opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256},
+                       {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256},
+                       {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256},
+                       {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256}]
 
-    opt['gnl_thresholding'] = False #True #todo plot C^2 matrix of distances between centres in feature space / maybe TSNE aswell
+    #thresholding args
+    opt['gnl_thresholding'] = False #True
+    #solver args
+    opt['time'] = 6.0
+    opt['step_size'] = 1.0
+    opt['method'] = 'euler'
+
 
     if opt['gnl_style'] == 'scaled_dot':
         opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
@@ -162,36 +175,28 @@ def greed_ablation_params(opt):
             opt['k_diags'] = 13
 
     #gcn params
+    # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
     opt['gcn_enc_dec'] = True #False #True
     opt['gcn_non_lin'] = False #False #True
     opt['gcn_fixed'] = False #False #True
     opt['gcn_symm'] = True
     opt['gcn_bias'] = True
     opt['gcn_mid_dropout'] = False
-    #
+
     opt['geom_gcn_splits'] = True #False#True
-    opt['step_size'] = 1.0
-    opt['time'] = 3.0
     opt['epoch'] = 129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1#4#1
+    # opt['max_iters'] = 10000
 
+    #run params
     opt['optimizer'] = 'adam'
     opt['lr'] = 0.005
     opt['dropout'] = 0.6
     opt['decay'] = 0.0
-    opt['hidden_dim'] = 512
-    # # 'gcn_bias': True, 'gcn_enc_dec': True, 'gcn_fixed': False, 'gcn_non_lin': False, 'gcn_symm': 'symm'
-
-    #run params
-    # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
-    opt['method'] = 'euler' #'euler'
-    # opt['step_size'] = 0.25 #25 #25 #10 #25
-    # opt['max_iters'] = 10000
+    opt['hidden_dim'] = 256 #512
     opt['use_best_params'] = False #True
-    # opt['decay'] = 0
 
     return opt
-    #--dataset Cora --function greed_linear_homo --use_best_params
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
@@ -223,7 +228,7 @@ def tf_ablation_args(opt):
     for arg in ['test_no_chanel_mix','test_omit_metric_L', 'test_omit_metric_R','test_mu_0',
                 'test_tau_remove_tanh','test_tau_symmetric','test_grand_metric','test_tau_ones',
                 'test_tau_outside', 'test_linear_L0', 'test_R1R2_0',
-                'use_mlp', 'use_best_params', 'no_early',
+                'use_mlp', 'use_best_params', 'no_early', 'adjoint',
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
                 'XN_no_activation','m2_mlp', 'gnl_thresholding',
