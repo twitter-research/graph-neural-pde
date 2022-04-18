@@ -165,11 +165,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       pass
 
     #'gnl_style' in 'scaled_dot' / 'softmax_attention' / 'general_graph'
-
     if self.opt['gnl_style'] == 'softmax_attention':
-      self.multihead_att_layer = SpGraphTransAttentionLayer_greed(in_features, out_features, opt,
-                                                                  # check out_features is attention_dim
-                                                                  device, edge_weights=self.edge_weight).to(device)
+      self.multihead_att_layer = SpGraphTransAttentionLayer_greed(in_features, out_features, opt, device, edge_weights=self.edge_weight).to(device)
 
     if self.opt['gnl_style'] == 'general_graph':
       # gnl_omega -> "gnl_W"
@@ -200,6 +197,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     self.reset_nonlinG_parameters()
 
+    if self.opt['lie_trotter'] == 'gen_2':
+      # loop through all the above for as many bocks as needed
+      # will help to write getter functions, set W, set Omega etc
+      # this might mean need to standardise parameter names
+      self.block_num = 0
+      for lt2_args in opt['lt_gen2_args']:
+        pass
+
   def reset_nonlinG_parameters(self):
     if self.opt['gnl_omega'] == 'sum':
       glorot(self.om_W)
@@ -208,8 +213,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_omega'] == 'attr_rep':
       glorot(self.om_W_attr)
       glorot(self.om_W_rep)
-      # # zeros(self.om_W_attr)
-      # zeros(self.om_W_rep)
       # constant(self.om_W_attr, 0.0001)
       # constant(self.om_W_rep, 0.0001)
     elif self.opt['gnl_omega'] == 'diag':
@@ -244,9 +247,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_measure'] in ['nodewise_exp']:
       zeros(self.measure)
 
-    # ones(self.delta)
-    # zeros(self.delta)
-
   def set_gnlWS(self):
     "note every W is made symetric before returning here"
 
@@ -265,9 +265,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W_D = torch.tanh(self.gnl_W_D)
       W_hat = V_hat @ torch.diag(W_D) @ V_hat.t()
       return W_hat
-      #todo check if I make an orthoganal matrix symetric is it still orthoganal
-      # Ws = (W_hat+W_hat.T) / 2
-      # return Ws
 
     elif self.opt['gnl_W_style'] == 'cgnn':
       # # https://github.com/JRowbottomGit/ContinuousGNN/blob/85d47b0748a19e06e305c21e99e1dd03d36ad314/src/trainer.py
@@ -279,24 +276,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W_D = torch.tanh(self.gnl_W_D) #self.gnl_W_D
       W_hat = W_U @ torch.diag(W_D) @ W_U.t()
       return W_hat
-      #todo check if I make an orthoganal matrix symetric is it still orthoganal
-      # Ws = (W_hat+W_hat.T) / 2
-      # return Ws
 
     elif self.opt['gnl_W_style'] == 'diag_dom':
-      # W_sum = self.t_a * torch.abs(self.W_W).sum(dim=1) + self.r_a
-      # W_temp = torch.cat([self.W_W, W_sum.unsqueeze(-1)], dim=1)
-      # W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
-      # Ws = (W+W.T) / 2
-
       W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
       W = (W+W.T) / 2
       W_sum = self.t_a * torch.abs(self.W).sum(dim=1) + self.r_a
       Ws = W + torch.diag(W_sum)
-
       return Ws
-
 
     elif self.opt['gnl_W_style'] == 'k_block':
       W_temp = torch.cat([self.gnl_W_blocks, torch.zeros((self.opt['k_blocks'] * self.opt['block_size'], self.in_features - self.opt['block_size']), device=self.device)], dim=1)
@@ -306,6 +293,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W[self.opt['k_blocks'] * self.opt['block_size']:,self.opt['k_blocks'] * self.opt['block_size']:] = torch.diag(self.gnl_W_D)
       Ws = (W+W.T) / 2
       return Ws
+
     elif self.opt['gnl_W_style'] == 'k_diag':
       W_temp = torch.cat([self.gnl_W_diags, torch.zeros((self.in_features, self.in_features - self.opt['k_diags']), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=int(i-(self.opt['k_diags']-1)/2), dims=-1) for i in range(self.in_features)])
@@ -324,32 +312,68 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
 
   def do_diffusion(self, t):
-    if self.opt['drift']:
-      return True
-    if self.opt['lie_trotter'] == 'gen_0':
-      return True
-    if self.opt['lie_trotter'] == 'gen_1':
-      for rng in self.opt['diffusion_ranges']:
-        if t >= rng[0] and t < rng[1]:
-          return True
+    #todo tighten up these conditionals as dependent on setting up config accurately
     if self.opt['lie_trotter'] == 'gen_2':
-      if self.opt['lie_trotter_block'] == 'diffusion':
+      if self.opt['lt_block_type'] == 'diffusion':
         return True
+      else:
+        return False
+    else:
+      if self.opt['drift']:
+        return True
+      if self.opt['lie_trotter'] == 'gen_0':
+        return True
+      if self.opt['lie_trotter'] == 'gen_1':
+        for rng in self.opt['diffusion_ranges']:
+          if t >= rng[0] and t < rng[1]:
+            return True
     return False
 
   def do_drift(self, t):
-    if self.opt['drift']:
-      return True
-    if self.opt['lie_trotter'] == 'gen_0':
-      return True
-    if self.opt['lie_trotter'] == 'gen_1':
-      for rng in self.opt['drift_ranges']:
-        if t >= rng[0] and t < rng[1]:
-          return True
     if self.opt['lie_trotter'] == 'gen_2':
-      if self.opt['lie_trotter_block'] == 'drift':
+      if self.opt['lt_block_type'] == 'drift':
         return True
+      else:
+        return False
+    else:
+      if self.opt['drift']:
+        return True
+      if self.opt['lie_trotter'] == 'gen_0':
+        return True
+      if self.opt['lie_trotter'] == 'gen_1':
+        for rng in self.opt['drift_ranges']:
+          if t >= rng[0] and t < rng[1]:
+            return True
     return False
+
+  def diffusion_step(self):
+    pass
+  def drift_step(self):
+    pass
+
+  def predict(self, z):
+    # Activation.
+    if not self.opt['XN_no_activation']:
+      z = F.relu(z)
+    if self.opt['fc_out']:
+      z = self.fc(z)
+      z = F.relu(z)
+    logits = self.GNN_m2(z)
+    pred = logits.max(1)[1]
+    return logits, pred
+
+  def threshold(self, z, pred, step_size):
+    # threshold label space
+    Ek = F.one_hot(pred, num_classes=self.num_classes)
+    # pseudo inverse
+    P = self.m2.weight
+    # https://pytorch.org/docs/stable/generated/torch.matrix_rank.html
+    b = self.m2.bias
+    P_dagg = torch.linalg.pinv(
+      P).T  # sometimes get RuntimeError: svd_cpu: the updating process of SBDSDC did not converge (error: 4)
+    new_z = (Ek - b.unsqueeze(0)) @ P_dagg + z @ (torch.eye(self.hidden_dim, device=self.device) - P_dagg.T @ P).T
+    return (new_z - z) / step_size #returning value that will generate the delta to new_z (for explicit Euler)
+
 
 
   def forward(self, t, x):  # t is needed when called by the integrator
@@ -358,45 +382,33 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.nfe += 1
 
     if self.opt['beltrami']:
-      # Ws = self.Ws
-      # # x is [(features, pos_encs) * aug_factor, lables] but here assume aug_factor == 1
-      # label_index = self.opt['feat_hidden_dim'] + self.opt['pos_enc_hidden_dim']
-      # p = x[:, self.opt['feat_hidden_dim']: label_index]
-      # xf = torch.cat((x[:, :self.opt['feat_hidden_dim']], x[:, label_index:]), dim=1)
-      # ff = torch_sparse.spmm(edges, -self.Lf_0, xf.shape[0], xf.shape[0], xf)
-      # ff = torch.matmul(ff, Ws)
-      # ff = ff - self.mu * (xf - self.xf_0)
-      # fp = torch_sparse.spmm(edges, -self.Lp_0, p.shape[0], p.shape[0], p)
-      # f = torch.cat([ff, fp], dim=1)
       pass
     else:
-      # dynamics_type = "diffusion"#self.dynamics_type(t)
-      # if dynamics_type == "diffusion":
-      if self.do_diffusion(t):
-        if self.opt['gnl_measure'] == 'deg_poly':
-          deg = degree(self.edge_index[0], self.n_nodes)
-          measure = self.m_alpha * deg ** self.m_beta + self.m_gamma
-          src_meas, dst_meas = self.get_src_dst(measure)
-          measures_src_dst = 1 / (src_meas * dst_meas)
-        elif self.opt['gnl_measure'] == 'nodewise':
-          measure = self.measure
-          src_meas, dst_meas = self.get_src_dst(measure)
-          measures_src_dst = 1 / (src_meas * dst_meas)
-        elif self.opt['gnl_measure'] == 'deg_poly_exp':
-          deg = degree(self.edge_index[0], self.n_nodes)
-          measure = torch.exp(self.m_alpha * deg ** self.m_beta + self.m_gamma)
-          src_meas, dst_meas = self.get_src_dst(measure)
-          measures_src_dst = 1 / (src_meas * dst_meas)
-        elif self.opt['gnl_measure'] == 'nodewise_exp':
-          measure = torch.exp(self.measure)
-          src_meas, dst_meas = self.get_src_dst(measure)
-          measures_src_dst = 1 / (src_meas * dst_meas)
-        elif self.opt['gnl_measure'] == 'ones':
-          measure = torch.ones(x.shape[0], device=self.device)
-          src_meas = 1
-          dst_meas = 1
-          measures_src_dst = 1
+      if self.opt['gnl_measure'] == 'deg_poly':
+        deg = degree(self.edge_index[0], self.n_nodes)
+        measure = self.m_alpha * deg ** self.m_beta + self.m_gamma
+        src_meas, dst_meas = self.get_src_dst(measure)
+        measures_src_dst = 1 / (src_meas * dst_meas)
+      elif self.opt['gnl_measure'] == 'nodewise':
+        measure = self.measure
+        src_meas, dst_meas = self.get_src_dst(measure)
+        measures_src_dst = 1 / (src_meas * dst_meas)
+      elif self.opt['gnl_measure'] == 'deg_poly_exp':
+        deg = degree(self.edge_index[0], self.n_nodes)
+        measure = torch.exp(self.m_alpha * deg ** self.m_beta + self.m_gamma)
+        src_meas, dst_meas = self.get_src_dst(measure)
+        measures_src_dst = 1 / (src_meas * dst_meas)
+      elif self.opt['gnl_measure'] == 'nodewise_exp':
+        measure = torch.exp(self.measure)
+        src_meas, dst_meas = self.get_src_dst(measure)
+        measures_src_dst = 1 / (src_meas * dst_meas)
+      elif self.opt['gnl_measure'] == 'ones':
+        measure = torch.ones(x.shape[0], device=self.device)
+        src_meas = 1
+        dst_meas = 1
+        measures_src_dst = 1
 
+      if self.do_diffusion(t):
         #scaled-dot method
         if self.opt['gnl_style'] == 'scaled_dot':
           if self.opt['gnl_omega'] == 'sum':
@@ -419,7 +431,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             pass
 
           src_x, dst_x = self.get_src_dst(x)
-          # fOmf = torch.einsum("ij,jj,ij->i", src_x, self.Omega, dst_x) incorrect
           fOmf = torch.einsum("ij,jk,ik->i", src_x, self.Omega, dst_x)
 
           if self.opt['gnl_activation'] == 'sigmoid':
@@ -498,9 +509,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           elif self.opt['gnl_activation'] == 'identity':
             if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt[
               'wandb_epoch_list'] and self.get_evol_stats:  # not self.training:
-              # fOmf = torch.ones(src_deginvsqrt.shape, device=self.device)
               fOmf = torch.einsum("ij,jk,ik->i", src_x * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W,
-                         dst_x * dst_deginvsqrt.unsqueeze(dim=1))
+                         dst_x * dst_deginvsqrt.unsqueeze(dim=1)) #calc'd just for stats
             attention = torch.ones(src_deginvsqrt.shape, device=self.device)
 
           P = attention * src_deginvsqrt * dst_deginvsqrt
@@ -520,8 +530,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
       if self.do_drift(t):
         if not self.do_diffusion(t):
-          f = 0
+          f = torch.zeros(x.shape, device=self.device)
         f = torch.exp(self.drift_eps) * f
+
+        if self.opt['lie_trotter'] == 'gen_0':
+          x = x + self.opt['step_size'] * f  # take an euler step in diffusion
 
         logits = torch.softmax(self.GNN_m2(x), dim=1)
         eye = torch.eye(self.C, device=self.device)
@@ -535,6 +548,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           eta_l = torch.prod(eta_hat[:,idx]**2, dim=1) * q_l
           f -= (-0.5 * measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
 
+      if self.opt['lie_trotter'] == 'gen_2' and self.opt['lt_block_type'] == 'threshold':
+        logits, pred = self.predict(x)
+        f = self.threshold(x, pred, self.opt['step_size'])
+
+      if self.opt['lie_trotter'] == 'gen_2' and self.opt['lt_block_type'] == 'label':
+        pass
 
     #todo project every node onto embedding TSNE coordinate basis - https://discuss.pytorch.org/t/t-sne-for-pytorch/44264
 
@@ -567,18 +586,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
                    f"gf_e{self.epoch}_f": (f**2).sum(),
                    f"gf_e{self.epoch}_x": (x ** 2).sum(),
                    "grad_flow_step": self.wandb_step})
-        #note we could include some of the below stats in the wandb logging
 
         z = x
-        # Activation.
-        if not self.opt['XN_no_activation']:
-          z = F.relu(z)
-        if self.opt['fc_out']:
-          z = self.fc(z)
-          z = F.relu(z)
-        logits = self.GNN_m2(z)
+        logits, pred = self.predict(z)
         train_acc, val_acc, test_acc = test(logits, self.data)
-        pred = logits.max(1)[1]
         sm_logits = torch.softmax(logits, dim=1)
         homophil = homophily(edge_index=self.edge_index, y=pred)
         L2dist = torch.sqrt(torch.sum((src_x - dst_x) ** 2, dim=1))
@@ -687,16 +698,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
                                   dst_z * dst_deginvsqrt.unsqueeze(dim=1))
             attention = torch.ones(src_deginvsqrt.shape, device=self.device)
 
-          # Activation.
-          if not self.opt['XN_no_activation']:
-            z = F.relu(z)
-          if self.opt['fc_out']:
-            z = self.fc(z)
-            z = F.relu(z)
-          logits = self.GNN_m2(z)
+          logits, pred = self.predict(z)
           sm_logits = torch.softmax(logits, dim=1)
           train_acc, val_acc, test_acc = test(logits, self.data)
-          pred = logits.max(1)[1]
           homophil = homophily(edge_index=self.edge_index, y=pred)
           L2dist = torch.sqrt(torch.sum((src_z - dst_z) ** 2, dim=1))
           conf_mat, train_cm, val_cm, test_cm = self.get_confusion(self.data, pred, norm_type='true')  # 'all')

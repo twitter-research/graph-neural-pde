@@ -127,13 +127,15 @@ def greed_ablation_params(opt):
     opt['m2_mlp'] = False #False
 
     #greed_non_linear params
+    opt['block'] = 'greed_lie_trotter' #'constant'
     opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'nodewise_exp' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
     opt['gnl_savefolder'] = 'chameleon_testing'#'chameleon_general_drift'#'chameleon_testing'
     opt['gnl_W_style'] = 'diag_dom'#'sum' #'k_diag'#'k_block'#k_diag #'diag_dom' # 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
 
     opt['drift'] = False #False#True
-    opt['lie_trotter'] = 'gen_0'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    opt['lie_trotter'] = 'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    opt['lt_block_type'] = 'diffusion'
     #gen1 args
     opt['diffusion_ranges'] = [[0,2],[3,5]]
     opt['drift_ranges'] = [[2,3],[5,6]]

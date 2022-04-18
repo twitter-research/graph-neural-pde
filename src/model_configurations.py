@@ -15,7 +15,7 @@ from block_constant import ConstantODEblock
 from block_mixed import MixedODEblock
 from block_transformer_hard_attention import HardAttODEblock
 from block_transformer_rewiring import RewireAttODEblock
-
+from block_greed_lie_trot import GREEDLTODEblock
 class BlockNotDefined(Exception):
   pass
 
@@ -37,6 +37,8 @@ def set_block(opt):
     block = ConstantODEblock
   elif ode_str == 'attention_greed':
     block = AttODEblock_greed
+  elif ode_str == 'greed_lie_trotter':
+    block = GREEDLTODEblock
   else:
     raise BlockNotDefined
   return block
