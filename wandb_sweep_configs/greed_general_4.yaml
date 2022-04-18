@@ -10,7 +10,7 @@ parameters:
   adjoint_method:
     values: [euler]
   adjoint_step_size:
-    values: [0.25]
+    values: [1.0]
   epoch:
     values: [100]
   num_splits:
