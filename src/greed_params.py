@@ -228,7 +228,7 @@ def tf_ablation_args(opt):
     for arg in ['test_no_chanel_mix','test_omit_metric_L', 'test_omit_metric_R','test_mu_0',
                 'test_tau_remove_tanh','test_tau_symmetric','test_grand_metric','test_tau_ones',
                 'test_tau_outside', 'test_linear_L0', 'test_R1R2_0',
-                'use_mlp', 'use_best_params', 'no_early', 'adjoint',
+                'use_mlp', 'use_best_params', 'no_early',
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
                 'XN_no_activation','m2_mlp', 'gnl_thresholding',

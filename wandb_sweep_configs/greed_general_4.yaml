@@ -7,8 +7,6 @@ parameters:
     values: [constant]
   function:
     values: [greed_non_linear]
-  adjoint:
-    values: [True]
   adjoint_method:
     values: [euler]
   adjoint_step_size:
@@ -70,5 +68,6 @@ command:
   - ${args}
   - --wandb
   - --wandb_sweep
+  - --adjoint
 entity: graph_neural_diffusion
 project: greed_general_4
