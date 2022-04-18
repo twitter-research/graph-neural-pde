@@ -195,6 +195,7 @@ class GNN(BaseGNN):
 
     ##todo: need to implement if self.opt['m2_mlp']: from base classfor GNN_early also
     # Decode each node embedding to get node label.
-    z = self.m2(z)
+    if self.opt['lt_gen2_args'][-1]['lt_block_type'] != 'label':
+      z = self.m2(z)
 
     return z

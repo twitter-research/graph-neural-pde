@@ -8,7 +8,7 @@ from function_greed_non_linear import ODEFuncGreedNonLin
 class GREEDLTODEblock(ODEblock):
   def __init__(self, odefunc, regularization_fns, opt, data, device, t=torch.tensor([0, 1]), gamma=0.5):
     super(GREEDLTODEblock, self).__init__(odefunc, regularization_fns, opt, data, device, t)
-
+    self.C = (data.y.max() + 1).item()  #hack!, num class for drift
     funcs = []
     times = []
     steps = []
@@ -19,7 +19,10 @@ class GREEDLTODEblock(ODEblock):
       opt2['step_size'] = lt2_args['lt_block_step']
       opt2['hidden_dim'] = lt2_args['lt_block_dimension']
       odefunc = ODEFuncGreedNonLin
-      func = odefunc(self.aug_dim * opt2['hidden_dim'], self.aug_dim * opt2['hidden_dim'], opt2, data, device)
+      if opt2['lt_block_type'] == 'label':
+        func = odefunc( self.C, self.C, opt2, data, device)
+      else:
+        func = odefunc(self.aug_dim * opt2['hidden_dim'], self.aug_dim * opt2['hidden_dim'], opt2, data, device)
       edge_index, edge_weight = get_rw_adj(data.edge_index, edge_weight=data.edge_attr, norm_dim=1,
                                            fill_value=opt2['self_loop_weight'],
                                            num_nodes=data.num_nodes,
@@ -72,14 +75,17 @@ class GREEDLTODEblock(ODEblock):
 
   def forward(self, x):
     integrator = self.train_integrator if self.training else self.test_integrator
+    # func = self.reg_odefunc if self.training and self.nreg > 0 else self.odefunc
 
     #loop through lie-trotter blocks
     for block_num, (func, t, step) in enumerate(zip(self.funcs, self.times, self.steps)):
       self.set_x0(func, x)
       self.set_attributes(func, x)
-      reg_states = tuple(torch.zeros(x.size(0)).to(x) for i in range(self.nreg))
-      # func = self.reg_odefunc if self.training and self.nreg > 0 else self.odefunc
       self.pass_stats(func, block_num)
+      if func.opt['lt_block_type'] == 'label':
+        x, _ = func.predict(x)
+
+      reg_states = tuple(torch.zeros(x.size(0)).to(x) for i in range(self.nreg))
       state = (x,) + reg_states if self.training and self.nreg > 0 else x
 
       if self.opt["adjoint"] and self.training:

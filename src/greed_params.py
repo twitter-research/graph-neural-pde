@@ -129,7 +129,7 @@ def greed_ablation_params(opt):
     #greed_non_linear params
     opt['block'] = 'greed_lie_trotter' #'constant'
     opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
-    opt['gnl_measure'] = 'nodewise_exp' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
+    opt['gnl_measure'] = 'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
     opt['gnl_savefolder'] = 'chameleon_testing'#'chameleon_general_drift'#'chameleon_testing'
     opt['gnl_W_style'] = 'diag_dom'#'sum' #'k_diag'#'k_block'#k_diag #'diag_dom' # 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
 
@@ -143,8 +143,10 @@ def greed_ablation_params(opt):
     #lt_block_type : 'diffusion / drift / label / threshold
     opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256},
                        {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256},
+                       {'lt_block_type': 'threshold', 'lt_block_time': 1.0, 'lt_block_step': 1.0, 'lt_block_dimension': 256},
                        {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256},
-                       {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256}]
+                       {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256},
+                       {'lt_block_type': 'label', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256}]
 
     #thresholding args
     opt['gnl_thresholding'] = False #True

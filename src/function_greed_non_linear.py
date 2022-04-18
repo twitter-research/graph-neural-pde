@@ -312,9 +312,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
 
   def do_diffusion(self, t):
-    #todo tighten up these conditionals as dependent on setting up config accurately
+    #todo tighten up these conditionals as dependent on good/accurately setting up of config
     if self.opt['lie_trotter'] == 'gen_2':
-      if self.opt['lt_block_type'] == 'diffusion':
+      if self.opt['lt_block_type'] == 'diffusion' or self.opt['lt_block_type'] == 'label':
         return True
       else:
         return False
@@ -364,16 +364,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def threshold(self, z, pred, step_size):
     # threshold label space
-    Ek = F.one_hot(pred, num_classes=self.num_classes)
+    Ek = F.one_hot(pred, num_classes=self.C)
     # pseudo inverse
-    P = self.m2.weight
+    P = self.GNN_m2.weight
     # https://pytorch.org/docs/stable/generated/torch.matrix_rank.html
-    b = self.m2.bias
-    P_dagg = torch.linalg.pinv(
-      P).T  # sometimes get RuntimeError: svd_cpu: the updating process of SBDSDC did not converge (error: 4)
-    new_z = (Ek - b.unsqueeze(0)) @ P_dagg + z @ (torch.eye(self.hidden_dim, device=self.device) - P_dagg.T @ P).T
-    return (new_z - z) / step_size #returning value that will generate the delta to new_z (for explicit Euler)
-
+    b = self.GNN_m2.bias
+    P_dagg = torch.linalg.pinv(P).T  # sometimes get RuntimeError: svd_cpu: the updating process of SBDSDC did not converge (error: 4)
+    new_z = (Ek - b.unsqueeze(0)) @ P_dagg + z @ (torch.eye(P.shape[-1], device=self.device) - P_dagg.T @ P).T
+    return (new_z - z) / step_size #returning value that will generate the change needed to get new_z (for explicit Euler)
 
 
   def forward(self, t, x):  # t is needed when called by the integrator
@@ -521,12 +519,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
           f = f - torch.diag(1 / measure) @ x @ self.Omega
 
-        if self.opt['test_mu_0']:
-          if self.opt['add_source']:
-            f = f + self.beta_train * self.x0
-        else:
-          f = f - 0.5 * self.mu * (x - self.x0)
-          # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
+
+        if self.opt['lt_block_type'] != 'label':
+          if self.opt['test_mu_0']:
+            if self.opt['add_source']:
+              f = f + self.beta_train * self.x0
+          else:
+            f = f - 0.5 * self.mu * (x - self.x0)
+            # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
 
       if self.do_drift(t):
         if not self.do_diffusion(t):
@@ -551,9 +551,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       if self.opt['lie_trotter'] == 'gen_2' and self.opt['lt_block_type'] == 'threshold':
         logits, pred = self.predict(x)
         f = self.threshold(x, pred, self.opt['step_size'])
-
-      if self.opt['lie_trotter'] == 'gen_2' and self.opt['lt_block_type'] == 'label':
-        pass
 
     #todo project every node onto embedding TSNE coordinate basis - https://discuss.pytorch.org/t/t-sne-for-pytorch/44264
 
