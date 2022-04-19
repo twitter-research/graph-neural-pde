@@ -693,5 +693,8 @@ def reports_manager(model, data):
     model.odeblock.odefunc.get_evol_stats = False
 
     for func in model.odeblock.funcs:
+        func.epoch = model.odeblock.odefunc.epoch
+        func.get_evol_stats = model.odeblock.odefunc.get_evol_stats
+        func.wandb_step = model.odeblock.odefunc.wandb_step
         run_reports_lie_trotter(func)
 

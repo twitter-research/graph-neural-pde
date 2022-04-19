@@ -10,6 +10,8 @@ class GREEDLTODEblock(ODEblock):
   def __init__(self, odefunc, regularization_fns, opt, data, device, t=torch.tensor([0, 1]), gamma=0.5):
     super(GREEDLTODEblock, self).__init__(odefunc, regularization_fns, opt, data, device, t)
     self.aug_dim = 2 if opt['augment'] else 1
+    ###dummy func just for tracking epoch/wandb_step/get_evol_stats
+    self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, data, device)
 
     self.C = (data.y.max() + 1).item()  #hack!, num class for drift
     funcs = []
