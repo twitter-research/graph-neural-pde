@@ -18,7 +18,7 @@ from data import get_dataset, set_train_val_test_split
 from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling, dirichlet_energy
 from best_params import best_params_dict
 from greed_params import greed_test_params, greed_run_params, greed_hyper_params, greed_ablation_params, tf_ablation_args, not_sweep_args
-from reports import run_reports, run_reports_lie_trotter
+from reports import run_reports, run_reports_lie_trotter, reports_manager
 from heterophilic import get_fixed_splits
 
 
@@ -168,7 +168,10 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
         model.odeblock.odefunc.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
 
     if opt['run_track_reports'] and epoch in opt['wandb_epoch_list']:
-        run_reports(epoch, model, data, opt)
+        if opt['lie_trotter'] == 'gen_2':
+            reports_manager(model, data)
+        else:
+            run_reports(epoch, model, data, opt)
 
     return accs
 
@@ -398,7 +401,7 @@ def main(cmd_opt):
         for epoch in range(1, opt['epoch']):
             start_time = time.time()
             if opt['function'] in ['greed', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero',
-                                   'greed_non_linear']:
+                                   'greed_non_linear', 'greed_lie_trotter']:
                 model.odeblock.odefunc.epoch = epoch
 
             if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
@@ -721,7 +724,7 @@ if __name__ == '__main__':
     opt = vars(args)
 
     if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero',
-                           'greed_non_linear']:
+                           'greed_non_linear', 'greed_lie_trotter']:
         opt = greed_run_params(opt)  ###basic params for GREED
 
     if not opt['wandb_sweep']:  # sweeps are run from YAML config so don't need these

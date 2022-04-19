@@ -127,34 +127,53 @@ def greed_ablation_params(opt):
     opt['m2_mlp'] = False #False
 
     #greed_non_linear params
-    opt['block'] = 'greed_lie_trotter' #'constant'
     opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
     opt['gnl_savefolder'] = 'chameleon_testing'#'chameleon_general_drift'#'chameleon_testing'
     opt['gnl_W_style'] = 'diag_dom'#'sum' #'k_diag'#'k_block'#k_diag #'diag_dom' # 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
-
     opt['drift'] = False #False#True
-    opt['lie_trotter'] = 'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
-    opt['lt_block_type'] = 'diffusion'
-    #gen1 args
-    opt['diffusion_ranges'] = [[0,2],[3,5]]
-    opt['drift_ranges'] = [[2,3],[5,6]]
-    #gen2 args
-    #lt_block_type : 'diffusion / drift / label / threshold
-    opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256},
-                       {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256},
-                       {'lt_block_type': 'threshold', 'lt_block_time': 1.0, 'lt_block_step': 1.0, 'lt_block_dimension': 256},
-                       {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256},
-                       {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256},
-                       {'lt_block_type': 'label', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256}]
+    opt['reports_list'] = [1,2,3,4,5,6,7]
 
-    #thresholding args
-    opt['gnl_thresholding'] = False #True
-    #solver args
-    opt['time'] = 6.0
-    opt['step_size'] = 1.0
-    opt['method'] = 'euler'
+    #definitions of lie trotter
+    #None - runs greed_non_linear with just diffusion no drift
+    #gen_0 - alternates one step diffusion and drift
+    #gen_1 - alternates ranges of diffusion and drift
+    #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion
 
+    opt['lie_trotter'] = 'gen_2'#'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
+        ###!!! set function 'greed_non_linear'
+        opt['block'] = 'constant'
+        #thresholding args - no thresholding for gen_0 or gen_1 ????
+        opt['gnl_thresholding'] = False #True
+
+        if opt['lie_trotter'] in [None, 'gen_0']:
+            #solver args
+            opt['time'] = 6.0
+            opt['step_size'] = 1.0
+            opt['method'] = 'euler'
+        elif opt['lie_trotter'] == 'gen_1':
+            #gen1 args
+            opt['diffusion_ranges'] = [[0,2],[3,5]]
+            opt['drift_ranges'] = [[2,3],[5,6]]
+            #solver args
+            opt['time'] = 6.0
+            opt['step_size'] = 1.0
+            opt['method'] = 'euler'
+
+    elif opt['lie_trotter'] == 'gen_2':
+        ###!!! set function 'greed_lie_trotter'
+        opt['block'] = 'greed_lie_trotter'
+        #gen2 args
+        #lt_block_type : 'diffusion / drift / label / threshold
+        opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]},
+                           {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]},
+                           {'lt_block_type': 'threshold', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]},
+                           {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]},
+                           {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]},
+                           {'lt_block_type': 'label', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]}]
+        #solver args
+        opt['method'] = 'euler'
 
     if opt['gnl_style'] == 'scaled_dot':
         opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
@@ -207,7 +226,7 @@ def not_sweep_args(opt, project_name, group_name):
     opt['wandb'] = False #True #False #True
     opt['wandb_track_grad_flow'] = True #False  # don't plot grad flows when testing
     opt['wandb_watch_grad'] = False
-    opt['run_track_reports'] = False#True
+    opt['run_track_reports'] = True #False#True
     opt['save_wandb_reports'] = False
     opt['save_local_reports'] = False
     opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]

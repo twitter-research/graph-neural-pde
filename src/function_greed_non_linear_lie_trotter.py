@@ -59,14 +59,15 @@ def get_entropies(logits, data, activation="softmax", pos_encoding=None, opt=Non
   return entropies_dic
 
 
-class ODEFuncGreedNonLin(ODEFuncGreed):
+class ODEFuncGreedLieTrot(ODEFuncGreed):
 
   def __init__(self, in_features, out_features, opt, data, device, bias=False):
-    super(ODEFuncGreedNonLin, self).__init__(in_features, out_features, opt, data, device, bias=False)
+    super(ODEFuncGreedLieTrot, self).__init__(in_features, out_features, opt, data, device, bias=False)
 
     self.data = data
     self.get_evol_stats = False
     self.energy = 0
+
     self.fOmf = None
     self.attentions = None
     self.L2dist = None
@@ -114,24 +115,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           print("Creation of the directory %s failed" % savefolder)
       else:
         print("Successfully created the directory %s " % savefolder)
-
-      self.spectrum_fig_list = []
-      self.acc_entropy_fig_list = []
-      self.edge_evol_fig_list = []
-      self.node_evol_fig_list = []
-      self.node_scatter_fig_list = []
-      self.edge_scatter_fig_list = []
-      self.class_dist_fig_list = []
-
-      if opt['save_local_reports']:
-        self.pdf_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter']
-        self.spectrum_pdf = PdfPages(f"{savefolder}/spectrum.pdf")
-        self.acc_entropy_pdf = PdfPages(f"{savefolder}/acc_entropy.pdf")
-        self.edge_evol_pdf = PdfPages(f"{savefolder}/edge_evol.pdf")
-        self.node_evol_pdf = PdfPages(f"{savefolder}/node_evol.pdf")
-        self.node_scatter_pdf = PdfPages(f"{savefolder}/node_scatter.pdf")
-        self.edge_scatter_pdf = PdfPages(f"{savefolder}/edge_scatter.pdf")
-        self.class_dist_pdf = PdfPages(f"{savefolder}/class_dist.pdf")
 
     self.epoch = 0
     self.wandb_step = 0
@@ -197,14 +180,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     self.reset_nonlinG_parameters()
 
-    if self.opt['lie_trotter'] == 'gen_2':
-      # loop through all the above for as many bocks as needed
-      # will help to write getter functions, set W, set Omega etc
-      # this might mean need to standardise parameter names
-      self.block_num = 0
-      for lt2_args in opt['lt_gen2_args']:
-        pass
-
   def reset_nonlinG_parameters(self):
     if self.opt['gnl_omega'] == 'sum':
       glorot(self.om_W)
@@ -246,6 +221,31 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       ones(self.measure)
     elif self.opt['gnl_measure'] in ['nodewise_exp']:
       zeros(self.measure)
+
+
+  def set_omega(self):
+    if self.opt['gnl_omega'] == 'sum':
+      Omega = self.om_W + self.om_W.T
+    elif self.opt['gnl_omega'] == 'product':
+      Omega = self.om_W @ self.om_W.T
+    elif self.opt['gnl_omega'] == 'attr_rep':
+      # Omega = self.om_W_nu * (1 - 2 * self.om_W_eps) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
+      Omega = (1 - 2 * self.om_W_eps) * torch.eye(self.in_features,
+                                                       device=self.device) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (
+                             1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
+    elif self.opt['gnl_omega'] == 'diag':
+      Omega = torch.diag(self.om_W)
+
+    # method for normalising Omega to control the eigen values
+    if self.opt['gnl_omega_norm'] == 'tanh':
+      self.Omega = torch.tanh(self.Omega)
+    elif self.opt['gnl_omega_norm'] == 'rowSum':
+      D = self.Omega.abs().sum(dim=1)
+      self.Omega = torch.diag(torch.pow(D, -0.5)) @ self.Omega @ torch.diag(torch.pow(D, -0.5))
+    else:
+      pass
+
+    return Omega
 
   def set_gnlWS(self):
     "note every W is made symetric before returning here"
@@ -313,25 +313,37 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def do_diffusion(self, t):
     #todo tighten up these conditionals as dependent on good/accurately setting up of config
-    if self.opt['drift']:
-      return True
-    if self.opt['lie_trotter'] in [None, 'gen_0']:
-      return True
-    if self.opt['lie_trotter'] == 'gen_1':
-      for rng in self.opt['diffusion_ranges']:
-        if t >= rng[0] and t < rng[1]:
-          return True
+    if self.opt['lie_trotter'] == 'gen_2':
+      if self.opt['lt_block_type'] == 'diffusion' or self.opt['lt_block_type'] == 'label':
+        return True
+      else:
+        return False
+    else:
+      if self.opt['drift']:
+        return True
+      if self.opt['lie_trotter'] in [None, 'gen_0']:
+        return True
+      if self.opt['lie_trotter'] == 'gen_1':
+        for rng in self.opt['diffusion_ranges']:
+          if t >= rng[0] and t < rng[1]:
+            return True
     return False
 
   def do_drift(self, t):
-    if self.opt['drift']:
-      return True
-    if self.opt['lie_trotter'] == 'gen_0':
-      return True
-    if self.opt['lie_trotter'] == 'gen_1':
-      for rng in self.opt['drift_ranges']:
-        if t >= rng[0] and t < rng[1]:
-          return True
+    if self.opt['lie_trotter'] == 'gen_2':
+      if self.opt['lt_block_type'] == 'drift':
+        return True
+      else:
+        return False
+    else:
+      if self.opt['drift']:
+        return True
+      if self.opt['lie_trotter'] == 'gen_0':
+        return True
+      if self.opt['lie_trotter'] == 'gen_1':
+        for rng in self.opt['drift_ranges']:
+          if t >= rng[0] and t < rng[1]:
+            return True
     return False
 
   def diffusion_step(self):
@@ -456,7 +468,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         dst_meas = 1
         measures_src_dst = 1
 
-
       if self.do_diffusion(t):
         src_x, dst_x = self.get_src_dst(x)
         #scaled-dot method
@@ -484,7 +495,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           f = f1 + f2
           f = f - self.delta * x  # break point np.isnan(f.sum().detach().numpy())
 
-
         #general graph (GCN/GraphSage) method
         elif self.opt['gnl_style'] == 'general_graph':
           fOmf, attention = self.calc_dot_prod_attention(src_x, dst_x)
@@ -498,12 +508,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
           f = f - torch.diag(1 / measure) @ x @ self.Omega
 
-        if self.opt['test_mu_0']:
-          if self.opt['add_source']:
-            f = f + self.beta_train * self.x0
-        else:
-          f = f - 0.5 * self.mu * (x - self.x0)
-          # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
+        if self.opt['lt_block_type'] != 'label':
+          if self.opt['test_mu_0']:
+            if self.opt['add_source']:
+              f = f + self.beta_train * self.x0
+          else:
+            f = f - 0.5 * self.mu * (x - self.x0)
+            # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
 
       if self.do_drift(t):
         if not self.do_diffusion(t):
@@ -525,21 +536,20 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           eta_l = torch.prod(eta_hat[:,idx]**2, dim=1) * q_l
           f -= (-0.5 * measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
 
-      #no thresholding for gen_0 or gen_1 ????
-      # if self.opt['lie_trotter'] == 'gen_2' and self.opt['lt_block_type'] == 'threshold':
-      #   logits, pred = self.predict(x)
-      #   f = self.threshold(x, pred, self.opt['step_size'])
+      if self.opt['lie_trotter'] == 'gen_2' and self.opt['lt_block_type'] == 'threshold':
+        logits, pred = self.predict(x)
+        f = self.threshold(x, pred, self.opt['step_size'])
 
     #todo project every node onto embedding TSNE coordinate basis - https://discuss.pytorch.org/t/t-sne-for-pytorch/44264
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
-
-      # get edge stats if not a diffusion pass/block
-      if self.do_drift(t):
-        src_x, dst_x = self.get_src_dst(x)
-        fOmf, attention = self.calc_dot_prod_attention(src_x, dst_x)
-
       with torch.no_grad():
+
+        #get edge stats if not a diffusion block
+        if self.do_drift(t) or (self.opt['lie_trotter'] == 'gen_2' and self.opt['lt_block_type'] == 'threshold'):
+          src_x, dst_x = self.get_src_dst(x)
+          fOmf, attention = self.calc_dot_prod_attention(src_x, dst_x)
+
         #todo these energy formulas are wrong
         if self.opt['gnl_style'] == 'scaled_dot':
           if self.opt['gnl_activation'] == "sigmoid_deriv":
@@ -552,9 +562,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             energy = fOmf ** 2 / 2
         else:
           energy = 0
-
         energy = energy + 0.5 * self.delta * torch.sum(x**2)
-
         if self.opt['test_mu_0'] and self.opt['add_source']:
           energy = energy - self.beta_train * torch.sum(x * self.x0)
         elif not self.opt['test_mu_0']:
@@ -568,8 +576,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
                    f"gf_e{self.epoch}_x": (x ** 2).sum(),
                    "grad_flow_step": self.wandb_step})
 
-        z = x
-        logits, pred = self.predict(z)
+        if self.opt['lt_block_type'] == 'label':
+          logits = x
+          pred = logits.max(1)[1]
+        else:
+          logits, pred = self.predict(x)
+
         train_acc, val_acc, test_acc = test(logits, self.data)
         sm_logits = torch.softmax(logits, dim=1)
         homophil = homophily(edge_index=self.edge_index, y=pred)
@@ -579,11 +591,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         eval_means_label, eval_sds_label = self.get_distances(self.data, sm_logits, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask])
 
         if self.attentions is None:
+          #edge stats
           self.attentions = attention.unsqueeze(0)
           self.fOmf = fOmf.unsqueeze(0)
           self.L2dist = L2dist.unsqueeze(0)
+          #node stats
           self.node_magnitudes = torch.sqrt(torch.sum(x**2,dim=1)).unsqueeze(0)
           self.node_measures = measure.detach().unsqueeze(0)
+          #graph stats
           self.train_accs = [train_acc]
           self.val_accs = [val_acc]
           self.test_accs = [test_acc]
@@ -600,7 +615,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.val_dist_sd_label = eval_sds_label[0]
           self.test_dist_mean_label = eval_means_label[1]
           self.test_dist_sd_label = eval_sds_label[1]
-
         else:
           self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
           self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
@@ -649,14 +663,16 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             self.test_dist_sd_label = torch.cat((self.test_dist_sd_label, eval_sds_label[1].unsqueeze(-1)),dim=-1)
 
         ### extra values for terminal step
-
         if t == self.opt['time'] - self.opt['step_size']:
           z = x + self.opt['step_size'] * f #take an euler step
 
           src_z, dst_z = self.get_src_dst(z)
           fOmf, attention = self.calc_dot_prod_attention(src_z, dst_z)
-
-          logits, pred = self.predict(z)
+          if self.opt['lt_block_type'] == 'label':
+            logits = x
+            pred = logits.max(1)[1]
+          else:
+            logits, pred = self.predict(x)
           sm_logits = torch.softmax(logits, dim=1)
           train_acc, val_acc, test_acc = test(logits, self.data)
           homophil = homophily(edge_index=self.edge_index, y=pred)

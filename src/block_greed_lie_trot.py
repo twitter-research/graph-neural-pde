@@ -3,11 +3,14 @@ from torch.nn import ModuleList
 from function_transformer_attention import SpGraphTransAttentionLayer
 from base_classes import ODEblock
 from utils import get_rw_adj
-from function_greed_non_linear import ODEFuncGreedNonLin
+# from function_greed_non_linear import ODEFuncGreedNonLin
+from function_greed_non_linear_lie_trotter import ODEFuncGreedLieTrot
 
 class GREEDLTODEblock(ODEblock):
   def __init__(self, odefunc, regularization_fns, opt, data, device, t=torch.tensor([0, 1]), gamma=0.5):
     super(GREEDLTODEblock, self).__init__(odefunc, regularization_fns, opt, data, device, t)
+    self.aug_dim = 2 if opt['augment'] else 1
+
     self.C = (data.y.max() + 1).item()  #hack!, num class for drift
     funcs = []
     times = []
@@ -18,7 +21,7 @@ class GREEDLTODEblock(ODEblock):
       opt2['time'] = lt2_args['lt_block_time']
       opt2['step_size'] = lt2_args['lt_block_step']
       opt2['hidden_dim'] = lt2_args['lt_block_dimension']
-      odefunc = ODEFuncGreedNonLin
+      odefunc = ODEFuncGreedLieTrot
       if opt2['lt_block_type'] == 'label':
         func = odefunc( self.C, self.C, opt2, data, device)
       else:
@@ -38,7 +41,10 @@ class GREEDLTODEblock(ODEblock):
     self.current_block_num = 0
     self.times = times
     self.steps = steps
-    #not used in this branch so not added to a module list
+    #adding the first func in module list as block attribute to match signature required in run_GNN.py
+    self.odefunc = self.funcs[0]
+    self.odefunc.edge_index = edge_index.to(device)
+    self.odefunc.edge_weight = edge_weight.to(device)
     self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight
 
     if opt['adjoint']:
@@ -48,9 +54,6 @@ class GREEDLTODEblock(ODEblock):
     self.train_integrator = odeint
     self.test_integrator = odeint
     self.set_tol()
-
-  def pass_stats(self, func, block_num):
-    pass
 
   def set_x0(self, odefunc, x0):
     odefunc.x0 = x0.clone().detach()
@@ -69,9 +72,39 @@ class GREEDLTODEblock(ODEblock):
         if self.opt['repulsion']:
           func.set_R0()
           func.R_Ws = func.set_WS(x)
-    if self.opt['function'] == "greed_non_linear" and self.opt['gnl_style'] == 'general_graph':
+    if self.opt['function'] in ['greed_non_linear', 'greed_lie_trotter'] and self.opt['gnl_style'] == 'general_graph':
           func.gnl_W = func.set_gnlWS()
           func.GNN_m2 = self.odefunc.GNN_m2
+
+  def pass_stats(self, func, block_num):
+    func.get_evol_stats = self.odefunc.get_evol_stats
+    func.epoch = self.odefunc.epoch
+    func.wandb_step = self.odefunc.wandb_step
+
+    if block_num != 0:
+      prev_func = self.funcs[block_num-1]
+      if func.opt['lt_block_type'] != 'label':
+        func.fOmf = prev_func.fOmf
+        func.attentions = prev_func.attentions
+        func.L2dist = prev_func.L2dist
+        func.node_magnitudes = prev_func.node_magnitudes
+        func.node_measures = prev_func.node_measures
+
+      func.train_accs = prev_func.train_accs
+      func.val_accs = prev_func.val_accs
+      func.test_accs = prev_func.test_accs
+      func.homophils = prev_func.homophils
+      func.entropies = prev_func.entropies
+      func.confusions = prev_func.confusions
+
+      func.val_dist_mean_feat = prev_func.val_dist_mean_feat
+      func.val_dist_sd_feat = prev_func.val_dist_sd_feat
+      func.test_dist_mean_feat = prev_func.test_dist_mean_feat
+      func.test_dist_sd_feat = prev_func.test_dist_sd_feat
+      func.val_dist_mean_label = prev_func.val_dist_mean_label
+      func.val_dist_sd_label = prev_func.val_dist_sd_label
+      func.test_dist_mean_label = prev_func.test_dist_mean_label
+      func.test_dist_sd_label = prev_func.test_dist_sd_label
 
   def forward(self, x):
     integrator = self.train_integrator if self.training else self.test_integrator
@@ -81,9 +114,14 @@ class GREEDLTODEblock(ODEblock):
     for block_num, (func, t, step) in enumerate(zip(self.funcs, self.times, self.steps)):
       self.set_x0(func, x)
       self.set_attributes(func, x)
-      self.pass_stats(func, block_num)
       if func.opt['lt_block_type'] == 'label':
         x, _ = func.predict(x)
+        self.set_x0(func, x) #reset given now in label space
+        self.set_attributes(func, x)
+
+      if self.opt['wandb_track_grad_flow'] and self.odefunc.epoch in self.opt['wandb_epoch_list'] and self.odefunc.get_evol_stats:
+        with torch.no_grad():
+          self.pass_stats(func, block_num)
 
       reg_states = tuple(torch.zeros(x.size(0)).to(x) for i in range(self.nreg))
       state = (x,) + reg_states if self.training and self.nreg > 0 else x

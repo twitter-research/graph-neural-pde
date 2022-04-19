@@ -63,7 +63,10 @@ class GNN(BaseGNN):
         if self.opt['repulsion']:
           self.odeblock.odefunc.set_R0()
           self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_WS(x)
-    if self.opt['function'] == "greed_non_linear" and self.opt['gnl_style'] == 'general_graph':
+    if self.opt['function'] in ['greed_non_linear', 'greed_lie_trotter']:
+      if self.opt['gnl_style'] == 'scaled_dot':
+        self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_omega()
+      elif self.opt['gnl_style'] == 'general_graph':
           self.odeblock.odefunc.gnl_W = self.odeblock.odefunc.set_gnlWS()
 
   def forward_XN(self, x):
@@ -161,41 +164,12 @@ class GNN(BaseGNN):
     # # Dropout.
     # z = F.dropout(z, self.opt['dropout'], training=self.training)
 
-    # if self.opt['gnl_thresholding']:
-    #   z = x
-    #   self.set_attributes(z)
-    #   z = self.encoder(z, pos_encoding=None)
-    #   for _ in range(self.opt['gnl_thresholding_reps']):
-    #     self.odeblock.set_x0(z)
-    #     #run evolution
-    #     if self.training and self.odeblock.nreg > 0:
-    #       z, self.reg_states = self.odeblock(z)
-    #     else:
-    #       z = self.odeblock(z)
-    #
-    #     #predict
-    #     if not self.opt['XN_no_activation']:
-    #       z = F.relu(z)
-    #     if self.opt['fc_out']:
-    #       z = self.fc(z)
-    #       z = F.relu(z)
-    #     logits = self.m2(z)
-    #     pred = logits.max(1)[1]
-    #
-    #     #threshold label space
-    #     Ek = F.one_hot(pred, num_classes=self.num_classes)
-    #     #pseudo inverse
-    #     P = self.m2.weight
-    #     #https://pytorch.org/docs/stable/generated/torch.matrix_rank.html
-    #     b = self.m2.bias
-    #     P_dagg = torch.linalg.pinv(P).T  #sometimes get RuntimeError: svd_cpu: the updating process of SBDSDC did not converge (error: 4)
-    #     z = (Ek - b.unsqueeze(0)) @ P_dagg + z @ (torch.eye(self.hidden_dim, device=self.device) - P_dagg.T @ P).T
-    # else:
     z = self.forward_XN(x)
 
     ##todo: need to implement if self.opt['m2_mlp']: from base classfor GNN_early also
     # Decode each node embedding to get node label.
-    if self.opt['lt_gen2_args'][-1]['lt_block_type'] != 'label':
-      z = self.m2(z)
+    if self.opt['lie_trotter'] == 'gen_2': #if we end in label diffusion block don't need to decode to logits
+      if self.opt['lt_gen2_args'][-1]['lt_block_type'] != 'label':
+        z = self.m2(z)
 
     return z
