@@ -177,7 +177,8 @@ def greed_ablation_params(opt):
                            # {'lt_block_type': 'threshold', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]},
                            {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1]},
                            {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': []},
-                           {'lt_block_type': 'label', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]}]
+                           {'lt_block_type': 'label', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2]}]#,3,4,5,6,7]}]
+
         opt['gnl_thresholding'] = True
         opt['threshold_times'] = [4]
         #solver args

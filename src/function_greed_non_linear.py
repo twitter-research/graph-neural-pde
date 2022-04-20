@@ -512,7 +512,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           idx = index[:l] + index[l + 1:]
           q_l = eta_hat[:,l] * sm_logits[:,l]
           eta_l = torch.prod(eta_hat[:,idx]**2, dim=1) * q_l
-          f -= (-0.5 * measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(sm_logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
+          f -= self.opt['step_size'] * (-0.5 * measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(sm_logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
 
       if self.opt['gnl_thresholding'] and t in self.opt['threshold_times']:
         x = x + self.opt['step_size'] * f  # take an euler step
@@ -744,6 +744,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       base_av[c] = base_av_c
 
     #for every node calcualte the L2 distance - [N, C] and [N, C]
+    #todo for label space calc distance from Ek
     dist = x.unsqueeze(-1) - base_av.T.unsqueeze(0)
     L2_dist = torch.sqrt(torch.sum(dist**2, dim=1))
 

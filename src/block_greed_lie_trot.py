@@ -86,9 +86,33 @@ class GREEDLTODEblock(ODEblock):
     func.epoch = self.odefunc.epoch
     func.wandb_step = self.odefunc.wandb_step
 
-    if block_num != 0:
+    end_idx = 0 if block_num == len(func.opt['lt_gen2_args']) - 1 else -1
+    if block_num != 0 and block_num != len(func.opt['lt_gen2_args']) - 1:
       prev_func = self.funcs[block_num-1]
       # if func.opt['lt_block_type'] != 'label':
+      func.fOmf = prev_func.fOmf[:end_idx,:]
+      func.attentions = prev_func.attentions[:end_idx,:]
+      func.L2dist = prev_func.L2dist[:end_idx,:]
+      func.node_magnitudes = prev_func.node_magnitudes[:end_idx,:]
+      func.node_measures = prev_func.node_measures[:end_idx,:]
+
+      func.train_accs = prev_func.train_accs[:end_idx]
+      func.val_accs = prev_func.val_accs[:end_idx]
+      func.test_accs = prev_func.test_accs[:end_idx]
+      func.homophils = prev_func.homophils[:end_idx]
+      func.entropies = {k: v[:end_idx,:] for k,v in prev_func.entropies.items()}
+      func.confusions = [cf[:,:,end_idx] for cf in prev_func.confusions]
+
+      func.val_dist_mean_feat = prev_func.val_dist_mean_feat[:,:,end_idx]
+      func.val_dist_sd_feat = prev_func.val_dist_sd_feat[:,:,end_idx]
+      func.test_dist_mean_feat = prev_func.test_dist_mean_feat[:,:,end_idx]
+      func.test_dist_sd_feat = prev_func.test_dist_sd_feat[:,:,end_idx]
+      func.val_dist_mean_label = prev_func.val_dist_mean_label[:,:,end_idx]
+      func.val_dist_sd_label = prev_func.val_dist_sd_label[:,:,end_idx]
+      func.test_dist_mean_label = prev_func.test_dist_mean_label[:,:,end_idx]
+      func.test_dist_sd_label = prev_func.test_dist_sd_label[:,:,end_idx]
+    elif block_num != 0 and block_num == len(func.opt['lt_gen2_args']) - 1:
+      prev_func = self.funcs[block_num-1]
       func.fOmf = prev_func.fOmf
       func.attentions = prev_func.attentions
       func.L2dist = prev_func.L2dist
