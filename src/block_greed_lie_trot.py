@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 from torch.nn import ModuleList
 from function_transformer_attention import SpGraphTransAttentionLayer
 from base_classes import ODEblock
@@ -17,12 +18,13 @@ class GREEDLTODEblock(ODEblock):
     funcs = []
     times = []
     steps = []
-    for lt2_args in self.opt['lt_gen2_args']:
+    for block_num, lt2_args in enumerate(self.opt['lt_gen2_args']):
       opt2 = self.opt.as_dict().copy()
       opt2['lt_block_type'] = lt2_args['lt_block_type']
       opt2['time'] = lt2_args['lt_block_time']
       opt2['step_size'] = lt2_args['lt_block_step']
       opt2['hidden_dim'] = lt2_args['lt_block_dimension']
+      opt2['reports_list'] = lt2_args['reports_list']
       odefunc = ODEFuncGreedLieTrot
       if opt2['lt_block_type'] == 'label':
         func = odefunc( self.C, self.C, opt2, data, device)
@@ -34,13 +36,13 @@ class GREEDLTODEblock(ODEblock):
                                            dtype=data.x.dtype)
       func.edge_index = edge_index.to(device)
       func.edge_weight = edge_weight.to(device)
+      func.block_num = block_num
       funcs.append(func)
       time_tensor = torch.tensor([0, opt2['time']], dtype=torch.float).to(device)
       times.append(time_tensor)
       steps.append(lt2_args['lt_block_step'])
 
     self.funcs = ModuleList(funcs)
-    self.current_block_num = 0
     self.times = times
     self.steps = steps
     #adding the first func in module list as block attribute to match signature required in run_GNN.py
@@ -76,6 +78,7 @@ class GREEDLTODEblock(ODEblock):
           func.R_Ws = func.set_WS(x)
     if self.opt['function'] in ['greed_non_linear', 'greed_lie_trotter'] and self.opt['gnl_style'] == 'general_graph':
           func.gnl_W = func.set_gnlWS()
+          func.GNN_postXN = self.odefunc.GNN_postXN
           func.GNN_m2 = self.odefunc.GNN_m2
 
   def pass_stats(self, func, block_num):
@@ -85,12 +88,12 @@ class GREEDLTODEblock(ODEblock):
 
     if block_num != 0:
       prev_func = self.funcs[block_num-1]
-      if func.opt['lt_block_type'] != 'label':
-        func.fOmf = prev_func.fOmf
-        func.attentions = prev_func.attentions
-        func.L2dist = prev_func.L2dist
-        func.node_magnitudes = prev_func.node_magnitudes
-        func.node_measures = prev_func.node_measures
+      # if func.opt['lt_block_type'] != 'label':
+      func.fOmf = prev_func.fOmf
+      func.attentions = prev_func.attentions
+      func.L2dist = prev_func.L2dist
+      func.node_magnitudes = prev_func.node_magnitudes
+      func.node_measures = prev_func.node_measures
 
       func.train_accs = prev_func.train_accs
       func.val_accs = prev_func.val_accs
@@ -116,8 +119,11 @@ class GREEDLTODEblock(ODEblock):
     for block_num, (func, t, step) in enumerate(zip(self.funcs, self.times, self.steps)):
       self.set_x0(func, x)
       self.set_attributes(func, x)
+
       if func.opt['lt_block_type'] == 'label':
-        x, _ = func.predict(x)
+        logits, pred = func.predict(x)
+        Ek = F.one_hot(pred, num_classes=self.C)
+        x = Ek.float()
         self.set_x0(func, x) #reset given now in label space
         self.set_attributes(func, x)
 

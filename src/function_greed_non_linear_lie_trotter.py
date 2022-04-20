@@ -352,17 +352,13 @@ class ODEFuncGreedLieTrot(ODEFuncGreed):
     pass
 
   def predict(self, z):
-    # Activation.
-    if not self.opt['XN_no_activation']:
-      z = F.relu(z)
-    if self.opt['fc_out']:
-      z = self.fc(z)
-      z = F.relu(z)
+    z = self.GNN_postXN(z)
     logits = self.GNN_m2(z)
     pred = logits.max(1)[1]
     return logits, pred
 
   def threshold(self, z, pred, step_size):
+    #todo consider the interaction between decoder dropout, activation, augmentation and the inverse formula below
     # threshold in label space, pseudo inverse back to feature space
     Ek = F.one_hot(pred, num_classes=self.C)
     # pseudo inverse
@@ -524,21 +520,24 @@ class ODEFuncGreedLieTrot(ODEFuncGreed):
         if self.opt['lie_trotter'] == 'gen_0':
           x = x + self.opt['step_size'] * f  # take an euler step in diffusion
 
-        logits = torch.softmax(self.GNN_m2(x), dim=1)
+
+        logits, pred = self.predict(x)
+        sm_logits = torch.softmax(logits, dim=1)
         eye = torch.eye(self.C, device=self.device)
-        dist_labels = logits.unsqueeze(-1) - eye.unsqueeze(0) #[num_nodes, c, 1] - [1, c, c]
+        dist_labels = sm_logits.unsqueeze(-1) - eye.unsqueeze(0) #[num_nodes, c, 1] - [1, c, c]
         eta_hat = torch.sum(torch.abs(dist_labels),dim=1)  #sum abs distances for each node over features
         P = self.GNN_m2.weight
         index = list(range(self.C))
         for l in range(self.C):
           idx = index[:l] + index[l + 1:]
-          q_l = eta_hat[:,l] * logits[:,l]
+          q_l = eta_hat[:,l] * sm_logits[:,l]
           eta_l = torch.prod(eta_hat[:,idx]**2, dim=1) * q_l
-          f -= (-0.5 * measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
+          f -= (-0.5 * measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(sm_logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
 
-      if self.opt['lie_trotter'] == 'gen_2' and self.opt['lt_block_type'] == 'threshold':
+      if self.opt['gnl_thresholding'] and t in self.opt['threshold_times']:
+        x = x + self.opt['step_size'] * f  # take an euler step
         logits, pred = self.predict(x)
-        f = self.threshold(x, pred, self.opt['step_size'])
+        f = self.threshold(x, pred, self.opt['step_size']) #generates change needed to snap to required value
 
     #todo project every node onto embedding TSNE coordinate basis - https://discuss.pytorch.org/t/t-sne-for-pytorch/44264
 
@@ -582,8 +581,8 @@ class ODEFuncGreedLieTrot(ODEFuncGreed):
         else:
           logits, pred = self.predict(x)
 
-        train_acc, val_acc, test_acc = test(logits, self.data)
         sm_logits = torch.softmax(logits, dim=1)
+        train_acc, val_acc, test_acc = test(logits, self.data)
         homophil = homophily(edge_index=self.edge_index, y=pred)
         L2dist = torch.sqrt(torch.sum((src_x - dst_x) ** 2, dim=1))
         conf_mat, train_cm, val_cm, test_cm = self.get_confusion(self.data, pred, norm_type='true') #'all')

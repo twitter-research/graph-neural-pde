@@ -13,6 +13,7 @@ class GNN(BaseGNN):
     block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
     self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
+    self.odeblock.odefunc.GNN_postXN = self.GNN_postXN
     self.odeblock.odefunc.GNN_m2 = self.m2
 
   def encoder(self, x, pos_encoding=None):
@@ -80,21 +81,20 @@ class GNN(BaseGNN):
       z, self.reg_states = self.odeblock(x)
     else:
       z = self.odeblock(x)
+    return z
 
+  def GNN_postXN(self, z):
     if self.opt['augment']:
       z = torch.split(z, x.shape[1] // 2, dim=1)[0]
-
     # Activation.
     if not self.opt['XN_no_activation']:
       z = F.relu(z)
-
+    # fc from bottleneck
     if self.opt['fc_out']:
       z = self.fc(z)
       z = F.relu(z)
-
     # Dropout.
     z = F.dropout(z, self.opt['dropout'], training=self.training)
-
     return z
 
   def forward(self, x, pos_encoding=None):
@@ -165,11 +165,13 @@ class GNN(BaseGNN):
     # z = F.dropout(z, self.opt['dropout'], training=self.training)
 
     z = self.forward_XN(x)
-
+    z = self.GNN_postXN(z)
     ##todo: need to implement if self.opt['m2_mlp']: from base classfor GNN_early also
     # Decode each node embedding to get node label.
     if self.opt['lie_trotter'] == 'gen_2': #if we end in label diffusion block don't need to decode to logits
       if self.opt['lt_gen2_args'][-1]['lt_block_type'] != 'label':
         z = self.m2(z)
+    else:
+      z = self.m2(z)
 
     return z

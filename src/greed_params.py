@@ -132,22 +132,21 @@ def greed_ablation_params(opt):
     opt['gnl_savefolder'] = 'chameleon_testing'#'chameleon_general_drift'#'chameleon_testing'
     opt['gnl_W_style'] = 'diag_dom'#'sum' #'k_diag'#'k_block'#k_diag #'diag_dom' # 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
     opt['drift'] = False #False#True
-    opt['reports_list'] = [1,2,3,4,5,6,7]
+    # opt['reports_list'] = [1,2,3,4,5,6,7]
 
     #definitions of lie trotter
-    #None - runs greed_non_linear with just diffusion no drift
+    #None - runs greed_non_linear with just diffusion no drift but the potential to pseudo inverse threshold
     #gen_0 - alternates one step diffusion and drift
     #gen_1 - alternates ranges of diffusion and drift
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion
 
-    opt['lie_trotter'] = 'gen_2'#'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    opt['lie_trotter'] = 'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         ###!!! set function 'greed_non_linear'
         opt['block'] = 'constant'
-        #thresholding args - no thresholding for gen_0 or gen_1 ????
-        opt['gnl_thresholding'] = False #True
-
         if opt['lie_trotter'] in [None, 'gen_0']:
+            opt['gnl_thresholding'] = True
+            opt['threshold_times'] = [2,4,6]
             #solver args
             opt['time'] = 6.0
             opt['step_size'] = 1.0
@@ -160,18 +159,27 @@ def greed_ablation_params(opt):
             opt['time'] = 6.0
             opt['step_size'] = 1.0
             opt['method'] = 'euler'
-
     elif opt['lie_trotter'] == 'gen_2':
         ###!!! set function 'greed_lie_trotter'
         opt['block'] = 'greed_lie_trotter'
         #gen2 args
         #lt_block_type : 'diffusion / drift / label / threshold
-        opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]},
-                           {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]},
-                           {'lt_block_type': 'threshold', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]},
-                           {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]},
-                           {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]},
+        opt['fig_dims'] = {1: ['spectrum', 3, [1, 1, 1], (24, 32)],
+                    2: ['acc_entropy', 2, [1, 1], (24, 32)],
+                    3: ['edge_evol', 2, [1, 1], (24, 32)],
+                    4: ['node_evol', 3, [1, 1, 2], (24, 32)],
+                    5: ['node_scatter', 2, [1, 1], (24, 32)],
+                    6: ['edge_scatter', 1, [1], (24, 32)],
+                    7: ['class_dist', 2, [1, 1], (24, 32)]}
+
+        opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1]},
+                           {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': []},
+                           # {'lt_block_type': 'threshold', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]},
+                           {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1]},
+                           {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': []},
                            {'lt_block_type': 'label', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]}]
+        opt['gnl_thresholding'] = True
+        opt['threshold_times'] = [4]
         #solver args
         opt['method'] = 'euler'
 

@@ -294,7 +294,7 @@ def run_reports(epoch, model, data, opt):
                                        label=f"base_non{c}_eval_{c}")
     class_dist_ax[row, 1].xaxis.set_tick_params(labelsize=16)
     class_dist_ax[row, 1].yaxis.set_tick_params(labelsize=16)
-    class_dist_ax[row, 1].set_title(f"Class feature L2 distances evol, epoch {epoch}", fontdict={'fontsize': 24})
+    class_dist_ax[row, 1].set_title(f"Class label L2 distances evol, epoch {epoch}", fontdict={'fontsize': 24})
     class_dist_ax[row, 1].legend()
 
     if not torch.cuda.is_available():
@@ -373,7 +373,7 @@ def report_1(ax, fig, odefunc, row, epoch):
         ax[row, 1].plot(range(L.shape[0]), sort_ra.cpu().numpy(), c='tab:orange', label='r_a', zorder=5)
         ax[row, 1].legend()
 
-    ax[row, 1].set_title(f"Omega, E-values, E-vectors, epoch {epoch}", fontdict={'fontsize': 24})
+    ax[row, 1].set_title(f"Omega, E-values, E-vectors, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
     ax[row, 1].xaxis.set_tick_params(labelsize=16)
     ax[row, 1].yaxis.set_tick_params(labelsize=16)
 
@@ -403,7 +403,7 @@ def report_2(ax, fig, odefunc, row, epoch):
                                 label="homophil")
     ax[row, 0].xaxis.set_tick_params(labelsize=16)
     ax[row, 0].yaxis.set_tick_params(labelsize=16)
-    ax[row, 0].set_title(f"Accuracy evolution, epoch {epoch}", fontdict={'fontsize': 24})
+    ax[row, 0].set_title(f"Accuracy evolution, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
     ax[row, 0].legend(loc="upper right", fontsize=24)
     # fig.show()
 
@@ -437,7 +437,7 @@ def report_2(ax, fig, odefunc, row, epoch):
 
     # ax.set_title(f"Train set (num_nodes {entropies['entropy_train_mask'].shape[1]}) Entropy, epoch {epoch}")
     ax[row, 1].set_title(
-        f"Train set (num_nodes {entropies['entropy_train_mask'].shape[1]}) Entropy, epoch {epoch}",
+        f"Train set (num_nodes {entropies['entropy_train_mask'].shape[1]}) Entropy, epoch {epoch}, block {odefunc.block_num}",
         fontdict={'fontsize': 24})
     if not torch.cuda.is_available():
         fig.show()
@@ -456,13 +456,13 @@ def report_3(ax, fig, odefunc, row, epoch):
     #                          fOmf, c=color)
     ax[row, 0].xaxis.set_tick_params(labelsize=16)
     ax[row, 0].yaxis.set_tick_params(labelsize=16)
-    ax[row, 0].set_title(f"fOmf, epoch {epoch}", fontdict={'fontsize': 24})
+    ax[row, 0].set_title(f"fOmf, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
 
     L2dist = odefunc.L2dist
     ax[row, 1].plot(np.arange(0.0, L2dist.shape[0] * opt['step_size'], opt['step_size']), L2dist.cpu().numpy())
     ax[row, 1].xaxis.set_tick_params(labelsize=16)
     ax[row, 1].yaxis.set_tick_params(labelsize=16)
-    ax[row, 1].set_title(f"L2dist, epoch {epoch}", fontdict={'fontsize': 24})
+    ax[row, 1].set_title(f"L2dist, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
     if not torch.cuda.is_available():
         fig.show()
 
@@ -480,7 +480,7 @@ def report_4(ax, fig, odefunc, row, epoch):
     #                             magnitudes[:,n], color=color)
     ax[row, 0].xaxis.set_tick_params(labelsize=16)
     ax[row, 0].yaxis.set_tick_params(labelsize=16)
-    ax[row, 0].set_title(f"f magnitudes, epoch {epoch}", fontdict={'fontsize': 24})
+    ax[row, 0].set_title(f"f magnitudes, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
 
     measures = odefunc.node_measures
     ax[row, 1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']), measures.cpu().numpy())
@@ -493,7 +493,7 @@ def report_4(ax, fig, odefunc, row, epoch):
     #                             measures[:,n], color=color)
     ax[row, 1].xaxis.set_tick_params(labelsize=16)
     ax[row, 1].yaxis.set_tick_params(labelsize=16)
-    ax[row, 1].set_title(f"Node measures, epoch {epoch}", fontdict={'fontsize': 24})
+    ax[row, 1].set_title(f"Node measures, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
     # fig.show()
 
     confusions = odefunc.confusions
@@ -511,7 +511,7 @@ def report_4(ax, fig, odefunc, row, epoch):
 
     ax[row, 2].xaxis.set_tick_params(labelsize=16)
     ax[row, 2].yaxis.set_tick_params(labelsize=16)
-    ax[row, 2].set_title(f"Correct preds evol, epoch {epoch}", fontdict={'fontsize': 24})
+    ax[row, 2].set_title(f"Correct preds evol, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
     ax[row, 2].legend()
     if not torch.cuda.is_available():
         fig.show()
@@ -525,14 +525,14 @@ def report_5(ax, fig, odefunc, row, epoch):
     ax[row, 0].scatter(x=magnitudes[-1, :].cpu().numpy(), y=node_homophils.cpu().numpy(), c=labels.cpu().numpy())  # , cmap='Set1')
     ax[row, 0].xaxis.set_tick_params(labelsize=16)
     ax[row, 0].yaxis.set_tick_params(labelsize=16)
-    ax[row, 0].set_title(f"f magnitudes v node homophils, epoch {epoch}", fontdict={'fontsize': 24})
+    ax[row, 0].set_title(f"f magnitudes v node homophils, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
 
     # node measure against degree or homophilly, colour is class
     measures = odefunc.node_measures
     ax[row, 1].scatter(x=measures[-1, :].cpu().numpy(), y=node_homophils.cpu().numpy(), c=labels.cpu().numpy())  # , cmap='Set1')
     ax[row, 1].xaxis.set_tick_params(labelsize=16)
     ax[row, 1].yaxis.set_tick_params(labelsize=16)
-    ax[row, 1].set_title(f"Node measures v node homophils, epoch {epoch}", fontdict={'fontsize': 24})
+    ax[row, 1].set_title(f"Node measures v node homophils, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
     if not torch.cuda.is_available():
         fig.show()
 
@@ -550,7 +550,7 @@ def report_6(ax, fig, odefunc, row, epoch):
 
     ax[row].xaxis.set_tick_params(labelsize=16)
     ax[row].yaxis.set_tick_params(labelsize=16)
-    ax[row].set_title(f"Edge fOmf against L2, epoch {epoch}", fontdict={'fontsize': 24})
+    ax[row].set_title(f"Edge fOmf against L2, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
     ax[row].legend(loc="upper right", fontsize=24)
     if not torch.cuda.is_available():
         fig.show()
@@ -577,7 +577,7 @@ def report_7(ax, fig, odefunc, row, epoch):
                                        label=f"base_non{c}_eval_{c}")
     ax[row, 0].xaxis.set_tick_params(labelsize=16)
     ax[row, 0].yaxis.set_tick_params(labelsize=16)
-    ax[row, 0].set_title(f"Class feature L2 distances evol, epoch {epoch}", fontdict={'fontsize': 24})
+    ax[row, 0].set_title(f"Class feature L2 distances evol, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
     ax[row, 0].legend()
 
     #column 1
@@ -595,7 +595,7 @@ def report_7(ax, fig, odefunc, row, epoch):
                                        label=f"base_non{c}_eval_{c}")
     ax[row, 1].xaxis.set_tick_params(labelsize=16)
     ax[row, 1].yaxis.set_tick_params(labelsize=16)
-    ax[row, 1].set_title(f"Class feature L2 distances evol, epoch {epoch}", fontdict={'fontsize': 24})
+    ax[row, 1].set_title(f"Class label L2 distances evol, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
     ax[row, 1].legend()
 
     if not torch.cuda.is_available():
@@ -612,25 +612,25 @@ def run_reports_lie_trotter(odefunc):
     row = idx % num_rows
 
     # self.pdf_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter']
-    fig_dims = {1: ['spectrum', 3, [1, 1, 1], (24, 32)],
-                2: ['acc_entropy', 2, [1, 1], (24, 32)],
-                3: ['edge_evol', 2, [1, 1], (24, 32)],
-                4: ['node_evol', 3, [1, 1, 2], (24, 32)],
-                5: ['node_scatter', 2, [1, 1], (24, 32)],
-                6: ['edge_scatter', 1, [1], (24, 32)],
-                7: ['class_dist', 2, [1, 1], (24, 32)]}
+    # fig_dims = {1: ['spectrum', 3, [1, 1, 1], (24, 32)],
+    #             2: ['acc_entropy', 2, [1, 1], (24, 32)],
+    #             3: ['edge_evol', 2, [1, 1], (24, 32)],
+    #             4: ['node_evol', 3, [1, 1, 2], (24, 32)],
+    #             5: ['node_scatter', 2, [1, 1], (24, 32)],
+    #             6: ['edge_scatter', 1, [1], (24, 32)],
+    #             7: ['class_dist', 2, [1, 1], (24, 32)]}
 
     reports_nums = opt['reports_list']
     for rep_num in reports_nums:
         report_num = globals()[f"report_{rep_num}"]
 
         if row == 0:  # create new figs and pdfs
-            desc, cols, widths, fig_size = fig_dims[rep_num]
+            desc, cols, widths, fig_size = odefunc.opt['fig_dims'][rep_num]
             fig, ax = plt.subplots(num_rows, cols, gridspec_kw={'width_ratios': widths}, figsize=fig_size)
             if hasattr(odefunc, f"report{str(rep_num)}_fig_list"):
                 odefunc.getattr(f"report{str(rep_num)}_fig_list").append([fig, ax])
             else:
-                setattr(odefunc, f"report{str(rep_num)}_fig_list", [fig, ax])
+                setattr(odefunc, f"report{str(rep_num)}_fig_list", [[fig, ax]])
                 savefolder = f"./plots/{opt['gnl_savefolder']}"
                 setattr(odefunc, f"report{str(rep_num)}_pdf", PdfPages(f"{savefolder}/{desc}.pdf"))
         else:
