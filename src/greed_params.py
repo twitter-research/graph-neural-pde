@@ -173,7 +173,7 @@ def greed_ablation_params(opt):
     #gen_1 - alternates ranges of diffusion and drift (ie eq 43-44)
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion
 
-    opt['lie_trotter'] = None #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    opt['lie_trotter'] = 'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         ###!!! set function 'greed_non_linear'
         opt['function'] = 'greed_non_linear'
@@ -203,11 +203,11 @@ def greed_ablation_params(opt):
         #lt_block_type : 'diffusion / drift / label / threshold
         # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist]
 
-        opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
-                           {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None,'reports_list': []},
-                           {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': 0, 'reports_list': []},#[1]},
-                           {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': []},
-                           {'lt_block_type': 'label', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': []}]#[1,2]}]#,3,4,5,6,7]}]
+        opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
+                            {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': []},
+                            {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0,'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
+                            {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': []},
+                            {'lt_block_type': 'label', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1,2,3,4,5,6,7]}]
 
         #solver args
         opt['method'] = 'euler'

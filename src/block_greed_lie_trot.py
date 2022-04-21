@@ -24,11 +24,12 @@ class GREEDLTODEblock(ODEblock):
       opt2['time'] = lt2_args['lt_block_time']
       opt2['step_size'] = lt2_args['lt_block_step']
       opt2['hidden_dim'] = lt2_args['lt_block_dimension']
-      opt2['share_block'] = lt2_args['share_block']
+      if 'share_block' in lt2_args.keys():
+        opt2['share_block'] = lt2_args['share_block']
       opt2['reports_list'] = lt2_args['reports_list']
 
       odefunc = ODEFuncGreedLieTrot
-      if opt2['share_block']:
+      if opt2['share_block'] is not None:
         func = self.funcs[opt2['share_block']]
       else:
         if opt2['lt_block_type'] == 'label':
