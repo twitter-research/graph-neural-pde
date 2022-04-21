@@ -638,15 +638,15 @@ def run_reports_lie_trotter(odefunc):
 
         report_func(ax, fig, odefunc, row, epoch)
 
-    #save fig to pdf
-    if (row == num_rows - 1 or epoch == opt['wandb_epoch_list'][-1]) and opt['save_local_reports']:
-        getattr(odefunc, f"report{str(rep_num)}_pdf").savefig(fig)
-    #log fig to wandb
-    if (row == num_rows - 1 or epoch == opt['wandb_epoch_list'][-1]) and opt['save_wandb_reports']:
-        wandb.log({f"report{str(rep_num)}_fig_{idx // num_rows}": wandb.Image(fig)})
-    #close pdf
-    if epoch == opt['wandb_epoch_list'][-1] and opt['save_local_reports']:
-        getattr(odefunc, f"report{str(rep_num)}_pdf").close()
+        #save fig to pdf
+        if (row == num_rows - 1 or epoch == opt['wandb_epoch_list'][-1]) and opt['save_local_reports']:
+            getattr(odefunc, f"report{str(rep_num)}_pdf").savefig(fig)
+        #log fig to wandb
+        if (row == num_rows - 1 or epoch == opt['wandb_epoch_list'][-1]) and opt['save_wandb_reports']:
+            wandb.log({f"report{str(rep_num)}_fig_{idx // num_rows}": wandb.Image(fig)})
+        #close pdf
+        if epoch == opt['wandb_epoch_list'][-1] and opt['save_local_reports']:
+            getattr(odefunc, f"report{str(rep_num)}_pdf").close()
 
     reset_stats(odefunc)
 
