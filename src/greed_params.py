@@ -131,22 +131,35 @@ def greed_ablation_params(opt):
     opt['gnl_measure'] = 'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
     opt['gnl_savefolder'] = 'chameleon_testing'#'chameleon_general_drift'#'chameleon_testing'
     opt['gnl_W_style'] = 'diag_dom'#'sum' #'k_diag'#'k_block'#k_diag #'diag_dom' # 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
-    opt['drift'] = False #False#True
     # opt['reports_list'] = [1,2,3,4,5,6,7]
 
+    opt['geom_gcn_splits'] = True #False#True
+    opt['epoch'] = 129 #255#129 #254 #100 #40 #40 #10
+    opt['num_splits'] = 1#4#1
+    # opt['max_iters'] = 10000
+
+    #run params
+    opt['optimizer'] = 'adam'
+    opt['lr'] = 0.005
+    opt['dropout'] = 0.6
+    opt['decay'] = 0.0
+    opt['hidden_dim'] = 256 #512
+    opt['use_best_params'] = False #True
+
     #definitions of lie trotter
-    #None - runs greed_non_linear with just diffusion no drift but the potential to pseudo inverse threshold
-    #gen_0 - alternates one step diffusion and drift
-    #gen_1 - alternates ranges of diffusion and drift
+    #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
+    #gen_0 - alternates one step diffusion and drift in alternating lie-trotter scheme (ie eq 42)
+    #gen_1 - alternates ranges of diffusion and drift (ie eq 43-44)
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion
 
     opt['lie_trotter'] = 'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         ###!!! set function 'greed_non_linear'
         opt['block'] = 'constant'
+        opt['drift'] = True  # False#True
+        opt['gnl_thresholding'] = False
         if opt['lie_trotter'] in [None, 'gen_0']:
-            opt['gnl_thresholding'] = True
-            opt['threshold_times'] = [2,4,6]
+            opt['threshold_times'] = [2,4] #takes an euler step that would have been taken in drift diffusion and also thresholds between t->t+1
             #solver args
             opt['time'] = 6.0
             opt['step_size'] = 1.0
@@ -174,13 +187,10 @@ def greed_ablation_params(opt):
 
         opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1]},
                            {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': []},
-                           # {'lt_block_type': 'threshold', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2,3,4,5,6,7]},
-                           {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1]},
+                           {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': []},#[1]},
                            {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': []},
-                           {'lt_block_type': 'label', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1,2]}]#,3,4,5,6,7]}]
+                           {'lt_block_type': 'label', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': []}]#[1,2]}]#,3,4,5,6,7]}]
 
-        opt['gnl_thresholding'] = True
-        opt['threshold_times'] = [4]
         #solver args
         opt['method'] = 'euler'
 
@@ -214,19 +224,6 @@ def greed_ablation_params(opt):
     opt['gcn_symm'] = True
     opt['gcn_bias'] = True
     opt['gcn_mid_dropout'] = False
-
-    opt['geom_gcn_splits'] = True #False#True
-    opt['epoch'] = 129 #255#129 #254 #100 #40 #40 #10
-    opt['num_splits'] = 1#4#1
-    # opt['max_iters'] = 10000
-
-    #run params
-    opt['optimizer'] = 'adam'
-    opt['lr'] = 0.005
-    opt['dropout'] = 0.6
-    opt['decay'] = 0.0
-    opt['hidden_dim'] = 256 #512
-    opt['use_best_params'] = False #True
 
     return opt
 

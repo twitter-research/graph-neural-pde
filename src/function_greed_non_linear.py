@@ -499,9 +499,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         f = torch.exp(self.drift_eps) * f
 
         if self.opt['lie_trotter'] == 'gen_0':
-          x = x + self.opt['step_size'] * f  # take an euler step in diffusion direction
+          z = x + self.opt['step_size'] * f  # take an euler step in diffusion direction
 
-        logits, pred = self.predict(x)
+        logits, pred = self.predict(z)
         sm_logits = torch.softmax(logits, dim=1)
         eye = torch.eye(self.C, device=self.device)
         dist_labels = sm_logits.unsqueeze(-1) - eye.unsqueeze(0) #[num_nodes, c, 1] - [1, c, c]
@@ -515,7 +515,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           f -= self.opt['step_size'] * (-0.5 * measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(sm_logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
 
       if self.opt['gnl_thresholding'] and t in self.opt['threshold_times']:
-        x = x + self.opt['step_size'] * f  # take an euler step
+        x = x + self.opt['step_size'] * f  #take an euler step that would have been taken
         logits, pred = self.predict(x)
         f = self.threshold(x, pred, self.opt['step_size']) #generates change needed to snap to required value
 

@@ -622,13 +622,13 @@ def run_reports_lie_trotter(odefunc):
 
     reports_nums = opt['reports_list']
     for rep_num in reports_nums:
-        report_num = globals()[f"report_{rep_num}"]
+        report_func = globals()[f"report_{rep_num}"]
 
         if row == 0:  # create new figs and pdfs
             desc, cols, widths, fig_size = odefunc.opt['fig_dims'][rep_num]
             fig, ax = plt.subplots(num_rows, cols, gridspec_kw={'width_ratios': widths}, figsize=fig_size)
             if hasattr(odefunc, f"report{str(rep_num)}_fig_list"):
-                odefunc.getattr(f"report{str(rep_num)}_fig_list").append([fig, ax])
+                getattr(odefunc, f"report{str(rep_num)}_fig_list").append([fig, ax])
             else:
                 setattr(odefunc, f"report{str(rep_num)}_fig_list", [[fig, ax]])
                 savefolder = f"./plots/{opt['gnl_savefolder']}"
@@ -636,7 +636,7 @@ def run_reports_lie_trotter(odefunc):
         else:
             fig, ax = getattr(odefunc, f"report{str(rep_num)}_fig_list")[-1]
 
-        report_num(ax, fig, odefunc, row, epoch)
+        report_func(ax, fig, odefunc, row, epoch)
 
     #save fig to pdf
     if (row == num_rows - 1 or epoch == opt['wandb_epoch_list'][-1]) and opt['save_local_reports']:
