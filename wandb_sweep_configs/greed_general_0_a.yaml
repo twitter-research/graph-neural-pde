@@ -32,7 +32,7 @@ parameters:
   step_size:
     values: [1.0]
   hidden_dim:
-    values: [32, 64, 128, 254, 512]
+    values: [64, 128, 254, 512]
   time:
     values: [2, 3, 4]
   input_dropout:
