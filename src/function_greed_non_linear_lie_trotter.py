@@ -517,9 +517,10 @@ class ODEFuncGreedLieTrot(ODEFuncGreed):
           f = torch.zeros(x.shape, device=self.device)
         f = torch.exp(self.drift_eps) * f
 
-        # gen_0  oesn't hit this block
-        # if self.opt['lie_trotter'] == 'gen_0': #
-        #   x = x + self.opt['step_size'] * f  # take an euler step in diffusion
+        # gen_0  doesn't hit this block
+        # x_temp = x
+        # if self.opt['lie_trotter'] == 'gen_0':
+        #   x_temp = x_temp + self.opt['step_size'] * f  # take an euler step in diffusion direction
 
         logits, pred = self.predict(x)
         sm_logits = torch.softmax(logits, dim=1)

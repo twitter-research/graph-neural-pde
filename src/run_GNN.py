@@ -18,7 +18,7 @@ from data import get_dataset, set_train_val_test_split
 from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling, dirichlet_energy
 from best_params import best_params_dict
 from greed_params import greed_test_params, greed_run_params, greed_hyper_params, greed_ablation_params, tf_ablation_args, not_sweep_args
-from reports import run_reports, run_reports_lie_trotter, reports_manager
+from reports import reports_manager #run_reports, run_reports_lie_trotter, reports_manager
 from heterophilic import get_fixed_splits
 
 
@@ -168,10 +168,7 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
         model.odeblock.odefunc.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
 
     if opt['run_track_reports'] and epoch in opt['wandb_epoch_list']:
-        if opt['lie_trotter'] == 'gen_2':
-            reports_manager(model, data)
-        else:
-            run_reports(epoch, model, data, opt)
+        reports_manager(model, data)
 
     return accs
 

@@ -115,24 +115,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       else:
         print("Successfully created the directory %s " % savefolder)
 
-      self.spectrum_fig_list = []
-      self.acc_entropy_fig_list = []
-      self.edge_evol_fig_list = []
-      self.node_evol_fig_list = []
-      self.node_scatter_fig_list = []
-      self.edge_scatter_fig_list = []
-      self.class_dist_fig_list = []
-
-      if opt['save_local_reports']:
-        self.pdf_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter']
-        self.spectrum_pdf = PdfPages(f"{savefolder}/spectrum.pdf")
-        self.acc_entropy_pdf = PdfPages(f"{savefolder}/acc_entropy.pdf")
-        self.edge_evol_pdf = PdfPages(f"{savefolder}/edge_evol.pdf")
-        self.node_evol_pdf = PdfPages(f"{savefolder}/node_evol.pdf")
-        self.node_scatter_pdf = PdfPages(f"{savefolder}/node_scatter.pdf")
-        self.edge_scatter_pdf = PdfPages(f"{savefolder}/edge_scatter.pdf")
-        self.class_dist_pdf = PdfPages(f"{savefolder}/class_dist.pdf")
-
     self.epoch = 0
     self.wandb_step = 0
     self.prev_grad = None
@@ -497,11 +479,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         if not self.do_diffusion(t):
           f = torch.zeros(x.shape, device=self.device)
         f = torch.exp(self.drift_eps) * f
-
+        x_temp = x
         if self.opt['lie_trotter'] == 'gen_0':
-          z = x + self.opt['step_size'] * f  # take an euler step in diffusion direction
+          x_temp = x_temp + self.opt['step_size'] * f  # take an euler step in diffusion direction
 
-        logits, pred = self.predict(z)
+        logits, pred = self.predict(x_temp)
         sm_logits = torch.softmax(logits, dim=1)
         eye = torch.eye(self.C, device=self.device)
         dist_labels = sm_logits.unsqueeze(-1) - eye.unsqueeze(0) #[num_nodes, c, 1] - [1, c, c]
@@ -515,7 +497,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           f -= self.opt['step_size'] * (-0.5 * measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(sm_logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
 
       if self.opt['gnl_thresholding'] and t in self.opt['threshold_times']:
-        x = x + self.opt['step_size'] * f  #take an euler step that would have been taken
+        x = x + self.opt['step_size'] * f  #take an euler step that would have been taken from diff and dift gradients
         logits, pred = self.predict(x)
         f = self.threshold(x, pred, self.opt['step_size']) #generates change needed to snap to required value
 
@@ -564,8 +546,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         homophil = homophily(edge_index=self.edge_index, y=pred)
         L2dist = torch.sqrt(torch.sum((src_x - dst_x) ** 2, dim=1))
         conf_mat, train_cm, val_cm, test_cm = self.get_confusion(self.data, pred, norm_type='true') #'all')
-        eval_means_feat, eval_sds_feat = self.get_distances(self.data, x, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask])
-        eval_means_label, eval_sds_label = self.get_distances(self.data, sm_logits, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask])
+        eval_means_feat, eval_sds_feat = self.get_distances(self.data, x, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask], base_type="train_avg")
+        eval_means_label, eval_sds_label = self.get_distances(self.data, sm_logits, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask], base_type="e_k")
 
         if self.attentions is None:
           self.attentions = attention.unsqueeze(0)
@@ -652,10 +634,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           L2dist = torch.sqrt(torch.sum((src_z - dst_z) ** 2, dim=1))
           conf_mat, train_cm, val_cm, test_cm = self.get_confusion(self.data, pred, norm_type='true')  # 'all')
           eval_means_feat, eval_sds_feat = self.get_distances(self.data, z, self.C, base_mask=self.data.train_mask,
-                                                              eval_masks=[self.data.val_mask, self.data.test_mask])
+                                                              eval_masks=[self.data.val_mask, self.data.test_mask], base_type='train_avg')
           eval_means_label, eval_sds_label = self.get_distances(self.data, sm_logits, self.C,
                                                                 base_mask=self.data.train_mask,
-                                                                eval_masks=[self.data.val_mask, self.data.test_mask])
+                                                                eval_masks=[self.data.val_mask, self.data.test_mask], base_type='e_k')
 
           self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
           self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
@@ -734,14 +716,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       conf_mat / num_nodes
     return conf_mat
 
-  def get_distances(self, data, x, num_class, base_mask, eval_masks):
+  def get_distances(self, data, x, num_class, base_mask, eval_masks, base_type):
     #this should work for features or preds/label space
     base_av = torch.zeros((num_class, x.shape[-1]), device=self.device)
     #calculate average hidden state per class in the baseline set - [C, d]
-    for c in range(num_class):
-      base_c_mask = data.y[base_mask] == c
-      base_av_c = x[base_mask][base_c_mask].mean(dim=0)
-      base_av[c] = base_av_c
+    if base_type == 'train_avg':
+      for c in range(num_class):
+        base_c_mask = data.y[base_mask] == c
+        base_av_c = x[base_mask][base_c_mask].mean(dim=0)
+        base_av[c] = base_av_c
+    elif base_type == 'e_k':
+      base_av = torch.eye(num_class, device=self.device)
 
     #for every node calcualte the L2 distance - [N, C] and [N, C]
     #todo for label space calc distance from Ek

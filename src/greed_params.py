@@ -152,12 +152,14 @@ def greed_ablation_params(opt):
     #gen_1 - alternates ranges of diffusion and drift (ie eq 43-44)
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion
 
-    opt['lie_trotter'] = 'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    opt['lie_trotter'] = None #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         ###!!! set function 'greed_non_linear'
+        opt['function'] = 'greed_non_linear'
         opt['block'] = 'constant'
         opt['drift'] = True  # False#True
         opt['gnl_thresholding'] = False
+        opt['reports_list'] = [1, 2]
         if opt['lie_trotter'] in [None, 'gen_0']:
             opt['threshold_times'] = [2,4] #takes an euler step that would have been taken in drift diffusion and also thresholds between t->t+1
             #solver args
@@ -177,13 +179,8 @@ def greed_ablation_params(opt):
         opt['block'] = 'greed_lie_trotter'
         #gen2 args
         #lt_block_type : 'diffusion / drift / label / threshold
-        opt['fig_dims'] = {1: ['spectrum', 3, [1, 1, 1], (24, 32)],
-                    2: ['acc_entropy', 2, [1, 1], (24, 32)],
-                    3: ['edge_evol', 2, [1, 1], (24, 32)],
-                    4: ['node_evol', 3, [1, 1, 2], (24, 32)],
-                    5: ['node_scatter', 2, [1, 1], (24, 32)],
-                    6: ['edge_scatter', 1, [1], (24, 32)],
-                    7: ['class_dist', 2, [1, 1], (24, 32)]}
+        # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist]
+
 
         opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
                            {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None,'reports_list': []},
