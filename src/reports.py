@@ -276,7 +276,7 @@ def run_reports(odefunc):
     row = idx % num_rows
 
     # self.pdf_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter']
-    opt.fig_dims = {1: ['spectrum', 3, [1, 1, 1], (24, 32)],
+    opt['fig_dims'] = {1: ['spectrum', 3, [1, 1, 1], (24, 32)],
                 2: ['acc_entropy', 2, [1, 1], (24, 32)],
                 3: ['edge_evol', 2, [1, 1], (24, 32)],
                 4: ['node_evol', 3, [1, 1, 2], (24, 32)],
