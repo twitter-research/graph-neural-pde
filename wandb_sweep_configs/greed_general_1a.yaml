@@ -61,4 +61,4 @@ command:
   - --wandb
   - --wandb_sweep
 entity: graph_neural_diffusion
-project: greed_general_1
+project: greed_general_1a
