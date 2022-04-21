@@ -185,11 +185,11 @@ def greed_ablation_params(opt):
                     6: ['edge_scatter', 1, [1], (24, 32)],
                     7: ['class_dist', 2, [1, 1], (24, 32)]}
 
-        opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': [1]},
-                           {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': []},
-                           {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': []},#[1]},
-                           {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': []},
-                           {'lt_block_type': 'label', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'reports_list': []}]#[1,2]}]#,3,4,5,6,7]}]
+        opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
+                           {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None,'reports_list': []},
+                           {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': 0, 'reports_list': []},#[1]},
+                           {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': []},
+                           {'lt_block_type': 'label', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': []}]#[1,2]}]#,3,4,5,6,7]}]
 
         #solver args
         opt['method'] = 'euler'

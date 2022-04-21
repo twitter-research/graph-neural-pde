@@ -24,12 +24,17 @@ class GREEDLTODEblock(ODEblock):
       opt2['time'] = lt2_args['lt_block_time']
       opt2['step_size'] = lt2_args['lt_block_step']
       opt2['hidden_dim'] = lt2_args['lt_block_dimension']
+      opt2['share_block'] = lt2_args['share_block']
       opt2['reports_list'] = lt2_args['reports_list']
+
       odefunc = ODEFuncGreedLieTrot
-      if opt2['lt_block_type'] == 'label':
-        func = odefunc( self.C, self.C, opt2, data, device)
+      if opt2['share_block']:
+        func = self.funcs[opt2['share_block']]
       else:
-        func = odefunc(self.aug_dim * opt2['hidden_dim'], self.aug_dim * opt2['hidden_dim'], opt2, data, device)
+        if opt2['lt_block_type'] == 'label':
+          func = odefunc( self.C, self.C, opt2, data, device)
+        else:
+          func = odefunc(self.aug_dim * opt2['hidden_dim'], self.aug_dim * opt2['hidden_dim'], opt2, data, device)
       edge_index, edge_weight = get_rw_adj(data.edge_index, edge_weight=data.edge_attr, norm_dim=1,
                                            fill_value=opt2['self_loop_weight'],
                                            num_nodes=data.num_nodes,
