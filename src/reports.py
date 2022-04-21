@@ -94,7 +94,8 @@ def report_2(ax, fig, odefunc, row, epoch):
                                                 entropies['entropy_train_mask'][:, i].reshape(-1, 1).cpu().numpy()], axis=1), axis=1)
         segs = np.concatenate([points[:-1], points[1:]], axis=1)
         lc = LineCollection(segs, cmap=cmap, norm=norm)
-        lc.set_array(tf[:-1])
+        # lc.set_array(tf[:-1]) #correctness at time at start of segment decides colouring
+        lc.set_array(tf[1:]) #correctness at time at end of segment decides colouring
         # ax.add_collection(lc)
         ax[row, 1].add_collection(lc)
 
