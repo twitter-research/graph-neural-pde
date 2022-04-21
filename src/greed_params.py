@@ -126,18 +126,6 @@ def greed_ablation_params(opt):
     opt['XN_no_activation'] = True #False
     opt['m2_mlp'] = False #False
 
-    #greed_non_linear params
-    opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
-    opt['gnl_measure'] = 'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
-    opt['gnl_savefolder'] = 'chameleon_testing'#'chameleon_general_drift'#'chameleon_testing'
-    opt['gnl_W_style'] = 'diag_dom'#'sum' #'k_diag'#'k_block'#k_diag #'diag_dom' # 'cgnn'#'cgnn'# 'GS'#sum, prod, GS, cgnn
-    # opt['reports_list'] = [1,2,3,4,5,6,7]
-
-    opt['geom_gcn_splits'] = True #False#True
-    opt['epoch'] = 129 #255#129 #254 #100 #40 #40 #10
-    opt['num_splits'] = 1#4#1
-    # opt['max_iters'] = 10000
-
     #run params
     opt['optimizer'] = 'adam'
     opt['lr'] = 0.005
@@ -145,6 +133,39 @@ def greed_ablation_params(opt):
     opt['decay'] = 0.0
     opt['hidden_dim'] = 256 #512
     opt['use_best_params'] = False #True
+
+    #greed_non_linear params
+    opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
+    opt['gnl_measure'] = 'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
+    opt['gnl_savefolder'] = 'chameleon_testing'#'chameleon_general_drift'#'chameleon_testing'
+
+    if opt['gnl_style'] == 'scaled_dot':
+        opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
+        opt['dim_p_w'] = 16 #4
+        opt['gnl_activation'] = 'squareplus_deriv' # exponential sigmoid_deriv tanh_deriv, squareplus_deriv
+        opt['gnl_omega_norm'] = 'tanh' #"rowSum"
+    elif opt['gnl_style'] == 'softmax_attention':
+        opt['symmetric_attention'] = True #should be redundant
+        opt['attention_type'] = "scaled_dot"
+        opt['symmetric_QK'] = True
+        opt['attention_activation'] = 'softmax'#'softmax' #, exponential
+        opt['attention_normalisation'] = 'none'
+    elif opt['gnl_style'] == 'general_graph':
+        opt['gnl_W_style'] = 'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_omega'] = 'diag'#'zero' #'diag' #'sum' #'attr_rep' 'product'  #method to make Omega symmetric
+        opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
+        if opt['gnl_W_style'] == 'k_block':
+        # assert in_features % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= in_features, 'must have odd number of k diags'
+            opt['k_blocks'] = 2#1
+            opt['block_size'] = 5
+        elif opt['gnl_W_style'] == 'k_diag':
+            # assert opt['k_diags'] % 2 == 1 and opt['k_diags'] <= in_features, 'must have odd number of k diags'
+            opt['k_diags'] = 13
+
+    opt['geom_gcn_splits'] = True #False#True
+    opt['epoch'] = 129 #6#9#129 #255#129 #254 #100 #40 #40 #10
+    opt['num_splits'] = 1#4#1
+    # opt['max_iters'] = 10000
 
     #definitions of lie trotter
     #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
@@ -159,11 +180,12 @@ def greed_ablation_params(opt):
         opt['block'] = 'constant'
         opt['drift'] = True  # False#True
         opt['gnl_thresholding'] = False
-        opt['reports_list'] = [1, 2]
+        opt['reports_list'] = [1,2,3,4,5,6,7] # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist]
+
         if opt['lie_trotter'] in [None, 'gen_0']:
             opt['threshold_times'] = [2,4] #takes an euler step that would have been taken in drift diffusion and also thresholds between t->t+1
             #solver args
-            opt['time'] = 6.0
+            opt['time'] = 2.0
             opt['step_size'] = 1.0
             opt['method'] = 'euler'
         elif opt['lie_trotter'] == 'gen_1':
@@ -181,7 +203,6 @@ def greed_ablation_params(opt):
         #lt_block_type : 'diffusion / drift / label / threshold
         # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist]
 
-
         opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
                            {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None,'reports_list': []},
                            {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': 0, 'reports_list': []},#[1]},
@@ -191,27 +212,9 @@ def greed_ablation_params(opt):
         #solver args
         opt['method'] = 'euler'
 
-    if opt['gnl_style'] == 'scaled_dot':
-        opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
-        opt['dim_p_w'] = 16 #4
-        opt['gnl_activation'] = 'squareplus_deriv' # exponential sigmoid_deriv tanh_deriv, squareplus_deriv
-        opt['gnl_omega_norm'] = 'tanh' #"rowSum"
-    elif opt['gnl_style'] == 'softmax_attention':
-        opt['symmetric_attention'] = True #should be redundant
-        opt['attention_type'] = "scaled_dot"
-        opt['symmetric_QK'] = True
-        opt['attention_activation'] = 'softmax'#'softmax' #, exponential
-        opt['attention_normalisation'] = 'none'
-    elif opt['gnl_style'] == 'general_graph':
-        opt['gnl_omega'] = 'zero' #'diag' #'sum' #'attr_rep' 'product'  #method to make Omega symmetric
-        opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
-        if opt['gnl_W_style'] == 'k_block':
-        # assert in_features % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= in_features, 'must have odd number of k diags'
-            opt['k_blocks'] = 2#1
-            opt['block_size'] = 5
-        elif opt['gnl_W_style'] == 'k_diag':
-            # assert opt['k_diags'] % 2 == 1 and opt['k_diags'] <= in_features, 'must have odd number of k diags'
-            opt['k_diags'] = 13
+    opt['wandb_entity'] = "graph_neural_diffusion"
+    opt['wandb_project'] = "reporting_runs_drift"
+    opt['wandb_group'] = "reporting_group"
 
     #gcn params
     # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
@@ -226,13 +229,14 @@ def greed_ablation_params(opt):
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = False #True #False #True
+    opt['wandb'] = True #True #False #True
     opt['wandb_track_grad_flow'] = True #False  #run the evolution reports
     opt['wandb_watch_grad'] = False
     opt['run_track_reports'] = True #False#True
     opt['save_local_reports'] = True
-    opt['save_wandb_reports'] = False
+    opt['save_wandb_reports'] = True
     opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
+    # opt['wandb_epoch_list'] = [1,2,3,4,5]#,6,7,8]
     opt['wandb_project'] = project_name #"greed_runs"
     opt['wandb_group'] = group_name #"testing"  # "tuning" eval
     DT = datetime.datetime.now()
