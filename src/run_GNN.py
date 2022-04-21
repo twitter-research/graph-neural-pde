@@ -697,7 +697,9 @@ if __name__ == '__main__':
     parser.add_argument('--tau_residual', type=str, default='False', help='makes tau residual')
 
     parser.add_argument('--drift', type=str, default='False', help='turns on drift')
-    parser.add_argument('--lie_trotter', type=str, default='gen_0', help='gen_0, gen_1, gen_2')
+    parser.add_argument('--gnl_thresholding', type=str, default='False', help='turns on pseudo inverse thresholding')
+    parser.add_argument('--lie_trotter', type=str, default=None, help='None, gen_0, gen_1, gen_2')
+
 
     # GCN ablation args
     parser.add_argument('--gcn_fixed', type=str, default='False', help='fixes layers in gcn')
