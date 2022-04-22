@@ -107,16 +107,16 @@ class GREEDLTODEblock(ODEblock):
       func.test_accs = prev_func.test_accs[:end_idx]
       func.homophils = prev_func.homophils[:end_idx]
       func.entropies = {k: v[:end_idx,:] for k,v in prev_func.entropies.items()}
-      func.confusions = [cf[:,:,end_idx] for cf in prev_func.confusions]
+      func.confusions = [cf[:,:,:end_idx] for cf in prev_func.confusions]
 
-      func.val_dist_mean_feat = prev_func.val_dist_mean_feat[:,:,end_idx]
-      func.val_dist_sd_feat = prev_func.val_dist_sd_feat[:,:,end_idx]
-      func.test_dist_mean_feat = prev_func.test_dist_mean_feat[:,:,end_idx]
-      func.test_dist_sd_feat = prev_func.test_dist_sd_feat[:,:,end_idx]
-      func.val_dist_mean_label = prev_func.val_dist_mean_label[:,:,end_idx]
-      func.val_dist_sd_label = prev_func.val_dist_sd_label[:,:,end_idx]
-      func.test_dist_mean_label = prev_func.test_dist_mean_label[:,:,end_idx]
-      func.test_dist_sd_label = prev_func.test_dist_sd_label[:,:,end_idx]
+      func.val_dist_mean_feat = prev_func.val_dist_mean_feat[:,:,:end_idx]
+      func.val_dist_sd_feat = prev_func.val_dist_sd_feat[:,:,:end_idx]
+      func.test_dist_mean_feat = prev_func.test_dist_mean_feat[:,:,:end_idx]
+      func.test_dist_sd_feat = prev_func.test_dist_sd_feat[:,:,:end_idx]
+      func.val_dist_mean_label = prev_func.val_dist_mean_label[:,:,:end_idx]
+      func.val_dist_sd_label = prev_func.val_dist_sd_label[:,:,:end_idx]
+      func.test_dist_mean_label = prev_func.test_dist_mean_label[:,:,:end_idx]
+      func.test_dist_sd_label = prev_func.test_dist_sd_label[:,:,:end_idx]
 
   def forward(self, x):
     integrator = self.train_integrator if self.training else self.test_integrator
