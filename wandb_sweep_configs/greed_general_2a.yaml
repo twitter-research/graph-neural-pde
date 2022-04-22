@@ -47,7 +47,7 @@ parameters:
     values: [adam]
   lr:
     distribution: uniform
-    min: 0.0002
+    min: 0.004
     max: 0.01
   decay:
     distribution: uniform
