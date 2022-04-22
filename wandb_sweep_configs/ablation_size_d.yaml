@@ -1,5 +1,5 @@
 program: run_GNN.py
-method: random
+method: grid
 parameters:
   dataset:
     values: [chameleon]
@@ -18,14 +18,11 @@ parameters:
   gnl_activation:
     values: [identity]
   gnl_W_style:
-
-    values: [sum, diag, diag_dom, k_diag]
-
-      for diag and diag dom consider 2 different initialisation styles - maybe need to do W ablation first to determine this
-      elif self.opt['gnl_W_style'] == 'diag':
-        uniform(self.gnl_W_D, a=-1, b=1)
-
-
+    values: [sum, diag, diag_dom, k_diag_pc]
+  gnl_W_diag_init:
+    values: [uniform]
+  k_diag_pc:
+    values: [0.10]
   gnl_measure:
     values: [nodewise]
   gnl_omega:
@@ -61,4 +58,4 @@ command:
   - --wandb_sweep
   - --geom_gcn_splits
 entity: graph_neural_diffusion
-project: greed_general_0_a
+project: ablation_size_d

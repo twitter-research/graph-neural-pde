@@ -168,9 +168,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.gnl_W_D = Parameter(torch.Tensor(in_features - opt['k_blocks'] * opt['block_size']))
       elif self.opt['gnl_W_style'] == 'k_diag':
         assert opt['k_diags'] % 2 == 1 and opt['k_diags'] <= in_features, 'must have odd number of k diags'
-        self.gnl_W_diags = Parameter(torch.Tensor(in_features, opt['k_diags'])) #or (2k-1) * n + k * (k - 1)
-      else:
+        self.gnl_W_diags = Parameter(torch.Tensor(in_features, opt['k_diags'])) #or (2k-1) * n + k * (k - 1) if don't wrap around
+      elif self.opt['gnl_W_style'] == 'k_diag_pc':
+        k_num = int(self.opt['k_diag_pc'] * in_features)
+        if k_num % 2 == 0:
+          k_num += 1
+        k_num = min(k_num, in_features)
+        self.gnl_W_diags = Parameter(torch.Tensor(in_features, k_num))
+      elif self.opt['gnl_W_style'] == 'sum':
         self.W_W = Parameter(torch.Tensor(in_features, in_features))
+      elif self.opt['gnl_W_style'] == 'diag':
+        self.gnl_W_D = Parameter(torch.ones(in_features))
 
     self.delta = Parameter(torch.Tensor([1.]))
     self.C = (data.y.max() + 1).item()  #hack!, num class for drift
@@ -210,10 +218,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         uniform(self.gnl_W_D, a=-1, b=1)
       elif self.opt['gnl_W_style'] == 'k_diag':
         uniform(self.gnl_W_diags, a=-1, b=1)
-      elif self.opt['gnl_W_style'] == 'diag':
-        uniform(self.gnl_W_D, a=-1, b=1)
-      else: #sum or
+      elif self.opt['gnl_W_style'] == 'sum':
         glorot(self.W_W)      # xavier_uniform_(self.W_W)
+      elif self.opt['gnl_W_style'] == 'diag':
+        if self.opt['gnl_W_diag_init'] == 'uniform':
+          uniform(self.gnl_W_D, a=-1, b=1)
+        elif self.opt['gnl_W_diag_init'] == 'zero':
+          zeros(self.gnl_W_D)
 
     if self.opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
       ones(self.m_alpha)
