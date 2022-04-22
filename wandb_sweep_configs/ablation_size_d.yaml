@@ -46,7 +46,7 @@ parameters:
   optimizer:
     values: [adam]
   lr:
-    vales: [0.005]
+    values: [0.005]
   decay:
     values: [0.0]
 command:
