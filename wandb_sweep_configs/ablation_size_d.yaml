@@ -48,7 +48,7 @@ parameters:
   lr:
     vales: [0.005]
   decay:
-    vales: [0.0]
+    values: [0.0]
 command:
   - ${env}
   - python3
