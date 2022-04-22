@@ -42,7 +42,7 @@ parameters:
   input_dropout:
     vales: [0.5]
   dropout:
-    vales: [0.35]
+    values: [0.35]
   optimizer:
     values: [adam]
   lr:
