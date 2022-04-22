@@ -40,7 +40,7 @@ parameters:
   time:
     values: [3]
   input_dropout:
-    vales: [0.5]
+    values: [0.5]
   dropout:
     values: [0.35]
   optimizer:
