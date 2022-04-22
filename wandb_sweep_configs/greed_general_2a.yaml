@@ -34,7 +34,7 @@ parameters:
   hidden_dim:
     values: [64, 128, 254, 512]
   time:
-    values: [2, 4, 8]
+    values: [2, 3, 4, 8]
   input_dropout:
     distribution: uniform
     min: 0.4
