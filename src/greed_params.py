@@ -539,6 +539,12 @@ def default_params():
     parser.add_argument('--gnl_omega', type=str, default='zero', help='zero, diag, sum')
     parser.add_argument('--gnl_W_style', type=str, default='sum', help='sum, prod, GS, cgnn, diag_dom')
 
+    parser.add_argument('--gnl_W_diag_init', type=str, default='uniform', help='init of diag elements')
+    parser.add_argument('--k_blocks', type=int, default=5, help='k_blocks')
+    parser.add_argument('--block_size', type=int, default=5, help='block_size')
+    parser.add_argument('--k_diags', type=float, default=11, help='k_diags')
+    parser.add_argument('--k_diag_pc', type=float, default=0.1, help='percentage or dims diagonal')
+
     parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
 
     args = parser.parse_args()
