@@ -2,7 +2,7 @@ program: run_GNN.py
 method: random
 parameters:
   dataset:
-    values: [squirrel]
+    values: [chameleon]
   block:
     values: [constant]
   function:
@@ -18,43 +18,40 @@ parameters:
   gnl_activation:
     values: [identity]
   gnl_W_style:
-    values: [sum, diag_dom]
+
+    values: [sum, diag, diag_dom, k_diag]
+
+      for diag and diag dom consider 2 different initialisation styles - maybe need to do W ablation first to determine this
+      elif self.opt['gnl_W_style'] == 'diag':
+        uniform(self.gnl_W_D, a=-1, b=1)
+
+
   gnl_measure:
-    values: [ones, nodewise]
+    values: [nodewise]
   gnl_omega:
-    values: [diag, zero]
+    values: [zero]
   drift:
     values: [False]
   test_mu_0:
     values: [True]
   add_source:
-    values: [True, False]
+    values: [False]
   step_size:
     values: [1.0]
   hidden_dim:
-    values: [64, 128, 254, 512]
+    values: [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
   time:
-    distribution: uniform
-    min: 2.0
-    max: 3.6
+    values: [3]
   input_dropout:
-    distribution: uniform
-    min: 0.4
-    max: 0.65
+    vales: [0.5]
   dropout:
-    distribution: uniform
-    min: 0.2
-    max: 0.5
+    vales: [0.35]
   optimizer:
     values: [adam]
   lr:
-    distribution: uniform
-    min: 0.004
-    max: 0.01
+    vales: [0.005]
   decay:
-    distribution: uniform
-    min: 0.000
-    max: 0.001
+    vales: [0.0]
 command:
   - ${env}
   - python3
@@ -64,4 +61,4 @@ command:
   - --wandb_sweep
   - --geom_gcn_splits
 entity: graph_neural_diffusion
-project: greed_general_2a
+project: greed_general_0_a

@@ -210,6 +210,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         uniform(self.gnl_W_D, a=-1, b=1)
       elif self.opt['gnl_W_style'] == 'k_diag':
         uniform(self.gnl_W_diags, a=-1, b=1)
+      elif self.opt['gnl_W_style'] == 'diag':
+        uniform(self.gnl_W_D, a=-1, b=1)
       else: #sum or
         glorot(self.W_W)      # xavier_uniform_(self.W_W)
 
@@ -227,10 +229,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     if self.opt['gnl_W_style'] in ['prod']:
       return self.W_W @ self.W_W.t()  # output a [d,d] tensor
-    if self.opt['gnl_W_style'] in ['sum']:
+    elif self.opt['gnl_W_style'] in ['sum']:
       return (self.W_W + self.W_W.t()) / 2
-    # elif self.opt['W_type'] == 'diag':
-    #   return torch.diag(self.W)
+    elif self.opt['gnl_W_style'] == 'diag':
+      return torch.diag(self.gnl_W_D)
     # elif self.opt['W_type'] == 'residual_prod':
     #   return torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
 

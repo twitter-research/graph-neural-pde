@@ -2,7 +2,7 @@ import datetime
 from run_GNN import main
 from greed_params import greed_run_params, not_sweep_args, tf_ablation_args, default_params
 
-def run_experiments():
+def run_track_experiments():
     opt = default_params()
 
     #wandb args
@@ -74,5 +74,7 @@ def run_experiments():
 
                             main(opt)
 
+
+
 if __name__ == "__main__":
-    run_experiments()
+    run_track_experiments()
