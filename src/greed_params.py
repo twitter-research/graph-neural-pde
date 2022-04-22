@@ -163,7 +163,7 @@ def greed_ablation_params(opt):
             opt['k_diags'] = 13
 
     opt['geom_gcn_splits'] = True #False#True
-    opt['epoch'] = 129 #6#9#129 #255#129 #254 #100 #40 #40 #10
+    opt['epoch'] = 6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1#4#1
     # opt['max_iters'] = 10000
 
@@ -203,11 +203,14 @@ def greed_ablation_params(opt):
         #lt_block_type : 'diffusion / drift / label / threshold
         # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist]
 
-        opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
-                            {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': []},
-                            {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0,'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
-                            {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': []},
-                            {'lt_block_type': 'label', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1,2,3,4,5,6,7]}]
+        # opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
+        #                     {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': []},
+        #                     {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0,'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
+        #                     {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': []},
+        #                     {'lt_block_type': 'label', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1,2,3,4,5,6,7]}]
+        opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
+                               {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
+                               {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1,2,3,4,5,6,7]}]#[]}]
 
         #solver args
         opt['method'] = 'euler'
@@ -235,8 +238,8 @@ def not_sweep_args(opt, project_name, group_name):
     opt['run_track_reports'] = True #False#True
     opt['save_local_reports'] = True
     opt['save_wandb_reports'] = True
-    opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
-    # opt['wandb_epoch_list'] = [1,2,3,4,5]#,6,7,8]
+    # opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
+    opt['wandb_epoch_list'] = [1,2,3,4,5]#,6,7,8]
     opt['wandb_project'] = project_name #"greed_runs"
     opt['wandb_group'] = group_name #"testing"  # "tuning" eval
     DT = datetime.datetime.now()

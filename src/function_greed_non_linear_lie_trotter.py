@@ -669,10 +669,10 @@ class ODEFuncGreedLieTrot(ODEFuncGreed):
           src_z, dst_z = self.get_src_dst(z)
           fOmf, attention = self.calc_dot_prod_attention(src_z, dst_z)
           if self.opt['lt_block_type'] == 'label':
-            logits = x
+            logits = z
             pred = logits.max(1)[1]
           else:
-            logits, pred = self.predict(x)
+            logits, pred = self.predict(z)
           sm_logits = torch.softmax(logits, dim=1)
           train_acc, val_acc, test_acc = test(logits, self.data)
           homophil = homophily(edge_index=self.edge_index, y=pred)

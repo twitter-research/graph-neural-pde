@@ -191,6 +191,8 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
         if model.odeblock.funcs[-1].opt['lt_block_type'] == 'label':
             logits = model.odeblock.odefunc.GNN_postXN(xN)
             pred = logits.max(1)[1]
+        else:
+            pred = model.m2(xN).max(1)[1]
     else:
         pred = model.m2(xN).max(1)[1]
     enc_pred_homophil = homophily(edge_index=data.edge_index, y=enc_pred)
