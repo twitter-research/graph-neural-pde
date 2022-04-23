@@ -272,11 +272,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if self.opt['gnl_omega'] == 'diag':
       if self.opt['gnl_omega_diag'] == 'free':
         # broke
-        print(f"setting om_W {self.om_W}")
+        print(f"setting om_W {self.om_W.shape}")
         Omega = torch.diag(self.om_W)
+        print(f"setting Omega{self.Omega.shape}")
         if self.opt['gnl_omega_activation'] == 'exponential':
           Omega = -torch.exp(Omega)
-        print(f"setting Omega{self.om_W}")
 
       elif self.opt['gnl_omega_diag'] == 'const':
         Omega = torch.diag(self.opt['gnl_omega_diag_val'] * torch.ones(self.in_features, device=self.device))
