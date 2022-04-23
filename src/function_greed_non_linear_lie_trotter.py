@@ -120,6 +120,7 @@ class ODEFuncGreedLieTrot(ODEFuncGreed):
     self.wandb_step = 0
     self.prev_grad = None
 
+    #Note - Omega params are used differently for scaled_dot and general graph
     if self.opt['gnl_omega'] == 'sum':
       self.om_W = Parameter(torch.Tensor(in_features, in_features))
       self.om_W_eps = 0
@@ -130,12 +131,13 @@ class ODEFuncGreedLieTrot(ODEFuncGreed):
       self.om_W_rep = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
       self.om_W_eps = Parameter(torch.Tensor([0.85]))
       self.om_W_nu = torch.Tensor([0.1], device=self.device)
-
     elif self.opt['gnl_omega'] == 'diag':
       self.om_W = Parameter(torch.Tensor(in_features))
       self.om_W_eps = 0
     elif self.opt['gnl_omega'] == 'zero':
       self.om_W = torch.zeros((in_features,in_features), device=device)
+      self.om_W_eps = 0
+    elif self.opt['gnl_omega'] == 'Omega_eq_W':
       self.om_W_eps = 0
 
     if opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:

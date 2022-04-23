@@ -136,6 +136,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_omega'] == 'zero':
       self.om_W = torch.zeros((in_features,in_features), device=device)
       self.om_W_eps = 0
+    elif self.opt['gnl_omega'] == 'Omega_eq_W':
+      self.om_W_eps = 0
 
     if opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
       self.m_alpha = Parameter(torch.Tensor([1.]))
@@ -269,6 +271,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.unpack_omega_params()
     if self.opt['gnl_omega'] == 'diag':
       if self.opt['gnl_omega_diag'] == 'free':
+        # broke
         Omega = torch.diag(self.om_W)
         if self.opt['gnl_omega_activation'] == 'exponential':
           Omega = -torch.exp(Omega)
@@ -277,6 +280,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_omega'] == 'zero':
       Omega = torch.zeros((self.in_features,self.in_features), device=self.device)
     elif self.opt['gnl_omega'] == 'Omega_eq_W':
+      # broke
       Omega = -self.gnl_W
     return Omega
 
