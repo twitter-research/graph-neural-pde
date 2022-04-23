@@ -63,6 +63,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def __init__(self, in_features, out_features, opt, data, device, bias=False):
     super(ODEFuncGreedNonLin, self).__init__(in_features, out_features, opt, data, device, bias=False)
+    #temporary for ablation
+    if self.opt['gnl_omega_params']:
+      self.unpack_omega_params()
 
     self.data = data
     self.get_evol_stats = False
@@ -259,22 +262,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       pass
     return Omega
 
-  def unpack_omega_params(self):
-    'temp function to help ablation'
-    wandb.config.update({'gnl_omega': self.opt['gnl_omega_params'][0]}, allow_val_change=True)
-    wandb.config.update({'gnl_omega_diag': self.opt['gnl_omega_params'][1]}, allow_val_change=True)
-    wandb.config.update({'gnl_omega_diag_val': self.opt['gnl_omega_params'][2]}, allow_val_change=True)
-    wandb.config.update({'gnl_omega_activation': self.opt['gnl_omega_params'][3]}, allow_val_change=True)
-
   def set_gnlOmega(self):
-    if self.opt['gnl_omega_params']:
-      self.unpack_omega_params()
     if self.opt['gnl_omega'] == 'diag':
       if self.opt['gnl_omega_diag'] == 'free':
-        # broke
-        print(f"setting om_W {self.om_W.shape}")
+        # print(f"setting om_W {self.om_W.shape}")
         Omega = torch.diag(self.om_W)
-        print(f"setting Omega{self.Omega.shape}")
+        # print(f"setting Omega{Omega.shape}")
         if self.opt['gnl_omega_activation'] == 'exponential':
           Omega = -torch.exp(Omega)
 
@@ -520,10 +513,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           f1 = torch_sparse.spmm(self.edge_index, P / src_meas, x.shape[0], x.shape[0], xW) / 2
           f2 = torch_sparse.spmm(self.edge_index, P / dst_meas, x.shape[0], x.shape[0], xW) / 2
           f = f1 + f2
-
-          print(f"measure {torch.diag(1 / measure).shape}")
-          print(f"x {x.shape}")
-          print(f"omega {self.Omega.shape}")
+          #
+          # print(f"measure {torch.diag(1 / measure).shape}")
+          # print(f"x {x.shape}")
+          # print(f"omega {self.Omega.shape}")
           f = f - torch.diag(1 / measure) @ x @ self.Omega
 
           f = f - torch.diag(1 / measure) @ x @ self.Omega
