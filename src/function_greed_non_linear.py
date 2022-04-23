@@ -259,10 +259,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def unpack_omega_params(self):
     'temp function to help ablation'
-    self.opt['gnl_omega'] = self.opt['gnl_omega_params'][0]
-    self.opt['gnl_omega_diag'] = self.opt['gnl_omega_params'][1]
-    self.opt['gnl_omega_diag_val'] = self.opt['gnl_omega_params'][2]
-    self.opt['gnl_omega_activation'] = self.opt['gnl_omega_params'][3]
+    wandb.config.update({'gnl_omega': self.opt['gnl_omega_params'][0]}, allow_val_change=True)
+    wandb.config.update({'gnl_omega_diag': self.opt['gnl_omega_params'][1]}, allow_val_change=True)
+    wandb.config.update({'gnl_omega_diag_val': self.opt['gnl_omega_params'][2]}, allow_val_change=True)
+    wandb.config.update({'gnl_omega_activation': self.opt['gnl_omega_params'][3]}, allow_val_change=True)
 
   def set_gnlOmega(self):
     if self.opt['gnl_omega_params']:
