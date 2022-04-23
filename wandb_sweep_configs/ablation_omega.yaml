@@ -26,7 +26,7 @@ parameters:
   gnl_measure:
     values: [ones]
   gnl_omega_params:
-    values: [[zero, None, None, None], [Omega_eq_W, None, None, None], [diag, free, None, exponential], [diag, free, None, identity], [diag, const, 1, None], [diag, const, -1, None]]
+    values: [[diag, free, None, exponential], [diag, free, None, identity]]
   drift:
     values: [False]
   test_mu_0:

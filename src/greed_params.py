@@ -165,6 +165,9 @@ def greed_ablation_params(opt):
         opt['gnl_omega_diag_val'] = 1 #-1 # 1
         opt['gnl_omega_activation'] = 'exponential' #identity
         opt['gnl_omega_params'] = ["diag","free","None","identity"] #[opt['gnl_omega'], opt['gnl_omega_diag'], opt['gnl_omega_diag_val'], opt['gnl_omega_activation']]
+        # gnl_omega_params:
+        # values: [[zero, None, None, None], [Omega_eq_W, None, None, None], [diag, free, None, exponential],
+        #          [diag, free, None, identity], [diag, const, 1, None], [diag, const, -1, None]]
         #W
         opt['gnl_W_style'] = 'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         if opt['gnl_W_style'] == 'k_block':
