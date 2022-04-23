@@ -223,89 +223,6 @@ class ODEFuncGreedLieTrot(ODEFuncGreed):
       zeros(self.measure)
 
 
-  def set_omega(self):
-    if self.opt['gnl_omega'] == 'sum':
-      Omega = self.om_W + self.om_W.T
-    elif self.opt['gnl_omega'] == 'product':
-      Omega = self.om_W @ self.om_W.T
-    elif self.opt['gnl_omega'] == 'attr_rep':
-      # Omega = self.om_W_nu * (1 - 2 * self.om_W_eps) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
-      Omega = (1 - 2 * self.om_W_eps) * torch.eye(self.in_features,
-                                                       device=self.device) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (
-                             1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
-    elif self.opt['gnl_omega'] == 'diag':
-      Omega = torch.diag(self.om_W)
-
-    # method for normalising Omega to control the eigen values
-    if self.opt['gnl_omega_norm'] == 'tanh':
-      self.Omega = torch.tanh(self.Omega)
-    elif self.opt['gnl_omega_norm'] == 'rowSum':
-      D = self.Omega.abs().sum(dim=1)
-      self.Omega = torch.diag(torch.pow(D, -0.5)) @ self.Omega @ torch.diag(torch.pow(D, -0.5))
-    else:
-      pass
-
-    return Omega
-
-  def set_gnlWS(self):
-    "note every W is made symetric before returning here"
-
-    if self.opt['gnl_W_style'] in ['prod']:
-      return self.W_W @ self.W_W.t()  # output a [d,d] tensor
-    elif self.opt['gnl_W_style'] in ['sum']:
-      return (self.W_W + self.W_W.t()) / 2
-    elif self.opt['gnl_W_style'] == 'diag':
-      return torch.diag(self.gnl_W_D)
-
-    # elif self.opt['W_type'] == 'residual_prod':
-    #   return torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
-
-    elif self.opt['gnl_W_style'] == 'GS':#'residual_GS':
-      V_hat = gram_schmidt(self.gnl_W_U)
-      # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1)
-      W_D = torch.tanh(self.gnl_W_D)
-      W_hat = V_hat @ torch.diag(W_D) @ V_hat.t()
-      return W_hat
-
-    elif self.opt['gnl_W_style'] == 'cgnn':
-      # # https://github.com/JRowbottomGit/ContinuousGNN/blob/85d47b0748a19e06e305c21e99e1dd03d36ad314/src/trainer.py
-      beta = self.opt['W_beta']
-      with torch.no_grad():
-        W_U = self.gnl_W_U.clone()
-        W_U = self.gnl_W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
-      # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1) #self.gnl_W_D
-      W_D = torch.tanh(self.gnl_W_D) #self.gnl_W_D
-      W_hat = W_U @ torch.diag(W_D) @ W_U.t()
-      return W_hat
-
-    elif self.opt['gnl_W_style'] == 'diag_dom':
-      W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
-      W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
-      W = (W+W.T) / 2
-      W_sum = self.t_a * torch.abs(self.W).sum(dim=1) + self.r_a
-      Ws = W + torch.diag(W_sum)
-      return Ws
-
-    elif self.opt['gnl_W_style'] == 'k_block':
-      W_temp = torch.cat([self.gnl_W_blocks, torch.zeros((self.opt['k_blocks'] * self.opt['block_size'], self.in_features - self.opt['block_size']), device=self.device)], dim=1)
-      W_roll = torch.cat([torch.roll(W_temp[i:i+self.opt['block_size']], shifts=i*self.opt['block_size'], dims=1) for i in range(self.opt['k_blocks'])])
-      W_zero_fill = torch.zeros(max(self.in_features - self.opt['block_size'] * self.opt['k_blocks'], 0), self.in_features, device=self.device)
-      W = torch.cat((W_roll, W_zero_fill), dim=0)
-      W[self.opt['k_blocks'] * self.opt['block_size']:,self.opt['k_blocks'] * self.opt['block_size']:] = torch.diag(self.gnl_W_D)
-      Ws = (W+W.T) / 2
-      return Ws
-
-    elif self.opt['gnl_W_style'] == 'k_diag':
-      W_temp = torch.cat([self.gnl_W_diags, torch.zeros((self.in_features, self.in_features - self.opt['k_diags']), device=self.device)], dim=1)
-      W = torch.stack([torch.roll(W_temp[i], shifts=int(i-(self.opt['k_diags']-1)/2), dims=-1) for i in range(self.in_features)])
-      Ws = (W+W.T) / 2
-      return Ws
-    elif self.opt['gnl_W_style'] == 'k_diag_pc':
-      W_temp = torch.cat([self.gnl_W_diags, torch.zeros((self.in_features, self.in_features - self.gnl_W_diags.shape[1]), device=self.device)], dim=1)
-      W = torch.stack([torch.roll(W_temp[i], shifts=int(i - (self.opt['k_diags'] - 1) / 2), dims=-1) for i in range(self.in_features)])
-      Ws = (W + W.T) / 2
-      return Ws
-
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
     row_sum = scatter_add(attentions, edge_index[0], dim=0, dim_size=n)
     deg_inv_sqrt = torch.pow(row_sum, -0.5)
@@ -316,6 +233,91 @@ class ODEFuncGreedLieTrot(ODEFuncGreed):
     energy_gradient = (src_term - dst_term) @ self.W
     return energy_gradient
 
+  def set_scaled_dot_omega(self):
+    if self.opt['gnl_omega'] == 'sum':
+      Omega = self.om_W + self.om_W.T
+    elif self.opt['gnl_omega'] == 'product':
+      Omega = self.om_W @ self.om_W.T
+    elif self.opt['gnl_omega'] == 'attr_rep':
+      # Omega = self.om_W_nu * (1 - 2 * self.om_W_eps) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
+      Omega = (1 - 2 * self.om_W_eps) * torch.eye(self.in_features, device=self.device) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (
+                             1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
+    elif self.opt['gnl_omega'] == 'diag':
+      Omega = torch.diag(self.om_W)
+    # method for normalising Omega to control the eigen values
+    if self.opt['gnl_omega_norm'] == 'tanh':
+      self.Omega = torch.tanh(self.Omega)
+    elif self.opt['gnl_omega_norm'] == 'rowSum':
+      D = self.Omega.abs().sum(dim=1)
+      self.Omega = torch.diag(torch.pow(D, -0.5)) @ self.Omega @ torch.diag(torch.pow(D, -0.5))
+    else:
+      pass
+    return Omega
+
+  def set_gnlOmega(self):
+    if self.opt['gnl_omega'] == 'diag':
+      if self.opt['gnl_omega_diag'] == 'free':
+        Omega = torch.diag(self.om_W)
+        if self.opt['gnl_omega_activation'] == 'exponential':
+          Omega = -torch.exp(Omega)
+      elif self.opt['gnl_W_diag'] == 'const':
+        Omega = torch.diag(self.opt['gnl_W_diag_val'] * torch.ones(self.in_features, device=self.device))
+    elif self.opt['gnl_omega'] == 'zero':
+      Omega = torch.zeros((self.in_features,self.in_features), device=self.device)
+    elif self.opt['gnl_omega'] == 'Omega_eq_W':
+      Omega = -self.gnl_W
+    return Omega
+
+  def set_gnlWS(self):
+    "note every W is made symetric before returning here"
+    if self.opt['gnl_W_style'] in ['prod']:
+      return self.W_W @ self.W_W.t()
+    elif self.opt['gnl_W_style'] in ['sum']:
+      return (self.W_W + self.W_W.t()) / 2
+    elif self.opt['gnl_W_style'] == 'diag':
+      return torch.diag(self.gnl_W_D)
+    # elif self.opt['W_type'] == 'residual_prod':
+    #   return torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
+    elif self.opt['gnl_W_style'] == 'GS':
+      V_hat = gram_schmidt(self.gnl_W_U)
+      # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1)
+      W_D = torch.tanh(self.gnl_W_D)
+      W_hat = V_hat @ torch.diag(W_D) @ V_hat.t()
+      return W_hat
+    elif self.opt['gnl_W_style'] == 'cgnn': # https://github.com/JRowbottomGit/ContinuousGNN/blob/85d47b0748a19e06e305c21e99e1dd03d36ad314/src/trainer.py
+      beta = self.opt['W_beta']
+      with torch.no_grad():
+        W_U = self.gnl_W_U.clone()
+        W_U = self.gnl_W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
+      # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1) #self.gnl_W_D
+      W_D = torch.tanh(self.gnl_W_D) #self.gnl_W_D
+      W_hat = W_U @ torch.diag(W_D) @ W_U.t()
+      return W_hat
+    elif self.opt['gnl_W_style'] == 'diag_dom':
+      W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
+      W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
+      W = (W+W.T) / 2
+      W_sum = self.t_a * torch.abs(self.W).sum(dim=1) + self.r_a
+      Ws = W + torch.diag(W_sum)
+      return Ws
+    elif self.opt['gnl_W_style'] == 'k_block':
+      W_temp = torch.cat([self.gnl_W_blocks, torch.zeros((self.opt['k_blocks'] * self.opt['block_size'], self.in_features - self.opt['block_size']), device=self.device)], dim=1)
+      W_roll = torch.cat([torch.roll(W_temp[i:i+self.opt['block_size']], shifts=i*self.opt['block_size'], dims=1) for i in range(self.opt['k_blocks'])])
+      W_zero_fill = torch.zeros(max(self.in_features - self.opt['block_size'] * self.opt['k_blocks'], 0), self.in_features, device=self.device)
+      W = torch.cat((W_roll, W_zero_fill), dim=0)
+      W[self.opt['k_blocks'] * self.opt['block_size']:,self.opt['k_blocks'] * self.opt['block_size']:] = torch.diag(self.gnl_W_D)
+      Ws = (W+W.T) / 2
+      return Ws
+    elif self.opt['gnl_W_style'] == 'k_diag':
+      W_temp = torch.cat([self.gnl_W_diags, torch.zeros((self.in_features, self.in_features - self.opt['k_diags']), device=self.device)], dim=1)
+      W = torch.stack([torch.roll(W_temp[i], shifts=int(i-(self.opt['k_diags']-1)/2), dims=-1) for i in range(self.in_features)])
+      Ws = (W+W.T) / 2
+      return Ws
+    elif self.opt['gnl_W_style'] == 'k_diag_pc':
+      W_temp = torch.cat([self.gnl_W_diags, torch.zeros((self.in_features, self.in_features - self.gnl_W_diags.shape[1]), device=self.device)], dim=1)
+      W = torch.stack([torch.roll(W_temp[i], shifts=int(i - (self.opt['k_diags'] - 1) / 2), dims=-1) for i in range(self.in_features)])
+      Ws = (W + W.T) / 2
+      return Ws
 
   def do_diffusion(self, t):
     #todo tighten up these conditionals as dependent on good/accurately setting up of config
@@ -398,13 +400,6 @@ class ODEFuncGreedLieTrot(ODEFuncGreed):
         attention = fOmf
 
     elif self.opt['gnl_style'] == 'general_graph':
-
-      if self.opt['gnl_omega'] == 'zero':
-        self.Omega = self.om_W
-      elif self.opt['gnl_omega'] == 'diag':
-        self.Omega = torch.diag(self.om_W)
-      else:
-        self.Omega = (self.om_W + self.om_W.T) / 2
 
       # get degrees
       src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)

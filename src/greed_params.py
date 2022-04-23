@@ -151,9 +151,22 @@ def greed_ablation_params(opt):
         opt['attention_activation'] = 'softmax'#'softmax' #, exponential
         opt['attention_normalisation'] = 'none'
     elif opt['gnl_style'] == 'general_graph':
-        opt['gnl_W_style'] = 'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
-        opt['gnl_omega'] = 'diag'#'zero' #'diag' #'sum' #'attr_rep' 'product'  #method to make Omega symmetric
         opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
+        #Omega
+        opt['gnl_omega'] = 'diag' #'diag'#'zero' Omega_eq_W
+        # if opt['gnl_omega'] == 'diag':
+        #     opt['gnl_omega_diag'] = 'free' #'free 'const'
+        #     if opt['gnl_omega_diag'] == 'const':
+        #         opt['gnl_omega_diag_val'] = 1 #-1 # 1
+        #     elif opt['gnl_omega_diag'] == 'free':
+        #         opt['gnl_omega_activation'] = 'exponential' #identity
+
+        opt['gnl_omega_diag'] = 'free' #'free 'const'
+        opt['gnl_omega_diag_val'] = 1 #-1 # 1
+        opt['gnl_omega_activation'] = 'exponential' #identity
+        opt['gnl_omega_params'] = [opt['gnl_omega'], opt['gnl_omega_diag'], opt['gnl_omega_diag_val'], opt['gnl_omega_activation']]
+        #W
+        opt['gnl_W_style'] = 'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         if opt['gnl_W_style'] == 'k_block':
         # assert in_features % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
@@ -233,9 +246,9 @@ def greed_ablation_params(opt):
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
     opt['wandb'] = False #True #True #False #True
-    opt['wandb_track_grad_flow'] = True #False  #run the evolution reports
+    opt['wandb_track_grad_flow'] = True #False  #collect stats for reports
     opt['wandb_watch_grad'] = False
-    opt['run_track_reports'] = True #False#True
+    opt['run_track_reports'] = False #False#True ##run the evolution reports
     opt['save_local_reports'] = True
     opt['save_wandb_reports'] = True
     # opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
@@ -544,6 +557,7 @@ def default_params():
     parser.add_argument('--block_size', type=int, default=5, help='block_size')
     parser.add_argument('--k_diags', type=float, default=11, help='k_diags')
     parser.add_argument('--k_diag_pc', type=float, default=0.1, help='percentage or dims diagonal')
+    parser.add_argument('--gnl_omega_params', nargs='+', default=None, help='list of Omega args for ablation')
 
     parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
 

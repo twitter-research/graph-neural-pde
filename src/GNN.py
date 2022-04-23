@@ -66,9 +66,10 @@ class GNN(BaseGNN):
           self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_WS(x)
     if self.opt['function'] in ['greed_non_linear', 'greed_lie_trotter']:
       if self.opt['gnl_style'] == 'scaled_dot':
-        self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_omega()
+        self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_scaled_dot_omega()
       elif self.opt['gnl_style'] == 'general_graph':
-          self.odeblock.odefunc.gnl_W = self.odeblock.odefunc.set_gnlWS()
+        self.odeblock.odefunc.gnl_W = self.odeblock.odefunc.set_gnlWS()
+        self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_gnlOmega()
 
   def forward_XN(self, x):
     ###forward XN

@@ -119,6 +119,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.wandb_step = 0
     self.prev_grad = None
 
+    #Note - Omega params are used differently for scaled_dot and general graph
     if self.opt['gnl_omega'] == 'sum':
       self.om_W = Parameter(torch.Tensor(in_features, in_features))
       self.om_W_eps = 0
@@ -129,7 +130,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.om_W_rep = Parameter(torch.Tensor(in_features, opt['dim_p_w']))
       self.om_W_eps = Parameter(torch.Tensor([0.85]))
       self.om_W_nu = torch.Tensor([0.1], device=self.device)
-
     elif self.opt['gnl_omega'] == 'diag':
       self.om_W = Parameter(torch.Tensor(in_features))
       self.om_W_eps = 0
@@ -189,6 +189,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
 
   def reset_nonlinG_parameters(self):
+    # Omega
     if self.opt['gnl_omega'] == 'sum':
       glorot(self.om_W)
     elif self.opt['gnl_omega'] == 'product':
@@ -196,19 +197,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_omega'] == 'attr_rep':
       glorot(self.om_W_attr)
       glorot(self.om_W_rep)
-      # constant(self.om_W_attr, 0.0001)
-      # constant(self.om_W_rep, 0.0001)
     elif self.opt['gnl_omega'] == 'diag':
-      # zeros(self.om_W)
       uniform(self.om_W, a=-1, b=1)
-
+    # W's
     if self.opt['gnl_style'] == 'general_graph':
       if self.opt['gnl_W_style'] == 'GS':
         glorot(self.gnl_W_U)
-        # self.gnl_W_D
       elif self.opt['gnl_W_style'] == 'cgnn':
         glorot(self.gnl_W_U)
-        # self.gnl_W_D
       elif self.opt['gnl_W_style'] == 'diag_dom':
         glorot(self.W_W)
         uniform(self.t_a, a=-1, b=1)
@@ -219,7 +215,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'k_diag':
         uniform(self.gnl_W_diags, a=-1, b=1)
       elif self.opt['gnl_W_style'] == 'sum':
-        glorot(self.W_W)      # xavier_uniform_(self.W_W)
+        glorot(self.W_W)
       elif self.opt['gnl_W_style'] == 'diag':
         if self.opt['gnl_W_diag_init'] == 'uniform':
           uniform(self.gnl_W_D, a=-1, b=1)
@@ -231,7 +227,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         elif self.opt['gnl_W_diag_init'] == 'zero':
           zeros(self.gnl_W_diags)
 
-
     if self.opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
       ones(self.m_alpha)
       ones(self.m_beta)
@@ -241,28 +236,67 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_measure'] in ['nodewise_exp']:
       zeros(self.measure)
 
+  def set_scaled_dot_omega(self):
+    if self.opt['gnl_omega'] == 'sum':
+      Omega = self.om_W + self.om_W.T
+    elif self.opt['gnl_omega'] == 'product':
+      Omega = self.om_W @ self.om_W.T
+    elif self.opt['gnl_omega'] == 'attr_rep':
+      # Omega = self.om_W_nu * (1 - 2 * self.om_W_eps) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
+      Omega = (1 - 2 * self.om_W_eps) * torch.eye(self.in_features, device=self.device) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (
+                             1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
+    elif self.opt['gnl_omega'] == 'diag':
+      Omega = torch.diag(self.om_W)
+    # method for normalising Omega to control the eigen values
+    if self.opt['gnl_omega_norm'] == 'tanh':
+      self.Omega = torch.tanh(self.Omega)
+    elif self.opt['gnl_omega_norm'] == 'rowSum':
+      D = self.Omega.abs().sum(dim=1)
+      self.Omega = torch.diag(torch.pow(D, -0.5)) @ self.Omega @ torch.diag(torch.pow(D, -0.5))
+    else:
+      pass
+    return Omega
+
+  def unpack_omega_params(self):
+    'temp function to help ablation'
+    self.opt['gnl_omega'] = self.opt['gnl_omega_params'][0]
+    self.opt['gnl_omega_diag'] = self.opt['gnl_omega_params'][1]
+    self.opt['gnl_omega_diag_val'] = self.opt['gnl_omega_params'][2]
+    self.opt['gnl_omega_activation'] = self.opt['gnl_omega_params'][3]
+
+  def set_gnlOmega(self):
+    if self.opt['gnl_omega_params']:
+      self.unpack_omega_params()
+    if self.opt['gnl_omega'] == 'diag':
+      if self.opt['gnl_omega_diag'] == 'free':
+        Omega = torch.diag(self.om_W)
+        if self.opt['gnl_omega_activation'] == 'exponential':
+          Omega = -torch.exp(Omega)
+      elif self.opt['gnl_omega_diag'] == 'const':
+        Omega = torch.diag(self.opt['gnl_omega_diag_val'] * torch.ones(self.in_features, device=self.device))
+    elif self.opt['gnl_omega'] == 'zero':
+      Omega = torch.zeros((self.in_features,self.in_features), device=self.device)
+    elif self.opt['gnl_omega'] == 'Omega_eq_W':
+      Omega = -self.gnl_W
+    return Omega
+
   def set_gnlWS(self):
     "note every W is made symetric before returning here"
-
     if self.opt['gnl_W_style'] in ['prod']:
-      return self.W_W @ self.W_W.t()  # output a [d,d] tensor
+      return self.W_W @ self.W_W.t()
     elif self.opt['gnl_W_style'] in ['sum']:
       return (self.W_W + self.W_W.t()) / 2
     elif self.opt['gnl_W_style'] == 'diag':
       return torch.diag(self.gnl_W_D)
-
     # elif self.opt['W_type'] == 'residual_prod':
     #   return torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
-
-    elif self.opt['gnl_W_style'] == 'GS':#'residual_GS':
+    elif self.opt['gnl_W_style'] == 'GS':
       V_hat = gram_schmidt(self.gnl_W_U)
       # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1)
       W_D = torch.tanh(self.gnl_W_D)
       W_hat = V_hat @ torch.diag(W_D) @ V_hat.t()
       return W_hat
-
-    elif self.opt['gnl_W_style'] == 'cgnn':
-      # # https://github.com/JRowbottomGit/ContinuousGNN/blob/85d47b0748a19e06e305c21e99e1dd03d36ad314/src/trainer.py
+    elif self.opt['gnl_W_style'] == 'cgnn': # https://github.com/JRowbottomGit/ContinuousGNN/blob/85d47b0748a19e06e305c21e99e1dd03d36ad314/src/trainer.py
       beta = self.opt['W_beta']
       with torch.no_grad():
         W_U = self.gnl_W_U.clone()
@@ -271,7 +305,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W_D = torch.tanh(self.gnl_W_D) #self.gnl_W_D
       W_hat = W_U @ torch.diag(W_D) @ W_U.t()
       return W_hat
-
     elif self.opt['gnl_W_style'] == 'diag_dom':
       W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
@@ -279,7 +312,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W_sum = self.t_a * torch.abs(self.W).sum(dim=1) + self.r_a
       Ws = W + torch.diag(W_sum)
       return Ws
-
     elif self.opt['gnl_W_style'] == 'k_block':
       W_temp = torch.cat([self.gnl_W_blocks, torch.zeros((self.opt['k_blocks'] * self.opt['block_size'], self.in_features - self.opt['block_size']), device=self.device)], dim=1)
       W_roll = torch.cat([torch.roll(W_temp[i:i+self.opt['block_size']], shifts=i*self.opt['block_size'], dims=1) for i in range(self.opt['k_blocks'])])
@@ -288,7 +320,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W[self.opt['k_blocks'] * self.opt['block_size']:,self.opt['k_blocks'] * self.opt['block_size']:] = torch.diag(self.gnl_W_D)
       Ws = (W+W.T) / 2
       return Ws
-
     elif self.opt['gnl_W_style'] == 'k_diag':
       W_temp = torch.cat([self.gnl_W_diags, torch.zeros((self.in_features, self.in_features - self.opt['k_diags']), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=int(i-(self.opt['k_diags']-1)/2), dims=-1) for i in range(self.in_features)])
@@ -309,7 +340,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     dst_term = (tau_transpose * dst_x * dst_deg_inv_sqrt.unsqueeze(dim=-1))
     energy_gradient = (src_term - dst_term) @ self.W
     return energy_gradient
-
 
   def do_diffusion(self, t):
     #todo tighten up these conditionals as dependent on good/accurately setting up of config
@@ -381,13 +411,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     elif self.opt['gnl_style'] == 'general_graph':
 
-      if self.opt['gnl_omega'] == 'zero':
-        self.Omega = self.om_W
-      elif self.opt['gnl_omega'] == 'diag':
-        self.Omega = torch.diag(self.om_W)
-      else:
-        self.Omega = (self.om_W + self.om_W.T) / 2
-
       # get degrees
       src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)
 
@@ -428,6 +451,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if self.opt['beltrami']:
       pass
     else:
+      #measure
       if self.opt['gnl_measure'] == 'deg_poly':
         deg = degree(self.edge_index[0], self.n_nodes)
         measure = self.m_alpha * deg ** self.m_beta + self.m_gamma
@@ -478,7 +502,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           f2 = torch_sparse.spmm(index_t, -att_t / dst_meas, x.shape[0], x.shape[0], xOm)
           f = f1 + f2
           f = f - self.delta * x  # break point np.isnan(f.sum().detach().numpy())
-
 
         #general graph (GCN/GraphSage) method
         elif self.opt['gnl_style'] == 'general_graph':
