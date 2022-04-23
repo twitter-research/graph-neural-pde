@@ -225,6 +225,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           uniform(self.gnl_W_D, a=-1, b=1)
         elif self.opt['gnl_W_diag_init'] == 'zero':
           zeros(self.gnl_W_D)
+      elif self.opt['gnl_W_style'] == 'k_diag_pc':
+        if self.opt['gnl_W_diag_init'] == 'uniform':
+          uniform(self.gnl_W_diags, a=-1, b=1)
+        elif self.opt['gnl_W_diag_init'] == 'zero':
+          zeros(self.gnl_W_diags)
+
 
     if self.opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
       ones(self.m_alpha)
@@ -244,6 +250,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       return (self.W_W + self.W_W.t()) / 2
     elif self.opt['gnl_W_style'] == 'diag':
       return torch.diag(self.gnl_W_D)
+
     # elif self.opt['W_type'] == 'residual_prod':
     #   return torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
 
@@ -286,6 +293,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W_temp = torch.cat([self.gnl_W_diags, torch.zeros((self.in_features, self.in_features - self.opt['k_diags']), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=int(i-(self.opt['k_diags']-1)/2), dims=-1) for i in range(self.in_features)])
       Ws = (W+W.T) / 2
+      return Ws
+    elif self.opt['gnl_W_style'] == 'k_diag_pc':
+      W_temp = torch.cat([self.gnl_W_diags, torch.zeros((self.in_features, self.in_features - self.opt['k_diags']), device=self.device)], dim=1)
+      W = torch.stack([torch.roll(W_temp[i], shifts=int(i - (self.opt['k_diags'] - 1) / 2), dims=-1) for i in range(self.in_features)])
+      Ws = (W + W.T) / 2
       return Ws
 
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
