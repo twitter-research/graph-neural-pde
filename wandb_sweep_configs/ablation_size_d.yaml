@@ -18,7 +18,7 @@ parameters:
   gnl_activation:
     values: [identity]
   gnl_W_style:
-    values: [sum, diag, diag_dom, k_diag_pc]
+    values: [k_diag_pc]
   gnl_W_diag_init:
     values: [uniform]
   k_diag_pc:

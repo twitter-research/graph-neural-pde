@@ -151,7 +151,7 @@ def greed_ablation_params(opt):
         opt['attention_activation'] = 'softmax'#'softmax' #, exponential
         opt['attention_normalisation'] = 'none'
     elif opt['gnl_style'] == 'general_graph':
-        opt['gnl_W_style'] = 'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_W_style'] = 'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         opt['gnl_omega'] = 'diag'#'zero' #'diag' #'sum' #'attr_rep' 'product'  #method to make Omega symmetric
         opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
         if opt['gnl_W_style'] == 'k_block':
@@ -173,7 +173,7 @@ def greed_ablation_params(opt):
     #gen_1 - alternates ranges of diffusion and drift (ie eq 43-44)
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion
 
-    opt['lie_trotter'] = 'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    opt['lie_trotter'] = None#'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         ###!!! set function 'greed_non_linear'
         opt['function'] = 'greed_non_linear'
@@ -232,7 +232,7 @@ def greed_ablation_params(opt):
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = True #True #False #True
+    opt['wandb'] = False #True #True #False #True
     opt['wandb_track_grad_flow'] = True #False  #run the evolution reports
     opt['wandb_watch_grad'] = False
     opt['run_track_reports'] = True #False#True

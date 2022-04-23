@@ -252,10 +252,11 @@ class ODEFuncGreedLieTrot(ODEFuncGreed):
 
     if self.opt['gnl_W_style'] in ['prod']:
       return self.W_W @ self.W_W.t()  # output a [d,d] tensor
-    if self.opt['gnl_W_style'] in ['sum']:
+    elif self.opt['gnl_W_style'] in ['sum']:
       return (self.W_W + self.W_W.t()) / 2
-    # elif self.opt['W_type'] == 'diag':
-    #   return torch.diag(self.W)
+    elif self.opt['gnl_W_style'] == 'diag':
+      return torch.diag(self.gnl_W_D)
+
     # elif self.opt['W_type'] == 'residual_prod':
     #   return torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
 
@@ -298,6 +299,11 @@ class ODEFuncGreedLieTrot(ODEFuncGreed):
       W_temp = torch.cat([self.gnl_W_diags, torch.zeros((self.in_features, self.in_features - self.opt['k_diags']), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=int(i-(self.opt['k_diags']-1)/2), dims=-1) for i in range(self.in_features)])
       Ws = (W+W.T) / 2
+      return Ws
+    elif self.opt['gnl_W_style'] == 'k_diag_pc':
+      W_temp = torch.cat([self.gnl_W_diags, torch.zeros((self.in_features, self.in_features - self.gnl_W_diags.shape[1]), device=self.device)], dim=1)
+      W = torch.stack([torch.roll(W_temp[i], shifts=int(i - (self.opt['k_diags'] - 1) / 2), dims=-1) for i in range(self.in_features)])
+      Ws = (W + W.T) / 2
       return Ws
 
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):

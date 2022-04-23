@@ -295,7 +295,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       Ws = (W+W.T) / 2
       return Ws
     elif self.opt['gnl_W_style'] == 'k_diag_pc':
-      W_temp = torch.cat([self.gnl_W_diags, torch.zeros((self.in_features, self.in_features - self.opt['k_diags']), device=self.device)], dim=1)
+      W_temp = torch.cat([self.gnl_W_diags, torch.zeros((self.in_features, self.in_features - self.gnl_W_diags.shape[1]), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=int(i - (self.opt['k_diags'] - 1) / 2), dims=-1) for i in range(self.in_features)])
       Ws = (W + W.T) / 2
       return Ws
