@@ -36,19 +36,19 @@ parameters:
   step_size:
     values: [1.0]
   hidden_dim:
-    values: [128]
+    values: [256]
   time:
-    values: [8]
+    values: [4]
   input_dropout:
     values: [0.5]
   dropout:
-    values: [0.05]
+    values: [0.35]
   optimizer:
     values: [adam]
   lr:
-    values: [0.023]
+    values: [0.001]
   decay:
-    values: [0.005]
+    values: [0.00025]
 command:
   - ${env}
   - python3

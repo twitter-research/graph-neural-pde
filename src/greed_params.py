@@ -64,7 +64,7 @@ def greed_run_params(opt):
 
 def greed_hyper_params(opt):
     #tuning params
-    opt['hidden_dim'] = 80 # 50 #60 #64 comment Karate needs a very high dimension to be able to learn
+    opt['hidden_dim'] = 80 # 50 #60 #64
     opt['attention_dim'] = 32
     opt['tau_reg'] = 8
 
