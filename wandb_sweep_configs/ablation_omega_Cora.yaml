@@ -1,5 +1,5 @@
 program: run_GNN.py
-method: grid
+method: random
 parameters:
   dataset:
     values: [Cora]
@@ -34,21 +34,31 @@ parameters:
   add_source:
     values: [False]
   step_size:
-    values: [1.0]
+    values: [0.25, 1.0]
   hidden_dim:
-    values: [256]
+    values: [32, 64, 128, 256]
   time:
-    values: [4]
+    distribution: uniform
+    min: 2.0
+    max: 16.0
   input_dropout:
-    values: [0.5]
+    distribution: uniform
+    min: 0.4
+    max: 0.65
   dropout:
-    values: [0.35]
+    distribution: uniform
+    min: 0.2
+    max: 0.5
   optimizer:
     values: [adam]
   lr:
-    values: [0.001]
+    distribution: uniform
+    min: 0.0001
+    max: 0.001
   decay:
-    values: [0.00025]
+    distribution: uniform
+    min: 0.000
+    max: 0.02
 command:
   - ${env}
   - python3
