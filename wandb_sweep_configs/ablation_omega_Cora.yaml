@@ -38,17 +38,17 @@ parameters:
   hidden_dim:
     values: [128]
   time:
-    values: [3]
+    values: [8]
   input_dropout:
     values: [0.5]
   dropout:
-    values: [0.35]
+    values: [0.05]
   optimizer:
     values: [adam]
   lr:
-    values: [0.005]
+    values: [0.023]
   decay:
-    values: [0.0]
+    values: [0.005]
 command:
   - ${env}
   - python3
