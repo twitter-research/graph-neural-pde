@@ -8,6 +8,7 @@ import numpy as np
 
 import torch
 from torch_geometric.data import Data, InMemoryDataset
+from torch.utils.data import WeightedRandomSampler
 from torch_geometric.datasets import Planetoid, Amazon, Coauthor, KarateClub#, WikipediaNetwork #todo hacky for AWS download hetero using PyG
 from graph_rewiring import get_two_hop, apply_gdc
 from ogb.nodeproppred import PygNodePropPredDataset
@@ -29,7 +30,7 @@ def rewire(data, opt, data_dir):
     data = apply_pos_dist_rewire(data, opt, data_dir)
   return data
 
-def hetro_edge_addition(data):
+def hetro_edge_addition(data, opt):
   '''
   Algorithm 1: Heterophilous Edge Addition
   input : G = {V, E}, K, {Dc}^|C|_−1, c=0 and {Vc}^|C|−1_c=0
@@ -47,7 +48,34 @@ def hetro_edge_addition(data):
   '''
   edge_index = data.edge_index
   y = data.y
-  # num_class
+  num_class = y.max() + 1
+  target_homoph = opt['target_homoph']
+
+  Nc = []
+  for c in range(num_class):
+    Nc.append(torch.sum(y==c)) #work in dst (index j) nodes
+
+  Dc = {}
+  for c in range(num_class):
+    class_mask = y[edge_index[1]] == c
+    class_c_src = edge_index[0][class_mask] #all the source nodes for dst nodes of class c
+    temp_Nc = []
+    for k in range(num_class):
+      temp_Nc.append(torch.sum(y[class_c_src] == k)/Nc[k])
+    Dc = {c: temp_Nc for c in range(num_class)}
+
+  torch.rand()
+
+  # Let there be 9 samples and 1 sample in class 0 and 1 respectively
+  class_counts = [9.0, 1.0]
+  num_samples = sum(class_counts)
+  labels = [0, 0, ..., 0, 1]  # corresponding labels of samples
+
+  class_weights = [num_samples / class_counts[i] for i in range(len(class_counts))]
+  weights = [class_weights[labels[i]] for i in range(int(num_samples))]
+  sampler = WeightedRandomSampler(torch.DoubleTensor(weights), int(num_samples), replacement=True)
+
+
 
   return data
 
@@ -100,6 +128,9 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     dataset.data = data
   if opt['rewiring'] is not None:
     dataset.data = rewire(dataset.data, opt, data_dir)
+  if opt['data_homoph']: #todo does this need to go after any rewiring / make undirected steps
+    dataset.data = hetro_edge_addition(dataset.data, opt)
+
   train_mask_exists = True
   try:
     dataset.data.train_mask

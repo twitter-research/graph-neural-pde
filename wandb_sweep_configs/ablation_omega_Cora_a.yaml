@@ -1,5 +1,5 @@
 program: run_GNN.py
-method: random
+method: grid
 parameters:
   dataset:
     values: [Cora]
@@ -46,9 +46,9 @@ parameters:
   optimizer:
     values: [adam]
   lr:
-    values: [0.001]
+    values: [0.0009]
   decay:
-    values: [0.005]
+    values: [0.006]
 command:
   - ${env}
   - python3

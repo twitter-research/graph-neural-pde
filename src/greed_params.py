@@ -175,6 +175,9 @@ def greed_ablation_params(opt):
             # assert opt['k_diags'] % 2 == 1 and opt['k_diags'] <= in_features, 'must have odd number of k diags'
             opt['k_diags'] = 13
 
+    opt['data_homoph'] = True
+    opt['target_homoph'] = 0.7
+
     opt['geom_gcn_splits'] = True #False#True
     opt['epoch'] = 6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1#4#1
