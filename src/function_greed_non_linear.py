@@ -211,9 +211,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'cgnn':
         glorot(self.gnl_W_U)
       elif self.opt['gnl_W_style'] == 'diag_dom':
-        glorot(self.W_W)
-        uniform(self.t_a, a=-1, b=1)
-        uniform(self.r_a, a=-1, b=1)
+        if self.opt['gnl_W_diagDom_init'] == 'fee_dom':
+          glorot(self.W_W)
+          uniform(self.t_a, a=-1, b=1)
+          uniform(self.r_a, a=-1, b=1)
+        elif self.opt['gnl_W_diag_init'] == 'identity':
+          zeros(self.W_W)
+          constant(self.t_a, fill_value=1)
+          constant(self.r_a, fill_value=1)
       elif self.opt['gnl_W_style'] == 'k_block':
         glorot(self.gnl_W_blocks)
         uniform(self.gnl_W_D, a=-1, b=1)
@@ -224,8 +229,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'diag':
         if self.opt['gnl_W_diag_init'] == 'uniform':
           uniform(self.gnl_W_D, a=-1, b=1)
-        elif self.opt['gnl_W_diag_init'] == 'zero':
-          zeros(self.gnl_W_D)
+        elif self.opt['gnl_W_diag_init'] == 'identity':
+          ones(self.gnl_W_D)
       elif self.opt['gnl_W_style'] == 'k_diag_pc':
         if self.opt['gnl_W_diag_init'] == 'uniform':
           uniform(self.gnl_W_diags, a=-1, b=1)

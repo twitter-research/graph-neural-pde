@@ -19,6 +19,8 @@ parameters:
     values: [identity]
   gnl_W_style:
     values: [sum, diag, diag_dom]
+  gnl_W_diagDom_init:
+    values: [free_dom, identity]
   gnl_W_diag_init:
     values: [uniform]
   k_diag_pc:
