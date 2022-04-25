@@ -29,6 +29,27 @@ def rewire(data, opt, data_dir):
     data = apply_pos_dist_rewire(data, opt, data_dir)
   return data
 
+def hetro_edge_addition(data):
+  '''
+  Algorithm 1: Heterophilous Edge Addition
+  input : G = {V, E}, K, {Dc}^|C|_−1, c=0 and {Vc}^|C|−1_c=0
+  output: G` = {V, E}^0
+  Initialize G` = {V, E}, k = 1 ;
+
+  while 1 ≤ k ≤ K do
+    Sample node i ∼ Uniform(V);
+    Obtain the label, yi of node i;
+    Sample a label c ∼ Dyi;
+    Sample node j ∼ Uniform(Vc);
+  Update edge set E = E ∪ {(i, j)};
+  k ← k + 1;
+  return G = {V, E}
+  '''
+  edge_index = data.edge_index
+  y = data.y
+  # num_class
+
+  return data
 
 def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
   ds = opt['dataset']
