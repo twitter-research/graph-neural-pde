@@ -322,7 +322,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
       W = (W+W.T) / 2
-      W_sum = self.t_a * torch.abs(self.W).sum(dim=1) + self.r_a
+      # W_sum = self.t_a * torch.abs(self.W).sum(dim=1) + self.r_a
+      W_sum = self.t_a * torch.abs(W).sum(dim=1) + self.r_a
       Ws = W + torch.diag(W_sum)
       return Ws
     elif self.opt['gnl_W_style'] == 'k_block':
