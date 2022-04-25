@@ -128,8 +128,8 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     dataset.data = data
   if opt['rewiring'] is not None:
     dataset.data = rewire(dataset.data, opt, data_dir)
-  if opt['data_homoph']: #todo does this need to go after any rewiring / make undirected steps
-    dataset.data = hetro_edge_addition(dataset.data, opt)
+  # if opt['data_homoph']: #todo does this need to go after any rewiring / make undirected steps
+  #   dataset.data = hetro_edge_addition(dataset.data, opt)
 
   train_mask_exists = True
   try:
