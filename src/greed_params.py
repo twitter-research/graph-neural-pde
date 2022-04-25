@@ -555,7 +555,8 @@ def default_params():
     parser.add_argument('--gnl_omega', type=str, default='zero', help='zero, diag, sum')
     parser.add_argument('--gnl_W_style', type=str, default='sum', help='sum, prod, GS, cgnn, diag_dom')
 
-    parser.add_argument('--gnl_W_diag_init', type=str, default='uniform', help='init of diag elements')
+    parser.add_argument('--gnl_W_diag_init', type=str, default='identity', help='init of diag elements')
+    parser.add_argument('--gnl_W_diagDom_init', type=str, default='identity', help='init of diag elements')
     parser.add_argument('--k_blocks', type=int, default=5, help='k_blocks')
     parser.add_argument('--block_size', type=int, default=5, help='block_size')
     parser.add_argument('--k_diags', type=float, default=11, help='k_diags')
