@@ -2,7 +2,7 @@ program: run_GNN.py
 method: grid
 parameters:
   dataset:
-    values: [Cora]
+    values: [cameleon, squirrel]
   block:
     values: [constant]
   function:
