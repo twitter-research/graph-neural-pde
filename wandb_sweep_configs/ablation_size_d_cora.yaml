@@ -17,16 +17,12 @@ parameters:
     values: [general_graph]
   gnl_activation:
     values: [identity]
-  gnl_W_style:
-    values: [k_diag_pc]
-  gnl_W_diag_init:
-    values: [identity]
-  gnl_W_diagDom_init:
-    values: [identity]
+  gnl_W_params:
+    values: [[sum, None, None], [diag, uniform, None], [diag, identity, None], [diag_dom, None, uniform], [diag_dom, None, identity], [k_diag_pc, uniform, None], [k_diag_pc, identity, None]]
   k_diag_pc:
     values: [0.10]
   gnl_measure:
-    values: [nodewise]
+    values: [ones]
   gnl_omega:
     values: [zero]
   drift:
@@ -36,11 +32,11 @@ parameters:
   add_source:
     values: [False]
   step_size:
-    values: [1.0]
+    values: [0.5]
   hidden_dim:
-    values: [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+    values: [4, 8, 16, 32, 64, 128, 256, 512]
   time:
-    values: [3]
+    values: [4]
   input_dropout:
     values: [0.5]
   dropout:
@@ -48,9 +44,9 @@ parameters:
   optimizer:
     values: [adam]
   lr:
-    values: [0.0009]
+    values: [0.0025]
   decay:
-    values: [0.006]
+    values: [0.01]
 command:
   - ${env}
   - python3
