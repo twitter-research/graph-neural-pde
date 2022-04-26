@@ -75,7 +75,9 @@ def hetro_edge_addition(data, opt):
   weights = [class_weights[labels[i]] for i in range(int(num_samples))]
   sampler = WeightedRandomSampler(torch.DoubleTensor(weights), int(num_samples), replacement=True)
 
-
+  # puv for a newly added node u in
+  # class i to connect with an existing node v in class j is proportional to both the class compatibility Hij
+  # between class i and j, and the degree dv of the existing node v
 
   return data
 

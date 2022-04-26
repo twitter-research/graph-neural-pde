@@ -174,6 +174,10 @@ def greed_ablation_params(opt):
         elif opt['gnl_W_style'] == 'k_diag':
             # assert opt['k_diags'] % 2 == 1 and opt['k_diags'] <= in_features, 'must have odd number of k diags'
             opt['k_diags'] = 13
+        elif opt['gnl_W_style'] == 'diag_dom':
+            opt['gnl_W_diag_init'] = 'identity'
+            opt['gnl_W_diagDom_init'] = 'free_dom' #'identity'
+
 
     opt['data_homoph'] = True
     opt['target_homoph'] = 0.7
@@ -248,7 +252,7 @@ def greed_ablation_params(opt):
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = True #True #False #True
+    opt['wandb'] = False #True #True #False #True
     opt['wandb_track_grad_flow'] = True #False  #collect stats for reports
     opt['wandb_watch_grad'] = False
     opt['run_track_reports'] = False #False#True ##run the evolution reports

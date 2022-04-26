@@ -211,11 +211,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'cgnn':
         glorot(self.gnl_W_U)
       elif self.opt['gnl_W_style'] == 'diag_dom':
-        if self.opt['gnl_W_diagDom_init'] == 'fee_dom':
+        if self.opt['gnl_W_diagDom_init'] == 'free_dom':
           glorot(self.W_W)
           uniform(self.t_a, a=-1, b=1)
           uniform(self.r_a, a=-1, b=1)
-        elif self.opt['gnl_W_diag_init'] == 'identity':
+        elif self.opt['gnl_W_diagDom_init'] == 'identity':
           zeros(self.W_W)
           constant(self.t_a, fill_value=1)
           constant(self.r_a, fill_value=1)
@@ -234,8 +234,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'k_diag_pc':
         if self.opt['gnl_W_diag_init'] == 'uniform':
           uniform(self.gnl_W_diags, a=-1, b=1)
-        elif self.opt['gnl_W_diag_init'] == 'zero':
-          zeros(self.gnl_W_diags)
+        elif self.opt['gnl_W_diag_init'] == 'identity':
+          ones(self.gnl_W_diags)
 
     if self.opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
       ones(self.m_alpha)
@@ -283,7 +283,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         # print(f"setting Omega{Omega.shape}")
         if self.opt['gnl_omega_activation'] == 'exponential':
           Omega = -torch.exp(Omega)
-
       elif self.opt['gnl_omega_diag'] == 'const':
         Omega = torch.diag(self.opt['gnl_omega_diag_val'] * torch.ones(self.in_features, device=self.device))
     elif self.opt['gnl_omega'] == 'zero':
@@ -322,7 +321,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
       W = (W+W.T) / 2
-      # W_sum = self.t_a * torch.abs(self.W).sum(dim=1) + self.r_a
       W_sum = self.t_a * torch.abs(W).sum(dim=1) + self.r_a
       Ws = W + torch.diag(W_sum)
       return Ws
