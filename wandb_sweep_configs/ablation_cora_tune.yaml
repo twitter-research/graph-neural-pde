@@ -1,0 +1,66 @@
+program: run_GNN.py
+method: random
+parameters:
+  dataset:
+    values: [Cora]
+  block:
+    values: [constant]
+  function:
+    values: [greed_non_linear]
+  epoch:
+    values: [100]
+  num_splits:
+    values: [4]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_activation:
+    values: [identity]
+  gnl_W_style:
+    values: [sum, diag, diag_dom]
+  gnl_W_diagDom_init:
+    values: [free_dom, identity]
+  gnl_W_diag_init:
+    values: [uniform]
+  k_diag_pc:
+    values: [0.10]
+  gnl_measure:
+    values: [ones]
+  gnl_omega_params:
+     values: [[zero, None, None, None], [Omega_eq_W, None, None, None], [diag, free, None, exponential], [diag, free, None, identity], [diag, const, 1, None], [diag, const, -1, None]]
+  drift:
+    values: [False]
+  test_mu_0:
+    values: [True]
+  add_source:
+    values: [False]
+  step_size:
+    values: [0.25, 0.5, 1.0]
+  hidden_dim:
+    values: [16, 32, 64, 128, 256]
+  time:
+    values: [2, 2.5, 3, 4, 8]
+  input_dropout:
+    values: [0.5]
+  dropout:
+    values: [0.35]
+  optimizer:
+    values: [adam]
+  lr:
+    distribution: uniform
+    min: 0.0001
+    max: 0.005
+  decay:
+    distribution: uniform
+    min: 0.000
+    max: 0.05
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+entity: graph_neural_diffusion
+project: ablation_cora_tune

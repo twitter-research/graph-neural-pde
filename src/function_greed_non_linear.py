@@ -525,11 +525,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           f1 = torch_sparse.spmm(self.edge_index, P / src_meas, x.shape[0], x.shape[0], xW) / 2
           f2 = torch_sparse.spmm(self.edge_index, P / dst_meas, x.shape[0], x.shape[0], xW) / 2
           f = f1 + f2
-          #
-          # print(f"measure {torch.diag(1 / measure).shape}")
-          # print(f"x {x.shape}")
-          # print(f"omega {self.Omega.shape}")
-          f = f - torch.diag(1 / measure) @ x @ self.Omega
 
           f = f - torch.diag(1 / measure) @ x @ self.Omega
 
