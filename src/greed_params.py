@@ -566,6 +566,7 @@ def default_params():
     parser.add_argument('--k_diags', type=float, default=11, help='k_diags')
     parser.add_argument('--k_diag_pc', type=float, default=0.1, help='percentage or dims diagonal')
     parser.add_argument('--gnl_omega_params', nargs='+', default=None, help='list of Omega args for ablation')
+    parser.add_argument('--gnl_W_params', nargs='+', default=None, help='list of W args for ablation')
 
     parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
 

@@ -66,6 +66,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     #temporary for ablation
     if self.opt['gnl_omega_params']:
       self.unpack_omega_params()
+    if self.opt['gnl_W_params']:
+      self.unpack_W_params()
 
     self.data = data
     self.get_evol_stats = False
@@ -211,7 +213,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'cgnn':
         glorot(self.gnl_W_U)
       elif self.opt['gnl_W_style'] == 'diag_dom':
-        if self.opt['gnl_W_diagDom_init'] == 'free_dom':
+        if self.opt['gnl_W_diagDom_init'] == 'uniform':
           glorot(self.W_W)
           uniform(self.t_a, a=-1, b=1)
           uniform(self.r_a, a=-1, b=1)
@@ -267,13 +269,18 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       pass
     return Omega
 
-
   def unpack_omega_params(self):
     'temp function to help ablation'
     wandb.config.update({'gnl_omega': self.opt['gnl_omega_params'][0]}, allow_val_change=True)
     wandb.config.update({'gnl_omega_diag': self.opt['gnl_omega_params'][1]}, allow_val_change=True)
     wandb.config.update({'gnl_omega_diag_val': self.opt['gnl_omega_params'][2]}, allow_val_change=True)
     wandb.config.update({'gnl_omega_activation': self.opt['gnl_omega_params'][3]}, allow_val_change=True)
+
+  def unpack_W_params(self):
+    'temp function to help ablation'
+    wandb.config.update({'gnl_W_style': self.opt['gnl_W_params'][0]}, allow_val_change=True)
+    wandb.config.update({'gnl_W_diag_init': self.opt['gnl_W_params'][1]}, allow_val_change=True)
+    wandb.config.update({'gnl_W_diagDom_init': self.opt['gnl_W_params'][2]}, allow_val_change=True)
 
   def set_gnlOmega(self):
     if self.opt['gnl_omega'] == 'diag':
