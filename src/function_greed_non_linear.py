@@ -28,37 +28,6 @@ from function_transformer_attention import SpGraphTransAttentionLayer
 from function_transformer_attention_greed import SpGraphTransAttentionLayer_greed
 
 
-@torch.no_grad()
-def test(logits, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
-  accs = []
-  for _, mask in data('train_mask', 'val_mask', 'test_mask'):
-    pred = logits[mask].max(1)[1]
-    acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
-    accs.append(acc)
-  return accs
-
-@torch.no_grad()
-def get_entropies(logits, data, activation="softmax", pos_encoding=None, opt=None):  # opt required for runtime polymorphism
-  entropies_dic = {} #[]
-  # https://discuss.pytorch.org/t/difficulty-understanding-entropy-in-pytorch/51014
-  # https://pytorch.org/docs/stable/distributions.html
-  if activation == "softmax":
-    S = Softmax(dim=1)
-  elif activation == "squaremax":
-    S = Softplus(dim=1)
-
-  for mask_name, mask in data('train_mask', 'val_mask', 'test_mask'):
-    p_matrix = S(logits[mask])
-    pred = logits[mask].max(1)[1]
-    labels = data.y[mask]
-    correct = pred == labels
-    entropy2 = Categorical(probs=p_matrix).entropy()
-    entropies_dic[f"entropy_{mask_name}_correct"] = correct.unsqueeze(0)
-    entropies_dic[f"entropy_{mask_name}"] = entropy2.unsqueeze(0)
-
-  return entropies_dic
-
-
 class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def __init__(self, in_features, out_features, opt, data, device, bias=False):
@@ -159,16 +128,25 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     if self.opt['gnl_style'] == 'general_graph':
       # gnl_omega -> "gnl_W"
-      if self.opt['gnl_W_style'] == 'GS':
-        self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
-        self.gnl_W_D = Parameter(torch.ones(in_features))
-      elif self.opt['gnl_W_style'] == 'cgnn':
-        self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
-        self.gnl_W_D = Parameter(torch.ones(in_features))
+      if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod']:
+        self.W_W = Parameter(torch.Tensor(in_features, in_features))
+      elif self.opt['gnl_W_style'] == 'diag':
+        if self.opt['gnl_W_diag_init'] == 'linear':
+          d = self.gnl_W_D.shape[0]
+          d_range = torch.tensor(list(range(d)), device=self.device)
+          self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
+        else:
+          self.gnl_W_D = Parameter(torch.ones(in_features), requires_grad=opt['gnl_W_param_free'])
       elif self.opt['gnl_W_style'] == 'diag_dom':
-        self.W_W = Parameter(torch.Tensor(in_features, in_features - 1))
-        self.t_a = Parameter(torch.Tensor(in_features))#torch.ones(in_features))
-        self.r_a = Parameter(torch.Tensor(in_features))#torch.zeros(in_features))
+        self.W_W = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
+        self.t_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
+        self.r_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
+      elif self.opt['gnl_W_style'] == 'k_diag_pc':
+        k_num = int(self.opt['k_diag_pc'] * in_features)
+        if k_num % 2 == 0:
+          k_num += 1
+        k_num = min(k_num, in_features)
+        self.gnl_W_diags = Parameter(torch.Tensor(in_features, k_num))
       elif self.opt['gnl_W_style'] == 'k_block':
         assert opt['k_blocks'] * opt['block_size'] <= in_features, 'blocks exceeded hidden dim'
         self.gnl_W_blocks = Parameter(torch.Tensor(opt['k_blocks'] * opt['block_size'], opt['block_size']))
@@ -176,16 +154,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'k_diag':
         assert opt['k_diags'] % 2 == 1 and opt['k_diags'] <= in_features, 'must have odd number of k diags'
         self.gnl_W_diags = Parameter(torch.Tensor(in_features, opt['k_diags'])) #or (2k-1) * n + k * (k - 1) if don't wrap around
-      elif self.opt['gnl_W_style'] == 'k_diag_pc':
-        k_num = int(self.opt['k_diag_pc'] * in_features)
-        if k_num % 2 == 0:
-          k_num += 1
-        k_num = min(k_num, in_features)
-        self.gnl_W_diags = Parameter(torch.Tensor(in_features, k_num))
-      elif self.opt['gnl_W_style'] == 'sum':
-        self.W_W = Parameter(torch.Tensor(in_features, in_features))
-      elif self.opt['gnl_W_style'] == 'diag':
+      elif self.opt['gnl_W_style'] == 'GS':
+        self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
         self.gnl_W_D = Parameter(torch.ones(in_features))
+      elif self.opt['gnl_W_style'] == 'cgnn':
+        self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
+        self.gnl_W_D = Parameter(torch.ones(in_features))
+
 
     self.delta = Parameter(torch.Tensor([1.]))
     self.C = (data.y.max() + 1).item()  #hack!, num class for drift
@@ -208,36 +183,48 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       uniform(self.om_W, a=-1, b=1)
     # W's
     if self.opt['gnl_style'] == 'general_graph':
-      if self.opt['gnl_W_style'] == 'GS':
-        glorot(self.gnl_W_U)
-      elif self.opt['gnl_W_style'] == 'cgnn':
-        glorot(self.gnl_W_U)
-      elif self.opt['gnl_W_style'] == 'diag_dom':
-        if self.opt['gnl_W_diagDom_init'] == 'uniform':
-          glorot(self.W_W)
-          uniform(self.t_a, a=-1, b=1)
-          uniform(self.r_a, a=-1, b=1)
-        elif self.opt['gnl_W_diagDom_init'] == 'identity':
-          zeros(self.W_W)
-          constant(self.t_a, fill_value=1)
-          constant(self.r_a, fill_value=1)
-      elif self.opt['gnl_W_style'] == 'k_block':
-        glorot(self.gnl_W_blocks)
-        uniform(self.gnl_W_D, a=-1, b=1)
-      elif self.opt['gnl_W_style'] == 'k_diag':
-        uniform(self.gnl_W_diags, a=-1, b=1)
-      elif self.opt['gnl_W_style'] == 'sum':
+      if self.opt['gnl_W_style'] in ['sum','prod','neg_prod']:
         glorot(self.W_W)
       elif self.opt['gnl_W_style'] == 'diag':
         if self.opt['gnl_W_diag_init'] == 'uniform':
           uniform(self.gnl_W_D, a=-1, b=1)
         elif self.opt['gnl_W_diag_init'] == 'identity':
           ones(self.gnl_W_D)
+        elif self.opt['gnl_W_diag_init'] == 'linear':
+          pass
+          # d = self.gnl_W_D.shape[0]
+          # d_range = torch.tensor(list(range(d)), device=self.device)
+          # self.opt['gnl_W_diag_init_q'] * d * d_range / (d-1) + self.opt['gnl_W_diag_init_r']
+      elif self.opt['gnl_W_style'] == 'diag_dom':
+        if self.opt['gnl_W_diag_init'] == 'uniform':
+          #todo regularise wrt hidden_dim as summing abs(W) off diags
+          #todo initialise spectrum distribution proportional to graph homophily
+          glorot(self.W_W)
+          uniform(self.t_a, a=-1, b=1)
+          uniform(self.r_a, a=-1, b=1)
+        elif self.opt['gnl_W_diag_init'] == 'identity':
+          zeros(self.W_W)
+          constant(self.t_a, fill_value=1)
+          constant(self.r_a, fill_value=1)
+        elif self.opt['gnl_W_diag_init'] == 'linear':
+          glorot(self.W_W)
+          constant(self.t_a, fill_value=self.opt['gnl_W_diag_init_q'])
+          constant(self.r_a, fill_value=self.opt['gnl_W_diag_init_r'])
+      elif self.opt['gnl_W_style'] == 'k_block':
+        glorot(self.gnl_W_blocks)
+        uniform(self.gnl_W_D, a=-1, b=1)
+      elif self.opt['gnl_W_style'] == 'k_diag':
+        uniform(self.gnl_W_diags, a=-1, b=1)
       elif self.opt['gnl_W_style'] == 'k_diag_pc':
         if self.opt['gnl_W_diag_init'] == 'uniform':
           uniform(self.gnl_W_diags, a=-1, b=1)
         elif self.opt['gnl_W_diag_init'] == 'identity':
           ones(self.gnl_W_diags)
+      elif self.opt['gnl_W_style'] == 'GS':
+        glorot(self.gnl_W_U)
+      elif self.opt['gnl_W_style'] == 'cgnn':
+        glorot(self.gnl_W_U)
+
 
     if self.opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
       ones(self.m_alpha)
@@ -276,12 +263,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     wandb.config.update({'gnl_omega_diag_val': self.opt['gnl_omega_params'][2]}, allow_val_change=True)
     wandb.config.update({'gnl_omega_activation': self.opt['gnl_omega_params'][3]}, allow_val_change=True)
 
-  def unpack_W_params(self):
-    'temp function to help ablation'
-    wandb.config.update({'gnl_W_style': self.opt['gnl_W_params'][0]}, allow_val_change=True)
-    wandb.config.update({'gnl_W_diag_init': self.opt['gnl_W_params'][1]}, allow_val_change=True)
-    wandb.config.update({'gnl_W_diagDom_init': self.opt['gnl_W_params'][2]}, allow_val_change=True)
-
   def set_gnlOmega(self):
     if self.opt['gnl_omega'] == 'diag':
       if self.opt['gnl_omega_diag'] == 'free':
@@ -299,31 +280,24 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       Omega = -self.gnl_W
     return Omega
 
+  def unpack_W_params(self):
+    'temp function to help ablation'
+    wandb.config.update({'gnl_W_style': self.opt['gnl_W_params'][0]}, allow_val_change=True)
+    wandb.config.update({'gnl_W_diag_init': self.opt['gnl_W_params'][1]}, allow_val_change=True)
+    # wandb.config.update({'gnl_W_diagDom_init': self.opt['gnl_W_params'][2]}, allow_val_change=True)
+
+  # , requires_grad = opt['gnl_W_param_free']
+
   def set_gnlWS(self):
     "note every W is made symetric before returning here"
     if self.opt['gnl_W_style'] in ['prod']:
       return self.W_W @ self.W_W.t()
+    elif self.opt['gnl_W_style'] in ['neg_prod']:
+      return -self.W_W @ self.W_W.t()
     elif self.opt['gnl_W_style'] in ['sum']:
       return (self.W_W + self.W_W.t()) / 2
     elif self.opt['gnl_W_style'] == 'diag':
       return torch.diag(self.gnl_W_D)
-    # elif self.opt['W_type'] == 'residual_prod':
-    #   return torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
-    elif self.opt['gnl_W_style'] == 'GS':
-      V_hat = gram_schmidt(self.gnl_W_U)
-      # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1)
-      W_D = torch.tanh(self.gnl_W_D)
-      W_hat = V_hat @ torch.diag(W_D) @ V_hat.t()
-      return W_hat
-    elif self.opt['gnl_W_style'] == 'cgnn': # https://github.com/JRowbottomGit/ContinuousGNN/blob/85d47b0748a19e06e305c21e99e1dd03d36ad314/src/trainer.py
-      beta = self.opt['W_beta']
-      with torch.no_grad():
-        W_U = self.gnl_W_U.clone()
-        W_U = self.gnl_W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
-      # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1) #self.gnl_W_D
-      W_D = torch.tanh(self.gnl_W_D) #self.gnl_W_D
-      W_hat = W_U @ torch.diag(W_D) @ W_U.t()
-      return W_hat
     elif self.opt['gnl_W_style'] == 'diag_dom':
       W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
@@ -349,6 +323,22 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W = torch.stack([torch.roll(W_temp[i], shifts=int(i - (self.opt['k_diags'] - 1) / 2), dims=-1) for i in range(self.in_features)])
       Ws = (W + W.T) / 2
       return Ws
+    elif self.opt['gnl_W_style'] == 'GS':
+      V_hat = gram_schmidt(self.gnl_W_U)
+      W_D = torch.tanh(self.gnl_W_D) #      # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1)
+      W_hat = V_hat @ torch.diag(W_D) @ V_hat.t()
+      return W_hat
+    elif self.opt['gnl_W_style'] == 'cgnn': # https://github.com/JRowbottomGit/ContinuousGNN/blob/85d47b0748a19e06e305c21e99e1dd03d36ad314/src/trainer.py
+      beta = self.opt['W_beta']
+      with torch.no_grad():
+        W_U = self.gnl_W_U.clone()
+        W_U = self.gnl_W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
+      # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1) #self.gnl_W_D
+      W_D = torch.tanh(self.gnl_W_D) #self.gnl_W_D
+      W_hat = W_U @ torch.diag(W_D) @ W_U.t()
+      return W_hat
+    # elif self.opt['W_type'] == 'residual_prod':
+    #   return torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
 
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
     row_sum = scatter_add(attentions, edge_index[0], dim=0, dim_size=n)
@@ -816,6 +806,35 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     #output: rows base_class, cols eval_class
     return eval_means, eval_sds
 
+@torch.no_grad()
+def test(logits, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
+  accs = []
+  for _, mask in data('train_mask', 'val_mask', 'test_mask'):
+    pred = logits[mask].max(1)[1]
+    acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
+    accs.append(acc)
+  return accs
 
-  def __repr__(self):
-    return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'
+@torch.no_grad()
+def get_entropies(logits, data, activation="softmax", pos_encoding=None,
+                  opt=None):  # opt required for runtime polymorphism
+  entropies_dic = {}  # []
+  # https://discuss.pytorch.org/t/difficulty-understanding-entropy-in-pytorch/51014
+  # https://pytorch.org/docs/stable/distributions.html
+  if activation == "softmax":
+    S = Softmax(dim=1)
+  elif activation == "squaremax":
+    S = Softplus(dim=1)
+
+  for mask_name, mask in data('train_mask', 'val_mask', 'test_mask'):
+    p_matrix = S(logits[mask])
+    pred = logits[mask].max(1)[1]
+    labels = data.y[mask]
+    correct = pred == labels
+    entropy2 = Categorical(probs=p_matrix).entropy()
+    entropies_dic[f"entropy_{mask_name}_correct"] = correct.unsqueeze(0)
+    entropies_dic[f"entropy_{mask_name}"] = entropy2.unsqueeze(0)
+  return entropies_dic
+
+def __repr__(self):
+  return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'

@@ -54,5 +54,5 @@ command:
   - ${args}
   - --wandb
   - --wandb_sweep
-entity: graph_neural_diffusion
+`entity: graph_neural_diffusion
 project: ablation_omega
