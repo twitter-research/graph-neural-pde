@@ -284,7 +284,7 @@ def tf_ablation_args(opt):
                 'use_mlp', 'use_best_params', 'no_early',
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
-                'XN_no_activation','m2_mlp', 'gnl_thresholding',
+                'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout']:
 
         str_tf = opt[arg]
@@ -559,14 +559,16 @@ def default_params():
     parser.add_argument('--gnl_omega', type=str, default='zero', help='zero, diag, sum')
     parser.add_argument('--gnl_W_style', type=str, default='sum', help='sum, prod, GS, cgnn, diag_dom')
 
-    parser.add_argument('--gnl_W_diag_init', type=str, default='identity', help='init of diag elements')
-    parser.add_argument('--gnl_W_diagDom_init', type=str, default='identity', help='init of diag elements')
     parser.add_argument('--k_blocks', type=int, default=5, help='k_blocks')
     parser.add_argument('--block_size', type=int, default=5, help='block_size')
     parser.add_argument('--k_diags', type=float, default=11, help='k_diags')
     parser.add_argument('--k_diag_pc', type=float, default=0.1, help='percentage or dims diagonal')
     parser.add_argument('--gnl_omega_params', nargs='+', default=None, help='list of Omega args for ablation')
     parser.add_argument('--gnl_W_params', nargs='+', default=None, help='list of W args for ablation')
+    parser.add_argument('--gnl_W_diag_init', type=str, default='identity', help='init of diag elements [identity, uniform, linear]')
+    parser.add_argument('--gnl_W_param_free', type=str, default='True', help='allow parameter to require gradient')
+    parser.add_argument('--gnl_W_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
+    parser.add_argument('--gnl_W_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
 
     parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
 
