@@ -32,7 +32,7 @@ parameters:
   add_source:
     values: [False]
   step_size:
-    values: [1.0] #todo need to redo with step_size 0.5
+    values: [0.5]
   hidden_dim:
     values: [64]
   time:
