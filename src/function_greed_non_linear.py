@@ -191,10 +191,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         elif self.opt['gnl_W_diag_init'] == 'identity':
           ones(self.gnl_W_D)
         elif self.opt['gnl_W_diag_init'] == 'linear':
-          pass
-          # d = self.gnl_W_D.shape[0]
-          # d_range = torch.tensor(list(range(d)), device=self.device)
-          # self.opt['gnl_W_diag_init_q'] * d * d_range / (d-1) + self.opt['gnl_W_diag_init_r']
+          pass #done in init
       elif self.opt['gnl_W_style'] == 'diag_dom':
         if self.opt['gnl_W_diag_init'] == 'uniform':
           #todo regularise wrt hidden_dim as summing abs(W) off diags

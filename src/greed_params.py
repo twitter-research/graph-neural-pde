@@ -167,6 +167,7 @@ def greed_ablation_params(opt):
         opt['gnl_omega_params'] = ["diag","free","None","identity"] #[opt['gnl_omega'], opt['gnl_omega_diag'], opt['gnl_omega_diag_val'], opt['gnl_omega_activation']]
         #W
         opt['gnl_W_style'] = 'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+
         if opt['gnl_W_style'] == 'k_block':
         # assert in_features % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
@@ -174,10 +175,11 @@ def greed_ablation_params(opt):
         elif opt['gnl_W_style'] == 'k_diag':
             # assert opt['k_diags'] % 2 == 1 and opt['k_diags'] <= in_features, 'must have odd number of k diags'
             opt['k_diags'] = 13
-        elif opt['gnl_W_style'] == 'diag_dom':
-            opt['gnl_W_diag_init'] = 'identity'
-            opt['gnl_W_diagDom_init'] = 'free_dom' #'identity'
-
+        elif opt['gnl_W_style'] in ['diag', 'diag_dom']:
+            opt['gnl_W_diag_init'] = 'linear'#'identity'
+            opt['gnl_W_param_free'] = 'False' #'True'
+            opt['gnl_W_diag_init_q'] = 1.0
+            opt['gnl_W_diag_init_r'] = 0.0
 
     opt['data_homoph'] = True
     opt['target_homoph'] = 0.7
