@@ -2,7 +2,7 @@ program: run_GNN.py
 method: grid
 parameters:
   dataset:
-    values: [chameleon, squirrel]
+    values: [Cora]
   block:
     values: [constant]
   function:
@@ -62,6 +62,5 @@ command:
   - ${args}
   - --wandb
   - --wandb_sweep
-  - --geom_gcn_splits
 entity: graph_neural_diffusion
 project: ablation_W_spectrum
