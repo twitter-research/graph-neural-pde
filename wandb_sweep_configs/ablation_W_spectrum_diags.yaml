@@ -18,7 +18,7 @@ parameters:
   gnl_activation:
     values: [identity]
   gnl_W_style:
-    values: [diag, diag_dom]
+    values: [diag]
   gnl_W_diag_init:
     values: [linear]
   gnl_W_param_free:

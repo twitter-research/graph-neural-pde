@@ -132,7 +132,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.W_W = Parameter(torch.Tensor(in_features, in_features))
       elif self.opt['gnl_W_style'] == 'diag':
         if self.opt['gnl_W_diag_init'] == 'linear':
-          d = self.gnl_W_D.shape[0]
+          d = in_features
           d_range = torch.tensor(list(range(d)), device=self.device)
           self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
         else:
