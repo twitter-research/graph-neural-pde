@@ -729,6 +729,7 @@ if __name__ == '__main__':
     parser.add_argument('--gnl_W_params', nargs='+', default=None, help='list of W args for ablation')
     parser.add_argument('--gnl_W_diag_init', type=str, default='identity', help='init of diag elements [identity, uniform, linear]')
     parser.add_argument('--gnl_W_param_free', type=str, default='True', help='allow parameter to require gradient')
+    parser.add_argument('--gnl_W_param_free2', type=str, default='True', help='allow or fix W params')
     parser.add_argument('--gnl_W_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
     parser.add_argument('--gnl_W_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
 

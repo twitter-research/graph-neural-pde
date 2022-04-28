@@ -302,6 +302,9 @@ def get_fixed_splits(data, dataset_name, seed):
   data.val_mask = torch.tensor(val_mask, dtype=torch.bool)
   data.test_mask = torch.tensor(test_mask, dtype=torch.bool)
 
+  if dataset_name in {'Cora', 'Citeseer', 'Pubmed'}:# and opt['not_lcc'] = True:
+    process_lcc_masks(data)
+
   # Remove the nodes that the label vectors are all zeros, they aren't assigned to any class
   if dataset_name in {'cora', 'citeseer', 'pubmed'}:
     data.train_mask[data.non_valid_samples] = False
@@ -321,3 +324,10 @@ def get_fixed_splits(data, dataset_name, seed):
     assert torch.count_nonzero(data.train_mask + data.val_mask + data.test_mask) == data.x.size(0)
 
   return data
+
+def process_lcc_masks(data):
+  tot_masks = data.train_mask.int() + data.val_mask.int() + data.test_mask.int()
+  lcc_mask = tot_masks > 0
+  data.train_mask = data.train_mask[lcc_mask]
+  data.val_mask = data.val_mask[lcc_mask]
+  data.test_mask = data.test_mask[lcc_mask]

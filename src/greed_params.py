@@ -181,13 +181,13 @@ def greed_ablation_params(opt):
             opt['gnl_W_diag_init_q'] = 1.0
             opt['gnl_W_diag_init_r'] = 0.0
 
-    opt['data_homoph'] = True
-    opt['target_homoph'] = 0.7
-
+    # opt['planetoid_split'] = True
     opt['geom_gcn_splits'] = True #False#True
     opt['epoch'] = 6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1#4#1
-    # opt['max_iters'] = 10000
+
+    # opt['data_homoph'] = True
+    # opt['target_homoph'] = 0.7
 
     #definitions of lie trotter
     #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
@@ -569,6 +569,7 @@ def default_params():
     parser.add_argument('--gnl_W_params', nargs='+', default=None, help='list of W args for ablation')
     parser.add_argument('--gnl_W_diag_init', type=str, default='identity', help='init of diag elements [identity, uniform, linear]')
     parser.add_argument('--gnl_W_param_free', type=str, default='True', help='allow parameter to require gradient')
+    parser.add_argument('--gnl_W_param_free2', type=str, default='True', help='allow or fix W params')
     parser.add_argument('--gnl_W_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
     parser.add_argument('--gnl_W_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
 
