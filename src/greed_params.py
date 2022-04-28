@@ -177,7 +177,8 @@ def greed_ablation_params(opt):
             opt['k_diags'] = 13
         elif opt['gnl_W_style'] in ['diag', 'diag_dom']:
             opt['gnl_W_diag_init'] = 'linear'#'identity'
-            opt['gnl_W_param_free'] = 'False' #'True'
+            # opt['gnl_W_param_free'] = 'False' #'True'
+            opt['gnl_W_param_free2'] = 'False' #'True'
             opt['gnl_W_diag_init_q'] = 1.0
             opt['gnl_W_diag_init_r'] = 0.0
 

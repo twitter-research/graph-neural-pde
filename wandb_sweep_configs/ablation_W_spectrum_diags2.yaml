@@ -21,8 +21,8 @@ parameters:
     values: [diag]
   gnl_W_diag_init:
     values: [linear]
-  gnl_W_param_free:
-    values: [True, False]
+  gnl_W_param_free2:
+    values: [False]
   gnl_W_diag_init_q:
     values: [-2, -1, 0 , 1, 2]
   gnl_W_diag_init_r:

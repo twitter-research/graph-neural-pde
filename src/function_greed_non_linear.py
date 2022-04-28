@@ -143,8 +143,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.gnl_W_D = Parameter(torch.ones(in_features), requires_grad=opt['gnl_W_param_free'])
       elif self.opt['gnl_W_style'] == 'diag_dom':
         self.W_W = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
-        self.t_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
-        self.r_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
+        # self.t_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
+        # self.r_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
+        if opt['gnl_W_param_free2']:
+          self.t_a = Parameter(torch.Tensor(in_features))
+          self.r_a = Parameter(torch.Tensor(in_features))
+        else:
+          self.t_a = None
+          self.r_a = None
       elif self.opt['gnl_W_style'] == 'k_diag_pc':
         k_num = int(self.opt['k_diag_pc'] * in_features)
         if k_num % 2 == 0:
@@ -209,8 +215,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           constant(self.r_a, fill_value=1)
         elif self.opt['gnl_W_diag_init'] == 'linear':
           glorot(self.W_W)
-          constant(self.t_a, fill_value=self.opt['gnl_W_diag_init_q'])
-          constant(self.r_a, fill_value=self.opt['gnl_W_diag_init_r'])
+          # constant(self.t_a, fill_value=self.opt['gnl_W_diag_init_q'])
+          # constant(self.r_a, fill_value=self.opt['gnl_W_diag_init_r'])
+          if self.opt['gnl_W_param_free2']:
+            constant(self.t_a, fill_value=self.opt['gnl_W_diag_init_q'])
+            constant(self.r_a, fill_value=self.opt['gnl_W_diag_init_r'])
+          else:
+            self.t_a = self.opt['gnl_W_diag_init_q']
+            self.r_a = self.opt['gnl_W_diag_init_r']
       elif self.opt['gnl_W_style'] == 'k_block':
         glorot(self.gnl_W_blocks)
         uniform(self.gnl_W_D, a=-1, b=1)
