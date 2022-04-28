@@ -153,7 +153,7 @@ def greed_ablation_params(opt):
     elif opt['gnl_style'] == 'general_graph':
         opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
         #Omega
-        opt['gnl_omega'] = 'diag' #'diag'#'zero' Omega_eq_W
+        opt['gnl_omega'] = 'diag_dom' #'diag'#'zero' Omega_eq_W
         # if opt['gnl_omega'] == 'diag':
         #     opt['gnl_omega_diag'] = 'free' #'free 'const'
         #     if opt['gnl_omega_diag'] == 'const':
@@ -287,7 +287,7 @@ def tf_ablation_args(opt):
                 'use_mlp', 'use_best_params', 'no_early',
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
-                'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free',
+                'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout']:
 
         str_tf = opt[arg]
