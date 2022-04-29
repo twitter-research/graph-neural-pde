@@ -288,7 +288,7 @@ def tf_ablation_args(opt):
                 'use_mlp', 'use_best_params', 'no_early',
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
-                'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2',
+                'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout']:
 
         str_tf = opt[arg]
@@ -562,6 +562,7 @@ def default_params():
     parser.add_argument('--gnl_measure', type=str, default='ones', help='ones, deg_poly, nodewise')
     parser.add_argument('--gnl_omega', type=str, default='zero', help='zero, diag, sum')
     parser.add_argument('--gnl_W_style', type=str, default='sum', help='sum, prod, GS, cgnn, diag_dom')
+    parser.add_argument('--gnl_attention', type=str, default='False', help='turns on attention for gnl general graph')
 
     parser.add_argument('--k_blocks', type=int, default=5, help='k_blocks')
     parser.add_argument('--block_size', type=int, default=5, help='block_size')

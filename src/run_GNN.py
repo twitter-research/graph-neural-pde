@@ -720,6 +720,7 @@ if __name__ == '__main__':
     parser.add_argument('--gnl_measure', type=str, default='ones', help='ones, deg_poly, nodewise')
     parser.add_argument('--gnl_omega', type=str, default='zero', help='zero, diag, sum')
     parser.add_argument('--gnl_W_style', type=str, default='sum', help='sum, prod, GS, cgnn, diag_dom')
+    parser.add_argument('--gnl_attention', type=str, default='False', help='turns on attention for gnl general graph')
 
     parser.add_argument('--k_blocks', type=int, default=5, help='k_blocks')
     parser.add_argument('--block_size', type=int, default=5, help='block_size')
