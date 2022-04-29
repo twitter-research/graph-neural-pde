@@ -123,7 +123,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       pass
 
     #'gnl_style' in 'scaled_dot' / 'softmax_attention' / 'general_graph'
-    if self.opt['gnl_style'] == 'softmax_attention':
+    if self.opt['gnl_style'] == 'softmax_attention' or self.opt['gnl_attention']:
       self.multihead_att_layer = SpGraphTransAttentionLayer_greed(in_features, out_features, opt, device, edge_weights=self.edge_weight).to(device)
 
     if self.opt['gnl_style'] == 'general_graph':
@@ -134,23 +134,23 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         if self.opt['gnl_W_diag_init'] == 'linear':
           d = in_features
           d_range = torch.tensor(list(range(d)), device=self.device)
-          # self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
-          if opt['gnl_W_param_free2']:
-            self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'])
-          else:
-            self.gnl_W_D = self.opt['gnl_W_diag_init_q'] * d_range / (d - 1) + self.opt['gnl_W_diag_init_r']
+          self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
+          # if opt['gnl_W_param_free2']:
+          #   self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'])
+          # else:
+          #   self.gnl_W_D = self.opt['gnl_W_diag_init_q'] * d_range / (d - 1) + self.opt['gnl_W_diag_init_r']
         else:
           self.gnl_W_D = Parameter(torch.ones(in_features), requires_grad=opt['gnl_W_param_free'])
       elif self.opt['gnl_W_style'] == 'diag_dom':
         self.W_W = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
-        # self.t_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
-        # self.r_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
-        if opt['gnl_W_param_free2']:
-          self.t_a = Parameter(torch.Tensor(in_features))
-          self.r_a = Parameter(torch.Tensor(in_features))
-        else:
-          self.t_a = None
-          self.r_a = None
+        self.t_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
+        self.r_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
+        # if opt['gnl_W_param_free2']:
+        #   self.t_a = Parameter(torch.Tensor(in_features))
+        #   self.r_a = Parameter(torch.Tensor(in_features))
+        # else:
+        #   self.t_a = None
+        #   self.r_a = None
       elif self.opt['gnl_W_style'] == 'k_diag_pc':
         k_num = int(self.opt['k_diag_pc'] * in_features)
         if k_num % 2 == 0:
@@ -215,14 +215,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           constant(self.r_a, fill_value=1)
         elif self.opt['gnl_W_diag_init'] == 'linear':
           glorot(self.W_W)
-          # constant(self.t_a, fill_value=self.opt['gnl_W_diag_init_q'])
-          # constant(self.r_a, fill_value=self.opt['gnl_W_diag_init_r'])
-          if self.opt['gnl_W_param_free2']:
-            constant(self.t_a, fill_value=self.opt['gnl_W_diag_init_q'])
-            constant(self.r_a, fill_value=self.opt['gnl_W_diag_init_r'])
-          else:
-            self.t_a = self.opt['gnl_W_diag_init_q']
-            self.r_a = self.opt['gnl_W_diag_init_r']
+          constant(self.t_a, fill_value=self.opt['gnl_W_diag_init_q'])
+          constant(self.r_a, fill_value=self.opt['gnl_W_diag_init_r'])
+          # if self.opt['gnl_W_param_free2']:
+          #   constant(self.t_a, fill_value=self.opt['gnl_W_diag_init_q'])
+          #   constant(self.r_a, fill_value=self.opt['gnl_W_diag_init_r'])
+          # else:
+          #   self.t_a = self.opt['gnl_W_diag_init_q']
+          #   self.r_a = self.opt['gnl_W_diag_init_r']
       elif self.opt['gnl_W_style'] == 'k_block':
         glorot(self.gnl_W_blocks)
         uniform(self.gnl_W_D, a=-1, b=1)
@@ -297,7 +297,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     'temp function to help ablation'
     wandb.config.update({'gnl_W_style': self.opt['gnl_W_params'][0]}, allow_val_change=True)
     wandb.config.update({'gnl_W_diag_init': self.opt['gnl_W_params'][1]}, allow_val_change=True)
-    # wandb.config.update({'gnl_W_diagDom_init': self.opt['gnl_W_params'][2]}, allow_val_change=True)
 
   # , requires_grad = opt['gnl_W_param_free']
 
@@ -350,6 +349,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W_D = torch.tanh(self.gnl_W_D) #self.gnl_W_D
       W_hat = W_U @ torch.diag(W_D) @ W_U.t()
       return W_hat
+    elif self.opt['gnl_W_style'] == 'identity':
+      return torch.eye(self.in_features, device=self.device)
     # elif self.opt['W_type'] == 'residual_prod':
     #   return torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
 
@@ -403,7 +404,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     Ek = F.one_hot(pred, num_classes=self.C)
     # pseudo inverse
     P = self.GNN_m2.weight
-    # https://pytorch.org/docs/stable/generated/torch.matrix_rank.html
     b = self.GNN_m2.bias
     P_dagg = torch.linalg.pinv(P).T  # sometimes get RuntimeError: svd_cpu: the updating process of SBDSDC did not converge (error: 4)
     new_z = (Ek - b.unsqueeze(0)) @ P_dagg + z @ (torch.eye(P.shape[-1], device=self.device) - P_dagg.T @ P).T
@@ -432,7 +432,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         attention = fOmf
 
     elif self.opt['gnl_style'] == 'general_graph':
-
       # get degrees
       src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)
 
@@ -464,6 +463,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           fOmf = torch.ones(src_deginvsqrt.shape, device=self.device)
         attention = torch.ones(src_deginvsqrt.shape, device=self.device)
     return fOmf, attention
+
+  def set_L0(self):
+    attention, _ = self.multihead_att_layer(self.x0, self.edge_index)
+    attention = sym_row_col(self.edge_index, attention, self.n_nodes)
+    self.mean_attention_0 = attention.mean(dim=1)
 
   def forward(self, t, x):  # t is needed when called by the integrator
     if self.nfe > self.opt["max_nfe"]:
@@ -532,11 +536,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
           P = attention * src_deginvsqrt * dst_deginvsqrt
           xW = x @ self.gnl_W
-          f1 = torch_sparse.spmm(self.edge_index, P / src_meas, x.shape[0], x.shape[0], xW) / 2
-          f2 = torch_sparse.spmm(self.edge_index, P / dst_meas, x.shape[0], x.shape[0], xW) / 2
-          f = f1 + f2
 
-          f = f - torch.diag(1 / measure) @ x @ self.Omega
+          if not self.opt['gnl_measure'] == 'ones':
+            f1 = torch_sparse.spmm(self.edge_index, P / src_meas, x.shape[0], x.shape[0], xW) / 2
+            f2 = torch_sparse.spmm(self.edge_index, P / dst_meas, x.shape[0], x.shape[0], xW) / 2
+            f = f1 + f2
+            f = f - torch.diag(1 / measure) @ x @ self.Omega
+          else:
+            if self.opt['gnl_attention']: #todo attention only implemented for measure==ones
+              P = P * self.mean_attention_0
+            f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], xW) / 2
+            f = f - x @ self.Omega
 
         if self.opt['test_mu_0']:
           if self.opt['add_source']:

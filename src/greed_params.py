@@ -136,7 +136,7 @@ def greed_ablation_params(opt):
 
     #greed_non_linear params
     opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
-    opt['gnl_measure'] = 'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
+    opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
     opt['gnl_savefolder'] = 'chameleon_testing'#'chameleon_general_drift'#'chameleon_testing'
 
     if opt['gnl_style'] == 'scaled_dot':
@@ -152,6 +152,7 @@ def greed_ablation_params(opt):
         opt['attention_normalisation'] = 'none'
     elif opt['gnl_style'] == 'general_graph':
         opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
+        opt['gnl_attention'] = True #use L0 attention coefficients
         #Omega
         opt['gnl_omega'] = 'diag_dom' #'diag'#'zero' Omega_eq_W
         # if opt['gnl_omega'] == 'diag':
@@ -177,8 +178,8 @@ def greed_ablation_params(opt):
             opt['k_diags'] = 13
         elif opt['gnl_W_style'] in ['diag', 'diag_dom']:
             opt['gnl_W_diag_init'] = 'linear'#'identity'
-            # opt['gnl_W_param_free'] = 'False' #'True'
-            opt['gnl_W_param_free2'] = 'False' #'True'
+            opt['gnl_W_param_free'] = 'False' #'True'
+            # opt['gnl_W_param_free2'] = 'False' #'True'
             opt['gnl_W_diag_init_q'] = 1.0
             opt['gnl_W_diag_init_r'] = 0.0
 

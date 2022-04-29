@@ -133,7 +133,6 @@ class ODEFuncGreedLinH(ODEFuncGreed):
     else:
       self.L_0 = self.get_laplacian_linear(gamma, self.tau_0, self.tau_transpose_0)
 
-
   def get_laplacian_linear(self, gamma, tau, tau_transpose):
     """
     These dynamics follow directly from differentiating the energy

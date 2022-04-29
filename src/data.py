@@ -10,15 +10,16 @@ import torch
 from torch_geometric.data import Data, InMemoryDataset
 from torch.utils.data import WeightedRandomSampler
 from torch_geometric.datasets import Planetoid, Amazon, Coauthor, KarateClub#, WikipediaNetwork #todo hacky for AWS download hetero using PyG
+# from torch_geometric.datasets import Amazon, Coauthor, KarateClub#, WikipediaNetwork #todo hacky for AWS download hetero using PyG
 from graph_rewiring import get_two_hop, apply_gdc
 from ogb.nodeproppred import PygNodePropPredDataset
 import torch_geometric.transforms as T
 from torch_geometric.utils import to_undirected, is_undirected
 from graph_rewiring import make_symmetric, apply_pos_dist_rewire
 from heterophilic import WebKB, Actor, WikipediaNetwork #todo then copy from ds/ds/geom/raw to ds/ds/raw and process using this
+# from heterophilic import Planetoid, WebKB, Actor, WikipediaNetwork #todo then copy from ds/ds/geom/raw to ds/ds/raw and process using this
 
 DATA_PATH = '../data'
-
 
 def rewire(data, opt, data_dir):
   rw = opt['rewiring']
@@ -30,62 +31,12 @@ def rewire(data, opt, data_dir):
     data = apply_pos_dist_rewire(data, opt, data_dir)
   return data
 
-def hetro_edge_addition(data, opt):
-  '''
-  Algorithm 1: Heterophilous Edge Addition
-  input : G = {V, E}, K, {Dc}^|C|_−1, c=0 and {Vc}^|C|−1_c=0
-  output: G` = {V, E}^0
-  Initialize G` = {V, E}, k = 1 ;
-
-  while 1 ≤ k ≤ K do
-    Sample node i ∼ Uniform(V);
-    Obtain the label, yi of node i;
-    Sample a label c ∼ Dyi;
-    Sample node j ∼ Uniform(Vc);
-  Update edge set E = E ∪ {(i, j)};
-  k ← k + 1;
-  return G = {V, E}
-  '''
-  edge_index = data.edge_index
-  y = data.y
-  num_class = y.max() + 1
-  target_homoph = opt['target_homoph']
-
-  Nc = []
-  for c in range(num_class):
-    Nc.append(torch.sum(y==c)) #work in dst (index j) nodes
-
-  Dc = {}
-  for c in range(num_class):
-    class_mask = y[edge_index[1]] == c
-    class_c_src = edge_index[0][class_mask] #all the source nodes for dst nodes of class c
-    temp_Nc = []
-    for k in range(num_class):
-      temp_Nc.append(torch.sum(y[class_c_src] == k)/Nc[k])
-    Dc = {c: temp_Nc for c in range(num_class)}
-
-  torch.rand()
-
-  # Let there be 9 samples and 1 sample in class 0 and 1 respectively
-  class_counts = [9.0, 1.0]
-  num_samples = sum(class_counts)
-  labels = [0, 0, ..., 0, 1]  # corresponding labels of samples
-
-  class_weights = [num_samples / class_counts[i] for i in range(len(class_counts))]
-  weights = [class_weights[labels[i]] for i in range(int(num_samples))]
-  sampler = WeightedRandomSampler(torch.DoubleTensor(weights), int(num_samples), replacement=True)
-
-  # puv for a newly added node u in
-  # class i to connect with an existing node v in class j is proportional to both the class compatibility Hij
-  # between class i and j, and the degree dv of the existing node v
-
-  return data
 
 def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
   ds = opt['dataset']
   path = os.path.join(data_dir, ds)
   if ds in ['Cora', 'Citeseer', 'Pubmed']:
-    dataset = Planetoid(path, ds)
+    dataset = Planetoid(path, ds)#, "geom-gcn" if opt["geom_gcn_splits"] else "public")
   elif ds in ['Computers', 'Photo']:
     dataset = Amazon(path, ds)
   elif ds == 'CoauthorCS':
