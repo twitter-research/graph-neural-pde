@@ -29,6 +29,9 @@ parameters:
     values: [0, 0.5, 1, 2]
   gnl_W_diag_init_r:
     values: [0, 0.5 , 1, 2]
+
+FileNotFoundError: [Errno 2] No such file or directory: '/home/ubuntu/workspace/graph-neural-pde/src/splits/Cora_split_0.6_0.2_0.npz'
+
   k_diag_pc:
     values: [0.10]
   gnl_measure:
