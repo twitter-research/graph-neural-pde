@@ -68,7 +68,7 @@ class GNN(BaseGNN):
       if self.opt['gnl_style'] == 'scaled_dot':
         self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_scaled_dot_omega()
       elif self.opt['gnl_style'] == 'general_graph':
-        self.odeblock.odefunc.gnl_W = self.odeblock.odefunc.set_gnlWS(x)
+        self.odeblock.odefunc.gnl_W = self.odeblock.odefunc.set_gnlWS()
         self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_gnlOmega()
         if self.opt['gnl_attention']:
           self.odeblock.odefunc.set_L0()

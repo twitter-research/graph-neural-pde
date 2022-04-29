@@ -170,11 +170,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'cgnn':
         self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
         self.gnl_W_D = Parameter(torch.ones(in_features))
-      elif self.opt['gnl_W_style'] == 'feature':
-        pass
-      elif self.opt['gnl_W_style'] == 'positional':
-        pass
 
+      elif self.opt['gnl_W_style'] == 'feature':
+        self.Om_phi = Parameter(torch.Tensor(in_features))
+        self.W_psi = Parameter(torch.Tensor(in_features))
+      elif self.opt['gnl_W_style'] == 'positional':
+        self.phi = nn.Linear(self.opt['pos_enc_hidden_dim'], self.in_features)
+        self.psi = nn.Linear(self.opt['pos_enc_hidden_dim'], self.in_features)
 
     self.delta = Parameter(torch.Tensor([1.]))
     self.C = (data.y.max() + 1).item()  #hack!, num class for drift
@@ -242,9 +244,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'cgnn':
         glorot(self.gnl_W_U)
       elif self.opt['gnl_W_style'] == 'feature':
-        pass
+        glorot(self.Om_phi)
+        glorot(self.W_psi)
       elif self.opt['gnl_W_style'] == 'positional':
-        pass
+        pass #linear layer
 
 
     if self.opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
@@ -308,7 +311,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   # , requires_grad = opt['gnl_W_param_free']
 
-  def set_gnlWS(self, x):
+  def set_gnlWS(self):
     "note every W is made symetric before returning here"
     if self.opt['gnl_W_style'] in ['prod']:
       return self.W_W @ self.W_W.t()
