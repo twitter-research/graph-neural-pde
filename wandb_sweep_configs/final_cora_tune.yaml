@@ -19,6 +19,8 @@ parameters:
     values: [True, False]
   attention_type:
     values: [scaled_dot]
+  attention_activation:
+    values: [exponential, softmax]
   symmetric_attention:
     values: [True]
   attention_normalisation:
