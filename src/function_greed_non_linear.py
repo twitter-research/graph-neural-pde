@@ -170,6 +170,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'cgnn':
         self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
         self.gnl_W_D = Parameter(torch.ones(in_features))
+      elif self.opt['gnl_W_style'] == 'feature':
+        pass
+      elif self.opt['gnl_W_style'] == 'positional':
+        pass
 
 
     self.delta = Parameter(torch.Tensor([1.]))
@@ -237,6 +241,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         glorot(self.gnl_W_U)
       elif self.opt['gnl_W_style'] == 'cgnn':
         glorot(self.gnl_W_U)
+      elif self.opt['gnl_W_style'] == 'feature':
+        pass
+      elif self.opt['gnl_W_style'] == 'positional':
+        pass
 
 
     if self.opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
@@ -300,7 +308,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   # , requires_grad = opt['gnl_W_param_free']
 
-  def set_gnlWS(self):
+  def set_gnlWS(self, x):
     "note every W is made symetric before returning here"
     if self.opt['gnl_W_style'] in ['prod']:
       return self.W_W @ self.W_W.t()
@@ -353,6 +361,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       return torch.eye(self.in_features, device=self.device)
     # elif self.opt['W_type'] == 'residual_prod':
     #   return torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
+    elif self.opt['gnl_W_style'] == 'feature':
+      pass
+    elif self.opt['gnl_W_style'] == 'positional':
+      pass
 
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
     row_sum = scatter_add(attentions, edge_index[0], dim=0, dim_size=n)

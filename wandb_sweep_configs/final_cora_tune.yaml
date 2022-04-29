@@ -10,7 +10,7 @@ parameters:
   epoch:
     values: [100]
   num_splits:
-    values: [4]
+    values: [10]
   method:
     values: [euler]
   gnl_style:
