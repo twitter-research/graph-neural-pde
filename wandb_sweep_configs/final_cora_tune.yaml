@@ -17,6 +17,12 @@ parameters:
     values: [general_graph]
   gnl_attention:
     values: [True, False]
+  attention_type:
+    values: [scaled_dot]
+  symmetric_attention:
+    values: [True]
+  attention_normalisation:
+    values: [sym_row_col]
   gnl_activation:
     values: [identity]
   gnl_W_style:
@@ -40,7 +46,9 @@ parameters:
   test_mu_0:
     values: [True]
   add_source:
-    values: [False]
+    values: [True, False]
+  use_mlp:
+    values: [True, False]
   step_size:
     values: [0.25, 0.5, 1.0]
   hidden_dim:

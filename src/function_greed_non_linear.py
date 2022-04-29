@@ -466,7 +466,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def set_L0(self):
     attention, _ = self.multihead_att_layer(self.x0, self.edge_index)
-    attention = sym_row_col(self.edge_index, attention, self.n_nodes)
+    # attention = sym_row_col(self.edge_index, attention, self.n_nodes) #already normalised in greed attention block
     self.mean_attention_0 = attention.mean(dim=1)
 
   def forward(self, t, x):  # t is needed when called by the integrator

@@ -262,7 +262,6 @@ class SpGraphTransAttentionLayer_greed(nn.Module):
       attention = softmax(prods, edge[self.opt['attention_norm_idx']])
     elif self.opt['attention_activation'] == "squaremax":
       attention = squareplus(prods, edge[self.opt['attention_norm_idx']])
-
     elif self.opt['attention_activation'] == "sigmoid_deriv":
       attention = torch.sigmoid(prods) * (1 - torch.sigmoid(prods))
     elif self.opt['attention_activation'] == "tanh_deriv":
