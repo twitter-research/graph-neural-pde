@@ -12,7 +12,10 @@ from torch_geometric.utils import softmax, to_dense_adj
 from data import get_dataset
 from test_params import OPT
 from greed_params import greed_test_params
+from heterophilic import get_fixed_splits
 from utils import *
+import pandas as pd
+
 
 class HeteroTests(unittest.TestCase):
   def setUp(self):
@@ -37,55 +40,133 @@ class HeteroTests(unittest.TestCase):
   def tearDown(self) -> None:
     pass
 
-  def test(self):
-    h = torch.mm(self.x, self.W)
-    edge_h = torch.cat((h[self.edge[0, :], :], h[self.edge[1, :], :]), dim=1)
-    self.assertTrue(edge_h.shape == torch.Size([self.edge.shape[1], 2 * 2]))
-    ah = self.alpha.mm(edge_h.t()).t()
-    self.assertTrue(ah.shape == torch.Size([self.edge.shape[1], 1]))
-    edge_e = self.leakyrelu(ah)
-    attention = softmax(edge_e, self.edge[1])
-    print(attention)
-
-  def test_function(self):
-    in_features = self.x.shape[1]
-    out_features = self.x.shape[1]
-    att_layer = SpGraphTransAttentionLayer(in_features, out_features, self.opt, self.device, concat=True)
-    attention, _ = att_layer(self.x, self.edge)  # should be n_edges x n_heads
-    self.assertTrue(attention.shape == (self.edge.shape[1], self.opt['heads']))
-    dense_attention1 = to_dense_adj(self.edge, edge_attr=attention[:, 0]).squeeze()
-    dense_attention2 = to_dense_adj(self.edge, edge_attr=attention[:, 1]).squeeze()
-
-    def get_round_sum(tens, n_digits=3):
-      val = torch.sum(tens, dim=int(not self.opt['attention_norm_idx']))
-      round_sum = (val * 10 ** n_digits).round() / (10 ** n_digits)
-      print('round sum', round_sum)
-      return round_sum
-
-    self.assertTrue(torch.all(torch.isclose(get_round_sum(dense_attention1), torch.ones(size=dense_attention1.shape))))
-    self.assertTrue(torch.all(torch.isclose(get_round_sum(dense_attention2), torch.ones(size=dense_attention1.shape))))
-    self.assertTrue(torch.all(attention > 0.))
-    self.assertTrue(torch.all(attention <= 1.))
-
-    dataset = get_dataset(self.opt, '../data', True)
-    data = dataset.data
-    in_features = data.x.shape[1]
-    out_features = data.x.shape[1]
-
-    att_layer = SpGraphTransAttentionLayer(in_features, out_features, self.opt, self.device, concat=True)
-    attention, _ = att_layer(data.x, data.edge_index)  # should be n_edges x n_heads
-    self.assertTrue(attention.shape == (data.edge_index.shape[1], self.opt['heads']))
-    dense_attention1 = to_dense_adj(data.edge_index, edge_attr=attention[:, 0]).squeeze()
-    dense_attention2 = to_dense_adj(data.edge_index, edge_attr=attention[:, 1]).squeeze()
-    print('sums:', torch.sum(torch.isclose(dense_attention1, torch.ones(size=dense_attention1.shape))), dense_attention1.shape)
-    print('da1', dense_attention1)
-    print('da2', dense_attention2)
-    self.assertTrue(torch.all(torch.isclose(get_round_sum(dense_attention1), torch.ones(size=dense_attention1.shape))))
-    self.assertTrue(torch.all(torch.isclose(get_round_sum(dense_attention2), torch.ones(size=dense_attention2.shape))))
-    self.assertTrue(torch.all(attention > 0.))
-    self.assertTrue(torch.all(attention <= 1.))
+  #check datasets.zip is same as pyg dataloaders
+  def test_geom_zip_datasets(self):
+    self.opt['not_lcc'] = False
+    for ds in ["Cora", "Citeseer", "Pubmed"]:
+      for lcc_tf in [True, False]:
+        self.opt['dataset'] = ds
+        self.opt['not_lcc'] = lcc_tf
+        pyg_datset = get_dataset(self.opt, '../data', self.opt['not_lcc'])
+        geom_dataset = get_dataset_geom(self.opt, '../datasets', self.opt['not_lcc'])
+        self.assertTrue(torch.all(torch.isclose(pyg_datset.data.x, geom_dataset.data.x)))
+    print("they all passed")
 
 
+  #Check it’s true that Cora uses LCC and Citeseer does not by comparing to the provided datasets from geom-gcn
+  #For citeseer check train/val/test for each split
+  def test_get_fixed_splits(self):
+    df_list = []
+    for ds in ["Cora", "Citeseer", "Pubmed"]:
+      for lcc_tf in [True, False]:
+        self.opt['dataset'] = ds
+        self.opt['not_lcc'] = lcc_tf
+        dataset = get_dataset(self.opt, '../data', self.opt['not_lcc'])
+        data = dataset.data.to(self.device)
+        for rep in range(10):
+          data = get_fixed_splits(data, self.opt['dataset'], rep)
+          df_row = [ds, rep, lcc_tf,
+                    data.train_mask.shape, torch.count_nonzero(data.train_mask).item(),
+                    data.val_mask.shape, torch.count_nonzero(data.val_mask).item(),
+                    data.test_mask.shape, torch.count_nonzero(data.test_mask).item(),
+                    torch.count_nonzero(data.train_mask).item() + torch.count_nonzero(data.val_mask).item() + torch.count_nonzero(data.test_mask).item(),
+                    data.x.shape]
+          df_list.append(df_row)
+    df_cols = ["ds", " rep", "not_lcc",
+                "train_mask.shape", "nonzero(train_mask)",
+                "val_mask.shape", "nonzero(val_mask)",
+                "test_mask.shape", "nonzero(test_mask)",
+                "sum_non_zero", "x.shape"]
+    df = pd.DataFrame(df_list, columns=df_cols)
+    pd.set_option('display.max_rows', None)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', None)
+    pd.set_option('display.max_colwidth', -1)
+    print(df)
+
+
+from data import *
+def get_dataset_geom(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
+  #edit these two lines to work in datasets.zip from geom_gcn
+  ds = opt['dataset'].lower()
+  path = data_dir #os.path.join(data_dir, ds.lower())
+  # if ds in ['Cora', 'Citeseer', 'Pubmed']:
+  if ds in ['cora', 'citeseer', 'pubmed']:
+    dataset = Planetoid(path, ds)#, "geom-gcn" if opt["geom_gcn_splits"] else "public")
+  elif ds in ['Computers', 'Photo']:
+    dataset = Amazon(path, ds)
+  elif ds == 'CoauthorCS':
+    dataset = Coauthor(path, 'CS')
+  elif ds in ['cornell', 'texas', 'wisconsin']:
+    dataset = WebKB(root=path, name=ds, transform=T.NormalizeFeatures())
+  elif ds in ['chameleon', 'squirrel']:
+    dataset = WikipediaNetwork(root=path, name=ds, transform=T.NormalizeFeatures())
+  elif ds == 'film':
+    dataset = Actor(root=path, transform=T.NormalizeFeatures())
+  elif ds == 'ogbn-arxiv':
+    dataset = PygNodePropPredDataset(name=ds, root=path,
+                                     transform=T.ToSparseTensor())
+    use_lcc = False  #  never need to calculate the lcc with ogb datasets
+  elif ds == 'Karate':
+    dataset = KarateClub()
+    dataset.data.val_mask = ~dataset.data.train_mask
+    dataset.data.test_mask = ~dataset.data.train_mask
+    use_lcc = False
+
+  else:
+    raise Exception('Unknown dataset.')
+
+  if use_lcc:
+    lcc = get_largest_connected_component(dataset)
+
+    x_new = dataset.data.x[lcc]
+    y_new = dataset.data.y[lcc]
+
+    row, col = dataset.data.edge_index.numpy()
+    edges = [[i, j] for i, j in zip(row, col) if i in lcc and j in lcc]
+    edges = remap_edges(edges, get_node_mapper(lcc))
+
+    data = Data(
+      x=x_new,
+      edge_index=torch.LongTensor(edges),
+      y=y_new,
+      train_mask=torch.zeros(y_new.size()[0], dtype=torch.bool),
+      test_mask=torch.zeros(y_new.size()[0], dtype=torch.bool),
+      val_mask=torch.zeros(y_new.size()[0], dtype=torch.bool)
+    )
+    dataset.data = data
+  if opt['rewiring'] is not None:
+    dataset.data = rewire(dataset.data, opt, data_dir)
+  # if opt['data_homoph']: #todo does this need to go after any rewiring / make undirected steps
+  #   dataset.data = hetro_edge_addition(dataset.data, opt)
+
+  train_mask_exists = True
+  try:
+    dataset.data.train_mask
+  except AttributeError:
+    train_mask_exists = False
+
+  if ds == 'ogbn-arxiv':
+    split_idx = dataset.get_idx_split()
+    ei = to_undirected(dataset.data.edge_index)
+    data = Data(
+    x=dataset.data.x,
+    edge_index=ei,
+    y=dataset.data.y,
+    train_mask=split_idx['train'],
+    test_mask=split_idx['test'],
+    val_mask=split_idx['valid'])
+    dataset.data = data
+    train_mask_exists = True
+
+  #todo this currently breaks with heterophilic datasets if you don't pass --geom_gcn_splits
+  if (use_lcc or not train_mask_exists) and not opt['geom_gcn_splits']:
+    dataset.data = set_train_val_test_split(
+      12345,
+      dataset.data,
+      num_development=5000 if ds == "CoauthorCS" else 1500)
+
+  return dataset
 
 if __name__ == '__main__':
   AT = HeteroTests()

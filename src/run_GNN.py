@@ -380,10 +380,15 @@ def main(cmd_opt):
 
     results = []
     for rep in range(opt['num_splits']):
-
+        print(f"rep {rep}")
         if not opt['planetoid_split'] and opt['dataset'] in ['Cora', 'Citeseer', 'Pubmed']:
             dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data,
                                                     num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
+        if opt['geom_gcn_splits']:
+            if opt['dataset'] == "Citeseer":
+                dataset = get_dataset(opt, '../data', opt['not_lcc']) #geom-gcn citeseer uses splits over LCC and not_LCC so need to repload each split
+            data = get_fixed_splits(dataset.data, opt['dataset'], rep)
+            dataset.data = data
         data = dataset.data.to(device)
 
         if opt['rewire_KNN'] or opt['fa_layer']:
@@ -400,8 +405,6 @@ def main(cmd_opt):
         optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
         best_time = best_epoch = train_acc = val_acc = test_acc = 0
 
-        if opt['geom_gcn_splits']:
-            data = get_fixed_splits(data, opt['dataset'], rep)
         for epoch in range(1, opt['epoch']):
             start_time = time.time()
             if opt['function'] in ['greed', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero',

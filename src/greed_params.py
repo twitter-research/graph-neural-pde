@@ -48,7 +48,7 @@ def greed_run_params(opt):
     opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 3 #4 #18.295 #10
     opt['epoch'] = 129 #255#129 #254 #100 #40 #40 #10
-    opt['num_splits'] = 1
+    opt['num_splits'] = 10
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
 
     #at some point test these  - not  so won't overwrite
@@ -185,8 +185,8 @@ def greed_ablation_params(opt):
 
     # opt['planetoid_split'] = True
     opt['geom_gcn_splits'] = True #False#True
-    opt['epoch'] = 6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
-    opt['num_splits'] = 1#4#1
+    opt['epoch'] = 3#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
+    opt['num_splits'] = 10#4#1
 
     # opt['data_homoph'] = True
     # opt['target_homoph'] = 0.7

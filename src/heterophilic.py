@@ -467,8 +467,8 @@ def get_fixed_splits(data, dataset_name, seed):
   data.val_mask = torch.tensor(val_mask, dtype=torch.bool)
   data.test_mask = torch.tensor(test_mask, dtype=torch.bool)
 
-  if dataset_name in {'Cora', 'Citeseer', 'Pubmed'}:# and opt['not_lcc'] = True:
-    process_lcc_masks(data)
+  if dataset_name in {'Cora', 'Citeseer'}:
+    process_geom_masks(data, dataset_name)
 
   # Remove the nodes that the label vectors are all zeros, they aren't assigned to any class
   if dataset_name in {'cora', 'citeseer', 'pubmed'}:
@@ -486,15 +486,73 @@ def get_fixed_splits(data, dataset_name, seed):
     print(data.test_mask.shape)
     print(torch.count_nonzero(data.test_mask))
     print(data.x.shape)
-    assert torch.count_nonzero(data.train_mask + data.val_mask + data.test_mask) == data.x.size(0)
+    # assert torch.count_nonzero(data.train_mask + data.val_mask + data.test_mask) == data.x.size(0)
 
   return data
 
-def process_lcc_masks(data):
+def process_geom_masks(data, dataset_name):
   '''eg for Cora with LCC and geom-gcn splits the train/val/test masks are 2708 vectors that sum to 2485. the LCC is 2485
-  this function restricts masks to the LCC set'''
+  this function assumes:
+  for Cora - load the lcc from the data loader and just need to reduce the geom-gcn splits to lcc number
+  for Citeseer - load the full ds, and both reduce the geom-gcn splits and x to the number of non zero mask in that particular split
+  for Pubmed - excluded as: mask size == split size = x size = lcc size = dataset size
+  '''
   tot_masks = data.train_mask.int() + data.val_mask.int() + data.test_mask.int()
-  lcc_mask = tot_masks > 0
-  data.train_mask = data.train_mask[lcc_mask]
-  data.val_mask = data.val_mask[lcc_mask]
-  data.test_mask = data.test_mask[lcc_mask]
+  geom_mask = tot_masks > 0
+  data.train_mask = data.train_mask[geom_mask]
+  data.val_mask = data.val_mask[geom_mask]
+  data.test_mask = data.test_mask[geom_mask]
+
+  # fix for Citeseer because splits uses a compbination of LCC and not LCC
+  if dataset_name == "Citeseer" and geom_mask.sum() < data.x.shape[0]:
+      lcc = get_largest_connected_component(data)
+      x_new = data.x[lcc]
+      y_new = data.y[lcc]
+      row, col = data.edge_index.numpy()
+      edges = [[i, j] for i, j in zip(row, col) if i in lcc and j in lcc]
+      edges = remap_edges(edges, get_node_mapper(lcc))
+      data.x = x_new
+      data.y = y_new
+      data.edge_index = torch.LongTensor(edges)
+
+
+
+###copy from data.py to stop circular refs
+###ammend reference of dataset.data to data
+def get_component(data, start: int = 0) -> set:
+  visited_nodes = set()
+  queued_nodes = set([start])
+  row, col = data.edge_index.numpy()
+  while queued_nodes:
+    current_node = queued_nodes.pop()
+    visited_nodes.update([current_node])
+    neighbors = col[np.where(row == current_node)[0]]
+    neighbors = [n for n in neighbors if n not in visited_nodes and n not in queued_nodes]
+    queued_nodes.update(neighbors)
+  return visited_nodes
+
+def get_largest_connected_component(data) -> np.ndarray:
+  remaining_nodes = set(range(data.x.shape[0]))
+  comps = []
+  while remaining_nodes:
+    start = min(remaining_nodes)
+    comp = get_component(data, start)
+    comps.append(comp)
+    remaining_nodes = remaining_nodes.difference(comp)
+  return np.array(list(comps[np.argmax(list(map(len, comps)))]))
+
+def get_node_mapper(lcc: np.ndarray) -> dict:
+  mapper = {}
+  counter = 0
+  for node in lcc:
+    mapper[node] = counter
+    counter += 1
+  return mapper
+
+
+def remap_edges(edges: list, mapper: dict) -> list:
+  row = [e[0] for e in edges]
+  col = [e[1] for e in edges]
+  row = list(map(lambda x: mapper[x], row))
+  col = list(map(lambda x: mapper[x], col))
+  return [row, col]
