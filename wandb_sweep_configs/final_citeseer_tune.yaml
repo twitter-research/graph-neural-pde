@@ -79,6 +79,6 @@ command:
   - --wandb
   - --wandb_sweep
   - --geom_gcn_splits
-  - --no_lcc
+  - --not_lcc
 entity: graph_neural_diffusion
 project: final_citeseer_tune
