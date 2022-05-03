@@ -190,7 +190,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'cgnn':
         self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
         self.gnl_W_D = Parameter(torch.ones(in_features))
-
         if self.opt['two_hops']:
           self.gnl_W_U_tilde = Parameter(torch.Tensor(in_features, in_features))
           self.gnl_W_D_tilde = Parameter(torch.ones(in_features))
@@ -227,11 +226,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if self.opt['gnl_style'] == 'general_graph':
       if self.opt['gnl_W_style'] in ['sum','prod','neg_prod']:
         glorot(self.W_W)
+        if self.opt['two_hops']:
+          glorot(self.W_Wtilde)
       elif self.opt['gnl_W_style'] == 'diag':
         if self.opt['gnl_W_diag_init'] == 'uniform':
           uniform(self.gnl_W_D, a=-1, b=1)
+          if self.opt['two_hops']:
+            uniform(self.gnl_W_D_tilde, a=-1, b=1)
         elif self.opt['gnl_W_diag_init'] == 'identity':
           ones(self.gnl_W_D)
+          if self.opt['two_hops']:
+            ones(self.gnl_W_D_tilde)
         elif self.opt['gnl_W_diag_init'] == 'linear':
           pass #done in init
       elif self.opt['gnl_W_style'] == 'diag_dom':
@@ -241,14 +246,26 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           glorot(self.W_W)
           uniform(self.t_a, a=-1, b=1)
           uniform(self.r_a, a=-1, b=1)
+          if self.opt['two_hops']:
+            glorot(self.W_Wtilde)
+            uniform(self.t_a_tilde, a=-1, b=1)
+            uniform(self.r_a_tilde, a=-1, b=1)
         elif self.opt['gnl_W_diag_init'] == 'identity':
           zeros(self.W_W)
           constant(self.t_a, fill_value=1)
           constant(self.r_a, fill_value=1)
+          if self.opt['two_hops']:
+            zeros(self.W_Wtilde)
+            constant(self.t_a_tilde, fill_value=1)
+            constant(self.r_a_tilde, fill_value=1)
         elif self.opt['gnl_W_diag_init'] == 'linear':
           glorot(self.W_W)
           constant(self.t_a, fill_value=self.opt['gnl_W_diag_init_q'])
           constant(self.r_a, fill_value=self.opt['gnl_W_diag_init_r'])
+          if self.opt['two_hops']:
+            glorot(self.W_Wtilde)
+            constant(self.t_a_tilde, fill_value=self.opt['gnl_W_diag_init_q'])
+            constant(self.r_a_tilde, fill_value=self.opt['gnl_W_diag_init_r'])
           # if self.opt['gnl_W_param_free2']:
           #   constant(self.t_a, fill_value=self.opt['gnl_W_diag_init_q'])
           #   constant(self.r_a, fill_value=self.opt['gnl_W_diag_init_r'])
@@ -258,23 +275,38 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'k_block':
         glorot(self.gnl_W_blocks)
         uniform(self.gnl_W_D, a=-1, b=1)
+        if self.opt['two_hops']:
+          glorot(self.gnl_W_blocks_tilde)
+          uniform(self.gnl_W_D_tilde, a=-1, b=1)
       elif self.opt['gnl_W_style'] == 'k_diag':
         uniform(self.gnl_W_diags, a=-1, b=1)
+        if self.opt['two_hops']:
+          uniform(self.gnl_W_diags_tilde, a=-1, b=1)
       elif self.opt['gnl_W_style'] == 'k_diag_pc':
         if self.opt['gnl_W_diag_init'] == 'uniform':
           uniform(self.gnl_W_diags, a=-1, b=1)
+          if self.opt['two_hops']:
+            uniform(self.gnl_W_diags_tilde, a=-1, b=1)
         elif self.opt['gnl_W_diag_init'] == 'identity':
           ones(self.gnl_W_diags)
+          if self.opt['two_hops']:
+            ones(self.gnl_W_diags_tilde)
       elif self.opt['gnl_W_style'] == 'GS':
         glorot(self.gnl_W_U)
+        if self.opt['two_hops']:
+          glorot(self.gnl_W_U_tilde)
       elif self.opt['gnl_W_style'] == 'cgnn':
         glorot(self.gnl_W_U)
+        if self.opt['two_hops']:
+          glorot(self.gnl_W_U_tilde)
       elif self.opt['gnl_W_style'] == 'feature':
         glorot(self.Om_phi)
         glorot(self.W_psi)
+        if self.opt['two_hops']:
+          glorot(self.Om_phi_tilde)
+          glorot(self.W_psi_tilde)
       elif self.opt['gnl_W_style'] == 'positional':
         pass #linear layer
-
 
     if self.opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
       ones(self.m_alpha)
