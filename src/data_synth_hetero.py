@@ -1,4 +1,4 @@
-from deeprobust.graph.data import Dataset
+from deeprobust.graph.data import Dataset, Dpr2Pyg, Pyg2Dpr
 import os.path as osp
 import numpy as np
 
@@ -65,11 +65,18 @@ class CustomDataset(Dataset):
     else:
       return super().get_train_val_test()
 
-if __name__ == "__main__":
-  dataset = CustomDataset(root="syn-cora", name="h0.00-r1", setting="gcn", seed=15)
+def get_pyg_syn_cora(path, opt, rep):
+  dataset = CustomDataset(root=f"{path}/syn-cora", name=f"h{str(opt['target_homoph'])}-r{str(rep)}", setting="gcn", seed=None)
+  pyg_dataset = Dpr2Pyg(dataset)
+  return pyg_dataset
 
+if __name__ == "__main__":
+  dataset = CustomDataset(root="../data/syn-cora", name="h0.00-r1", setting="gcn", seed=15)
   adj = dataset.adj  # Access adjacency matrix
   features = dataset.features  # Access node features
+  pyg_dataset = Dpr2Pyg(dataset)
+  ei = pyg_dataset.data.edge_index
+
 
 # import torch
 # from torch_geometric.data import Data, InMemoryDataset

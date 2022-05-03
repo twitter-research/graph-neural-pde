@@ -20,7 +20,7 @@ from best_params import best_params_dict
 from greed_params import greed_test_params, greed_run_params, greed_hyper_params, greed_ablation_params, tf_ablation_args, not_sweep_args
 from reports import reports_manager #run_reports, run_reports_lie_trotter, reports_manager
 from heterophilic import get_fixed_splits
-
+from data_synth_hetero import get_pyg_syn_cora
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
     if name == 'sgd':
@@ -389,6 +389,9 @@ def main(cmd_opt):
                 dataset = get_dataset(opt, '../data', opt['not_lcc']) #geom-gcn citeseer uses splits over LCC and not_LCC so need to repload each split
             data = get_fixed_splits(dataset.data, opt['dataset'], rep)
             dataset.data = data
+        if opt['dataset'] == 'syn_cora':
+            dataset = get_pyg_syn_cora("../data", opt, rep=rep+1)
+
         data = dataset.data.to(device)
 
         if opt['rewire_KNN'] or opt['fa_layer']:
@@ -737,6 +740,7 @@ if __name__ == '__main__':
     parser.add_argument('--gnl_W_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
     parser.add_argument('--gnl_W_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
     parser.add_argument('--two_hops', type=str, default='False', help='flag for 2-hop energy')
+    parser.add_argument('--target_homoph', type=str, default='0.80', help='target_homoph for syn_cora [0.00,0.10,..,1.00]')
 
     args = parser.parse_args()
     opt = vars(args)

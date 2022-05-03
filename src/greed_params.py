@@ -185,12 +185,11 @@ def greed_ablation_params(opt):
             opt['gnl_W_diag_init_r'] = 0.0
 
     # opt['planetoid_split'] = True
-    opt['geom_gcn_splits'] = True #False#True
+    opt['geom_gcn_splits'] = False#True #False#True
     opt['epoch'] = 3#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
-    opt['num_splits'] = 10#4#1
+    opt['num_splits'] = 3#10#4#1
 
-    # opt['data_homoph'] = True
-    # opt['target_homoph'] = 0.7
+    opt['target_homoph'] = '0.70'
 
     #definitions of lie trotter
     #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
@@ -578,6 +577,7 @@ def default_params():
     parser.add_argument('--gnl_W_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
     parser.add_argument('--gnl_W_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
     parser.add_argument('--two_hops', type=str, default='False', help='flag for 2-hop energy')
+    parser.add_argument('--target_homoph', type=str, default='0.80', help='target_homoph for syn_cora [0.00,0.10,..,1.00]')
 
     parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
 

@@ -10,14 +10,13 @@ import torch
 from torch_geometric.data import Data, InMemoryDataset
 from torch.utils.data import WeightedRandomSampler
 from torch_geometric.datasets import Planetoid, Amazon, Coauthor, KarateClub#, WikipediaNetwork #todo hacky for AWS download hetero using PyG
-# from torch_geometric.datasets import Amazon, Coauthor, KarateClub#, WikipediaNetwork #todo hacky for AWS download hetero using PyG
 from graph_rewiring import get_two_hop, apply_gdc
 from ogb.nodeproppred import PygNodePropPredDataset
 import torch_geometric.transforms as T
 from torch_geometric.utils import to_undirected, is_undirected
 from graph_rewiring import make_symmetric, apply_pos_dist_rewire
 from heterophilic import WebKB, Actor, WikipediaNetwork #todo then copy from ds/ds/geom/raw to ds/ds/raw and process using this
-# from heterophilic import Planetoid, WebKB, Actor, WikipediaNetwork #todo then copy from ds/ds/geom/raw to ds/ds/raw and process using this
+from data_synth_hetero import get_pyg_syn_cora
 
 DATA_PATH = '../data'
 
@@ -56,7 +55,9 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     dataset.data.val_mask = ~dataset.data.train_mask
     dataset.data.test_mask = ~dataset.data.train_mask
     use_lcc = False
-
+  elif ds == 'syn_cora':
+    dataset = get_pyg_syn_cora(data_dir, opt, rep=1)
+    use_lcc = False
   else:
     raise Exception('Unknown dataset.')
 
