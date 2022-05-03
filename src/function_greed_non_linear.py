@@ -561,7 +561,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           else:
             if self.opt['gnl_attention']: #todo attention only implemented for measure==ones
               P = P * self.mean_attention_0
-            f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], xW) / 2
+            f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], xW)
             f = f - x @ self.Omega
 
         if self.opt['test_mu_0']:
