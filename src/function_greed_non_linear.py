@@ -130,21 +130,31 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # gnl_omega -> "gnl_W"
       if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod']:
         self.W_W = Parameter(torch.Tensor(in_features, in_features))
+        if self.opt['two_hops']:
+          self.W_Wtilde = Parameter(torch.Tensor(in_features, in_features))
       elif self.opt['gnl_W_style'] == 'diag':
         if self.opt['gnl_W_diag_init'] == 'linear':
           d = in_features
           d_range = torch.tensor(list(range(d)), device=self.device)
           self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
+          if self.opt['two_hops']:
+            self.gnl_W_Dtilde = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
           # if opt['gnl_W_param_free2']:
           #   self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'])
           # else:
           #   self.gnl_W_D = self.opt['gnl_W_diag_init_q'] * d_range / (d - 1) + self.opt['gnl_W_diag_init_r']
         else:
           self.gnl_W_D = Parameter(torch.ones(in_features), requires_grad=opt['gnl_W_param_free'])
+          if self.opt['two_hops']:
+            self.gnl_W_Dtilde = Parameter(torch.ones(in_features), requires_grad=opt['gnl_W_param_free'])
       elif self.opt['gnl_W_style'] == 'diag_dom':
         self.W_W = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
         self.t_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
         self.r_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
+        if self.opt['two_hops']:
+          self.gnl_W_Wtilde = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
+          self.t_a_tilde = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
+          self.r_a_tilde = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
         # if opt['gnl_W_param_free2']:
         #   self.t_a = Parameter(torch.Tensor(in_features))
         #   self.r_a = Parameter(torch.Tensor(in_features))
@@ -157,23 +167,39 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           k_num += 1
         k_num = min(k_num, in_features)
         self.gnl_W_diags = Parameter(torch.Tensor(in_features, k_num))
+        if self.opt['two_hops']:
+          self.gnl_W_diags_tilde = Parameter(torch.Tensor(in_features, k_num))
       elif self.opt['gnl_W_style'] == 'k_block':
         assert opt['k_blocks'] * opt['block_size'] <= in_features, 'blocks exceeded hidden dim'
         self.gnl_W_blocks = Parameter(torch.Tensor(opt['k_blocks'] * opt['block_size'], opt['block_size']))
         self.gnl_W_D = Parameter(torch.Tensor(in_features - opt['k_blocks'] * opt['block_size']))
+        if self.opt['two_hops']:
+          self.gnl_W_blocks_tilde = Parameter(torch.Tensor(opt['k_blocks'] * opt['block_size'], opt['block_size']))
+          self.gnl_W_D_tilde = Parameter(torch.Tensor(in_features - opt['k_blocks'] * opt['block_size']))
       elif self.opt['gnl_W_style'] == 'k_diag':
         assert opt['k_diags'] % 2 == 1 and opt['k_diags'] <= in_features, 'must have odd number of k diags'
         self.gnl_W_diags = Parameter(torch.Tensor(in_features, opt['k_diags'])) #or (2k-1) * n + k * (k - 1) if don't wrap around
+        if self.opt['two_hops']:
+          self.gnl_W_diags_tilde = Parameter(torch.Tensor(in_features, opt['k_diags']))
       elif self.opt['gnl_W_style'] == 'GS':
         self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
         self.gnl_W_D = Parameter(torch.ones(in_features))
+        if self.opt['two_hops']:
+          self.gnl_W_U_tilde = Parameter(torch.Tensor(in_features, in_features))
+          self.gnl_W_D_tilde = Parameter(torch.ones(in_features))          
       elif self.opt['gnl_W_style'] == 'cgnn':
         self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
         self.gnl_W_D = Parameter(torch.ones(in_features))
 
+        if self.opt['two_hops']:
+          self.gnl_W_U_tilde = Parameter(torch.Tensor(in_features, in_features))
+          self.gnl_W_D_tilde = Parameter(torch.ones(in_features))
       elif self.opt['gnl_W_style'] == 'feature':
         self.Om_phi = Parameter(torch.Tensor(in_features))
         self.W_psi = Parameter(torch.Tensor(in_features))
+        if self.opt['two_hops']:
+          self.Om_phi_tilde = Parameter(torch.Tensor(in_features))
+          self.W_psi_tilde = Parameter(torch.Tensor(in_features))
       elif self.opt['gnl_W_style'] == 'positional':
         self.phi = nn.Linear(self.opt['pos_enc_hidden_dim'], self.in_features)
         self.psi = nn.Linear(self.opt['pos_enc_hidden_dim'], self.in_features)
