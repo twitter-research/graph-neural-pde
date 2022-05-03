@@ -736,8 +736,7 @@ if __name__ == '__main__':
     parser.add_argument('--gnl_W_param_free2', type=str, default='True', help='allow or fix W params')
     parser.add_argument('--gnl_W_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
     parser.add_argument('--gnl_W_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
-
-    parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
+    parser.add_argument('--two_hops', type=str, default='False', help='flag for 2-hop energy')
 
     args = parser.parse_args()
     opt = vars(args)
