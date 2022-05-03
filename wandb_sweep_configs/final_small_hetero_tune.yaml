@@ -46,9 +46,7 @@ parameters:
   step_size:
     values: [0.25, 0.5, 1.0]
   hidden_dim:
-    distribution: int_uniform
-    min: 8
-    max: 256
+    values: [16, 32, 64, 128, 256]
   time:
     distribution: uniform
     min: 1.0
