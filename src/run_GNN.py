@@ -7,7 +7,7 @@ from torch_geometric.utils import homophily, add_remaining_self_loops, to_undire
 from torch_scatter import scatter_add
 import torch.nn.functional as F
 import wandb
-from ogb.nodeproppred import Evaluator
+# from ogb.nodeproppred import Evaluator
 
 from GNN import GNN
 from GNN_early import GNNEarly
