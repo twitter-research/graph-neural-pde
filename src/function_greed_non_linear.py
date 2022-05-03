@@ -622,7 +622,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], xW)
             if self.opt['two_hops']:
               xWtilde = x @ self.gnl_Wtilde
-              # f = f - AA @ xWtilde / 2.
               AA_ei, AA_val = torch_sparse.spspmm(self.edge_index, P, self.edge_index, P, x.shape[0], x.shape[0], x.shape[0])
               f = f - torch_sparse.spmm(AA_ei, AA_val, x.shape[0], x.shape[0], xWtilde) / 2
             f = f - x @ self.Omega
