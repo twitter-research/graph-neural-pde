@@ -68,7 +68,7 @@ class MLP(BaseGNN):
   def __init__(self, opt, dataset, device=None):
 
     ###required for code homogeniety
-    super(GCN, self).__init__(opt, dataset, device)
+    super(MLP, self).__init__(opt, dataset, device)
     self.f = set_function(opt)
     block = set_block(opt)
     time_tensor = torch.tensor([0, self.T]).to(device)
@@ -83,7 +83,7 @@ class MLP(BaseGNN):
 
   def forward(self, x, pos_encoding): #todo pos_encoding
     x = F.dropout(x, self.opt['dropout'], training=self.training)
-    x = F.dropout(x + self.m1(torch.tanh(x)), self.opt['dropout'], training=self.training)
+    x = F.dropout(self.m1(torch.tanh(x)), self.opt['dropout'], training=self.training)
     x = F.dropout(self.m2(torch.tanh(x)), self.opt['dropout'], training=self.training)
 
     return x
