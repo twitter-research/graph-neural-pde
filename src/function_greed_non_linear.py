@@ -152,7 +152,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.t_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
         self.r_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
         if self.opt['two_hops']:
-          self.gnl_W_Wtilde = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
+          self.W_Wtilde = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
           self.t_a_tilde = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
           self.r_a_tilde = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
         # if opt['gnl_W_param_free2']:
