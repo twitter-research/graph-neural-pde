@@ -400,7 +400,8 @@ def main(cmd_opt):
                                                                                                  device).to(
                 device)
         elif opt['function'] in ['gcn']:
-            model = GCN(opt, dataset, hidden=opt['hidden_dim'], dropout=opt['dropout']).to(device)
+            # 'hidden_feat_repr_dims': int(opt['time'] // opt['step_size']) * [opt['hidden_dim']]
+            model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['dropout']).to(device)
         elif opt['function'] in ['mlp']:
             model = MLP(opt, dataset).to(device)
         else:
