@@ -561,9 +561,10 @@ def main(cmd_opt):
     wandb.define_metric("gf_e*", step_metric="grad_flow_step") #grad_flow_epoch*
 
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
-  # todo this is in place as needed for chameleon, tidy up
-  dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)  ### added self loops for chameleon
-  dataset.data.edge_index = to_undirected(dataset.data.edge_index)
+  if opt['dataset'] in ['chameleon', 'squirrel', 'other hetero?']:  # todo put this in data loader
+    ### added self loops and make undirected for chameleon
+    dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)
+    dataset.data.edge_index = to_undirected(dataset.data.edge_index)
 
   # args_dict = {'hidden_feat_repr_dims': [512, 512], 'learnable_mixing': False, 'small_train_split': False,
   #              'use_sage': False,
@@ -966,13 +967,15 @@ if __name__ == '__main__':
   parser.add_argument('--gcn_bias', type=str, default='False', help='make GCN include bias')
   parser.add_argument('--gcn_mid_dropout', type=str, default='False', help='dropout between GCN layers')
 
+  parser.add_argument('--target_homoph', type=str, default='0.80', help='target_homoph for syn_cora [0.00,0.10,..,1.00]')
+
   # parser.add_argument('--gcn_hidden_dims', type=int,  default=1, help='number of internal GCN hidden dimensions')
 
   args = parser.parse_args()
   opt = vars(args)
 
   if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero', 'greed_non_linear'
-                         'gcn', 'gcn2', 'gcn_dgl', 'gcn_res_dgl']:
+                         'gcn', 'gcn2', 'gcn_dgl', 'gcn_res_dgl', 'mlp']:
     opt = greed_run_params(opt)  ###basic params for GREED
 
     if not opt['wandb_sweep']: #sweeps are run from YAML config so don't need these

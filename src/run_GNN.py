@@ -13,6 +13,7 @@ from GNN import GNN
 from GNN_early import GNNEarly
 from GNN_KNN import GNN_KNN
 from GNN_KNN_early import GNNKNNEarly
+from GNN_GCN import GCN, MLP
 import time, datetime
 from data import get_dataset, set_train_val_test_split
 from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling, dirichlet_energy
@@ -398,6 +399,10 @@ def main(cmd_opt):
             model = GNN_KNN(opt, dataset, device).to(device) if opt["no_early"] else GNNKNNEarly(opt, dataset,
                                                                                                  device).to(
                 device)
+        elif opt['function'] in ['gcn']:
+            model = GCN(opt, dataset, hidden=opt['hidden_dim'], dropout=opt['dropout']).to(device)
+        elif opt['function'] in ['mlp']:
+            model = MLP(opt, dataset).to(device)
         else:
             model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(
                 device)
@@ -746,7 +751,7 @@ if __name__ == '__main__':
     opt = vars(args)
 
     if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero',
-                           'greed_non_linear', 'greed_lie_trotter']:
+                           'greed_non_linear', 'greed_lie_trotter', 'gcn', 'mlp']:
         opt = greed_run_params(opt)  ###basic params for GREED
 
     if not opt['wandb_sweep']:  # sweeps are run from YAML config so don't need these

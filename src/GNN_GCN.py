@@ -4,9 +4,10 @@ __license__ = "MIT"
 from typing import List
 
 import torch
-from torch.nn import ModuleList, Dropout, ReLU
+from torch.nn import ModuleList, Dropout, ReLU, Linear
 from torch_geometric.nn import GCNConv
 from torch_geometric.data import Data, InMemoryDataset
+import torch.nn.functional as F
 
 
 class GCN(torch.nn.Module):
@@ -53,3 +54,16 @@ class GCN(torch.nn.Module):
             # x = self.dropout(x)
         return x
         # return torch.nn.functional.log_softmax(x, dim=1)  #cross entropy loss does not require softmax
+
+class MLP(torch.nn.Module):
+  def __init__(self, opt, dataset):
+    super().__init__()
+    self.opt = opt
+    self.m1 = Linear(dataset.data.x.shape[1], opt['hidden_dim'])
+    self.m2 = Linear(opt['hidden_dim'], dataset.num_classes)
+  def forward(self, x, pos_encoding): #todo pos_encoding
+    x = F.dropout(x, self.opt['dropout'], training=self.training)
+    x = F.dropout(x + self.m1(torch.tanh(x)), self.opt['dropout'], training=self.training)
+    x = F.dropout(self.m2(torch.tanh(x)), self.opt['dropout'], training=self.training)
+
+    return x
