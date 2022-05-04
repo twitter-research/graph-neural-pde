@@ -375,6 +375,8 @@ def main(cmd_opt):
 
     # wandb.config.update(opt, allow_val_change=True) #required when update hidden_dim in beltrami
     opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
+    if opt['gcn_params']: #temp function for GCN ablation
+        unpack_gcn_params(opt)
 
     wandb.define_metric("epoch_step")  # Customize axes - https://docs.wandb.ai/guides/track/log
     if opt['wandb_track_grad_flow']:
@@ -779,8 +781,6 @@ if __name__ == '__main__':
                            'greed_non_linear', 'greed_lie_trotter', 'gcn', 'gcn2', 'mlp', 'gcn_dgl', 'gcn_res_dgl']:
         opt = greed_run_params(opt)  ###basic params for GREED
 
-    if opt['gcn_params']: #temp function for GCN ablation
-        unpack_gcn_params(opt)
 
     if not opt['wandb_sweep']:  # sweeps are run from YAML config so don't need these
         opt = not_sweep_args(opt, project_name='greed_runs', group_name='testing')
