@@ -131,14 +131,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod']:
         self.W_W = Parameter(torch.Tensor(in_features, in_features))
         if self.opt['two_hops']:
-          self.W_Wtilde = Parameter(torch.Tensor(in_features, in_features))
+          self.W_W_tilde = Parameter(torch.Tensor(in_features, in_features))
       elif self.opt['gnl_W_style'] == 'diag':
         if self.opt['gnl_W_diag_init'] == 'linear':
           d = in_features
           d_range = torch.tensor(list(range(d)), device=self.device)
           self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
           if self.opt['two_hops']:
-            self.gnl_W_Dtilde = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
+            self.gnl_W_D_tilde = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
           # if opt['gnl_W_param_free2']:
           #   self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'])
           # else:
@@ -146,13 +146,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         else:
           self.gnl_W_D = Parameter(torch.ones(in_features), requires_grad=opt['gnl_W_param_free'])
           if self.opt['two_hops']:
-            self.gnl_W_Dtilde = Parameter(torch.ones(in_features), requires_grad=opt['gnl_W_param_free'])
+            self.gnl_W_D_tilde = Parameter(torch.ones(in_features), requires_grad=opt['gnl_W_param_free'])
       elif self.opt['gnl_W_style'] == 'diag_dom':
         self.W_W = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
         self.t_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
         self.r_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
         if self.opt['two_hops']:
-          self.W_Wtilde = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
+          self.W_W_tilde = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
           self.t_a_tilde = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
           self.r_a_tilde = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
         # if opt['gnl_W_param_free2']:
@@ -227,7 +227,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       if self.opt['gnl_W_style'] in ['sum','prod','neg_prod']:
         glorot(self.W_W)
         if self.opt['two_hops']:
-          glorot(self.W_Wtilde)
+          glorot(self.W_W_tilde)
       elif self.opt['gnl_W_style'] == 'diag':
         if self.opt['gnl_W_diag_init'] == 'uniform':
           uniform(self.gnl_W_D, a=-1, b=1)
@@ -247,7 +247,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           uniform(self.t_a, a=-1, b=1)
           uniform(self.r_a, a=-1, b=1)
           if self.opt['two_hops']:
-            glorot(self.W_Wtilde)
+            glorot(self.W_W_tilde)
             uniform(self.t_a_tilde, a=-1, b=1)
             uniform(self.r_a_tilde, a=-1, b=1)
         elif self.opt['gnl_W_diag_init'] == 'identity':
@@ -255,7 +255,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           constant(self.t_a, fill_value=1)
           constant(self.r_a, fill_value=1)
           if self.opt['two_hops']:
-            zeros(self.W_Wtilde)
+            zeros(self.W_W_tilde)
             constant(self.t_a_tilde, fill_value=1)
             constant(self.r_a_tilde, fill_value=1)
         elif self.opt['gnl_W_diag_init'] == 'linear':
@@ -263,7 +263,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           constant(self.t_a, fill_value=self.opt['gnl_W_diag_init_q'])
           constant(self.r_a, fill_value=self.opt['gnl_W_diag_init_r'])
           if self.opt['two_hops']:
-            glorot(self.W_Wtilde)
+            glorot(self.W_W_tilde)
             constant(self.t_a_tilde, fill_value=self.opt['gnl_W_diag_init_q'])
             constant(self.r_a_tilde, fill_value=self.opt['gnl_W_diag_init_r'])
           # if self.opt['gnl_W_param_free2']:
@@ -621,7 +621,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
               P = P * self.mean_attention_0
             f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], xW)
             if self.opt['two_hops']:
-              xWtilde = x @ self.gnl_Wtilde
+              xWtilde = x @ self.gnl_W_tilde
               AA_ei, AA_val = torch_sparse.spspmm(self.edge_index, P, self.edge_index, P, x.shape[0], x.shape[0], x.shape[0])
               f = f - torch_sparse.spmm(AA_ei, AA_val, x.shape[0], x.shape[0], xWtilde) / 2
             f = f - x @ self.Omega

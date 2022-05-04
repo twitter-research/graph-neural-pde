@@ -71,7 +71,7 @@ class GNN(BaseGNN):
         self.odeblock.odefunc.gnl_W = self.odeblock.odefunc.set_gnlWS()
         self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_gnlOmega()
         if self.opt['two_hops']:
-          self.odeblock.odefunc.gnl_Wtilde = self.odeblock.odefunc.set_gnlWS()
+          self.odeblock.odefunc.gnl_W_tilde = self.odeblock.odefunc.set_gnlWS()
         if self.opt['gnl_attention']:
           self.odeblock.odefunc.set_L0()
 
