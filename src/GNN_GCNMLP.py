@@ -74,7 +74,7 @@ class GNNMLP(BaseGNN):
 
         if opt['gcn_symm']:
             assert opt['function'] in ['gcn_dgl','gcn_res_dgl'], 'gcn_symm only implenent for dgl conv'
-        assert not enable_mlp and enable_gcn, 'Not using this branch in our code'
+        assert not enable_mlp, 'Not using this branch in our code'
 
         self.opt = opt
         self.edge_index = dataset.data.edge_index

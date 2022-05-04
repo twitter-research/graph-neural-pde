@@ -413,13 +413,12 @@ def main(cmd_opt):
 
         if opt['rewire_KNN'] or opt['fa_layer']:
             model = GNN_KNN(opt, dataset, device).to(device) if opt["no_early"] else GNNKNNEarly(opt, dataset,
-                                                                                                 device).to(
-                device)
+                                                                                                 device).to(device)
         elif opt['function'] in ['gcn']:
             model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['dropout'], device=device).to(device)
-        # elif opt['function'] in ['mlp']:
-        #     model = MLP(opt, dataset, device=device).to(device)
-        elif opt['function'] in ['gcn2', 'mlp', 'gcn_dgl', 'gcn_res_dgl']:
+        elif opt['function'] in ['mlp']:
+            model = MLP(opt, dataset, device=device).to(device)
+        elif opt['function'] in ['gcn2', 'gcn_dgl', 'gcn_res_dgl']:
             hidden_feat_repr_dims = int(opt['time'] // opt['step_size']) * [opt['hidden_dim']]
             feat_repr_dims = [dataset.data.x.shape[1]] + hidden_feat_repr_dims + [dataset.num_classes]
             model = GNNMLP(opt, dataset, device, feat_repr_dims,
