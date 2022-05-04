@@ -779,6 +779,9 @@ if __name__ == '__main__':
                            'greed_non_linear', 'greed_lie_trotter', 'gcn', 'gcn2', 'mlp', 'gcn_dgl', 'gcn_res_dgl']:
         opt = greed_run_params(opt)  ###basic params for GREED
 
+    if opt['gcn_params']: #temp function for GCN ablation
+        unpack_gcn_params(opt)
+
     if not opt['wandb_sweep']:  # sweeps are run from YAML config so don't need these
         opt = not_sweep_args(opt, project_name='greed_runs', group_name='testing')
         # this includes args for running locally - specified in YAML for tunes
