@@ -178,6 +178,14 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
 @torch.no_grad()
 def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
     model.eval()
+
+    if opt['function'] in ['gcn', 'mlp']:
+        wandb.log({"loss": loss,
+                   "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
+                   "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+                   "epoch_step": epoch})
+        return
+
     # every epoch stats for greed linear and non linear
     num_nodes = data.num_nodes
     x0 = model.encoder(data.x)
@@ -261,7 +269,6 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
                    "epoch_step": epoch})
     else:
         wandb.log({"loss": loss,
-                   # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
                    "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
                    "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
                    "epoch_step": epoch})
