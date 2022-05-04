@@ -200,7 +200,7 @@ def greed_ablation_params(opt):
     opt['lie_trotter'] = None#'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         ###!!! set function 'greed_non_linear'
-        opt['function'] = 'greed_non_linear'
+        # opt['function'] = 'greed_non_linear'
         opt['block'] = 'constant'
         opt['drift'] = True  # False#True
         opt['gnl_thresholding'] = False

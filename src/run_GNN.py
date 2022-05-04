@@ -102,6 +102,7 @@ def train(model, optimizer, data, pos_encoding=None):
     optimizer.step()
     model.bm.update(model.getNFE())
     model.resetNFE()
+
     return loss.item()
 
 
@@ -401,9 +402,9 @@ def main(cmd_opt):
                 device)
         elif opt['function'] in ['gcn']:
             # 'hidden_feat_repr_dims': int(opt['time'] // opt['step_size']) * [opt['hidden_dim']]
-            model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['dropout']).to(device)
+            model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['dropout'], device=device).to(device)
         elif opt['function'] in ['mlp']:
-            model = MLP(opt, dataset).to(device)
+            model = MLP(opt, dataset, device=device).to(device)
         else:
             model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(
                 device)

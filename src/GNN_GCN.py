@@ -8,14 +8,23 @@ from torch.nn import ModuleList, Dropout, ReLU, Linear
 from torch_geometric.nn import GCNConv
 from torch_geometric.data import Data, InMemoryDataset
 import torch.nn.functional as F
+from model_configurations import set_block, set_function
+from base_classes import BaseGNN
 
 
-class GCN(torch.nn.Module):
+class GCN(BaseGNN):
     def __init__(self, opt,
                  dataset: InMemoryDataset,
                  hidden: List[int] = [64],
-                 dropout: float = 0.5):
-        super(GCN, self).__init__()
+                 dropout: float = 0.5,
+                 device=None):
+        ###required for code homogeniety
+        super(GCN, self).__init__(opt, dataset, device)
+        self.f = set_function(opt)
+        block = set_block(opt)
+        time_tensor = torch.tensor([0, self.T]).to(device)
+        self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
+
         self.opt = opt
         num_features = [dataset.data.x.shape[1]] + hidden + [dataset.num_classes]
         layers = []
@@ -55,12 +64,23 @@ class GCN(torch.nn.Module):
         return x
         # return torch.nn.functional.log_softmax(x, dim=1)  #cross entropy loss does not require softmax
 
-class MLP(torch.nn.Module):
-  def __init__(self, opt, dataset):
-    super().__init__()
+class MLP(BaseGNN):
+  def __init__(self, opt, dataset, device=None):
+
+    ###required for code homogeniety
+    super(GCN, self).__init__(opt, dataset, device)
+    self.f = set_function(opt)
+    block = set_block(opt)
+    time_tensor = torch.tensor([0, self.T]).to(device)
+    self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
+
     self.opt = opt
     self.m1 = Linear(dataset.data.x.shape[1], opt['hidden_dim'])
     self.m2 = Linear(opt['hidden_dim'], dataset.num_classes)
+
+    self.epoch = 0
+    self.wandb_step = 0
+
   def forward(self, x, pos_encoding): #todo pos_encoding
     x = F.dropout(x, self.opt['dropout'], training=self.training)
     x = F.dropout(x + self.m1(torch.tanh(x)), self.opt['dropout'], training=self.training)
