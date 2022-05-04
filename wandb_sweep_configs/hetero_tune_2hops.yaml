@@ -1,0 +1,83 @@
+program: run_GNN.py
+method: random
+parameters:
+  dataset:
+    values: [cornell, texas, wisconsin]
+  block:
+    values: [constant]
+  function:
+    values: [greed_non_linear]
+  epoch:
+    values: [100]
+  num_splits:
+    values: [10]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_attention:
+    values: [False]
+  gnl_activation:
+    values: [identity]
+  gnl_W_style:
+    values: [identity, sum, diag, diag_dom]
+  gnl_W_diag_init:
+    values: [uniform, identity, linear]
+  gnl_W_param_free:
+    values: [True, False]
+  gnl_W_diag_init_q:
+    values: [-2, -1, 0, 0.5, 1, 2]
+  gnl_W_diag_init_r:
+    values: [-2, -1, 0, 0.5 , 1, 2]
+  k_diag_pc:
+    values: [0.10]
+  gnl_measure:
+    values: [ones]
+  two_hops:
+     values: [True]
+  gnl_omega_params:
+     values: [[zero, None, None, None], [Omega_eq_W, None, None, None], [diag, free, None, identity], [diag, const, 1, None], [diag, const, -1, None]]
+  drift:
+    values: [False]
+  test_mu_0:
+    values: [True]
+  add_source:
+    values: [True, False]
+  use_mlp:
+    values: [True, False]
+  step_size:
+    values: [0.25, 0.5, 1.0]
+  hidden_dim:
+    values: [16, 32, 64, 128, 256]
+  time:
+    distribution: uniform
+    min: 1.0
+    max: 5.0
+  input_dropout:
+    distribution: uniform
+    min: 0.4
+    max: 0.65
+  dropout:
+    distribution: uniform
+    min: 0.2
+    max: 0.5
+  optimizer:
+    values: [adam]
+  lr:
+    distribution: uniform
+    min: 0.0001
+    max: 0.005
+  decay:
+    distribution: uniform
+    min: 0.000
+    max: 0.05
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --geom_gcn_splits
+entity: graph_neural_diffusion
+project: hetero_tune_2hops
