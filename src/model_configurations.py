@@ -71,7 +71,7 @@ def set_function(opt):
     f = ODEFuncGreedNonLin
   elif ode_str == 'greed_lie_trotter':
     f = ODEFuncGreedLieTrot
-  elif ode_str in ['gcn', 'mlp']:
+  elif ode_str in ['gcn', 'gcn2', 'mlp', 'gcn_dgl' , 'gcn_res_dgl']:
     f = ODEFuncGreedNonLin #hack required for code homogeniety
   else:
     raise FunctionNotDefined

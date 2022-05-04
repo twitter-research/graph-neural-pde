@@ -1,3 +1,4 @@
+import time, datetime
 import os
 import argparse
 import numpy as np
@@ -14,7 +15,7 @@ from GNN_early import GNNEarly
 from GNN_KNN import GNN_KNN
 from GNN_KNN_early import GNNKNNEarly
 from GNN_GCN import GCN, MLP
-import time, datetime
+from GNN_GCNMLP import GNNMLP
 from data import get_dataset, set_train_val_test_split
 from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling, dirichlet_energy
 from best_params import best_params_dict
@@ -179,7 +180,7 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
 def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
     model.eval()
 
-    if opt['function'] in ['gcn', 'mlp']:
+    if opt['function'] in ['gcn', 'mlp', 'gcn2', 'gcn_dgl', 'gcn_res_dgl']:
         wandb.log({"loss": loss,
                    "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
                    "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
@@ -284,33 +285,34 @@ def print_model_params(model):
 
 @torch.no_grad()
 def test_OGB(model, data, pos_encoding, opt):
-    if opt['dataset'] == 'ogbn-arxiv':
-        name = 'ogbn-arxiv'
-
-    feat = data.x
-    if model.opt['use_labels']:
-        feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
-
-    evaluator = Evaluator(name=name)
-    model.eval()
-
-    out = model(feat, pos_encoding).log_softmax(dim=-1)
-    y_pred = out.argmax(dim=-1, keepdim=True)
-
-    train_acc = evaluator.eval({
-        'y_true': data.y[data.train_mask],
-        'y_pred': y_pred[data.train_mask],
-    })['acc']
-    valid_acc = evaluator.eval({
-        'y_true': data.y[data.val_mask],
-        'y_pred': y_pred[data.val_mask],
-    })['acc']
-    test_acc = evaluator.eval({
-        'y_true': data.y[data.test_mask],
-        'y_pred': y_pred[data.test_mask],
-    })['acc']
-
-    return train_acc, valid_acc, test_acc
+    pass
+    # if opt['dataset'] == 'ogbn-arxiv':
+    #     name = 'ogbn-arxiv'
+    #
+    # feat = data.x
+    # if model.opt['use_labels']:
+    #     feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
+    #
+    # evaluator = Evaluator(name=name)
+    # model.eval()
+    #
+    # out = model(feat, pos_encoding).log_softmax(dim=-1)
+    # y_pred = out.argmax(dim=-1, keepdim=True)
+    #
+    # train_acc = evaluator.eval({
+    #     'y_true': data.y[data.train_mask],
+    #     'y_pred': y_pred[data.train_mask],
+    # })['acc']
+    # valid_acc = evaluator.eval({
+    #     'y_true': data.y[data.val_mask],
+    #     'y_pred': y_pred[data.val_mask],
+    # })['acc']
+    # test_acc = evaluator.eval({
+    #     'y_true': data.y[data.test_mask],
+    #     'y_pred': y_pred[data.test_mask],
+    # })['acc']
+    #
+    # return train_acc, valid_acc, test_acc
 
 
 def merge_cmd_args(cmd_opt, opt):
@@ -337,6 +339,12 @@ def merge_cmd_args(cmd_opt, opt):
     if cmd_opt['max_iters'] != 100:
         opt['max_iters'] = cmd_opt['max_iters']
 
+def unpack_gcn_params(opt):
+    'temp function to help ablation'
+    wandb.config.update({'function': opt['gcn_params'][0]}, allow_val_change=True)
+    wandb.config.update({'gcn_enc_dec': opt['gcn_params'][1]}, allow_val_change=True)
+    wandb.config.update({'gcn_fixed': opt['gcn_params'][2]}, allow_val_change=True)
+    wandb.config.update({'gcn_symm': opt['gcn_params'][3]}, allow_val_change=True)
 
 def main(cmd_opt):
     if cmd_opt['use_best_params']:
@@ -408,10 +416,18 @@ def main(cmd_opt):
                                                                                                  device).to(
                 device)
         elif opt['function'] in ['gcn']:
-            # 'hidden_feat_repr_dims': int(opt['time'] // opt['step_size']) * [opt['hidden_dim']]
             model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['dropout'], device=device).to(device)
-        elif opt['function'] in ['mlp']:
-            model = MLP(opt, dataset, device=device).to(device)
+        # elif opt['function'] in ['mlp']:
+        #     model = MLP(opt, dataset, device=device).to(device)
+        elif opt['function'] in ['gcn2', 'mlp', 'gcn_dgl', 'gcn_res_dgl']:
+            hidden_feat_repr_dims = int(opt['time'] // opt['step_size']) * [opt['hidden_dim']]
+            feat_repr_dims = [dataset.data.x.shape[1]] + hidden_feat_repr_dims + [dataset.num_classes]
+            model = GNNMLP(opt, dataset, device, feat_repr_dims,
+                           enable_mlp=True if opt['function']=='mlp' else False,
+                           enable_gcn=True if opt['function'] in ['gcn2', 'gcn_dgl', 'gcn_res_dgl'] else False,
+                           learnable_mixing=False, use_sage=False, use_gat=False, gat_num_heads=1,
+                           top_is_proj=False, use_prelu=False, dropout=opt['dropout']
+                           ).to(device)
         else:
             model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(
                 device)
@@ -732,6 +748,7 @@ if __name__ == '__main__':
     parser.add_argument('--gcn_symm', type=str, default='False', help='make weight matrix in GCN symmetric')
     parser.add_argument('--gcn_bias', type=str, default='False', help='make GCN include bias')
     parser.add_argument('--gcn_mid_dropout', type=str, default='False', help='dropout between GCN layers')
+    parser.add_argument('--gcn_params', nargs='+', default=None, help='list of args for gcn ablation')
 
     # greed non linear args
     parser.add_argument('--gnl_style', type=str, default='scaled_dot',
@@ -760,7 +777,7 @@ if __name__ == '__main__':
     opt = vars(args)
 
     if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero',
-                           'greed_non_linear', 'greed_lie_trotter', 'gcn', 'mlp']:
+                           'greed_non_linear', 'greed_lie_trotter', 'gcn', 'gcn2', 'mlp', 'gcn_dgl', 'gcn_res_dgl']:
         opt = greed_run_params(opt)  ###basic params for GREED
 
     if not opt['wandb_sweep']:  # sweeps are run from YAML config so don't need these

@@ -1,0 +1,53 @@
+program: run_GNN.py
+method: grid
+parameters:
+  dataset:
+    values: [Cora, chameleon, squirrel]
+  block:
+    values: [constant]
+  epoch:
+    values: [100]
+  num_splits:
+    values: [10]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_activation:
+    values: [identity]
+  gcn_params:
+    values: [[gcn_dgl, False, False, False], [gcn_dgl, True, False, False], [gcn_res_dgl, True, True, False], [gcn_res_dgl, True, True, True]]
+  gnl_measure:
+    values: [ones]
+  drift:
+    values: [False]
+  test_mu_0:
+    values: [True]
+  add_source:
+    values: [False]
+  step_size:
+    values: [1.0]
+  hidden_dim:
+    values: [128]
+  time:
+    values: [3]
+  input_dropout:
+    values: [0.5]
+  dropout:
+    values: [0.35]
+  optimizer:
+    values: [adam]
+  lr:
+    values: [0.005]
+  decay:
+    values: [0.0]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --geom_gcn_splits
+entity: graph_neural_diffusion
+project: ablation_gcn

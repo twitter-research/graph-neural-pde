@@ -248,7 +248,7 @@ def greed_ablation_params(opt):
     opt['gcn_enc_dec'] = True #False #True
     opt['gcn_non_lin'] = False #False #True
     opt['gcn_fixed'] = False #False #True
-    opt['gcn_symm'] = True
+    opt['gcn_symm'] = False#True
     opt['gcn_bias'] = True
     opt['gcn_mid_dropout'] = False
 
@@ -557,6 +557,7 @@ def default_params():
     parser.add_argument('--gcn_symm', type=str, default='False', help='make weight matrix in GCN symmetric')
     parser.add_argument('--gcn_bias', type=str, default='False', help='make GCN include bias')
     parser.add_argument('--gcn_mid_dropout', type=str, default='False', help='dropout between GCN layers')
+    parser.add_argument('--gcn_params', nargs='+', default=None, help='list of args for gcn ablation')
 
     # greed non linear args
     parser.add_argument('--gnl_style', type=str, default='scaled_dot', help='scaled_dot, softmax_attention, general_graph')

@@ -2,11 +2,14 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 from torch.nn import init
-# import dgl
+import dgl
 # from dgl import DGLGraph
 from dgl.nn.pytorch import GraphConv, SAGEConv, GATConv
 from torch_geometric.nn import GCNConv
+from model_configurations import set_block, set_function
+from base_classes import BaseGNN
 
+#code adapted from https://github.com/kdd-submitter/on_local_aggregation/blob/main/models.py - converted to PyG
 
 class PyG_GCN(nn.Module):
     def __init__(self, in_feat, out_feat, **layer_kwargs):
@@ -17,15 +20,6 @@ class PyG_GCN(nn.Module):
         edge_index = torch.cat([graph.edges()[0].unsqueeze(0), graph.edges()[1].unsqueeze(0)], dim=0)
         return self.GCNConv(features, edge_index)
 
-# class ResGraphConv(nn.Module):
-#     def __init__(self, in_feat, out_feat, opt, **layer_kwargs):
-#         super(ResGraphConv, self).__init__()
-#         self.GCNConv = GCNConv(in_feat, out_feat)
-#         self.opt = opt
-#
-#     def forward(self, graph, features):
-#         edge_index = torch.cat([graph.edges()[0].unsqueeze(0), graph.edges()[1].unsqueeze(0)], dim=0)
-#         return features +  self.opt['step_size'] * self.GCNConv(features, edge_index)
 
 class GraphSequential(nn.Module):
     def __init__(self, layer_stack, opt):
@@ -36,8 +30,6 @@ class GraphSequential(nn.Module):
 
     def forward(self, graph, features):
         for layer in self.layer_stack:
-            # print(layer)
-            # print(features)
             if any([isinstance(layer, gcn_type) for gcn_type in self.gcn_layer_types]):
                 if self.opt['gcn_symm']:
                     # encoder conv
@@ -53,25 +45,40 @@ class GraphSequential(nn.Module):
                         symm_weight = (layer.symm_weight + layer.symm_weight.T) / 2
                         features = features + self.opt['step_size'] * layer(graph, features, weight=symm_weight)
                 else:
-                    if self.opt['function'] == 'gcn_dgl' or layer._in_feats != layer._out_feats:
+                    if self.opt['function'] == 'gcn_dgl':
                         features = layer(graph, features)
                     elif self.opt['function'] == 'gcn_res_dgl':
-                        features = features + self.opt['step_size'] * layer(graph, features)
+                        if layer._in_feats != layer._out_feats:
+                            features = layer(graph, features)
+                        else:
+                            features = features + self.opt['step_size'] * layer(graph, features)
                     elif self.opt['function'] == 'gcn2':
-                        features = layer(features, graph) ##here graph is edge index
+                        features = layer(features, graph) ##here "graph" is edge index
             else:
                 features = layer(features)
         return features
 
 
-class GNNMLP(nn.Module):
-    def __init__(self, opt, feat_repr_dims, enable_mlp=False, enable_gcn=True, learnable_mixing=False, use_sage=False,
+class GNNMLP(BaseGNN):
+    def __init__(self, opt, dataset, device, feat_repr_dims, enable_mlp=False, enable_gcn=True, learnable_mixing=False, use_sage=False,
                  use_gat=False, gat_num_heads=1, top_is_proj=False, use_prelu=False, dropout=0.0):
-        super().__init__()
+        ###required for code homogeniety
+        super(GNNMLP, self).__init__(opt, dataset, device)
+        self.f = set_function(opt)
+        block = set_block(opt)
+        time_tensor = torch.tensor([0, self.T]).to(device)
+        self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
+
         assert not (use_sage and use_gat), 'only use sage, or gat, or neither. You can not use both'
         assert enable_mlp or enable_gcn, 'You need to have at least one of enable_gcn or enable_mlp'
 
+        if opt['gcn_symm']:
+            assert opt['function'] in ['gcn_dgl','gcn_res_dgl'], 'gcn_symm only implenent for dgl conv'
+        assert not enable_mlp and enable_gcn, 'Not using this branch in our code'
+
         self.opt = opt
+        self.edge_index = dataset.data.edge_index
+
         dims = list(zip(feat_repr_dims[:-1], feat_repr_dims[1:]))
         if enable_gcn and enable_mlp:
             if learnable_mixing:
@@ -150,7 +157,7 @@ class GNNMLP(nn.Module):
             if self.opt['gcn_mid_dropout']:
                 stack.append(nn.Dropout(dropout))
 
-            if in_feat != out_feat: #manual overide to ignore fixed W or residual blocks if on a convolutional encoder decoder
+            if in_feat != out_feat: #overide to ignore fixed W or residual blocks if using a convolutional encoder/decoder
                 #note can't have a symmetric W here
                 stack.append(GraphConv(in_feat, out_feat, bias=self.opt['gcn_bias'], **layer_kwargs))
             elif self.opt['gcn_fixed']:
@@ -175,7 +182,14 @@ class GNNMLP(nn.Module):
 
         return GraphSequential(stack, self.opt)
 
-    def forward(self, graph, features):
+    # def forward(self, graph, features): #run_GCN.py
+    def forward(self, features, pos_encoding): #run_GNN.py
+        if self.opt['function'] in ['gcn_dgl', 'gcn_res_dgl']:
+            graph = dgl.graph((self.edge_index[0], self.edge_index[1])).to(self.device)
+        elif self.opt['function'] == 'gcn2':
+            graph = self.edge_index
+
+
         if self.enable_gcn and self.enable_mlp:
             features = self.mixing_coeffs[0] * self.gcn_stack(graph, features) + self.mixing_coeffs[0] * self.mlp_stack(
                 graph, features)
