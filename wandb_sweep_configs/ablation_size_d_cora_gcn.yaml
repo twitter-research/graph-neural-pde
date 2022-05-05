@@ -5,12 +5,14 @@ parameters:
     values: [Cora]
   block:
     values: [constant]
-  function:
-    values: [greed_non_linear]
   epoch:
     values: [100]
   num_splits:
     values: [10]
+  self_loop_weight:
+    values: [0.0]
+  no_early:
+    values: [True]
   method:
     values: [euler]
   gnl_style:
