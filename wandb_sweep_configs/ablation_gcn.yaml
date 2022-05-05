@@ -11,6 +11,8 @@ parameters:
     values: [10]
   self_loop_weight:
     values: [0.0]
+  no_early:
+    values: [True]
   method:
     values: [euler]
   gnl_style:
