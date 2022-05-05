@@ -2,6 +2,7 @@ from deeprobust.graph.data import Dataset, Dpr2Pyg, Pyg2Dpr
 import os.path as osp
 import numpy as np
 import pandas as pd
+from torch_geometric.utils import degree, homophily
 
 class CustomDataset(Dataset):
   def __init__(self, root, name, setting='gcn', seed=None, require_mask=False):
@@ -71,13 +72,32 @@ def get_pyg_syn_cora(path, opt, rep):
   return pyg_dataset
 
 
+def get_edge_cat(data):
+  edges_cats = []
+  class_list = []
+  class_sublist = []
+  return edges_cats
+
 def syn_cora_analysis(path, opt, rep):
   ths = ['0.00', '0.10', '0.20', '0.30', '0.40', '0.50', '0.60', '0.70', '0.80', '0.90', '1.00']
   df_list = []
-  for th in ths:
-    dataset = CustomDataset(root=f"{path}/syn-cora", name=f"h{str(opt['target_homoph'])}-r{str(rep)}", setting="gcn", seed=None)
-    pyg_dataset = Dpr2Pyg(dataset)
-    df_list.append()
+  for targ_hom in ths:
+    for rep in range(3):
+      dataset = CustomDataset(root=f"{path}/syn-cora", name=f"h{str(targ_hom)}-r{str(rep+1)}", setting="gcn", seed=None)
+      pyg_dataset = Dpr2Pyg(dataset)
+      data = pyg_dataset.data
+      num_nodes = 1
+      num_edges= 1
+      num_classes= 1
+      num_features = 1
+      degree_range = []
+      av_degree= 1
+      density = num_edges / num_nodes**2
+      graph_edge_homophily = homophily(edge_index=data.edge_index, y=data.y, method='edge')
+      graph_node_homophily = homophily(edge_index=data.edge_index, y=data.y, method='node')
+      edge_categories = get_edge_cat(data)
+
+      df_list.append()
 
   df_cols = []
   df = pd.DataFrame(df_list, columns=df_cols)
