@@ -9,6 +9,8 @@ parameters:
     values: [100]
   num_splits:
     values: [10]
+  self_loop_weight:
+    values: [0.0]
   method:
     values: [euler]
   gnl_style:
