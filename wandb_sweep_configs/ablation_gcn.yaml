@@ -2,7 +2,7 @@ program: run_GNN.py
 method: grid
 parameters:
   dataset:
-    values: [Cora, chameleon, squirrel]
+    values: [chameleon, squirrel]
   block:
     values: [constant]
   epoch:
@@ -50,5 +50,6 @@ command:
   - ${args}
   - --wandb
   - --wandb_sweep
+  - --geom_gcn_splits
 entity: graph_neural_diffusion
 project: ablation_gcn
