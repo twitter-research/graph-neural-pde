@@ -15,8 +15,6 @@ parameters:
     values: [general_graph]
   gnl_activation:
     values: [identity]
-  function:
-    values: [gcn_dgl]
   gcn_params:
     values: [[gcn_dgl, False, False, False], [gcn_dgl, True, False, False], [gcn_res_dgl, True, True, False], [gcn_res_dgl, True, True, True]]
   gnl_measure:
