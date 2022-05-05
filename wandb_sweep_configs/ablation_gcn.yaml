@@ -20,7 +20,7 @@ parameters:
   gnl_activation:
     values: [identity]
   gcn_params:
-    values: [[gcn_dgl, False, False, False, True], [gcn_dgl, True, False, False, True], [gcn_res_dgl, True, False, False, True],[gcn_res_dgl, True, True, False, True], [gcn_res_dgl, True, True, True, False]]
+    values: [[gcn_dgl, False, False, False, True], [gcn_dgl, True, False, False, True], [gcn_res_dgl, True, False, False, True], [gcn_res_dgl, True, True, False, True], [gcn_res_dgl, True, True, True, True], [gcn_res_dgl, True, True, True, False]]
   gnl_measure:
     values: [ones]
   drift:
