@@ -1,7 +1,7 @@
 from deeprobust.graph.data import Dataset, Dpr2Pyg, Pyg2Dpr
 import os.path as osp
 import numpy as np
-
+import pandas as pd
 
 class CustomDataset(Dataset):
   def __init__(self, root, name, setting='gcn', seed=None, require_mask=False):
@@ -69,6 +69,23 @@ def get_pyg_syn_cora(path, opt, rep):
   dataset = CustomDataset(root=f"{path}/syn-cora", name=f"h{str(opt['target_homoph'])}-r{str(rep)}", setting="gcn", seed=None)
   pyg_dataset = Dpr2Pyg(dataset)
   return pyg_dataset
+
+
+def syn_cora_analysis(path, opt, rep):
+  ths = ['0.00', '0.10', '0.20', '0.30', '0.40', '0.50', '0.60', '0.70', '0.80', '0.90', '1.00']
+  df_list = []
+  for th in ths:
+    dataset = CustomDataset(root=f"{path}/syn-cora", name=f"h{str(opt['target_homoph'])}-r{str(rep)}", setting="gcn", seed=None)
+    pyg_dataset = Dpr2Pyg(dataset)
+    df_list.append()
+
+  df_cols = []
+  df = pd.DataFrame(df_list, columns=df_cols)
+  pd.set_option('display.max_rows', None)
+  pd.set_option('display.max_columns', None)
+  pd.set_option('display.width', None)
+  pd.set_option('display.max_colwidth', -1)
+  print(df)
 
 if __name__ == "__main__":
   dataset = CustomDataset(root="../data/syn-cora", name="h0.00-r1", setting="gcn", seed=15)
