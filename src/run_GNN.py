@@ -345,6 +345,8 @@ def unpack_gcn_params(opt):
     wandb.config.update({'gcn_enc_dec': opt['gcn_params'][1]}, allow_val_change=True)
     wandb.config.update({'gcn_fixed': opt['gcn_params'][2]}, allow_val_change=True)
     wandb.config.update({'gcn_symm': opt['gcn_params'][3]}, allow_val_change=True)
+    wandb.config.update({'gcn_non_lin': opt['gcn_params'][4]}, allow_val_change=True)
+
 
 def main(cmd_opt):
     if cmd_opt['use_best_params']:
