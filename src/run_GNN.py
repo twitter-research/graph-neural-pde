@@ -341,11 +341,12 @@ def merge_cmd_args(cmd_opt, opt):
 
 def unpack_gcn_params(opt):
     'temp function to help ablation'
-    wandb.config.update({'function': opt['gcn_params'][0]}, allow_val_change=True)
-    wandb.config.update({'gcn_enc_dec': opt['gcn_params'][1]}, allow_val_change=True)
-    wandb.config.update({'gcn_fixed': opt['gcn_params'][2]}, allow_val_change=True)
-    wandb.config.update({'gcn_symm': opt['gcn_params'][3]}, allow_val_change=True)
-    wandb.config.update({'gcn_non_lin': opt['gcn_params'][4]}, allow_val_change=True)
+    wandb.config.update({'gcn_params_idx': opt['gcn_params'][0]}, allow_val_change=True)
+    wandb.config.update({'function': opt['gcn_params'][1]}, allow_val_change=True)
+    wandb.config.update({'gcn_enc_dec': opt['gcn_params'][2]}, allow_val_change=True)
+    wandb.config.update({'gcn_fixed': opt['gcn_params'][3]}, allow_val_change=True)
+    wandb.config.update({'gcn_symm': opt['gcn_params'][4]}, allow_val_change=True)
+    wandb.config.update({'gcn_non_lin': opt['gcn_params'][5]}, allow_val_change=True)
 
 
 def main(cmd_opt):
@@ -752,6 +753,7 @@ if __name__ == '__main__':
     parser.add_argument('--gcn_bias', type=str, default='False', help='make GCN include bias')
     parser.add_argument('--gcn_mid_dropout', type=str, default='False', help='dropout between GCN layers')
     parser.add_argument('--gcn_params', nargs='+', default=None, help='list of args for gcn ablation')
+    parser.add_argument('--gcn_params_idx', type=int, default=0, help='index to track GCN ablation')
 
     # greed non linear args
     parser.add_argument('--gnl_style', type=str, default='scaled_dot',
