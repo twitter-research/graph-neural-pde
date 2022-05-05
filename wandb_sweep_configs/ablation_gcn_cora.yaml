@@ -30,11 +30,11 @@ parameters:
   add_source:
     values: [False]
   step_size:
-    values: [0.5]
+    values: [1.0]
   hidden_dim:
     values: [128]
   time:
-    values: [4]
+    values: [3]
   input_dropout:
     values: [0.5]
   dropout:

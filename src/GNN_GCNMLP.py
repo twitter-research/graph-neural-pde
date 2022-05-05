@@ -37,7 +37,6 @@ class GraphSequential(nn.Module):
                         features = layer(graph, features)
                     # symmetric gcn
                     elif self.opt['function'] == 'gcn_dgl':
-                        #todo double check the encoder conv is initialised with weights
                         symm_weight = (layer.symm_weight + layer.symm_weight.T) / 2
                         features = layer(graph, features, weight=symm_weight)
                     # symmetric res gcn
@@ -68,6 +67,7 @@ class GNNMLP(BaseGNN):
         block = set_block(opt)
         time_tensor = torch.tensor([0, self.T]).to(device)
         self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
+        ###
 
         assert not (use_sage and use_gat), 'only use sage, or gat, or neither. You can not use both'
         assert enable_mlp or enable_gcn, 'You need to have at least one of enable_gcn or enable_mlp'
