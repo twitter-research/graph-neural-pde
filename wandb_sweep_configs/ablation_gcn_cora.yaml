@@ -30,11 +30,11 @@ parameters:
   add_source:
     values: [False]
   step_size:
-    values: [1.0]
+    values: [0.5]
   hidden_dim:
     values: [128]
   time:
-    values: [3]
+    values: [4]
   input_dropout:
     values: [0.5]
   dropout:
@@ -42,9 +42,9 @@ parameters:
   optimizer:
     values: [adam]
   lr:
-    values: [0.005]
+    values: [0.0025]
   decay:
-    values: [0.0]
+    values: [0.01]
 command:
   - ${env}
   - python3
