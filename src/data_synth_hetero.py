@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from torch_geometric.utils import degree, homophily
 import torch
-
+from graph_rewiring import dirichlet_energy
 
 class CustomDataset(Dataset):
   def __init__(self, root, name, setting='gcn', seed=None, require_mask=False):
@@ -105,12 +105,12 @@ def syn_cora_analysis(path="../data"):
       density = num_edges / num_nodes**2
       graph_edge_homophily = homophily(edge_index=data.edge_index, y=data.y, method='edge')
       graph_node_homophily = homophily(edge_index=data.edge_index, y=data.y, method='node')
+      #label dirichlet
+      de = dirichlet_energy(data.edge_index, data.edge_weight, num_nodes, data.y.unsqueeze(-1))
+      #spectral stuff
       edge_categories = get_edge_cat(data.edge_index, data.y, num_classes)
 
-      #label dirichlet
-      #spectral stuff
-
-      row = [num_nodes, num_edges, num_classes, num_features, degree_range, av_degree, density, graph_edge_homophily, graph_node_homophily, edge_categories]
+      row = [num_nodes, num_edges, num_classes, num_features, degree_range, av_degree, density, graph_edge_homophily, graph_node_homophily, de, edge_categories]
       np_row = []
       for item in row:
         try:
@@ -121,7 +121,7 @@ def syn_cora_analysis(path="../data"):
       df_list.append(np_row)
 
   df_cols = ["num_nodes", "num_edges", "num_classes", "num_features", "degree_range", "av_degree",
-             "density", "graph_edge_homophily", "graph_node_homophily", "edge_categories"]
+             "density", "graph_edge_homophily", "graph_node_homophily", "label_dirichlet", "edge_categories"]
 
   # todo initialise spectrum distribution proportional to graph homophily
 

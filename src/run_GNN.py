@@ -781,6 +781,7 @@ if __name__ == '__main__':
     parser.add_argument('--gnl_activation', type=str, default='identity', help='identity, sigmoid, ...')
     parser.add_argument('--gnl_measure', type=str, default='ones', help='ones, deg_poly, nodewise')
     parser.add_argument('--gnl_omega', type=str, default='zero', help='zero, diag, sum')
+    parser.add_argument('--gnl_omega_activation', type=str, default='identity', help='identity, exponential')
     parser.add_argument('--gnl_W_style', type=str, default='sum', help='sum, prod, GS, cgnn, diag_dom')
     parser.add_argument('--gnl_attention', type=str, default='False', help='turns on attention for gnl general graph')
 
