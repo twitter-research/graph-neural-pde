@@ -232,13 +232,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'diag_dom':
         if self.opt['gnl_W_diag_init'] == 'uniform':
           glorot(self.W_W)
-          # uniform(self.t_a, a=-1, b=1)
-          glorot(self.t_a)
+          # glorot(self.t_a_tilde) <-doesn't work for vectors
+          uniform(self.t_a, a=-1, b=1)
           uniform(self.r_a, a=-1, b=1)
           if self.opt['two_hops']:
             glorot(self.W_W_tilde)
-            # uniform(self.t_a_tilde, a=-1, b=1)
-            glorot(self.t_a_tilde)
+            # glorot(self.t_a_tilde) <-doesn't work for vectors
+            uniform(self.t_a_tilde, a=-1, b=1)
             uniform(self.r_a_tilde, a=-1, b=1)
         elif self.opt['gnl_W_diag_init'] == 'identity':
           zeros(self.W_W)

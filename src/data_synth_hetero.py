@@ -107,7 +107,7 @@ def syn_cora_analysis(path="../data"):
       graph_node_homophily = homophily(edge_index=data.edge_index, y=data.y, method='node')
       #label dirichlet
       de = dirichlet_energy(data.edge_index, data.edge_weight, num_nodes, data.y.unsqueeze(-1))
-      #spectral stuff
+      #spectral stuff...
       edge_categories = get_edge_cat(data.edge_index, data.y, num_classes)
 
       row = [num_nodes, num_edges, num_classes, num_features, degree_range, av_degree, density, graph_edge_homophily, graph_node_homophily, de, edge_categories]
