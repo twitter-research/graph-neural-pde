@@ -348,6 +348,24 @@ def unpack_gcn_params(opt):
     wandb.config.update({'gcn_symm': opt['gcn_params'][4]}, allow_val_change=True)
     wandb.config.update({'gcn_non_lin': opt['gcn_params'][5]}, allow_val_change=True)
 
+def unpack_greed_params(opt):
+    'temp function for "focus" models'
+    # gnl_W_style: diag_dom, diag
+    # gnl_W_diag_init: uniform, uniform
+    # gnl_W_param_free: True, False
+    # gnl_omega: diag, diag
+    # gnl_omega_diag: free, free
+    # use_mlp: False, True
+    # test_mu_0: True, True
+    # add_source: True, True
+    wandb.config.update({'gnl_W_style': opt['greed_params'][0]}, allow_val_change=True)
+    wandb.config.update({'gnl_W_diag_init': opt['greed_params'][1]}, allow_val_change=True)
+    wandb.config.update({'gnl_W_param_free': opt['greed_params'][2]}, allow_val_change=True)
+    wandb.config.update({'gnl_omega': opt['greed_params'][3]}, allow_val_change=True)
+    wandb.config.update({'gnl_omega_diag': opt['greed_params'][4]}, allow_val_change=True)
+    wandb.config.update({'use_mlp': opt['greed_params'][5]}, allow_val_change=True)
+    wandb.config.update({'test_mu_0': opt['greed_params'][6]}, allow_val_change=True)
+    wandb.config.update({'add_source': opt['greed_params'][7]}, allow_val_change=True)
 
 def main(cmd_opt):
     if cmd_opt['use_best_params']:
@@ -380,6 +398,8 @@ def main(cmd_opt):
     opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
     if opt['gcn_params']: #temp function for GCN ablation
         unpack_gcn_params(opt)
+    if opt['greed_params']: #temp function for GCN ablation
+        unpack_greed_params(opt)
 
     wandb.define_metric("epoch_step")  # Customize axes - https://docs.wandb.ai/guides/track/log
     if opt['wandb_track_grad_flow']:
@@ -772,11 +792,11 @@ if __name__ == '__main__':
     parser.add_argument('--gnl_W_params', nargs='+', default=None, help='list of W args for ablation')
     parser.add_argument('--gnl_W_diag_init', type=str, default='identity', help='init of diag elements [identity, uniform, linear]')
     parser.add_argument('--gnl_W_param_free', type=str, default='True', help='allow parameter to require gradient')
-    parser.add_argument('--gnl_W_param_free2', type=str, default='True', help='allow or fix W params')
     parser.add_argument('--gnl_W_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
     parser.add_argument('--gnl_W_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
     parser.add_argument('--two_hops', type=str, default='False', help='flag for 2-hop energy')
     parser.add_argument('--target_homoph', type=str, default='0.80', help='target_homoph for syn_cora [0.00,0.10,..,1.00]')
+    parser.add_argument('--greed_params', nargs='+', default=None, help='list of args for focus models')
 
     args = parser.parse_args()
     opt = vars(args)

@@ -3,6 +3,8 @@ import os.path as osp
 import numpy as np
 import pandas as pd
 from torch_geometric.utils import degree, homophily
+import torch
+
 
 class CustomDataset(Dataset):
   def __init__(self, root, name, setting='gcn', seed=None, require_mask=False):
@@ -72,13 +74,20 @@ def get_pyg_syn_cora(path, opt, rep):
   return pyg_dataset
 
 
-def get_edge_cat(data):
+def get_edge_cat(edge_index, y, num_classes):
   edges_cats = []
   class_list = []
   class_sublist = []
+  for c in range(num_classes):
+    label_mask = y == c
+    torch.where(y==c)
+    src_nodes = edge_index[1][y[edge_index[0]]==c]
+    src_labels = y[src_nodes]
+    bin_count = torch.bincount(src_labels, minlength=num_classes) / src_nodes.shape[0]
+    edges_cats.append(np.round(bin_count.cpu().detach().numpy(),2))
   return edges_cats
 
-def syn_cora_analysis(path, opt, rep):
+def syn_cora_analysis(path="../data"):
   ths = ['0.00', '0.10', '0.20', '0.30', '0.40', '0.50', '0.60', '0.70', '0.80', '0.90', '1.00']
   df_list = []
   for targ_hom in ths:
@@ -86,20 +95,36 @@ def syn_cora_analysis(path, opt, rep):
       dataset = CustomDataset(root=f"{path}/syn-cora", name=f"h{str(targ_hom)}-r{str(rep+1)}", setting="gcn", seed=None)
       pyg_dataset = Dpr2Pyg(dataset)
       data = pyg_dataset.data
-      num_nodes = 1
-      num_edges= 1
-      num_classes= 1
-      num_features = 1
-      degree_range = []
-      av_degree= 1
+      num_nodes = data.num_nodes
+      num_edges = data.edge_index.shape[1]
+      num_classes = data.y.max() + 1
+      num_features = data.num_features
+      degrees = degree(data.edge_index[0], num_nodes)
+      degree_range = [degrees.min().cpu().detach().numpy(), degrees.max().cpu().detach().numpy()]
+      av_degree = num_edges / num_nodes
       density = num_edges / num_nodes**2
       graph_edge_homophily = homophily(edge_index=data.edge_index, y=data.y, method='edge')
       graph_node_homophily = homophily(edge_index=data.edge_index, y=data.y, method='node')
-      edge_categories = get_edge_cat(data)
+      edge_categories = get_edge_cat(data.edge_index, data.y, num_classes)
 
-      df_list.append()
+      #label dirichlet
+      #spectral stuff
 
-  df_cols = []
+      row = [num_nodes, num_edges, num_classes, num_features, degree_range, av_degree, density, graph_edge_homophily, graph_node_homophily, edge_categories]
+      np_row = []
+      for item in row:
+        try:
+          np_row.append(np.round(item.cpu().detach().numpy(), 4))
+        except:
+          np_row.append(np.round(item, 4))
+
+      df_list.append(np_row)
+
+  df_cols = ["num_nodes", "num_edges", "num_classes", "num_features", "degree_range", "av_degree",
+             "density", "graph_edge_homophily", "graph_node_homophily", "edge_categories"]
+
+  # todo initialise spectrum distribution proportional to graph homophily
+
   df = pd.DataFrame(df_list, columns=df_cols)
   pd.set_option('display.max_rows', None)
   pd.set_option('display.max_columns', None)
@@ -108,12 +133,13 @@ def syn_cora_analysis(path, opt, rep):
   print(df)
 
 if __name__ == "__main__":
-  dataset = CustomDataset(root="../data/syn-cora", name="h0.00-r1", setting="gcn", seed=15)
-  adj = dataset.adj  # Access adjacency matrix
-  features = dataset.features  # Access node features
-  pyg_dataset = Dpr2Pyg(dataset)
-  ei = pyg_dataset.data.edge_index
+  # dataset = CustomDataset(root="../data/syn-cora", name="h0.00-r1", setting="gcn", seed=15)
+  # adj = dataset.adj  # Access adjacency matrix
+  # features = dataset.features  # Access node features
+  # pyg_dataset = Dpr2Pyg(dataset)
+  # ei = pyg_dataset.data.edge_index
 
+  syn_cora_analysis()
 
 # import torch
 # from torch_geometric.data import Data, InMemoryDataset

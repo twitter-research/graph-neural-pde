@@ -180,7 +180,6 @@ def greed_ablation_params(opt):
         elif opt['gnl_W_style'] in ['diag', 'diag_dom']:
             opt['gnl_W_diag_init'] = 'linear'#'identity'
             opt['gnl_W_param_free'] = 'False' #'True'
-            # opt['gnl_W_param_free2'] = 'False' #'True'
             opt['gnl_W_diag_init_q'] = 1.0
             opt['gnl_W_diag_init_r'] = 0.0
 
@@ -578,11 +577,11 @@ def default_params():
     parser.add_argument('--gnl_W_params', nargs='+', default=None, help='list of W args for ablation')
     parser.add_argument('--gnl_W_diag_init', type=str, default='identity', help='init of diag elements [identity, uniform, linear]')
     parser.add_argument('--gnl_W_param_free', type=str, default='True', help='allow parameter to require gradient')
-    parser.add_argument('--gnl_W_param_free2', type=str, default='True', help='allow or fix W params')
     parser.add_argument('--gnl_W_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
     parser.add_argument('--gnl_W_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
     parser.add_argument('--two_hops', type=str, default='False', help='flag for 2-hop energy')
     parser.add_argument('--target_homoph', type=str, default='0.80', help='target_homoph for syn_cora [0.00,0.10,..,1.00]')
+    parser.add_argument('--greed_params', nargs='+', default=None, help='list of args for focus models')
 
     parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
 
