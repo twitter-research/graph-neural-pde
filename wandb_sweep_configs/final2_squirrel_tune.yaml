@@ -18,7 +18,7 @@ parameters:
   gnl_activation:
     values: [identity]
   gnl_measure:
-    values: [one]
+    values: [ones]
   drift:
     values: [False]
   greed_params:
