@@ -356,7 +356,6 @@ def process_geom_masks(data, dataset_name):
 
 
 ###copy from data.py to stop circular refs
-###ammend reference of dataset.data to data
 def get_component(data, start: int = 0) -> set:
   visited_nodes = set()
   queued_nodes = set([start])
