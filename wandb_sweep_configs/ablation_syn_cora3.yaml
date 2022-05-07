@@ -1,0 +1,82 @@
+program: run_GNN.py
+method: grid
+parameters:
+
+
+  wandb:
+    values: ['] = False #True #True #False #True
+  wandb_track_grad_flow'] = True #False  #collect stats for reports
+  wandb_watch_grad:
+    values: ['] = False
+  run_track_reports:
+    values: ['] = False #False#True ##run the evolution reports
+  save_local_reports:
+    values: ['] = True
+  save_wandb_reports:
+    values: [True
+  wandb_epoch_list'] = [100]
+
+
+  dataset:
+    values: [syn_cora]
+  target_homoph:
+    values: ['0.00', '0.10', '0.20', '0.30', '0.40', '0.50', '0.60', '0.70', '0.80', '0.90', '1.00']
+  block:
+    values: [constant]
+  function:
+    values: [greed_non_linear]
+  epoch:
+    values: [100]
+  num_splits:
+    values: [3]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_activation:
+    values: [identity]
+  gnl_W_style:
+    values: [sum, prod, neg_prod, diag_dom]
+  gnl_W_diag_init:
+    values: [uniform]
+  gnl_W_param_free:
+    values: [True]
+  gnl_measure:
+    values: [ones]
+  gnl_omega:
+     values: [diag]
+  gnl_omega_diag:
+     values: [free]
+  use_mlp:
+    values: [False]
+  test_mu_0:
+    values: [True]
+  add_source:
+    values: [True]
+  drift:
+    values: [False]
+  step_size:
+    values: [0.5, 1.0]
+  hidden_dim:
+    values: [128]
+  time:
+    values: [2, 3, 4]
+  input_dropout:
+    values: [0.5]
+  dropout:
+    values: [0.35]
+  optimizer:
+    values: [adam]
+  lr:
+    values: [0.0025]
+  decay:
+    values: [0.01]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+entity: graph_neural_diffusion
+project: ablation_syn_cora2

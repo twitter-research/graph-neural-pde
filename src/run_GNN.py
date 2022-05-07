@@ -197,7 +197,6 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
     # enc_pred = model.m2(model.encoder(data.x)).max(1)[1]
     enc_pred = model.m2(x0).max(1)[1]
     # pred = model.forward(data.x).max(1)[1]
-    #todo fix this nonsense
     if opt['lie_trotter'] == 'gen_2':
         if model.odeblock.funcs[-1].opt['lt_block_type'] == 'label':
             logits = model.odeblock.odefunc.GNN_postXN(xN)
