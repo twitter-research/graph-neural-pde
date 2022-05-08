@@ -179,11 +179,19 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
 def calc_energy_homoph(data, model, opt):
     # every epoch stats for greed linear and non linear
     num_nodes = data.num_nodes
+
     x0 = model.encoder(data.x)
     T0_dirichlet = dirichlet_energy(data.edge_index, data.edge_attr, num_nodes, x0)
-    edges = torch.cat([model.odeblock.odefunc.edge_index, model.odeblock.odefunc.self_loops], dim=1)
+
+    x0r = x0 / torch.norm(x0, p='fro')
+    T0r_dirichlet = dirichlet_energy(data.edge_index, data.edge_attr, num_nodes, x0r)
+
     xN = model.forward_XN(data.x)
     TN_dirichlet = dirichlet_energy(data.edge_index, data.edge_attr, num_nodes, xN)
+
+    xNr = xN / torch.norm(xN, p='fro')
+    TNr_dirichlet = dirichlet_energy(data.edge_index, data.edge_attr, num_nodes, xNr)
+
     enc_pred = model.m2(x0).max(1)[1]
     if opt['lie_trotter'] == 'gen_2':
         if model.odeblock.funcs[-1].opt['lt_block_type'] == 'label':
@@ -196,7 +204,7 @@ def calc_energy_homoph(data, model, opt):
     enc_pred_homophil = homophily(edge_index=data.edge_index, y=enc_pred)
     pred_homophil = homophily(edge_index=data.edge_index, y=pred)
     label_homophil = homophily(edge_index=data.edge_index, y=data.y)
-    return T0_dirichlet, TN_dirichlet, enc_pred_homophil, pred_homophil, label_homophil
+    return T0_dirichlet, T0r_dirichlet, TN_dirichlet, TNr_dirichlet, enc_pred_homophil, pred_homophil, label_homophil
 
 @torch.no_grad()
 def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
@@ -214,7 +222,7 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
     x0 = model.encoder(data.x)
     edges = torch.cat([model.odeblock.odefunc.edge_index, model.odeblock.odefunc.self_loops], dim=1)
     xN = model.forward_XN(data.x)
-    T0_dirichlet, TN_dirichlet, enc_pred_homophil, pred_homophil, label_homophil = calc_energy_homoph(data, model, opt)
+    T0_dirichlet, T0r_dirichlet, TN_dirichlet, TNr_dirichlet, enc_pred_homophil, pred_homophil, label_homophil = calc_energy_homoph(data, model, opt)
 
     if opt['function'] == "greed_linear_hetero":
         LpR = model.odeblock.odefunc.L_0 + model.odeblock.odefunc.R_0
@@ -508,22 +516,26 @@ def main(cmd_opt):
         print(
             f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
 
-        T0_dirichlet, TN_dirichlet, enc_pred_homophil, pred_homophil, label_homophil = calc_energy_homoph(data, model, opt)
+        T0_dirichlet, T0r_dirichlet, TN_dirichlet, TNr_dirichlet, enc_pred_homophil, pred_homophil, label_homophil = calc_energy_homoph(data, model, opt)
         if opt['num_splits'] > 1:
-            results.append([test_acc, val_acc, train_acc, T0_dirichlet.cpu().detach().numpy(), TN_dirichlet.cpu().detach().numpy(),
+            results.append([test_acc, val_acc, train_acc,
+                            T0_dirichlet.cpu().detach().numpy(), T0r_dirichlet.cpu().detach().numpy(),
+                            TN_dirichlet.cpu().detach().numpy(), TNr_dirichlet.cpu().detach().numpy(),
                             enc_pred_homophil, pred_homophil, label_homophil])
 
     if opt['num_splits'] > 1:
         # test_acc_mean, val_acc_mean, train_acc_mean = np.mean(results, axis=0) * 100
         test_acc_mean, val_acc_mean, train_acc_mean, \
-        T0_dirichlet_mean, TN_dirichlet_mean, enc_pred_homophil_mean, pred_homophil_mean, label_homophil_mean \
+        T0_dirichlet_mean, T0r_dirichlet_mean, TN_dirichlet_mean, TNr_dirichlet_mean,\
+        enc_pred_homophil_mean, pred_homophil_mean, label_homophil_mean \
             = np.mean(results, axis=0) * 100
 
         test_acc_std = np.sqrt(np.var(results, axis=0)[0]) * 100
         wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
                          'test_acc_std': test_acc_std,
-                         'T0_dirichlet_mean': T0_dirichlet_mean, 'TN_dirichlet_mean': TN_dirichlet_mean, 'enc_pred_homophil': enc_pred_homophil_mean,
-                         'pred_homophil_mean': pred_homophil_mean, 'label_homophil_mean': label_homophil_mean}
+                         'T0_dirichlet_mean': T0_dirichlet_mean, 'T0r_dirichlet_mean': T0r_dirichlet_mean,
+                         'TN_dirichlet_mean': TN_dirichlet_mean, 'TNr_dirichlet_mean': TNr_dirichlet_mean,
+                         'enc_pred_homophil': enc_pred_homophil_mean, 'pred_homophil_mean': pred_homophil_mean, 'label_homophil_mean': label_homophil_mean}
         wandb.log(wandb_results)
         print(wandb_results)
 
