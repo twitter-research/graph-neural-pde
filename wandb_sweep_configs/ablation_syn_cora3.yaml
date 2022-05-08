@@ -63,4 +63,4 @@ command:
   - --wandb
   - --wandb_sweep
 entity: graph_neural_diffusion
-project: ablation_syn_cora2
+project: ablation_syn_cora3
