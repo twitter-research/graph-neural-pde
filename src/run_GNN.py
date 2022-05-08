@@ -510,7 +510,8 @@ def main(cmd_opt):
 
         T0_dirichlet, TN_dirichlet, enc_pred_homophil, pred_homophil, label_homophil = calc_energy_homoph(data, model, opt)
         if opt['num_splits'] > 1:
-            results.append([test_acc, val_acc, train_acc, T0_dirichlet, TN_dirichlet, enc_pred_homophil, pred_homophil, label_homophil])
+            results.append([test_acc, val_acc, train_acc, T0_dirichlet.detach().numpy(), TN_dirichlet.detach().numpy(),
+                            enc_pred_homophil.detach().numpy(), pred_homophil.detach().numpy(), label_homophil.detach().numpy()])
 
     if opt['num_splits'] > 1:
         test_acc_mean, val_acc_mean, train_acc_mean = np.mean(results, axis=0) * 100
