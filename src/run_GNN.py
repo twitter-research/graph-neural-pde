@@ -515,27 +515,35 @@ def main(cmd_opt):
 
         print(
             f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
-
-        T0_dirichlet, T0r_dirichlet, TN_dirichlet, TNr_dirichlet, enc_pred_homophil, pred_homophil, label_homophil = calc_energy_homoph(data, model, opt)
+        if opt['function'] == 'greed_non_linear':
+            T0_dirichlet, T0r_dirichlet, TN_dirichlet, TNr_dirichlet, enc_pred_homophil, pred_homophil, label_homophil = calc_energy_homoph(data, model, opt)
         if opt['num_splits'] > 1:
-            results.append([test_acc, val_acc, train_acc,
-                            T0_dirichlet.cpu().detach().numpy(), T0r_dirichlet.cpu().detach().numpy(),
-                            TN_dirichlet.cpu().detach().numpy(), TNr_dirichlet.cpu().detach().numpy(),
-                            enc_pred_homophil, pred_homophil, label_homophil])
+            if opt['function'] == 'greed_non_linear':
+                results.append([test_acc, val_acc, train_acc,
+                                T0_dirichlet.cpu().detach().numpy(), T0r_dirichlet.cpu().detach().numpy(),
+                                TN_dirichlet.cpu().detach().numpy(), TNr_dirichlet.cpu().detach().numpy(),
+                                enc_pred_homophil, pred_homophil, label_homophil])
+            else:
+                results.append([test_acc, val_acc, train_acc])
 
     if opt['num_splits'] > 1:
-        # test_acc_mean, val_acc_mean, train_acc_mean = np.mean(results, axis=0) * 100
-        test_acc_mean, val_acc_mean, train_acc_mean, \
-        T0_dirichlet_mean, T0r_dirichlet_mean, TN_dirichlet_mean, TNr_dirichlet_mean,\
-        enc_pred_homophil_mean, pred_homophil_mean, label_homophil_mean \
-            = np.mean(results, axis=0) * 100
+        if opt['function'] == 'greed_non_linear':
+            test_acc_mean, val_acc_mean, train_acc_mean, \
+            T0_dirichlet_mean, T0r_dirichlet_mean, TN_dirichlet_mean, TNr_dirichlet_mean,\
+            enc_pred_homophil_mean, pred_homophil_mean, label_homophil_mean \
+                = np.mean(results, axis=0) * 100
+            test_acc_std = np.sqrt(np.var(results, axis=0)[0]) * 100
 
-        test_acc_std = np.sqrt(np.var(results, axis=0)[0]) * 100
-        wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
-                         'test_acc_std': test_acc_std,
-                         'T0_dirichlet_mean': T0_dirichlet_mean, 'T0r_dirichlet_mean': T0r_dirichlet_mean,
-                         'TN_dirichlet_mean': TN_dirichlet_mean, 'TNr_dirichlet_mean': TNr_dirichlet_mean,
-                         'enc_pred_homophil': enc_pred_homophil_mean, 'pred_homophil_mean': pred_homophil_mean, 'label_homophil_mean': label_homophil_mean}
+            wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
+                             'test_acc_std': test_acc_std,
+                             'T0_dirichlet_mean': T0_dirichlet_mean, 'T0r_dirichlet_mean': T0r_dirichlet_mean,
+                             'TN_dirichlet_mean': TN_dirichlet_mean, 'TNr_dirichlet_mean': TNr_dirichlet_mean,
+                             'enc_pred_homophil': enc_pred_homophil_mean, 'pred_homophil_mean': pred_homophil_mean, 'label_homophil_mean': label_homophil_mean}
+        else:
+            test_acc_mean, val_acc_mean, train_acc_mean = np.mean(results, axis=0) * 100
+            test_acc_std = np.sqrt(np.var(results, axis=0)[0]) * 100
+            wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
+                             'test_acc_std': test_acc_std}
         wandb.log(wandb_results)
         print(wandb_results)
 
