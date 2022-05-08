@@ -514,12 +514,16 @@ def main(cmd_opt):
                             enc_pred_homophil, pred_homophil, label_homophil])
 
     if opt['num_splits'] > 1:
-        test_acc_mean, val_acc_mean, train_acc_mean = np.mean(results, axis=0) * 100
+        # test_acc_mean, val_acc_mean, train_acc_mean = np.mean(results, axis=0) * 100
+        test_acc_mean, val_acc_mean, train_acc_mean, \
+        T0_dirichlet_mean, TN_dirichlet_mean, enc_pred_homophil_mean, pred_homophil_mean, label_homophil_mean \
+            = np.mean(results, axis=0) * 100
+
         test_acc_std = np.sqrt(np.var(results, axis=0)[0]) * 100
         wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
                          'test_acc_std': test_acc_std,
-                         'T0_dirichlet_mean': T0_dirichlet, 'TN_dirichlet_mean': TN_dirichlet, 'enc_pred_homophil': enc_pred_homophil,
-                         'pred_homophil_mean': pred_homophil, 'label_homophil_mean': label_homophil}
+                         'T0_dirichlet_mean': T0_dirichlet_mean, 'TN_dirichlet_mean': TN_dirichlet_mean, 'enc_pred_homophil': enc_pred_homophil_mean,
+                         'pred_homophil_mean': pred_homophil_mean, 'label_homophil_mean': label_homophil_mean}
         wandb.log(wandb_results)
         print(wandb_results)
 
