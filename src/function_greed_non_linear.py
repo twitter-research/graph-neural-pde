@@ -111,6 +111,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.om_W_eps = Parameter(torch.Tensor([0.85]))
       self.om_W_nu = torch.Tensor([0.1], device=self.device)
     elif self.opt['gnl_omega'] == 'diag':
+      if self.time_dep_w:
+        self.om_W = Parameter(torch.Tensor(self.num_timesteps, in_features))
+      else:
+        self.om_W = Parameter(torch.Tensor(in_features))
       self.om_W = Parameter(torch.Tensor(in_features))
       self.om_W_eps = 0
     elif self.opt['gnl_omega'] == 'zero':
@@ -158,7 +162,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           # else:
           #   self.gnl_W_D = self.opt['gnl_W_diag_init_q'] * d_range / (d - 1) + self.opt['gnl_W_diag_init_r']
         else:
-          self.gnl_W_D = Parameter(torch.ones(in_features), requires_grad=opt['gnl_W_param_free'])
+          if self.time_dep_w:
+            self.gnl_W_D = Parameter(torch.ones(self.num_timesteps, in_features), requires_grad=opt['gnl_W_param_free'])
+          else:
+            self.gnl_W_D = Parameter(torch.ones(in_features), requires_grad=opt['gnl_W_param_free'])
           if self.opt['two_hops']:
             self.gnl_W_D_tilde = Parameter(torch.ones(in_features), requires_grad=opt['gnl_W_param_free'])
       elif self.opt['gnl_W_style'] == 'diag_dom':
@@ -331,7 +338,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_measure'] in ['nodewise_exp']:
       zeros(self.measure)
 
-  def set_scaled_dot_omega(self):
+  def set_scaled_dot_omega(self, T=None):
     if self.opt['gnl_omega'] == 'sum':
       Omega = self.om_W + self.om_W.T
     elif self.opt['gnl_omega'] == 'product':
@@ -341,7 +348,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       Omega = (1 - 2 * self.om_W_eps) * torch.eye(self.in_features, device=self.device) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (
                              1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
     elif self.opt['gnl_omega'] == 'diag':
-      Omega = torch.diag(self.om_W)
+      if self.time_dep_w:
+        Omega = torch.diag(self.om_W[T, :])
+      else:
+        Omega = torch.diag(self.om_W)
     # method for normalising Omega to control the eigen values
     if self.opt['gnl_omega_norm'] == 'tanh':
       self.Omega = torch.tanh(self.Omega)
@@ -359,11 +369,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     wandb.config.update({'gnl_omega_diag_val': self.opt['gnl_omega_params'][2]}, allow_val_change=True)
     wandb.config.update({'gnl_omega_activation': self.opt['gnl_omega_params'][3]}, allow_val_change=True)
 
-  def set_gnlOmega(self):
+  def set_gnlOmega(self, T=None):
     if self.opt['gnl_omega'] == 'diag':
       if self.opt['gnl_omega_diag'] == 'free':
         # print(f"setting om_W {self.om_W.shape}")
-        Omega = torch.diag(self.om_W)
+        if self.time_dep_w:
+          Omega = torch.diag(self.om_W[T, :])
+        else:
+          Omega = torch.diag(self.om_W)
         # print(f"setting Omega{Omega.shape}")
         if self.opt['gnl_omega_activation'] == 'exponential':
           Omega = -torch.exp(Omega)
@@ -383,7 +396,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   # , requires_grad = opt['gnl_W_param_free']
 
-  def set_gnlWS(self):
+  def set_gnlWS(self, T=None):
     "note every W is made symetric before returning here"
     if self.opt['gnl_W_style'] in ['prod']:
       return self.W_W @ self.W_W.t()
@@ -392,7 +405,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_W_style'] in ['sum']:
       return (self.W_W + self.W_W.t()) / 2
     elif self.opt['gnl_W_style'] == 'diag':
-      return torch.diag(self.gnl_W_D)
+      if self.time_dep_w:
+        return torch.diag(self.gnl_W_D[T, :])
+      else:
+        return torch.diag(self.gnl_W_D)
     elif self.opt['gnl_W_style'] == 'diag_dom':
       W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
@@ -561,6 +577,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if self.nfe > self.opt["max_nfe"]:
       raise MaxNFEException
     self.nfe += 1
+
+    if self.time_dep_w:
+      T = int(t / self.opt['step_size'])
+      self.gnl_W = self.set_gnlWS(T)
+      self.Omega = self.set_gnlOmega(T)
+    else:
+      T = 0
 
     if self.opt['beltrami']:
       pass
