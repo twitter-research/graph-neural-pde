@@ -59,4 +59,4 @@ command:
   - --geom_gcn_splits
   - --not_lcc
 entity: graph_neural_diffusion
-project: final2_citeseer_tune
+project: time_dep_citeseer_tune

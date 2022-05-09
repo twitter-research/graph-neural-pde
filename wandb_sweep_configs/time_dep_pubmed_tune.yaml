@@ -58,4 +58,4 @@ command:
   - --wandb_sweep
   - --geom_gcn_splits
 entity: graph_neural_diffusion
-project: final2_pubmed_tune
+project: time_dep_pubmed_tune
