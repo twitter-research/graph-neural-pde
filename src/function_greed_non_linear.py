@@ -77,7 +77,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.degree = degree(self.edge_index[0], self.n_nodes)
 
     self.num_timesteps = 1
-    if self.opt['time_dep_w']:
+    self.time_dep_w = self.opt['time_dep_w']
+    if self.time_dep_w:
       self.num_timesteps = math.ceil(self.opt['time']/self.opt['step_size'])
 
     if self.opt['wandb_track_grad_flow']:
@@ -140,8 +141,16 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'diag':
         if self.opt['gnl_W_diag_init'] == 'linear':
           d = in_features
-          d_range = torch.tensor(list(range(d)), device=self.device)
-          self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
+          if self.time_dep_w:
+            # This stores just the time dependent diagonals
+            d_range = torch.tensor(self.num_timesteps, list(range(d)), device=self.device)
+            self.gnl_W_D = Parameter(
+              self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'],
+              requires_grad=opt['gnl_W_param_free']
+            )
+          else:
+            d_range = torch.tensor(list(range(d)), device=self.device)
+            self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
           if self.opt['two_hops']:
             self.gnl_W_D_tilde = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
           # if opt['gnl_W_param_free2']:
