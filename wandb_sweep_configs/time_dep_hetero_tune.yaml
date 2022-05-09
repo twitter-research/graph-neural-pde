@@ -3,12 +3,12 @@ method: random
 parameters:
   dataset:
     values: [texas]
+  time_dep_w:
+    values: [True]
   block:
     values: [constant]
   function:
     values: [greed_non_linear]
-  time_dep_w:
-    values: [True]
   epoch:
     values: [250]
   num_splits:
@@ -17,38 +17,16 @@ parameters:
     values: [euler]
   gnl_style:
     values: [general_graph]
-  gnl_attention:
-    values: [False]
   gnl_activation:
     values: [identity]
-  gnl_W_style:
-    values: [diag]
-  gnl_W_diag_init:
-    values: [uniform, linear]
-  gnl_W_param_free:
-    values: [True, False]
-  gnl_W_diag_init_q:
-    values: [-2, -1, 0, 0.5]
-  gnl_W_diag_init_r:
-    values: [-2, -1, 0, 0.5]
-  k_diag_pc:
-    values: [0.10]
   gnl_measure:
     values: [ones]
-  gnl_omega_params:
-     values: [[zero, None, None, None], [Omega_eq_W, None, None, None], [diag, free, None, identity], [diag, const, 1, None], [diag, const, -1, None]]
   drift:
     values: [False]
-  test_mu_0:
-    values: [True]
-  add_source:
-    values: [True, False]
-  use_mlp:
-    values: [True, False]
-  step_size:
-    values: [0.25, 0.5, 1.0]
+  greed_params:
+    values: [[diag, uniform, False, diag, free, True, True, True]]
   hidden_dim:
-    values: [16, 32, 64, 128, 256]
+    values: [64, 128, 254, 512]
   time:
     distribution: uniform
     min: 1.0
