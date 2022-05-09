@@ -1,6 +1,7 @@
 """
 Implementation of the functions proposed in Graph embedding energies and diffusion
 """
+import math
 import os
 import shutil
 import torch
@@ -75,6 +76,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.node_homophils = node_homophils
     self.degree = degree(self.edge_index[0], self.n_nodes)
 
+    self.num_timesteps = 1
+    if self.opt['time_dep_w']:
+      self.num_timesteps = math.ceil(self.opt['time']/self.opt['step_size'])
+
     if self.opt['wandb_track_grad_flow']:
       savefolder = f"./plots/{opt['gnl_savefolder']}"
       try:
@@ -139,6 +144,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
           if self.opt['two_hops']:
             self.gnl_W_D_tilde = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
+          # if opt['gnl_W_param_free2']:
+          #   self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'])
+          # else:
+          #   self.gnl_W_D = self.opt['gnl_W_diag_init_q'] * d_range / (d - 1) + self.opt['gnl_W_diag_init_r']
         else:
           self.gnl_W_D = Parameter(torch.ones(in_features), requires_grad=opt['gnl_W_param_free'])
           if self.opt['two_hops']:
@@ -151,6 +160,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.W_W_tilde = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
           self.t_a_tilde = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
           self.r_a_tilde = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
+        # if opt['gnl_W_param_free2']:
+        #   self.t_a = Parameter(torch.Tensor(in_features))
+        #   self.r_a = Parameter(torch.Tensor(in_features))
+        # else:
+        #   self.t_a = None
+        #   self.r_a = None
       elif self.opt['gnl_W_style'] == 'k_diag_pc':
         k_num = int(self.opt['k_diag_pc'] * in_features)
         if k_num % 2 == 0:
@@ -231,13 +246,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           pass #done in init
       elif self.opt['gnl_W_style'] == 'diag_dom':
         if self.opt['gnl_W_diag_init'] == 'uniform':
+          #todo regularise wrt hidden_dim as summing abs(W) off diags
+          #todo initialise spectrum distribution proportional to graph homophily
           glorot(self.W_W)
-          # glorot(self.t_a_tilde) <-doesn't work for vectors
           uniform(self.t_a, a=-1, b=1)
           uniform(self.r_a, a=-1, b=1)
           if self.opt['two_hops']:
             glorot(self.W_W_tilde)
-            # glorot(self.t_a_tilde) <-doesn't work for vectors
             uniform(self.t_a_tilde, a=-1, b=1)
             uniform(self.r_a_tilde, a=-1, b=1)
         elif self.opt['gnl_W_diag_init'] == 'identity':
@@ -256,6 +271,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             glorot(self.W_W_tilde)
             constant(self.t_a_tilde, fill_value=self.opt['gnl_W_diag_init_q'])
             constant(self.r_a_tilde, fill_value=self.opt['gnl_W_diag_init_r'])
+          # if self.opt['gnl_W_param_free2']:
+          #   constant(self.t_a, fill_value=self.opt['gnl_W_diag_init_q'])
+          #   constant(self.r_a, fill_value=self.opt['gnl_W_diag_init_r'])
+          # else:
+          #   self.t_a = self.opt['gnl_W_diag_init_q']
+          #   self.r_a = self.opt['gnl_W_diag_init_r']
       elif self.opt['gnl_W_style'] == 'k_block':
         glorot(self.gnl_W_blocks)
         uniform(self.gnl_W_D, a=-1, b=1)
@@ -367,7 +388,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
       W = (W+W.T) / 2
-      W_sum = self.t_a * torch.abs(W).sum(dim=1) / self.in_features + self.r_a
+      # W_sum = self.t_a * torch.abs(W).sum(dim=1) + self.r_a #todo regularised wrt hidden_dim
+      W_sum = self.t_a * torch.abs(W).sum(dim=1) / self.in_features + self.r_a #todo regularised wrt hidden_dim
       Ws = W + torch.diag(W_sum)
       return Ws
     elif self.opt['gnl_W_style'] == 'k_block':
