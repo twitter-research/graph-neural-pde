@@ -116,7 +116,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.om_W = Parameter(torch.Tensor(self.num_timesteps, in_features))
       else:
         self.om_W = Parameter(torch.Tensor(in_features))
-      self.om_W = Parameter(torch.Tensor(in_features))
       self.om_W_eps = 0
     elif self.opt['gnl_omega'] == 'zero':
       self.om_W = torch.zeros((in_features,in_features), device=device)
@@ -149,9 +148,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           if self.time_dep_w:
             # This stores just the time dependent diagonals
             d_range = torch.tensor([list(range(d)) for _ in range(self.num_timesteps)], device=self.device)
-            print(d_range)
-            print(d_range[0])
-            print(d_range[1])
             self.gnl_W_D = Parameter(
               self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'],
               requires_grad=opt['gnl_W_param_free']
@@ -378,7 +374,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       if self.opt['gnl_omega_diag'] == 'free':
         # print(f"setting om_W {self.om_W.shape}")
         if self.time_dep_w:
-          Omega = torch.diag(self.om_W[T, :])
+          if T is None:
+            T = 0
+          Omega = torch.diag(self.om_W[T])
         else:
           Omega = torch.diag(self.om_W)
         # print(f"setting Omega{Omega.shape}")
@@ -410,12 +408,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       return (self.W_W + self.W_W.t()) / 2
     elif self.opt['gnl_W_style'] == 'diag':
       if self.time_dep_w:
-        print(self.gnl_W_D.shape)
-        print(self.gnl_W_D)
-        print(self.gnl_W_D[T])
-        print(T)
-        print(self.num_timesteps)
-        print(self.opt['step_size'])
+        if T is None:
+          T = 0
         return torch.diag(self.gnl_W_D[T])
       else:
         return torch.diag(self.gnl_W_D)
