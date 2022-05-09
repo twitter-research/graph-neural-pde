@@ -80,7 +80,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.time_dep_w = self.opt['time_dep_w']
     if self.time_dep_w:
       self.num_timesteps = math.ceil(self.opt['time']/self.opt['step_size'])
-    print(f"NUM TIME STEPS: {self.num_timesteps}")
 
     if self.opt['wandb_track_grad_flow']:
       savefolder = f"./plots/{opt['gnl_savefolder']}"

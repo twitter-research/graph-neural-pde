@@ -7,6 +7,8 @@ parameters:
     values: [constant]
   function:
     values: [greed_non_linear]
+  time_dep_w:
+    values: [True]
   epoch:
     values: [250]
   num_splits:
