@@ -80,6 +80,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.time_dep_w = self.opt['time_dep_w']
     if self.time_dep_w:
       self.num_timesteps = math.ceil(self.opt['time']/self.opt['step_size'])
+    print(f"NUM TIME STEPS: {self.num_timesteps}")
 
     if self.opt['wandb_track_grad_flow']:
       savefolder = f"./plots/{opt['gnl_savefolder']}"
@@ -147,7 +148,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           d = in_features
           if self.time_dep_w:
             # This stores just the time dependent diagonals
-            d_range = torch.tensor((self.num_timesteps, d), device=self.device)
+            d_range = torch.tensor([list(range(d)) for _ in range(self.num_timesteps)], device=self.device)
+            print(d_range)
+            print(d_range[0])
+            print(d_range[1])
             self.gnl_W_D = Parameter(
               self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'],
               requires_grad=opt['gnl_W_param_free']
@@ -406,7 +410,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       return (self.W_W + self.W_W.t()) / 2
     elif self.opt['gnl_W_style'] == 'diag':
       if self.time_dep_w:
-        return torch.diag(self.gnl_W_D[T, :])
+        print(self.gnl_W_D.shape)
+        print(self.gnl_W_D)
+        print(self.gnl_W_D[T])
+        print(T)
+        print(self.num_timesteps)
+        print(self.opt['step_size'])
+        return torch.diag(self.gnl_W_D[T])
       else:
         return torch.diag(self.gnl_W_D)
     elif self.opt['gnl_W_style'] == 'diag_dom':
