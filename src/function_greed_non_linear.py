@@ -171,6 +171,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.W_W = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
         self.t_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
         self.r_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
+        if self.time_dep_w:
+          self.W_W = Parameter(torch.Tensor(self.num_timesteps, in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
+          self.t_a = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=opt['gnl_W_param_free'])
+          self.r_a = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=opt['gnl_W_param_free'])
         if self.opt['two_hops']:
           self.W_W_tilde = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
           self.t_a_tilde = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
@@ -348,7 +352,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
                              1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
     elif self.opt['gnl_omega'] == 'diag':
       if self.time_dep_w:
-        Omega = torch.diag(self.om_W[T, :])
+        Omega = torch.diag(self.om_W[T])
       else:
         Omega = torch.diag(self.om_W)
     # method for normalising Omega to control the eigen values
@@ -413,7 +417,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       else:
         return torch.diag(self.gnl_W_D)
     elif self.opt['gnl_W_style'] == 'diag_dom':
-      W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
+      if self.time_dep_w:
+        W_temp = torch.cat([self.W_W[T], torch.zeros((self.in_features, 1), device=self.device)], dim=1)
+      else:  
+        W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
       W = (W+W.T) / 2
       # W_sum = self.t_a * torch.abs(W).sum(dim=1) + self.r_a #todo regularised wrt hidden_dim
