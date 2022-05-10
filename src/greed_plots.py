@@ -52,16 +52,41 @@ def syn_cora_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
     base_df = df[(df.function != "greed_non_linear")]
     base_piv = pd.pivot_table(base_df, values="test_mean", index="target_homoph", columns="function", aggfunc=np.max)
     piv = pd.merge(gnl_piv, base_piv, on=['target_homoph'])
+
     if ax is None:
         fig, ax = plt.subplots()
-        ax_idx = 0
-    sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax[ax_idx])
-    ax[ax_idx].set(xlabel='target_homoph', ylabel='mean_test_acc')
+        sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax)
+        ax.set(xlabel='target_homoph', ylabel='mean_test_acc')
+    else:
+        sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax[ax_idx])
+        ax[ax_idx].set(xlabel='target_homoph', ylabel='mean_test_acc')
+
     if save:
         plt.savefig('../ablations/syn_cora_plot.pdf')
     if plot:
         fig.show()
     return fig, ax
+
+def syn_cora_gcn_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
+    df = pd.read_csv(path)
+    piv = pd.pivot_table(df, values="test_mean", index="target_homoph", columns="gcn_params_idx", aggfunc=np.max)
+    # base_df = df[(df.function != "greed_non_linear")]
+    # base_piv = pd.pivot_table(base_df, values="test_mean", index="target_homoph", columns="function", aggfunc=np.max)
+    # piv = pd.merge(gnl_piv, base_piv, on=['target_homoph'])
+    if ax is None:
+        fig, ax = plt.subplots()
+        sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax)
+        ax.set(xlabel='target_homoph', ylabel='mean_test_acc')
+    else:
+        sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax[ax_idx])
+        ax[ax_idx].set(xlabel='target_homoph', ylabel='mean_test_acc')
+
+    if save:
+        plt.savefig('../ablations/syn_cora_gcn_plot.pdf')
+    if plot:
+        fig.show()
+    return fig, ax
+
 
 def get_max_df(path):
     df = pd.read_csv(path)
@@ -203,8 +228,9 @@ def plot_1(path, plot=True, save=True):
 
 if __name__ == "__main__":
     path = "../ablations/ablation_syn_cora.csv"
-    # _,_ = syn_cora_plot(path)
+    _,_ = syn_cora_plot(path, plot=True, save=True)
     # syn_cora_best_times(path)
     # syn_cora_energy(path)
     # _,_ = syn_cora_homoph(path)
-    plot_1(path)
+    # plot_1(path)
+    # _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
