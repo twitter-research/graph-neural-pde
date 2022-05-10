@@ -1,6 +1,5 @@
 import yaml
 import argparse
-
 from greed_params import default_params, not_sweep_args, greed_run_params
 from run_GNN import main
 
@@ -141,6 +140,7 @@ def grand_sym_runs(cmd_opt, project_name, group_name, num_runs):
 
                     for i in range(num_runs):
                         main(opt)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
