@@ -50,6 +50,14 @@ def greed_run_params(opt):
     opt['epoch'] = 129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 10
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
+    opt['gnl_W_style'] = 'diag_dom'
+    opt['gnl_W_diag_init'] = 'uniform'
+    opt['gnl_W_param_free'] = True
+    opt['gnl_omega'] = 'diag'
+    opt['gnl_omega_diag'] = 'free'
+    opt['use_mlp'] = False
+    opt['test_mu_0'] = True
+    opt['add_source'] = True
 
     #at some point test these  - not  so won't overwrite
     # not in best aprams

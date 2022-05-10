@@ -24,7 +24,7 @@ parameters:
   drift:
     values: [False]
   greed_params:
-    values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag, uniform, False, diag, free, True, True, True]]
+    values: [[diag_dom, uniform, True, diag, free, False, True, True]]
   hidden_dim:
     values: [64, 128, 254, 512]
   time:
