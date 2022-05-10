@@ -50,6 +50,14 @@ def greed_run_params(opt):
     opt['epoch'] = 129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 10
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
+    opt['gnl_W_style'] = 'diag_dom'
+    opt['gnl_W_diag_init'] = 'uniform'
+    opt['gnl_W_param_free'] = True
+    opt['gnl_omega'] = 'diag'
+    opt['gnl_omega_diag'] = 'free'
+    opt['use_mlp'] = False
+    opt['test_mu_0'] = True
+    opt['add_source'] = True
 
     #at some point test these  - not  so won't overwrite
     # not in best aprams
@@ -135,7 +143,8 @@ def greed_ablation_params(opt):
     opt['use_best_params'] = False #True
 
     #greed_non_linear params
-    opt['two_hops'] = True # This turns on the functionality to get equation 28 working
+    opt['two_hops'] = False # This turns on the functionality to get equation 28 working
+    opt['time_dep_w'] = True
     opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
     opt['gnl_savefolder'] = 'chameleon_testing'#'chameleon_general_drift'#'chameleon_testing'
@@ -290,7 +299,7 @@ def tf_ablation_args(opt):
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
                 'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
-                'two_hops',
+                'two_hops', 'time_dep_w'
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout']
     arg_intersect = list(set(opt.keys()) & set(tf_args))
     for arg in arg_intersect:
@@ -583,6 +592,7 @@ def default_params():
     parser.add_argument('--gnl_W_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
     parser.add_argument('--gnl_W_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
     parser.add_argument('--two_hops', type=str, default='False', help='flag for 2-hop energy')
+    parser.add_argument('--time_dep_w', type=str, default='False', help='Learn a time dependent potentials')
     parser.add_argument('--target_homoph', type=str, default='0.80', help='target_homoph for syn_cora [0.00,0.10,..,1.00]')
     parser.add_argument('--greed_params', nargs='+', default=None, help='list of args for focus models')
 
