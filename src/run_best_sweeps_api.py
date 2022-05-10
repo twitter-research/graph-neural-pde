@@ -29,19 +29,22 @@ def get_top_n(entity, sweeps_df, n=5):
                 run_configs.append(runs[i].config)
     return run_configs
 
-def wandb_api_patience():
-    '''rerun with patience'''
-    pass
 
-def wandb_api_hidden_dim():
-    '''rerun with smaller hidden dim'''
-    pass
+def rerun_runs(run_configs, rerun_dict={}):
+    '''rerun with new params in rerun_dict'''
+    df_params = default_params()
+    for run_config in run_configs:
+        opt = {**df_params, **run_config}
+        for key, vals in rerun_dict.items():
+            for val in vals:
+                opt[key] = val
+                run_GNN_main(opt)
+    #todo specify a project name where the new runs need to go
+    #todo find a way to parallelize this over gpus, maybe via generating sweep
 
 if __name__ == "__main__":
     datasets = ['cora', 'citeseer']#, 'pubmed', 'chameleon', 'squirrel', 'actor']
     df_filtered = load_sweep_ids(series="final2", datasets=datasets)
     run_configs = get_top_n(entity="graph_neural_diffusion", sweeps_df=df_filtered, n=5)
-    df_params = default_params()
-    opt = {**df_params, **run_configs[0]}
-    run_GNN_main(opt)
-    print("hey")
+    rerun_dict = {'epoch': [2,3]}
+    rerun_runs(run_configs, rerun_dict=rerun_dict)
