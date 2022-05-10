@@ -6,3 +6,4 @@ src/checkpoint
 images/
 ray_results/
 models/
+./splits/.DS_Store
