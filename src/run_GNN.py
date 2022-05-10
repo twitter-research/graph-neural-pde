@@ -475,7 +475,8 @@ def main(cmd_opt):
         print_model_params(model)
         optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
         best_time = best_epoch = train_acc = val_acc = test_acc = 0
-
+        if opt['patience'] is not None:
+            patience_count = 0
         for epoch in range(1, opt['epoch']):
             start_time = time.time()
             if opt['function'] in ['greed', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero',
@@ -497,6 +498,9 @@ def main(cmd_opt):
                 val_acc = tmp_val_acc
                 test_acc = tmp_test_acc
                 best_time = opt['time']
+                patience_count = 0
+            else:
+                patience_count += 1
             if not opt['no_early'] and model.odeblock.test_integrator.solver.best_val > val_acc:
                 best_epoch = epoch
                 val_acc = model.odeblock.test_integrator.solver.best_val
@@ -512,7 +516,10 @@ def main(cmd_opt):
             if np.isnan(loss):
                 wandb_run.finish()
                 break
-
+            if opt['patience'] is not None:
+                if patience_count >= opt['patience']:
+                    wandb_run.finish()
+                    break
         print(
             f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
         if opt['function'] == 'greed_non_linear':
@@ -582,6 +589,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
     parser.add_argument('--decay', type=float, default=5e-4, help='Weight decay for optimization')
     parser.add_argument('--epoch', type=int, default=100, help='Number of training epochs per iteration.')
+    parser.add_argument('--patience', type=int, default=None, help='set if training should use patience on val acc')
     parser.add_argument('--alpha', type=float, default=1.0, help='Factor in front matrix A.')
     parser.add_argument('--alpha_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) alpha')
     parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true',

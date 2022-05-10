@@ -185,10 +185,10 @@ def greed_ablation_params(opt):
 
     # opt['planetoid_split'] = True
     opt['geom_gcn_splits'] = False#True #False#True
-    opt['epoch'] = 3#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
-    opt['num_splits'] = 3#10#4#1
-
-    opt['target_homoph'] = '0.70'
+    opt['epoch'] = 20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
+    opt['num_splits'] = 1#10#4#1
+    # opt['patience'] = 3
+    # opt['target_homoph'] = '0.70'
 
     #definitions of lie trotter
     #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
@@ -331,6 +331,7 @@ def default_params():
     parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
     parser.add_argument('--decay', type=float, default=5e-4, help='Weight decay for optimization')
     parser.add_argument('--epoch', type=int, default=100, help='Number of training epochs per iteration.')
+    parser.add_argument('--patience', type=int, default=None, help='set if training should use patience on val acc')
     parser.add_argument('--alpha', type=float, default=1.0, help='Factor in front matrix A.')
     parser.add_argument('--alpha_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) alpha')
     parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true',
