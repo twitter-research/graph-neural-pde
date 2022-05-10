@@ -172,13 +172,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.t_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
         self.r_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
         if self.time_dep_w:
-          self.W_W = Parameter(torch.Tensor(self.num_timesteps, in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
           self.t_a = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=opt['gnl_W_param_free'])
           self.r_a = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=opt['gnl_W_param_free'])
         if self.opt['two_hops']:
           self.W_W_tilde = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
-          self.t_a_tilde = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
-          self.r_a_tilde = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
         # if opt['gnl_W_param_free2']:
         #   self.t_a = Parameter(torch.Tensor(in_features))
         #   self.r_a = Parameter(torch.Tensor(in_features))
@@ -402,6 +399,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
   # , requires_grad = opt['gnl_W_param_free']
 
   def set_gnlWS(self, T=None):
+    if T is None:
+      T = 0
     "note every W is made symetric before returning here"
     if self.opt['gnl_W_style'] in ['prod']:
       return self.W_W @ self.W_W.t()
@@ -417,14 +416,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       else:
         return torch.diag(self.gnl_W_D)
     elif self.opt['gnl_W_style'] == 'diag_dom':
-      if self.time_dep_w:
-        W_temp = torch.cat([self.W_W[T], torch.zeros((self.in_features, 1), device=self.device)], dim=1)
-      else:  
-        W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
+      W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
       W = (W+W.T) / 2
       # W_sum = self.t_a * torch.abs(W).sum(dim=1) + self.r_a #todo regularised wrt hidden_dim
-      W_sum = self.t_a * torch.abs(W).sum(dim=1) / self.in_features + self.r_a #todo regularised wrt hidden_dim
+      if self.time_dep_w:
+        W_sum = self.t_a[T] * torch.abs(W).sum(dim=1) / self.in_features + self.r_a[T] #todo regularised wrt hidden_dim
+      else:
+         W_sum = self.t_a * torch.abs(W).sum(dim=1) / self.in_features + self.r_a #todo regularised wrt hidden_dim
       Ws = W + torch.diag(W_sum)
       return Ws
     elif self.opt['gnl_W_style'] == 'k_block':
