@@ -1,0 +1,7 @@
+series,dataset,project,sweeps
+final2,cora,final2_cora_tune,0mfmi1ar
+final2,citeseer,final2_citeseer_tune,dsz3v0cm
+final2,pubmed,final2_pubmed_tune,2rqq7kje
+final2,chameleon,final2_chameleon_tune,"[zegxgvex, tgz9f8ih]"
+final2,squirrel,final2_squirrel_tune,17vh8ua9
+final2,actor,final2_actor_tune,kwoctpql
