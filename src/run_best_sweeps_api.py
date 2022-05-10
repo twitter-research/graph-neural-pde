@@ -45,9 +45,9 @@ def rerun_runs(run_configs, project, rerun_dict={}):
     #todo find a way to parallelize this over gpus, maybe via generating sweep
 
 if __name__ == "__main__":
-    datasets = ['cora', 'citeseer']#, 'pubmed', 'chameleon', 'squirrel', 'actor']
+    datasets = ['cora', 'citeseer', 'pubmed', 'chameleon', 'squirrel', 'actor']
     df_filtered = load_sweep_ids(series="final2", datasets=datasets)
-    n = 3
+    n = 5
     run_configs = get_top_n(entity="graph_neural_diffusion", sweeps_df=df_filtered, n=n)
-    rerun_dict = {'epoch': [2,3]}
+    rerun_dict = {'hidden_dim': [16, 32, 64, 128]}
     rerun_runs(run_configs, project="testing_reruns", rerun_dict=rerun_dict)
