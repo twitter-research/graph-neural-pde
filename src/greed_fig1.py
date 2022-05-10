@@ -2,6 +2,12 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
+import torch
+import networkx as nx
+from torch_geometric.utils.convert import to_networkx
+from torch_geometric.data import Data
+from torch_geometric.nn import knn_graph
+
 
 def E(q, r0, x, y):
     """Return the electric field vector E=(Ex,Ey) due to charge q at r0."""
@@ -54,7 +60,31 @@ def plot_electric():
     plt.show()
 
 def plot_greed():
-    pass
+    edge_index = torch.tensor([[0, 1, 1, 2],
+                               [1, 0, 2, 1]], dtype=torch.long)
+    x = torch.tensor([[-1], [0], [1]], dtype=torch.float)
+
+    pos = torch.tensor([[-1, -1], [0, 1], [1, 0]])
+    pos_i_dict = {i: pos_i[i, :].tolist() for i in range(pos_0.shape[0])}
+
+    graph = Data(x=x, edge_index=edge_index, pos=pos)
+    # Data(edge_index=[2, 4], x=[3, 1])
+
+    # draw initial graph
+    NXgraph = to_networkx(graph)
+    fig, ax = plt.subplots()
+    nx.draw(NXgraph, pos=pos_i_dict, ax=ax, node_size=params['node_size'],
+          node_color=x_i, cmap=plt.get_cmap('Spectral'), arrows=False, width=0.25) #=params['edge_with'] )
+
+    limits = plt.axis('on')
+    ax.patch.set_edgecolor('black')
+    ax.patch.set_linewidth('1')
+    ax.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    # plt.title(f"Figure 1", fontsize=16)
+    fig.show()
+
 if __name__ == "__main__":
     plot_electric()
     plot_greed()
