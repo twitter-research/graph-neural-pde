@@ -26,7 +26,9 @@ parameters:
   hidden_dim:
     values: [32, 64, 96]
   time:
-    values: [2, 2.5, 3, 4]
+    distribution: uniform
+    min: 2
+    max: 4
   step_size:
     values: [0.25, 0.5, 1.0]
   input_dropout:

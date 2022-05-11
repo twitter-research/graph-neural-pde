@@ -45,7 +45,11 @@ def rerun_runs(run_configs, project, rerun_dict={}):
     #todo find a way to parallelize this over gpus, maybe via generating sweep
 
 def rerun_sweep(run_configs, rerun_dict, entity, project):
-    '''rerun using sweep over new params in rerun_dict'''
+    '''
+    rerun using sweep over new params in rerun_dict
+    https://docs.wandb.ai/ref/python/sweep
+    https://docs.wandb.ai/ref/python/agent
+    '''
     df_params = default_params()
 
     for run_config in run_configs:
