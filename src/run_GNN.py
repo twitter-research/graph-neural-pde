@@ -405,10 +405,8 @@ def main(cmd_opt):
                                name=opt['wandb_run_name'], reinit=True, config=opt, allow_val_change=True)
     else:
         wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
-                               reinit=True, config=opt,
-                               allow_val_change=True)  # required when update hidden_dim in beltrami
+                               reinit=True, config=opt, allow_val_change=True)  # required when update config
 
-    # wandb.config.update(opt, allow_val_change=True) #required when update hidden_dim in beltrami
     opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
     if opt['gcn_params']: #temp function for GCN ablation
         unpack_gcn_params(opt)
