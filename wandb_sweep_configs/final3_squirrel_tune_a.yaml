@@ -24,9 +24,11 @@ parameters:
   greed_params:
     values: [[diag_dom, uniform, True, diag, free, False, True, True]]
   hidden_dim:
-    values: [64, 128, 254, 512]
+    values: [32, 64, 96]
   time:
-    values: [2, 2.5, 3, 4]
+    distribution: uniform
+    min: 2
+    max: 4
   step_size:
     values: [0.25, 0.5, 1.0]
   input_dropout:
@@ -56,4 +58,4 @@ command:
   - --wandb_sweep
   - --geom_gcn_splits
 entity: graph_neural_diffusion
-project: final2_squirrel_tune
+project: final3_squirrel_tune
