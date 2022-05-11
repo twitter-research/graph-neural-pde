@@ -74,6 +74,6 @@ if __name__ == "__main__":
     entity = "graph_neural_diffusion"
     project = "final2_reruns"
     run_configs = get_top_n(entity="graph_neural_diffusion", sweeps_df=df_filtered, n=n)
-    rerun_dict = {'hidden_dim': [16, 32, 64, 128, 256]}
+    rerun_dict = {'hidden_dim': [32, 64, 128, 256, 512]}
     # rerun_runs(run_configs, project=project, rerun_dict=rerun_dict)
     rerun_sweep(run_configs, rerun_dict=rerun_dict, entity=entity, project=project)
