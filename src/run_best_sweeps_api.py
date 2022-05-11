@@ -47,7 +47,7 @@ def rerun_runs(run_configs, project, rerun_dict={}):
 if __name__ == "__main__":
     datasets = ['chameleon'] #['cora', 'citeseer', 'pubmed', 'squirrel', 'actor'] #, 'chameleon'
     df_filtered = load_sweep_ids(series="final2", datasets=datasets)
-    n = 5
+    n = 10
     run_configs = get_top_n(entity="graph_neural_diffusion", sweeps_df=df_filtered, n=n)
     rerun_dict = {'hidden_dim': [16, 32, 64, 128]}
     rerun_runs(run_configs, project="testing_reruns", rerun_dict=rerun_dict)
