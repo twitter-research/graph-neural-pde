@@ -175,8 +175,21 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           # else:
           #   self.gnl_W_D = self.opt['gnl_W_diag_init_q'] * d_range / (d - 1) + self.opt['gnl_W_diag_init_r']
         else:
-          if self.time_dep_w:
+          if self.time_dep_w or self.time_dep_struct_w:
             self.gnl_W_D = Parameter(torch.ones(self.num_timesteps, in_features), requires_grad=opt['gnl_W_param_free'])
+            if self.time_dep_struct_w:
+              self.brt = Parameter(
+                -2. * torch.rand((self.num_timesteps, in_features), device=self.device) + 1,
+                requires_grad=True
+              )
+              self.crt = Parameter(
+                -2. * torch.rand((self.num_timesteps, in_features), device=self.device) + 1,
+                requires_grad=True
+              )
+              self.drt = Parameter(
+                -2. * torch.rand((self.num_timesteps, in_features), device=self.device) + 1,
+                requires_grad=True
+              )
           else:
             self.gnl_W_D = Parameter(torch.ones(in_features), requires_grad=opt['gnl_W_param_free'])
           if self.opt['two_hops']:
@@ -435,11 +448,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         if T is None:
           T = 0
         W = self.gnl_W_D[T]
-        brt = self.brt[T]
-        crt = self.crt[T]
-        drt = self.drt[T]
-        alpha = torch.diag(torch.exp(brt * T + crt))
-        beta = torch.diag(torch.exp(-brt * T - crt) + drt)
+        alpha = torch.diag(torch.exp(self.brt[T] * T + self.brt[T]))
+        beta = torch.diag(torch.exp(-self.brt[T] * T - self.crt[T]) + self.drt[T])
         Wplus = torch.diag(F.relu(W))
         Wneg = torch.diag(-1. * F.relu(-W))
         return alpha @ Wplus - beta @ Wneg
