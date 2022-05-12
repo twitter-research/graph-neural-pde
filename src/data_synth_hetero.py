@@ -130,6 +130,7 @@ def syn_cora_analysis(path="../data"):
   pd.set_option('display.max_columns', None)
   pd.set_option('display.width', None)
   pd.set_option('display.max_colwidth', -1)
+  df.to_csv("../ablations/syn_cora.csv")
   print(df)
 
 if __name__ == "__main__":

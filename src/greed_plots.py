@@ -47,20 +47,26 @@ def jitter():
 
 def syn_cora_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
     df = pd.read_csv(path)
+    df = df.replace(to_replace={"diag_dom":"diag-dom", "neg_prod":"neg-prod"})
     gnl_df = df[(df.function == "greed_non_linear")]
     gnl_piv = pd.pivot_table(gnl_df, values="test_mean", index="target_homoph", columns="gnl_W_style", aggfunc=np.max)
     base_df = df[(df.function != "greed_non_linear")]
     base_piv = pd.pivot_table(base_df, values="test_mean", index="target_homoph", columns="function", aggfunc=np.max)
     piv = pd.merge(gnl_piv, base_piv, on=['target_homoph'])
 
+    fs = 16
     if ax is None:
         fig, ax = plt.subplots()
         sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax)
-        ax.set(xlabel='target_homoph', ylabel='mean_test_acc')
+        # ax.set_xlabel('Target homophily', fontsize=fs)
+        ax.set_ylabel('Test acc', fontsize=fs)
+        ax.get_xaxis().set_visible(False)
+        ax.legend(prop=dict(size=fs), loc='upper left')
     else:
         sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax[ax_idx])
-        ax[ax_idx].set(xlabel='target_homoph', ylabel='mean_test_acc')
-
+        ax[ax_idx].set_xlabel('Target homophily', fontsize=fs)
+        ax[ax_idx].set_ylabel('Test acc', fontsize=fs)
+        ax[ax_idx].legend(prop=dict(size=fs), loc='upper left')
     if save:
         plt.savefig('../ablations/syn_cora_plot.pdf')
     if plot:
@@ -69,17 +75,25 @@ def syn_cora_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
 
 def syn_cora_gcn_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
     df = pd.read_csv(path)
+    replace_dict = {0:"0:gcn",1:"1:gcn_enc/dec",2:"2:gcn_residual",3:"3:gcn_share_W",4:"4:gcn_symm_W",5:"5:no_nonLin"}
+    df.loc[:,'gcn_params_idx'].replace(to_replace=replace_dict, inplace=True)
+
     piv = pd.pivot_table(df, values="test_mean", index="target_homoph", columns="gcn_params_idx", aggfunc=np.max)
     # base_df = df[(df.function != "greed_non_linear")]
     # base_piv = pd.pivot_table(base_df, values="test_mean", index="target_homoph", columns="function", aggfunc=np.max)
     # piv = pd.merge(gnl_piv, base_piv, on=['target_homoph'])
+    sns.set_theme()
     if ax is None:
         fig, ax = plt.subplots()
         sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax)
-        ax.set(xlabel='target_homoph', ylabel='mean_test_acc')
+        ax.set_xlabel('Target homophily', fontsize=14)
+        ax.set_ylabel('Test acc', fontsize=14)
+        ax.legend(prop=dict(size=12))
     else:
         sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax[ax_idx])
-        ax[ax_idx].set(xlabel='target_homoph', ylabel='mean_test_acc')
+        ax[ax_idx].set_xlabel('Target homophily', fontsize=14)
+        ax[ax_idx].set_ylabel('Test acc', fontsize=14)
+        ax[ax_idx].legend(prop=dict(size=12))
 
     if save:
         plt.savefig('../ablations/syn_cora_gcn_plot.pdf')
@@ -193,23 +207,37 @@ def syn_cora_energy(path, fig=None, ax=None, ax_idx=None):
 
 def syn_cora_homoph(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
     max_df = get_max_df(path)
-    new_cols = ["target_homoph", "gnl_W_style", "enc_pred_homophil"]#, "label_homophil_mean", "pred_homophil_mean"]
+    max_df = max_df.replace(to_replace={"diag_dom":"diag-dom", "neg_prod":"neg-prod"})
+    max_df = max_df.rename(columns={"gnl_W_style": "W-style"})    # maxdf ####need tp rename column
+    new_cols = ["target_homoph", "W-style", "enc_pred_homophil"]#, "label_homophil_mean", "pred_homophil_mean"]
     df1 = max_df[new_cols]
     df1 = df1.rename(columns={"enc_pred_homophil": "homophily"})
-    df1['homoph_style'] = 'encoder'
-    new_cols = ["target_homoph", "gnl_W_style", "pred_homophil_mean"]
+    df1['module-block'] = 'encoder'
+    new_cols = ["target_homoph", "W-style", "pred_homophil_mean"]
     df2 = max_df[new_cols]
     df2 = df2.rename(columns={"pred_homophil_mean": "homophily"})
-    df2['homoph_style'] = 'prediction'
+    df2['module-block'] = 'prediction'
+    df_cat = pd.concat([df1, df2])
+
+    fs = 16
+    ps = 140
     if ax is None:
         fig, ax = plt.subplots()
-        ax_idx = 0
+        sns.scatterplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", s=ps, data=df_cat,
+                        ax=ax)
+        ax.set_xlabel('Target homophily', fontsize=fs)
+        ax.set_ylabel('Homophily', fontsize=fs)
+        ax.legend(prop=dict(size=fs-4), loc='upper left')
+    else:
+        sns.scatterplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", s=ps, data=df_cat,
+                        ax=ax[ax_idx])
+        ax[ax_idx].set_xlabel('Target homophily', fontsize=fs)
+        ax[ax_idx].set_ylabel('Homophily', fontsize=fs)
+        ax[ax_idx].legend(prop=dict(size=fs-4), loc='upper left')
 
     # ax[ax_idx].set_title(f"T0->TN homophily", fontdict={'fontsize': 18})
-    df_cat = pd.concat([df1, df2])
-    sns.scatterplot(x="target_homoph", y="homophily", hue="gnl_W_style", style="homoph_style", s=80, data=df_cat, ax=ax[ax_idx])
-    # sns.stripplot(x="target_homoph", y="homophily", hue="gnl_W_style", marker="o", data=df1, jitter=0.15, ax=ax)
-    # sns.stripplot(x="target_homoph", y="homophily", hue="gnl_W_style", marker="X", data=df2, jitter=0.15, ax=ax)
+    # sns.stripplot(x="target_homoph", y="homophily", hue="W-style", marker="o", data=df1, jitter=0.15, ax=ax)
+    # sns.stripplot(x="target_homoph", y="homophily", hue="W-style", marker="X", data=df2, jitter=0.15, ax=ax)
     if save:
         plt.savefig('../ablations/syn_cora_homoph.pdf')
     if plot:
@@ -217,20 +245,25 @@ def syn_cora_homoph(path, fig=None, ax=None, ax_idx=None, plot=False, save=False
     return fig, ax
 
 def plot_1(path, plot=True, save=True):
-    fig, ax = plt.subplots(2,1,figsize=(10, 12))
+    sns.set_theme()
+    fig, ax = plt.subplots(2,1,figsize=(10, 10), sharex=True)
     fig, ax = syn_cora_plot(path, fig, ax, ax_idx=0, plot=False, save=False)
     fig, ax = syn_cora_homoph(path, fig, ax, ax_idx=1, plot=False, save=False)
+
+    # ax[0].get_shared_x_axes().join(ax[0], ax[1])
+    # ax[0].set_xticklabels([])
+    plt.subplots_adjust(wspace=0, hspace=0.03)
+    fig.tight_layout()
     if save:
-        plt.savefig('../ablations/plot_1.pdf')
+        plt.savefig('../ablations/plot_1.pdf', bbox_inches='tight')
     if plot:
         fig.show()
-    print("hey")
 
 if __name__ == "__main__":
     path = "../ablations/ablation_syn_cora.csv"
-    _,_ = syn_cora_plot(path, plot=True, save=True)
+    # _,_ = syn_cora_plot(path, plot=True, save=True)
     # syn_cora_best_times(path)
     # syn_cora_energy(path)
     # _,_ = syn_cora_homoph(path)
-    # plot_1(path)
+    plot_1(path)
     # _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
