@@ -285,6 +285,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           uniform(self.gnl_W_D, a=-1, b=1)
           if self.opt['two_hops']:
             uniform(self.gnl_W_D_tilde, a=-1, b=1)
+          if self.time_dep_struct_w:
+            uniform(self.brt, a=-1, b=1)
+            uniform(self.crt, a=-1, b=1)
+            uniform(self.drt, a=-1, b=1)
         elif self.opt['gnl_W_diag_init'] == 'identity':
           ones(self.gnl_W_D)
           if self.opt['two_hops']:
@@ -292,6 +296,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         elif self.opt['gnl_W_diag_init'] == 'linear':
           pass #done in init
       elif self.opt['gnl_W_style'] == 'diag_dom':
+        if self.time_dep_struct_w:
+          uniform(self.at, a=-1, b=1)
+          uniform(self.bt, a=-1, b=1)
+          uniform(self.gt, a=-1, b=1)
         if self.opt['gnl_W_diag_init'] == 'uniform':
           #todo regularise wrt hidden_dim as summing abs(W) off diags
           #todo initialise spectrum distribution proportional to graph homophily
