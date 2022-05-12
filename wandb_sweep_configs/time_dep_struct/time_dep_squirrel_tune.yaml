@@ -1,5 +1,8 @@
 program: run_GNN.py
-method: random
+method: bayes
+metric:
+  name: val_mean
+  goal: maximize
 parameters:
   dataset:
     values: [squirrel]

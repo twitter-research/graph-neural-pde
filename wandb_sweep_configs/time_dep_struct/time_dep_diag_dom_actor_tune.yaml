@@ -1,4 +1,5 @@
 program: run_GNN.py
+method: bayes
 metric:
   name: val_mean
   goal: maximize
