@@ -516,7 +516,7 @@ def main(cmd_opt):
                 break
             if opt['patience'] is not None:
                 if patience_count >= opt['patience']:
-                    wandb_run.finish()
+                    # wandb_run.finish()
                     break
         print(
             f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")

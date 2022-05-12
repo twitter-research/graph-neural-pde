@@ -217,19 +217,26 @@ def syn_cora_homoph(path, fig=None, ax=None, ax_idx=None, plot=False, save=False
     df2 = max_df[new_cols]
     df2 = df2.rename(columns={"pred_homophil_mean": "homophily"})
     df2['module-block'] = 'prediction'
-    df_cat = pd.concat([df1, df2])
+    df = pd.concat([df1, df2])
+    #manually jitter
+    mask = (df["W-style"] == "sum")
+    # valid = df[mask]
+    df.loc[mask, 'target_homoph'] = df.loc[mask, 'target_homoph'] + 0.005
+    mask = (df["W-style"] == "diag-dom")
+    # valid = df[mask]
+    df.loc[mask, 'target_homoph'] = df.loc[mask, 'target_homoph'] - 0.005
 
     fs = 16
-    ps = 140
+    ps = 150
     if ax is None:
         fig, ax = plt.subplots()
-        sns.scatterplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", s=ps, data=df_cat,
+        sns.scatterplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", s=ps, data=df,
                         ax=ax)
         ax.set_xlabel('Target homophily', fontsize=fs)
         ax.set_ylabel('Homophily', fontsize=fs)
         ax.legend(prop=dict(size=fs-4), loc='upper left')
     else:
-        sns.scatterplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", s=ps, data=df_cat,
+        sns.scatterplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", s=ps, data=df,
                         ax=ax[ax_idx])
         ax[ax_idx].set_xlabel('Target homophily', fontsize=fs)
         ax[ax_idx].set_ylabel('Homophily', fontsize=fs)
@@ -252,7 +259,7 @@ def plot_1(path, plot=True, save=True):
 
     # ax[0].get_shared_x_axes().join(ax[0], ax[1])
     # ax[0].set_xticklabels([])
-    plt.subplots_adjust(wspace=0, hspace=0.03)
+    plt.subplots_adjust(wspace=0, hspace=0.015)
     fig.tight_layout()
     if save:
         plt.savefig('../ablations/plot_1.pdf', bbox_inches='tight')
