@@ -188,6 +188,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         if self.time_dep_w:
           self.t_a = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=opt['gnl_W_param_free'])
           self.r_a = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=opt['gnl_W_param_free'])
+        if self.time_dep_struct_w:
+          self.at = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=True)
+          self.bt = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=True)
+          self.gt = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=True)
         if self.opt['two_hops']:
           self.W_W_tilde = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
         # if opt['gnl_W_param_free2']:
@@ -448,6 +452,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # W_sum = self.t_a * torch.abs(W).sum(dim=1) + self.r_a #todo regularised wrt hidden_dim
       if self.time_dep_w:
         W_sum = self.t_a[T] * torch.abs(W).sum(dim=1) / self.in_features + self.r_a[T] #todo regularised wrt hidden_dim
+      elif self.time_dep_struct_w:
+        W_sum = W + self.at[T] * F.tanh(self.bt[T] * T + self.gt[T]) * torch.eye(W_w.shape, device=self.device)
       else:
          W_sum = self.t_a * torch.abs(W).sum(dim=1) / self.in_features + self.r_a #todo regularised wrt hidden_dim
       Ws = W + torch.diag(W_sum)

@@ -300,7 +300,7 @@ def tf_ablation_args(opt):
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
                 'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
-                'two_hops', 'time_dep_w'
+                'two_hops', 'time_dep_w', 'time_dep_struct_w'
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout']
     arg_intersect = list(set(opt.keys()) & set(tf_args))
     for arg in arg_intersect:
