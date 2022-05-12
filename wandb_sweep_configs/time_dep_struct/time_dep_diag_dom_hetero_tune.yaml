@@ -1,0 +1,63 @@
+program: run_GNN.py
+metric:
+  name: val_mean
+  goal: maximize
+parameters:
+  dataset:
+    values: [cornell, texas, wisconsin]
+  time_dep_struct_w:
+    values: [True]
+  block:
+    values: [constant]
+  function:
+    values: [greed_non_linear]
+  epoch:
+    values: [250]
+  num_splits:
+    values: [10]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_activation:
+    values: [identity]
+  gnl_measure:
+    values: [ones]
+  drift:
+    values: [False]
+  greed_params:
+    values: [[diag_dom, uniform, True, diag, free, False, True, True]]
+  hidden_dim:
+    values: [64, 128, 254, 512]
+  time:
+    distribution: uniform
+    min: 1.0
+    max: 5.0
+  input_dropout:
+    distribution: uniform
+    min: 0.4
+    max: 0.65
+  dropout:
+    distribution: uniform
+    min: 0.2
+    max: 0.5
+  optimizer:
+    values: [adam]
+  lr:
+    distribution: uniform
+    min: 0.0001
+    max: 0.005
+  decay:
+    distribution: uniform
+    min: 0.000
+    max: 0.05
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --geom_gcn_splits
+entity: graph_neural_diffusion
+project: structured_time_dep_diag_dom
