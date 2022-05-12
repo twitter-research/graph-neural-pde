@@ -144,7 +144,8 @@ def greed_ablation_params(opt):
 
     #greed_non_linear params
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
-    opt['time_dep_w'] = True
+    opt['time_dep_w'] = False
+    opt['time_dep_struct_w'] = True
     opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
     opt['gnl_savefolder'] = 'chameleon_testing'#'chameleon_general_drift'#'chameleon_testing'

@@ -78,7 +78,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     self.num_timesteps = 1
     self.time_dep_w = self.opt['time_dep_w']
-    if self.time_dep_w:
+    self.time_dep_struct_w = self.opt['time_dep_struct_w']
+    if self.time_dep_w or self.time_dep_struct_w:
       self.num_timesteps = math.ceil(self.opt['time']/self.opt['step_size'])
 
     if self.opt['wandb_track_grad_flow']:
@@ -151,6 +152,19 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
               self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'],
               requires_grad=opt['gnl_W_param_free']
             )
+            if self.time_dep_struct_w:
+              self.brt = Parameter(
+                -2. * torch.rand((self.num_timesteps, d), device=self.device) + 1,
+                requires_grad=True
+              )
+              self.crt = Parameter(
+                -2. * torch.rand((self.num_timesteps, d), device=self.device) + 1,
+                requires_grad=True
+              )
+              self.drt = Parameter(
+                -2. * torch.rand((self.num_timesteps, d), device=self.device) + 1,
+                requires_grad=True
+              )
           else:
             d_range = torch.tensor(list(range(d)), device=self.device)
             self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
@@ -413,6 +427,18 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         if T is None:
           T = 0
         return torch.diag(self.gnl_W_D[T])
+      elif self.time_dep_struct_w:
+        if T is None:
+          T = 0
+        W = self.gnl_W_D[T]
+        brt = self.brt[T]
+        crt = self.crt[T]
+        drt = self.drt[T]
+        alpha = torch.diag(torch.exp(brt * T + crt))
+        beta = torch.diag(torch.exp(-brt * T - crt) + drt)
+        Wplus = torch.diag(F.relu(W))
+        Wneg = torch.diag(-1. * F.relu(-W))
+        return alpha @ Wplus - beta @ Wneg
       else:
         return torch.diag(self.gnl_W_D)
     elif self.opt['gnl_W_style'] == 'diag_dom':
