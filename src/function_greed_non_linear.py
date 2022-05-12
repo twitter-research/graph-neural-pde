@@ -145,7 +145,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'diag':
         if self.opt['gnl_W_diag_init'] == 'linear':
           d = in_features
-          if self.time_dep_w:
+          if self.time_dep_w or self.time_dep_struct_w:
             # This stores just the time dependent diagonals
             d_range = torch.tensor([list(range(d)) for _ in range(self.num_timesteps)], device=self.device)
             self.gnl_W_D = Parameter(
