@@ -1,0 +1,65 @@
+program: run_GNN.py
+method: bayes
+metric:
+  name: val_mean
+  goal: maximize
+parameters:
+  dataset:
+    values: [Citeseer]
+  time_dep_struct_w:
+    values: [True]
+  block:
+    values: [constant]
+  function:
+    values: [greed_non_linear]
+  epoch:
+    values: [250]
+  num_splits:
+    values: [10]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_activation:
+    values: [identity]
+  gnl_measure:
+    values: [ones]
+  drift:
+    values: [False]
+  greed_params:
+    values: [[diag, uniform, False, diag, free, True, True, True]]
+  hidden_dim:
+    values: [64, 128, 254, 512]
+  time:
+    values: [2, 2.5, 3, 4, 8]
+  step_size:
+    values: [0.25, 0.5, 1.0]
+  input_dropout:
+    distribution: uniform
+    min: 0.4
+    max: 0.55
+  dropout:
+    distribution: uniform
+    min: 0.2
+    max: 0.5
+  optimizer:
+    values: [adam]
+  lr:
+    distribution: uniform
+    min: 0.0001
+    max: 0.004
+  decay:
+    distribution: uniform
+    min: 0.000
+    max: 0.05
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --geom_gcn_splits
+  - --not_lcc
+entity: graph_neural_diffusion
+project: structured_time_dep_diag_lite

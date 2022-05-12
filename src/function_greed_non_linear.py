@@ -78,7 +78,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     self.num_timesteps = 1
     self.time_dep_w = self.opt['time_dep_w']
-    if self.time_dep_w:
+    self.time_dep_struct_w = self.opt['time_dep_struct_w']
+    if self.time_dep_w or self.time_dep_struct_w:
       self.num_timesteps = math.ceil(self.opt['time']/self.opt['step_size'])
 
     if self.opt['wandb_track_grad_flow']:
@@ -144,13 +145,26 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'diag':
         if self.opt['gnl_W_diag_init'] == 'linear':
           d = in_features
-          if self.time_dep_w:
+          if self.time_dep_w or self.time_dep_struct_w:
             # This stores just the time dependent diagonals
             d_range = torch.tensor([list(range(d)) for _ in range(self.num_timesteps)], device=self.device)
             self.gnl_W_D = Parameter(
               self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'],
               requires_grad=opt['gnl_W_param_free']
             )
+            if self.time_dep_struct_w:
+              self.brt = Parameter(
+                -2. * torch.rand((self.num_timesteps, d), device=self.device) + 1,
+                requires_grad=True
+              )
+              self.crt = Parameter(
+                -2. * torch.rand((self.num_timesteps, d), device=self.device) + 1,
+                requires_grad=True
+              )
+              self.drt = Parameter(
+                -2. * torch.rand((self.num_timesteps, d), device=self.device) + 1,
+                requires_grad=True
+              )
           else:
             d_range = torch.tensor(list(range(d)), device=self.device)
             self.gnl_W_D = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (d-1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
@@ -161,8 +175,21 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           # else:
           #   self.gnl_W_D = self.opt['gnl_W_diag_init_q'] * d_range / (d - 1) + self.opt['gnl_W_diag_init_r']
         else:
-          if self.time_dep_w:
+          if self.time_dep_w or self.time_dep_struct_w:
             self.gnl_W_D = Parameter(torch.ones(self.num_timesteps, in_features), requires_grad=opt['gnl_W_param_free'])
+            if self.time_dep_struct_w:
+              self.brt = Parameter(
+                -2. * torch.rand((self.num_timesteps, in_features), device=self.device) + 1,
+                requires_grad=True
+              )
+              self.crt = Parameter(
+                -2. * torch.rand((self.num_timesteps, in_features), device=self.device) + 1,
+                requires_grad=True
+              )
+              self.drt = Parameter(
+                -2. * torch.rand((self.num_timesteps, in_features), device=self.device) + 1,
+                requires_grad=True
+              )
           else:
             self.gnl_W_D = Parameter(torch.ones(in_features), requires_grad=opt['gnl_W_param_free'])
           if self.opt['two_hops']:
@@ -174,6 +201,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         if self.time_dep_w:
           self.t_a = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=opt['gnl_W_param_free'])
           self.r_a = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=opt['gnl_W_param_free'])
+        if self.time_dep_struct_w:
+          self.at = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=True)
+          self.bt = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=True)
+          self.gt = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=True)
         if self.opt['two_hops']:
           self.W_W_tilde = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
         # if opt['gnl_W_param_free2']:
@@ -254,6 +285,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           uniform(self.gnl_W_D, a=-1, b=1)
           if self.opt['two_hops']:
             uniform(self.gnl_W_D_tilde, a=-1, b=1)
+          if self.time_dep_struct_w:
+            uniform(self.brt, a=-1, b=1)
+            uniform(self.crt, a=-1, b=1)
+            uniform(self.drt, a=-1, b=1)
         elif self.opt['gnl_W_diag_init'] == 'identity':
           ones(self.gnl_W_D)
           if self.opt['two_hops']:
@@ -261,6 +296,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         elif self.opt['gnl_W_diag_init'] == 'linear':
           pass #done in init
       elif self.opt['gnl_W_style'] == 'diag_dom':
+        if self.time_dep_struct_w:
+          uniform(self.at, a=-1, b=1)
+          uniform(self.bt, a=-1, b=1)
+          uniform(self.gt, a=-1, b=1)
         if self.opt['gnl_W_diag_init'] == 'uniform':
           #todo regularise wrt hidden_dim as summing abs(W) off diags
           #todo initialise spectrum distribution proportional to graph homophily
@@ -413,6 +452,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         if T is None:
           T = 0
         return torch.diag(self.gnl_W_D[T])
+      elif self.time_dep_struct_w:
+        if T is None:
+          T = 0
+        W = self.gnl_W_D[T]
+        alpha = torch.diag(torch.exp(self.brt[T] * T + self.brt[T]))
+        beta = torch.diag(torch.exp(-self.brt[T] * T - self.crt[T]) + self.drt[T])
+        Wplus = torch.diag(F.relu(W))
+        Wneg = torch.diag(-1. * F.relu(-W))
+        return alpha @ Wplus - beta @ Wneg
       else:
         return torch.diag(self.gnl_W_D)
     elif self.opt['gnl_W_style'] == 'diag_dom':
@@ -422,6 +470,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # W_sum = self.t_a * torch.abs(W).sum(dim=1) + self.r_a #todo regularised wrt hidden_dim
       if self.time_dep_w:
         W_sum = self.t_a[T] * torch.abs(W).sum(dim=1) / self.in_features + self.r_a[T] #todo regularised wrt hidden_dim
+      elif self.time_dep_struct_w:
+        W_sum = W + self.at[T] * F.tanh(self.bt[T] * T + self.gt[T]) * torch.eye(n=W.shape[0], m=W.shape[1], device=self.device)
       else:
          W_sum = self.t_a * torch.abs(W).sum(dim=1) / self.in_features + self.r_a #todo regularised wrt hidden_dim
       Ws = W + torch.diag(W_sum)

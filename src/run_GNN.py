@@ -1,6 +1,7 @@
 import time, datetime
 import os
 import argparse
+import json
 import numpy as np
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
@@ -837,6 +838,7 @@ if __name__ == '__main__':
     parser.add_argument('--gnl_W_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
     parser.add_argument('--two_hops', type=str, default='False', help='flag for 2-hop energy')
     parser.add_argument('--time_dep_w', type=str, default='False', help='Learn a time dependent potentials')
+    parser.add_argument('--time_dep_struct_w', type=str, default='False', help='Learn a structured time dependent potentials')
     parser.add_argument('--target_homoph', type=str, default='0.80', help='target_homoph for syn_cora [0.00,0.10,..,1.00]')
     parser.add_argument('--greed_params', nargs='+', default=None, help='list of args for focus models')
 
