@@ -5,7 +5,9 @@ import pandas as pd
 from torch_geometric.utils import degree, homophily
 import torch
 from graph_rewiring import dirichlet_energy
+from greed_params import default_params
 
+#adopted from https://github.com/GemsLab/H2GCN/tree/master/npz-datasets
 class CustomDataset(Dataset):
   def __init__(self, root, name, setting='gcn', seed=None, require_mask=False):
     '''
@@ -87,60 +89,13 @@ def get_edge_cat(edge_index, y, num_classes):
     edges_cats.append(np.round(bin_count.cpu().detach().numpy(),2))
   return edges_cats
 
-def syn_cora_analysis(path="../data"):
-  ths = ['0.00', '0.10', '0.20', '0.30', '0.40', '0.50', '0.60', '0.70', '0.80', '0.90', '1.00']
-  df_list = []
-  for targ_hom in ths:
-    for rep in range(3):
-      dataset = CustomDataset(root=f"{path}/syn-cora", name=f"h{str(targ_hom)}-r{str(rep+1)}", setting="gcn", seed=None)
-      pyg_dataset = Dpr2Pyg(dataset)
-      data = pyg_dataset.data
-      num_nodes = data.num_nodes
-      num_edges = data.edge_index.shape[1]
-      num_classes = data.y.max() + 1
-      num_features = data.num_features
-      degrees = degree(data.edge_index[0], num_nodes)
-      degree_range = [degrees.min().cpu().detach().numpy(), degrees.max().cpu().detach().numpy()]
-      av_degree = num_edges / num_nodes
-      density = num_edges / num_nodes**2
-      graph_edge_homophily = homophily(edge_index=data.edge_index, y=data.y, method='edge')
-      graph_node_homophily = homophily(edge_index=data.edge_index, y=data.y, method='node')
-      #label dirichlet
-      de = dirichlet_energy(data.edge_index, data.edge_weight, num_nodes, data.y.unsqueeze(-1))
-      #spectral stuff...
-      edge_categories = get_edge_cat(data.edge_index, data.y, num_classes)
-
-      row = [num_nodes, num_edges, num_classes, num_features, degree_range, av_degree, density, graph_edge_homophily, graph_node_homophily, de, edge_categories]
-      np_row = []
-      for item in row:
-        try:
-          np_row.append(np.round(item.cpu().detach().numpy(), 4))
-        except:
-          np_row.append(np.round(item, 4))
-
-      df_list.append(np_row)
-
-  df_cols = ["num_nodes", "num_edges", "num_classes", "num_features", "degree_range", "av_degree",
-             "density", "graph_edge_homophily", "graph_node_homophily", "label_dirichlet", "edge_categories"]
-
-  # todo initialise spectrum distribution proportional to graph homophily
-
-  df = pd.DataFrame(df_list, columns=df_cols)
-  pd.set_option('display.max_rows', None)
-  pd.set_option('display.max_columns', None)
-  pd.set_option('display.width', None)
-  pd.set_option('display.max_colwidth', -1)
-  df.to_csv("../ablations/syn_cora.csv")
-  print(df)
-
 if __name__ == "__main__":
+  pass
   # dataset = CustomDataset(root="../data/syn-cora", name="h0.00-r1", setting="gcn", seed=15)
   # adj = dataset.adj  # Access adjacency matrix
   # features = dataset.features  # Access node features
   # pyg_dataset = Dpr2Pyg(dataset)
   # ei = pyg_dataset.data.edge_index
-
-  syn_cora_analysis()
 
 # import torch
 # from torch_geometric.data import Data, InMemoryDataset
