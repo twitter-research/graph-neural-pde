@@ -1,9 +1,11 @@
+import os
 import os.path as osp
+import shutil
 import numpy as np
 import pandas as pd
 import torch
 from torch_geometric.utils import degree, homophily
-from torch_geometric.utils import homophily, add_remaining_self_loops, to_undirected
+from torch_geometric.utils import homophily, add_remaining_self_loops, to_undirected, remove_self_loops
 from graph_rewiring import dirichlet_energy
 from greed_params import default_params
 from data import get_dataset
@@ -77,22 +79,23 @@ def syn_cora_analysis(path="../data"):
   print(df_piv)
 
 
-
-def data_analysis(path="../data"):#, not_lcc=True, undirected=True, self_loops=True):
+def data_analysis(path, ds_list):
   opt = default_params()
-  ds_list = ['Cora', 'Citeseer', 'Pubmed', 'cornell', 'texas', 'wisconsin', 'chameleon', 'squirrel', 'film']
   df_list = []
   opt['geom_gcn_splits'] = True
 
   for not_lcc in [True, False]:
     for undirected in [True, False]:
-      for self_loops in [True, False]:
+      for self_loops in ["orig", "non", "full"]:
         for ds in ds_list:
           opt["dataset"] = ds
           dataset = get_dataset(opt, path, not_lcc)#opt['not_lcc']) default True
 
-          if self_loops:
-              dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)
+          if self_loops == "full":
+            dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)
+          elif self_loops == "non":
+            dataset.data.edge_index, _ = remove_self_loops(dataset.data.edge_index)
+
           if undirected:
               dataset.data.edge_index = to_undirected(dataset.data.edge_index)
 
@@ -131,7 +134,7 @@ def data_analysis(path="../data"):#, not_lcc=True, undirected=True, self_loops=T
   pd.set_option('display.max_columns', None)
   pd.set_option('display.width', None)
   pd.set_option('display.max_colwidth', -1)
-  df.to_csv("../ablations/datasets.csv")
+  df.to_csv("../ablations/datasets_zipped.csv")
   # print(df)
   idxs = ["dataset","not_lcc","undirected","self_loops"]
   df_piv = pd.pivot_table(df.loc[:,df_cols[:-1]], values=df_cols[:-1], index=idxs, aggfunc=np.mean)
@@ -152,14 +155,45 @@ def data_analysis(path="../data"):#, not_lcc=True, undirected=True, self_loops=T
     "edge_homophily":"edge_homoph",
     "node_homophily":"node_homoph"})
 
-  df_piv.to_csv("../ablations/datasets_piv.csv", index=False)
+  df_piv.to_csv("../ablations/datasets_piv_zipped.csv", index=False)
   print(df_piv)
+
+
+def create_directory(dataset, old_dir, new_dir):
+  raw_directory = f"{old_dir}/{dataset.lower()}/raw/"
+  new_directory = f"{new_dir}/{dataset}/{dataset}/"
+  new_raw_folder = new_directory + "raw/"
+  try:
+    # os.mkdir(new_raw_folder)
+    os.makedirs(new_raw_folder)
+    os.path.exists(new_raw_folder)
+  except OSError:
+    if os.path.exists(new_raw_folder):
+      shutil.rmtree(new_raw_folder)
+      shutil.copytree(raw_directory, new_raw_folder)
+      print("%s exists, clearing existing data" % new_raw_folder)
+    else:
+      print("Creation of the directory %s failed" % new_raw_folder)
+  else:
+    print("Successfully created the directory %s " % new_raw_folder)
+
+def data_zip_analysis():
+  ds_list = ['Cora', 'Citeseer', 'Pubmed', 'chameleon', 'squirrel']#, 'cornell', 'texas', 'wisconsin', 'film']
+  # ds_list = ['Cora']
+
+  old_dir = "../datasets"
+  new_dir = "../datasets_test"
+
+  for ds in ds_list:
+    create_directory(ds, old_dir, new_dir)
+
+  data_analysis(new_dir, ds_list)
 
 
 if __name__ == "__main__":
   # syn_cora_analysis()
-  data_analysis()#not_lcc=True, undirected=True, self_loops=True)
-
+  # data_analysis(path, ds_list)
+  data_zip_analysis()
 
   #nb undirected graph is consistent with theory
   #don't have self loops

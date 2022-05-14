@@ -1,117 +1,224 @@
 import sys
+import math
 import numpy as np
 import matplotlib as mpl
 from matplotlib.patches import Circle
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import proj3d
+from matplotlib.patches import FancyArrowPatch
 from pylab import rcParams
 import torch
-import networkx as nx
-from torch_geometric.utils.convert import to_networkx
-from torch_geometric.data import Data
-from torch_geometric.nn import knn_graph
+from torch_geometric.utils import to_dense_adj, to_undirected
+from utils import DummyData
+
+def get_data(edge_index, x):
+    num_nodes = 4
+    num_classes = 2
+    y = torch.tensor([0, 1, 0, 1])
+    data = DummyData(edge_index, None, num_nodes, x, y, num_classes)
+    return data
+
+def get_dynamics(data, W, T, dt):
+    edge_index = to_undirected(data.edge_index)
+    adj = to_dense_adj(edge_index).squeeze()
+    deginvsq = torch.pow(torch.sqrt(adj.sum(dim=0)), -1)
+    A = torch.diag(deginvsq) @ adj @ torch.diag(deginvsq)
+    A_eval, A_evec = torch.linalg.eigh(A)
+    AW = torch.kron(A, W)
+    AW_eval, AW_evec = torch.linalg.eigh(AW)
+    print(f"A {A}")
+    print(f"A_eval {A_eval}")
+    print(f"A_evec (per row) {A_evec.T}")
+    print(f"AW {AW}")
+    print(f"AW_evec {AW_evec}")
+    print(f"AW_eval (per row) {AW_eval.T}")
+    x = data.x
+    X = x.unsqueeze(dim=-1)
+    Y = torch.zeros(X.shape, dtype=torch.float)
+    for t in range(math.ceil(T/dt)):
+        x = x + dt * A @ x @ W
+        X = torch.cat((X, x.unsqueeze(dim=-1)), dim=-1)
+        Y = torch.cat((Y, (dt * A @ x @ W).unsqueeze(dim=-1)), dim=-1)
+    return X.detach().numpy(), Y.detach().numpy()
+
+def plot_eigs(eig_vecs, eig_vals, clist, ax, nodes=True, edges=True):
+    t = -0.70
+    for j in range(2):
+        xpos = 0.
+        x1pos = eig_vecs[0, j] * eig_vals[0]
+        ypos = 0.
+        y1pos = eig_vecs[1, j] * eig_vals[1]
+        arw = Arrow3D([t, t], [xpos, x1pos], [ypos, y1pos], arrowstyle="->", color=clist[j], lw=2, mutation_scale=25)
+        ax.add_artist(arw)
+        ax.text(t, x1pos * 1.2, y1pos * 1.2, f"e{j+1}", c=clist[j])
+
+def plot_labels(labels, offset, X_all, clist, t_idx, T, ax):
+    N = X_all.shape[0]
+    num_T = X_all.shape[-1]
+    #plot initial labels
+    for n in range(N):
+        ax.text(T, X_all[n,0,t_idx]*offset[n], X_all[n,1,t_idx]*offset[n], f"{labels[n]}", c=clist[n])
+
+def plot_slices(edge_index, X_all, Y_all, W, clist, ax, nodes=True, edges=True):
+    edge_index = edge_index.detach().numpy()
+    N = X_all.shape[0]
+    T = X_all.shape[-1]
+    t_idxs = list(range(T)) #possbile here to control slice frequency
+
+    #plot slices
+    for t in t_idxs:
+        pos = {i: [t, X_all[i, 0, t].item(), X_all[i, 1, t].item()]
+               for i in range(N)}
+        node_xyz = np.array([pos[i] for i in range(N)])
+        edge_xyz = np.array([(pos[uv[0]], pos[uv[1]]) for uv in edge_index.T])
+        plot_3d(node_xyz, edge_xyz, clist, ax, nodes, edges)
+
+        colors = ["red","green","orange","blue"]
+        if t in list(range(T-1)):
+            for n in range(N):
+                xpos = X_all[n, 0, t]
+                x1pos = X_all[n, 0, t+1]
+                ypos = X_all[n, 1, t]
+                y1pos = X_all[n, 1, t+1]
+                # print(n, xpos,ypos,colors[n])
+                arw = Arrow3D([t,t],[xpos,x1pos],[ypos,y1pos], arrowstyle="->", color=colors[n], lw = 2, mutation_scale=25)
+                ax.add_artist(arw)
+        else:
+            for n in range(N):
+                xpos = X_all[n, 0, -1]
+                x1pos = xpos + Y_all[n, 0, -1]
+                ypos = X_all[n, 1, -1]
+                y1pos = ypos + Y_all[n, 1, -1]
+                # print(n, xpos,ypos,colors[n])
+                arw = Arrow3D([t,t],[xpos,x1pos],[ypos,y1pos], arrowstyle="->", color=colors[n], lw = 2, mutation_scale=25)
+                ax.add_artist(arw)
+
+    # #plot_node_paths
+    # cmap = plt.get_cmap("tab10")
+    # # cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    # for i in range(len(G.nodes)):
+    #     # ax.scatter(X_all[i, :, 0], np.linspace(0, nlayers, nlayers + 1), X_all[i, :, 1],
+    #     #            s=10.0, c=cycle[i], ec="w")
+    #     ax.scatter(X_all[i, :, 0], np.linspace(0, nlayers, nlayers + 1), X_all[i, :, 1],
+    #                s=10.0, color=cmap(i), ec="w")#, cmap=cmap)
+    #
+    # #plot_edges
+    # edge = 2
+    # for t in range(0, nlayers, 1):
+    #     u, v = list(G.edges())[edge]
+    #     ax.plot((X_all[u, t, 0].item(), X_all[v, t, 0].item()),
+    #             (t, t),
+    #             (X_all[u, t, 1].item(), X_all[v, t, 1].item()),
+    #             color="tab:gray")
+
+# https://networkx.org/documentation/stable/auto_examples/3d_drawing/plot_basic.html
+def plot_3d(node_xyz, edge_xyz, clist, ax, nodes, edges):
+    if nodes:
+        # Plot the nodes - alpha is scaled by "depth" automatically
+        cmap = plt.get_cmap("tab10")
+        ax.scatter(*node_xyz.T, c=clist, ec="w", cmap=cmap, s=50)
+    if edges:
+        # Plot the edges
+        for vizedge in edge_xyz:
+            ax.plot(*vizedge.T, color="tab:gray")
+
+    def _format_axes(ax):
+        """Visualization options for the 3D axes."""
+        # Turn gridlines off
+        # ax.grid(False)
+        # Suppress tick labels
+        # for dim in (ax.xaxis, ax.yaxis, ax.zaxis):
+        #     dim.set_ticks([])
+
+        ax.set_axis_off()
+
+        # ax.xaxis.set_ticks([])
+        # ax.yaxis.set_ticks([])
+        # ax.zaxis.set_ticks([])
+        # Set axes labels
+        ax.set_xlabel('time', fontsize=10)
+        ax.set_ylabel('x0-axis', fontsize=10)
+        ax.set_zlabel('x1-axis', fontsize=10)
+    _format_axes(ax)
+    # fig.tight_layout()
 
 
-def E(q, r0, x, y):
-    """Return the electric field vector E=(Ex,Ey) due to charge q at r0."""
-    den = np.hypot(x-r0[0], y-r0[1])**3
-    return q * (x - r0[0]) / den, q * (y - r0[1]) / den
+class Arrow3D(FancyArrowPatch):
+    def __init__(self, xs, ys, zs, *args, **kwargs):
+        FancyArrowPatch.__init__(self, (0,0), (0,0), *args, **kwargs)
+        self._verts3d = xs, ys, zs
 
-def plot_electric(fig=None, ax=None, ax_idx=None, plot=False, save=False):
-    # Grid of x, y points
-    nx, ny = 64, 64
-    x = np.linspace(-2, 2, nx)
-    y = np.linspace(-2, 2, ny)
-    X, Y = np.meshgrid(x, y)
+    def draw(self, renderer):
+        xs3d, ys3d, zs3d = self._verts3d
+        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+        self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
+        FancyArrowPatch.draw(self, renderer)
 
-    # Create a multipole with nq charges of alternating sign, equally spaced
-    # on the unit circle.
-    # nq = 2**int(sys.argv[1])
-    nq = 2**int(1)#3)
+    #got this from fix in graphCon fancyarrowpatch.py
+    def do_3d_projection(self, renderer=None):
+        xs3d, ys3d, zs3d = self._verts3d
+        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M) #Transform the points by the projection matrix https://matplotlib.org/3.1.1/api/_as_gen/mpl_toolkits.mplot3d.proj3d.proj_transform.html
+        self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
+        return np.min(zs)
 
-    charges = []
-    for i in range(nq):
-        q = i%2 * 2 - 1
-        charges.append((q, (np.cos(2*np.pi*i/nq), np.sin(2*np.pi*i/nq))))
 
-    # Electric field vector, E=(Ex, Ey), as separate components
-    Ex, Ey = np.zeros((ny, nx)), np.zeros((ny, nx))
-    for charge in charges:
-        ex, ey = E(*charge, x=X, y=Y)
-        Ex += ex
-        Ey += ey
-
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111)
-    if ax is None:
-        fig, ax = plt.subplots()
-        ax_idx = 0
-
-    # Plot the streamlines with an appropriate colormap and arrow style
-    color = 2 * np.log(np.hypot(Ex, Ey))
-    ax.streamplot(x, y, Ex, Ey, color=color, linewidth=1, cmap=plt.cm.inferno,
-                  density=2, arrowstyle='->', arrowsize=1.5)
-
-    # Add filled circles for the charges themselves
-    charge_colors = {True: '#aa0000', False: '#0000aa'}
-    for q, pos in charges:
-        ax.add_artist(Circle(pos, 0.05, color=charge_colors[q>0]))
-
-    # add graph
-    fig, ax = plot_greed(fig, ax)
-
-    ax.set_xlabel('$x$')
-    ax.set_ylabel('$y$')
-    ax.set_xlim(-2,2)
-    ax.set_ylim(-2,2)
-    ax.set_aspect('equal')
-    if save:
-        # plt.savefig('../ablations/figure1.pdf')
-        plt.savefig('../ablations/figure1_a.pdf')
-    if plot:
-        fig.show()
-    return fig, ax
 
 def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
-    edge_index = torch.tensor([[0, 0, 0, 0, 1, 2, 3, 4, 1, 2, 3, 4],
-                               [1, 2, 3, 4, 0, 0, 0, 0, 2, 1, 4, 3]], dtype=torch.long)
-    x = torch.tensor([[0, 0], [-1, -0.5], [-1, 0.5], [1, 0.5], [1, -0.5]], dtype=torch.float)
-
-    color_vals = [x[i,0] for i in range(x.shape[0])]
-    low, *_, high = sorted(color_vals)
-    norm = mpl.colors.Normalize(vmin=low, vmax=high, clip=True)
-    mapper = mpl.cm.ScalarMappable(norm=norm, cmap=mpl.cm.coolwarm)
-
-    pos = x
-    pos_i_dict = {i: [pos[i,0],pos[i,1]] for i in range(pos.shape[0])}
-    graph = Data(x=x, edge_index=edge_index, pos=pos)
-
-    # draw initial graph
-    NXgraph = to_networkx(graph)
     if ax is None:
-        fig, ax = plt.subplots()
-        ax_idx = 0
+        fig = plt.figure()#figsize=(12,8))
+        ax = fig.add_subplot(111, projection="3d")
 
-    nx.draw(NXgraph, pos=pos_i_dict, ax=ax, node_size=200, #node_color=color,
-            # cmap=plt.get_cmap('Spectral'),
-            node_color=[mapper.to_rgba(i)
-                        for i in color_vals],
-            # with_labels=True,
-            # font_color='white',
-            arrows=False, width=0.25)
+    #plot frame
+    edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],
+                               [1, 3, 0, 2, 1, 3, 0, 2]], dtype=torch.long)
+    x = 2 * torch.tensor([[-1, -1], [-1, 1], [1, 1], [1, -1]], dtype=torch.float)
+    invsqrt2 = 1 / torch.sqrt(torch.tensor(2))
+    eig_vecs = invsqrt2 * torch.tensor([[1, 1],[1, -1]], dtype=torch.float)
+    # eig_vecs = torch.tensor([[1, 0],[0, 1]], dtype=torch.float)
 
-    limits = plt.axis('on')
-    ax.patch.set_edgecolor('black')
-    ax.patch.set_linewidth('1')
-    ax.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    # plt.title(f"Figure 1", fontsize=16)
+    eig_vals = 2 * torch.tensor([-1.0, 1.0], dtype=torch.float)
+    W = eig_vecs @ torch.diag(eig_vals) @ eig_vecs.T
+    T = 1.8
+    dt = 0.6
+    data = get_data(edge_index, x)
+    X_all, Y_all = get_dynamics(data, W, T, dt)
+    clist= 4*["grey"]
+    # plot_slices(edge_index, X_all, Y_all, W, clist, ax, nodes=False, edges=True)
+
+    #plot graph
+    edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],#, 0, 2],
+                               [1, 3, 0, 2, 1, 3, 0, 2]],#, 2, 0]],
+                                dtype=torch.long)
+    x = torch.tensor([[-1, -1], [-1, 1], [1.5, 2], [1, -1]], dtype=torch.float)
+    # x = torch.tensor([[-1, -0.25], [-0.25, -1], [1.25, 0], [0, 1.25]], dtype=torch.float)
+    data = get_data(edge_index, x)
+    X_all, Y_all = get_dynamics(data, W, T, dt)
+    clist = ["red","green","orange","blue"]
+    plot_slices(edge_index, X_all, Y_all, W, clist, ax, nodes=True, edges=True)
+    #plot_labels
+    offset = [1.4,2.2,1.1,2.]
+    clist = 4 * ["black"]
+    plot_labels(data.y, offset, X_all, clist, 0, 0, ax)
+    # plot_labels(data.y, offset, X_all, clist, -1, T, ax)
+    clist = ["tab:blue", "tab:purple"]
+    #plot eigs
+    plot_eigs(eig_vecs, eig_vals, clist, ax, nodes=True, edges=True)
+
     if save:
         plt.savefig('../ablations/fig1_graph.pdf')
+        # plt.savefig('../ablations/fig1_graph.svg')
+
     if plot:
         fig.show()
     return fig, ax
 
 if __name__ == "__main__":
-    plot_electric(plot=True, save=True)
-    # plot_greed(plot=True)
+    # plot_electric(plot=True, save=True)
+    plot_greed(plot=True, save=True)
+    # d3_ax()
+    # quiver()
+    # arrow()
+    # draw0([4, 4])
+    # draw([4, 2], [2, 4])
+    # d3_quiver()
+    # d3_arrow()
