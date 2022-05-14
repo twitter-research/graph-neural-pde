@@ -201,11 +201,9 @@ def syn_cora_energy(path, fig=None, ax=None, ax_idx=None):
 
     # SP = _ScatterPlotter(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", style="energy_time", data=df_cat, ax=ax)
     sp.add_legend_data(ax)
-
-
     fig.show()
 
-def syn_cora_homoph(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
+def syn_cora_homoph(path, line_scatter, fig=None, ax=None, ax_idx=None, plot=False, save=False):
     max_df = get_max_df(path)
     max_df = max_df.replace(to_replace={"diag_dom":"diag-dom", "neg_prod":"neg-prod"})
     max_df = max_df.rename(columns={"gnl_W_style": "W-style"})    # maxdf ####need tp rename column
@@ -218,26 +216,34 @@ def syn_cora_homoph(path, fig=None, ax=None, ax_idx=None, plot=False, save=False
     df2 = df2.rename(columns={"pred_homophil_mean": "homophily"})
     df2['module-block'] = 'prediction'
     df = pd.concat([df1, df2])
-    #manually jitter
-    mask = (df["W-style"] == "sum")
-    # valid = df[mask]
-    df.loc[mask, 'target_homoph'] = df.loc[mask, 'target_homoph'] + 0.005
-    mask = (df["W-style"] == "diag-dom")
-    # valid = df[mask]
-    df.loc[mask, 'target_homoph'] = df.loc[mask, 'target_homoph'] - 0.005
+    df = df.reset_index(drop=True)
+
+    if line_scatter == "scatter":
+        # manually jitter
+        mask = (df["W-style"] == "sum")
+        df.loc[mask, 'target_homoph'] = df.loc[mask, 'target_homoph'] + 0.005
+        mask = (df["W-style"] == "diag-dom")
+        df.loc[mask, 'target_homoph'] = df.loc[mask, 'target_homoph'] - 0.005
 
     fs = 16
     ps = 150
     if ax is None:
         fig, ax = plt.subplots()
-        sns.scatterplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", s=ps, data=df,
-                        ax=ax)
+        if line_scatter == "scatter":
+            sns.scatterplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", s=ps, data=df,
+                            ax=ax)
+        elif line_scatter == "line":
+            sns.lineplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", data=df, ax=ax)
         ax.set_xlabel('Target homophily', fontsize=fs)
         ax.set_ylabel('Homophily', fontsize=fs)
         ax.legend(prop=dict(size=fs-4), loc='upper left')
     else:
-        sns.scatterplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", s=ps, data=df,
-                        ax=ax[ax_idx])
+        if line_scatter == "scatter":
+            sns.scatterplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", s=ps, data=df,
+                            ax=ax[ax_idx])
+        elif line_scatter == "line":
+            sns.lineplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", data=df, ax=ax[ax_idx])
+
         ax[ax_idx].set_xlabel('Target homophily', fontsize=fs)
         ax[ax_idx].set_ylabel('Homophily', fontsize=fs)
         ax[ax_idx].legend(prop=dict(size=fs-4), loc='upper left')
@@ -251,18 +257,18 @@ def syn_cora_homoph(path, fig=None, ax=None, ax_idx=None, plot=False, save=False
         fig.show()
     return fig, ax
 
-def plot_1(path, plot=True, save=True):
+def plot_1(path, line_scatter, plot=True, save=True):
     sns.set_theme()
     fig, ax = plt.subplots(2,1,figsize=(10, 10), sharex=True)
     fig, ax = syn_cora_plot(path, fig, ax, ax_idx=0, plot=False, save=False)
-    fig, ax = syn_cora_homoph(path, fig, ax, ax_idx=1, plot=False, save=False)
+    fig, ax = syn_cora_homoph(path, line_scatter, fig, ax, ax_idx=1, plot=False, save=False)
 
     # ax[0].get_shared_x_axes().join(ax[0], ax[1])
     # ax[0].set_xticklabels([])
     plt.subplots_adjust(wspace=0, hspace=0.015)
     fig.tight_layout()
     if save:
-        plt.savefig('../ablations/plot_1.pdf', bbox_inches='tight')
+        plt.savefig(f"../ablations/plot_1_{line_scatter}.pdf", bbox_inches='tight')
     if plot:
         fig.show()
 
@@ -272,5 +278,6 @@ if __name__ == "__main__":
     # syn_cora_best_times(path)
     # syn_cora_energy(path)
     # _,_ = syn_cora_homoph(path)
-    plot_1(path)
+    plot_1(path, "scatter")
+    plot_1(path, "line")
     # _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
