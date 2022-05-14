@@ -59,7 +59,7 @@ def plot_labels(labels, offset, X_all, clist, t_idx, T, ax):
     for n in range(N):
         ax.text(T, X_all[n,0,t_idx]*offset[n], X_all[n,1,t_idx]*offset[n], f"{labels[n]}", c=clist[n])
 
-def plot_slices(edge_index, X_all, Y_all, W, clist, ax, nodes=True, edges=True):
+def plot_slices(edge_index, X_all, Y_all, W, clist, ax, nodes=True, edges=True, arrows=True):
     edge_index = edge_index.detach().numpy()
     N = X_all.shape[0]
     T = X_all.shape[-1]
@@ -73,25 +73,26 @@ def plot_slices(edge_index, X_all, Y_all, W, clist, ax, nodes=True, edges=True):
         edge_xyz = np.array([(pos[uv[0]], pos[uv[1]]) for uv in edge_index.T])
         plot_3d(node_xyz, edge_xyz, clist, ax, nodes, edges)
 
-        colors = ["red","green","orange","blue"]
-        if t in list(range(T-1)):
-            for n in range(N):
-                xpos = X_all[n, 0, t]
-                x1pos = X_all[n, 0, t+1]
-                ypos = X_all[n, 1, t]
-                y1pos = X_all[n, 1, t+1]
-                # print(n, xpos,ypos,colors[n])
-                arw = Arrow3D([t,t],[xpos,x1pos],[ypos,y1pos], arrowstyle="->", color=colors[n], lw = 2, mutation_scale=25)
-                ax.add_artist(arw)
-        else:
-            for n in range(N):
-                xpos = X_all[n, 0, -1]
-                x1pos = xpos + Y_all[n, 0, -1]
-                ypos = X_all[n, 1, -1]
-                y1pos = ypos + Y_all[n, 1, -1]
-                # print(n, xpos,ypos,colors[n])
-                arw = Arrow3D([t,t],[xpos,x1pos],[ypos,y1pos], arrowstyle="->", color=colors[n], lw = 2, mutation_scale=25)
-                ax.add_artist(arw)
+        if arrows:
+            colors = ["red","green","orange","blue"]
+            if t in list(range(T-1)):
+                for n in range(N):
+                    xpos = X_all[n, 0, t]
+                    x1pos = X_all[n, 0, t+1]
+                    ypos = X_all[n, 1, t]
+                    y1pos = X_all[n, 1, t+1]
+                    # print(n, xpos,ypos,colors[n])
+                    arw = Arrow3D([t,t],[xpos,x1pos],[ypos,y1pos], arrowstyle="->", color=colors[n], lw = 2, mutation_scale=25)
+                    ax.add_artist(arw)
+            else:
+                for n in range(N):
+                    xpos = X_all[n, 0, -1]
+                    x1pos = xpos + Y_all[n, 0, -1]
+                    ypos = X_all[n, 1, -1]
+                    y1pos = ypos + Y_all[n, 1, -1]
+                    # print(n, xpos,ypos,colors[n])
+                    arw = Arrow3D([t,t],[xpos,x1pos],[ypos,y1pos], arrowstyle="->", color=colors[n], lw = 2, mutation_scale=25)
+                    ax.add_artist(arw)
 
     # #plot_node_paths
     # cmap = plt.get_cmap("tab10")
@@ -183,7 +184,7 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     data = get_data(edge_index, x)
     X_all, Y_all = get_dynamics(data, W, T, dt)
     clist= 4*["grey"]
-    # plot_slices(edge_index, X_all, Y_all, W, clist, ax, nodes=False, edges=True)
+    plot_slices(edge_index, 2*X_all, Y_all, W, clist, ax, nodes=False, edges=True, arrows=False)
 
     #plot graph
     edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],#, 0, 2],
@@ -194,7 +195,7 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     data = get_data(edge_index, x)
     X_all, Y_all = get_dynamics(data, W, T, dt)
     clist = ["red","green","orange","blue"]
-    plot_slices(edge_index, X_all, Y_all, W, clist, ax, nodes=True, edges=True)
+    plot_slices(edge_index, X_all, Y_all, W, clist, ax, nodes=True, edges=True, arrows=True)
     #plot_labels
     offset = [1.4,2.2,1.1,2.]
     clist = 4 * ["black"]
