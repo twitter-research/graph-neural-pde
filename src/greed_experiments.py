@@ -1,8 +1,18 @@
-import datetime
+import datetime, time
+import torch
+import numpy as np
+import pandas as pd
 from run_GNN import main
 from greed_params import greed_run_params, not_sweep_args, tf_ablation_args, default_params
+from GNN import GNN
+from GNN_early import GNNEarly
+from GNN_KNN import GNN_KNN
+from GNN_KNN_early import GNNKNNEarly
+from GNN_GCN import GCN, MLP
+from GNN_GCNMLP import GNNMLP
+from data import get_dataset, set_train_val_test_split
 
-def run_track_experiments():
+def run_track_flow_experiments():
     opt = default_params()
 
     #wandb args
@@ -74,7 +84,45 @@ def run_track_experiments():
 
                             main(opt)
 
+def wall_clock_ablation():
+    opt = default_params()
+    #load Cora
+    dataset = get_dataset(opt, '../data', opt['not_lcc'])
+    data = dataset.data
+    feat = data.x
+    pos_encoding = None
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+    rows = []
+    for name in ['gcn', 'diag', 'diag_dom']:#, 'ggcn', 'sheaf']:
+        for hd in [16, 32, 64, 128]:
+            if opt['function'] in ['gcn']:
+                model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['dropout'], device=device).to(device)
+            elif opt['function'] in ['mlp']:
+                model = MLP(opt, dataset, device=device).to(device)
+            elif opt['function'] in ['gcn2', 'gcn_dgl', 'gcn_res_dgl']:
+                hidden_feat_repr_dims = int(opt['time'] // opt['step_size']) * [opt['hidden_dim']]
+                feat_repr_dims = [dataset.data.x.shape[1]] + hidden_feat_repr_dims + [dataset.num_classes]
+                model = GNNMLP(opt, dataset, device, feat_repr_dims,
+                               enable_mlp=True if opt['function'] == 'mlp' else False,
+                               enable_gcn=True if opt['function'] in ['gcn2', 'gcn_dgl', 'gcn_res_dgl'] else False,
+                               learnable_mixing=False, use_sage=False, use_gat=False, gat_num_heads=1,
+                               top_is_proj=False, use_prelu=False, dropout=opt['dropout']
+                               ).to(device)
+            else:
+                model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(
+                    device)
+
+            runs = []
+            for i in range(100):
+                start = time.time()
+                out = model(feat, pos_encoding)
+                run_time = time.time() - start
+                runs.append(run_time)
+
+            rows.append(name, hd, np.mean(runs), np.std(runs))
+    df = pd.DataFrame(rows, columns=['model, hidden_dim, av_fwd, std_fwd'])
+    # df.to_csv("../ablations/run_time.csv")
 
 if __name__ == "__main__":
-    run_track_experiments()
+    run_track_flow_experiments()

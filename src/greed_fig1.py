@@ -32,29 +32,82 @@ class Arrow3D(FancyArrowPatch):
 
 # class axes3d_nonsquare(axes3d):
 #     #todo https://github.com/matplotlib/matplotlib/issues/8593
+#       for lengthening axis
 #     pass
 
-def get_data(edge_index, x):
-    num_nodes = 4
-    num_classes = 2
-    y = torch.tensor([0, 1, 0, 1])
+def get_graph(graph_type):
+    if graph_type == "square":
+        edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],
+                      [1, 3, 0, 2, 1, 3, 0, 2]], dtype=torch.long)
+        x = 2.0 * torch.tensor([[-1, -1], [-1, 1], [1, 1], [1, -1]], dtype=torch.float)
+        y = torch.tensor([0, 1, 0, 1])
+        clist = ["red", "green", "orange", "blue"]
+    elif graph_type == "trapezium":
+        edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],  # , 0, 2],
+                                   [1, 3, 0, 2, 1, 3, 0, 2]],  # , 2, 0]],
+                                  dtype=torch.long)
+        x = torch.tensor([[-1, -1], [-1, 1], [1.5, 2], [1, -1]], dtype=torch.float)
+        y = torch.tensor([0, 1, 0, 1])
+        clist = ["red", "green", "orange", "blue"]
+    elif graph_type == "barbell":
+        edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 5, 5],
+                                   [1, 2, 0, 2, 0, 1, 3, 2, 4, 5, 3, 5, 3, 4]],
+                                  dtype=torch.long)
+        x = torch.tensor([[-1, -1], [-1, 1], [-0.5, 0], [0.5, 0], [1, 1], [1, -1]], dtype=torch.float)
+        y = torch.tensor([0, 1, 0, 1, 0, 1])
+        clist = ["red", "green", "orange", "blue", "purple", "c"]
+    return edge_index, x, y, clist
+
+def get_data(edge_index, x, y):
+    num_nodes = x.shape[0]
+    num_classes = y.max()
     data = DummyData(edge_index, None, num_nodes, x, y, num_classes)
+    eig_vecs = torch.tensor([[1, 0],[0, 1]], dtype=torch.float)
+    # eig_vecs = torch.tensor([[0, 1],[1, 0]], dtype=torch.float)
+    # invsqrt2 = 1 / torch.sqrt(torch.tensor(2))
+    # eig_vecs = invsqrt2 * torch.tensor([[1, 1],[1, -1]], dtype=torch.float)
+    eig_vals = torch.tensor([-3.0, 1.8], dtype=torch.float)
+    W = eig_vecs @ torch.diag(eig_vals) @ eig_vecs.T
+    T = 3.0
+    dt = 0.1
+    data.W = W
+    data.T = T
+    data.dt = dt
     return data
 
-def get_dynamics(data, W, T, dt):
-    edge_index = to_undirected(data.edge_index)
+def get_eig_pos(data, evec_list):
+    A = get_adj(data.edge_index)
+    A_eval, A_evec, W_eval, W_evec, WA_eval, WA_evec = get_eigs(A, data.W)
+    xev = torch.zeros(data.x.shape)
+    for i, e in enumerate(evec_list):
+        for n in range(data.num_nodes):
+            xev[n,0] += WA_evec[n,e]
+            xev[n,1] += WA_evec[data.num_nodes+n,e]
+    return xev
+
+def get_adj(edge_index):
     adj = to_dense_adj(edge_index).squeeze()
     deginvsq = torch.pow(torch.sqrt(adj.sum(dim=0)), -1)
     A = torch.diag(deginvsq) @ adj @ torch.diag(deginvsq)
+    return A
+
+def get_eigs(A,W):
     A_eval, A_evec = torch.linalg.eigh(A)
-    AW = torch.kron(A, W)
-    AW_eval, AW_evec = torch.linalg.eigh(AW)
+    W_eval, W_evec = torch.linalg.eigh(A)
+    WA = torch.kron(W, A)
+    WA_eval, WA_evec = torch.linalg.eigh(WA)
     print(f"A {A}")
     print(f"A_eval {A_eval}")
     print(f"A_evec (per row) {A_evec.T}")
-    print(f"AW {AW}")
-    print(f"AW_evec {AW_evec}")
-    print(f"AW_eval (per row) {AW_eval.T}")
+    print(f"WA {WA}")
+    print(f"WA_evec {WA_evec}")
+    print(f"WA_eval (per row) {WA_eval.T}")
+    return A_eval, A_evec, W_eval, W_evec, WA_eval, WA_evec
+
+def get_dynamics(data):
+    W, T, dt = data.W, data.T, data.dt
+    edge_index = to_undirected(data.edge_index)
+    A = get_adj(edge_index)
     x = data.x
     X = x.unsqueeze(dim=-1)
     Y = torch.zeros(X.shape, dtype=torch.float)
@@ -75,6 +128,24 @@ def plot_eigs(eig_vecs, eig_vals, clist, ax, nodes=True, edges=True):
         ax.add_artist(arw)
         ax.text(t, x1pos * 1.2, y1pos * 1.2, f"e{j+1}", c=clist[j])
 
+
+def plot_WA_eigs(data, offset, t_idx, X_all, evec_list, escale, clist, ax):
+    edge_index = data.edge_index
+    W = data.W
+    A = get_adj(edge_index)
+    A_eval, A_evec, W_eval, W_evec, WA_eval, WA_evec = get_eigs(A, W)
+    N = X_all.shape[0]
+    WA_normed = WA_evec / WA_evec.norm(p=2, dim=0).unsqueeze(0) * escale
+    WA_normed = WA_normed.detach().numpy()
+    for i, e in enumerate(evec_list):
+        for n in range(N):
+            xpos = X_all[n, 0, t_idx]
+            x1pos = xpos + WA_normed[n,e]
+            ypos = X_all[n, 1, t_idx]
+            y1pos = ypos + WA_normed[N+n,e]
+            arw = Arrow3D([offset,offset],[xpos,x1pos],[ypos,y1pos], arrowstyle="->", color=clist[i], lw = 2, mutation_scale=25)
+            ax.add_artist(arw)
+
 def plot_labels(labels, offset, X_all, clist, t_idx, T, ax):
     N = X_all.shape[0]
     num_T = X_all.shape[-1]
@@ -82,13 +153,12 @@ def plot_labels(labels, offset, X_all, clist, t_idx, T, ax):
     for n in range(N):
         ax.text(T, X_all[n,0,t_idx]*offset[n], X_all[n,1,t_idx]*offset[n], f"{labels[n]}", c=clist[n], size=14)
 
-def plot_slices(num_slices, dt, edge_index, X_all, Y_all, W, clist, ax, nodes=True, edges=True, arrows=True, trace=False):
-    edge_index = edge_index.detach().numpy()
+def plot_slices(data, X_all, Y_all, num_slices, clist, ax, nodes=True, edges=True, arrows=True, trace=False):
+    edge_index = data.edge_index.detach().numpy()
     N = X_all.shape[0]
     T = X_all.shape[-1]
     t_idxs = [0] + list(range(T//num_slices, T - T//num_slices, T//num_slices)) + [T-1]
-    #list(range(T)) #possbile here to control slice frequency
-
+    dt = data.dt
     #plot slices
     for t in t_idxs:
         pos = {i: [t*dt, X_all[i, 0, t].item(), X_all[i, 1, t].item()]
@@ -109,7 +179,7 @@ def plot_slices(num_slices, dt, edge_index, X_all, Y_all, W, clist, ax, nodes=Tr
                     arw = Arrow3D([t*dt,t*dt],[xpos,x1pos],[ypos,y1pos], arrowstyle="->", color=colors[n], lw = 2, mutation_scale=25)
                     ax.add_artist(arw)
             else:
-                pass
+                pass #terminal arrows
                 # for n in range(N):
                 #     xpos = X_all[n, 0, -1]
                 #     x1pos = xpos + Y_all[n, 0, -1] * T//num_slices * dt
@@ -142,6 +212,47 @@ def plot_slices(num_slices, dt, edge_index, X_all, Y_all, W, clist, ax, nodes=Tr
     #             (X_all[u, t, 1].item(), X_all[v, t, 1].item()),
     #             color="tab:gray")
 
+# def plot_graph(data, X_all, t_idx, clist, ax, nodes=True, edges=True):
+#     edge_index = data.edge_index.detach().numpy()
+#     N = X_all.shape[0]
+#     dt = data.dt
+#     pos = {i: [t_idx * dt, X_all[i, 0, t_idx].item(), X_all[i, 1, t_idx].item()]
+#            for i in range(N)}
+#     node_xyz = np.array([pos[i] for i in range(N)])
+#     edge_xyz = np.array([(pos[uv[0]], pos[uv[1]]) for uv in edge_index.T])
+#     plot_3d(node_xyz, edge_xyz, clist, ax, nodes, edges)
+
+def plot_graph(data, X, t, clist, ax, nodes=True, edges=True):
+    edge_index = data.edge_index.detach().numpy()
+    N = X.shape[0]
+    pos = {i: [t, X[i, 0], X[i, 1]] for i in range(N)}
+    node_xyz = np.array([pos[i] for i in range(N)])
+    edge_xyz = np.array([(pos[uv[0]], pos[uv[1]]) for uv in edge_index.T])
+    plot_3d(node_xyz, edge_xyz, clist, ax, nodes, edges)
+
+def plot_arrows(X_all, t, t_idx, dt_idx, colors, ax):
+    N = X_all.shape[0]
+    for n in range(N):
+        xpos = X_all[n, 0, t_idx]
+        x1pos = X_all[n, 0, t_idx + dt_idx]
+        ypos = X_all[n, 1, t_idx]
+        y1pos = X_all[n, 1, t_idx + dt_idx]
+        arw = Arrow3D([t, t], [xpos, x1pos], [ypos, y1pos], arrowstyle="->", color=colors[n], lw=2,
+                      mutation_scale=25)
+        ax.add_artist(arw)
+
+def plot_trace_dots(X_all, T_idx, dt, colors, ax):
+    N = X_all.shape[0]
+    for n in range(N):
+        ax.scatter(dt * np.linspace(0, T_idx, T_idx+1), X_all[n, 0, :], X_all[n, 1, :],
+                   s=10.0, color=colors[n], ec="w")
+
+def plot_trace_lines(X_all, T_idx, dt, colors, ax):
+    N = X_all.shape[0]
+    for n in range(N):
+        ax.plot(dt * np.linspace(0, T_idx, T_idx+1), X_all[n, 0, :], X_all[n, 1, :],
+                   lw=2.0, color=colors[n])
+
 # https://networkx.org/documentation/stable/auto_examples/3d_drawing/plot_basic.html
 def plot_3d(node_xyz, edge_xyz, clist, ax, nodes, edges):
     if nodes:
@@ -151,7 +262,8 @@ def plot_3d(node_xyz, edge_xyz, clist, ax, nodes, edges):
     if edges:
         # Plot the edges
         for vizedge in edge_xyz:
-            ax.plot(*vizedge.T, color="tab:gray")
+            ax.plot(*vizedge.T, color="tab:gray", lw=1)
+            # ax.plot(*vizedge.T, color="black", lw=1)
 
     def _format_axes(ax):
         """Visualization options for the 3D axes."""
@@ -172,57 +284,69 @@ def plot_3d(node_xyz, edge_xyz, clist, ax, nodes, edges):
         # ax.set_zlabel('x1-axis', fontsize=10)
     _format_axes(ax)
 
+def plot_frames(data, t_idxs, ax):
+    X_all, Y_all = get_dynamics(data)
+    clist= 4*["grey"]
+    for t_idx in t_idxs:
+        t = t_idx * data.dt
+        X = X_all[:,:,t_idx]
+        plot_graph(data, X, t, clist, ax, nodes=False, edges=True)
+    # plot_slices(data, X_all, Y_all, num_slices, clist, ax, nodes=False, edges=True, arrows=False)
 
 def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     if ax is None:
         fig = plt.figure()#figsize=(12,8))
         ax = fig.add_subplot(111, projection="3d")
 
-    #plot frame
-    edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],
-                               [1, 3, 0, 2, 1, 3, 0, 2]], dtype=torch.long)
-    x = 2.0 * torch.tensor([[-1, -1], [-1, 1], [1, 1], [1, -1]], dtype=torch.float)
-    invsqrt2 = 1 / torch.sqrt(torch.tensor(2))
-    eig_vecs = invsqrt2 * torch.tensor([[1, 1],[1, -1]], dtype=torch.float)
-    # eig_vecs = torch.tensor([[1, 0],[0, 1]], dtype=torch.float)
-
-    eig_vals = 0.95 * torch.tensor([-1.0, 1.0], dtype=torch.float)
-    W = eig_vecs @ torch.diag(eig_vals) @ eig_vecs.T
-    T = 3.0
-    dt = 0.1
+    #plot frames
+    edge_index, x, y, clist = get_graph("square")
+    data = get_data(edge_index, x, y)
     num_slices = 2#3 #excluding initial condition
-    data = get_data(edge_index, x)
-    X_all, Y_all = get_dynamics(data, W, T, dt)
-    clist= 4*["grey"]
-    plot_slices(num_slices, dt, edge_index, 2*X_all, Y_all, W, clist, ax, nodes=False, edges=True, arrows=False)
+    T_idx = int(data.T/data.dt)
+    step = int(T_idx//num_slices)
+    t_idxs = list(range(0, T_idx + step, step))
+    # plot_frames(data, t_idxs, ax)
 
     #plot graph
-    edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],#, 0, 2],
-                               [1, 3, 0, 2, 1, 3, 0, 2]],#, 2, 0]],
-                                dtype=torch.long)
-    x = torch.tensor([[-1, -1], [-1, 1], [1.5, 2], [1, -1]], dtype=torch.float)
-    # x = torch.tensor([[-1, -0.25], [-0.25, -1], [1.25, 0], [0, 1.25]], dtype=torch.float)
-    data = get_data(edge_index, x)
-    X_all, Y_all = get_dynamics(data, W, T, dt)
-    clist = ["red","green","orange","blue"]
-    plot_slices(num_slices, dt, edge_index, X_all, Y_all, W, clist, ax, nodes=True, edges=True, arrows=True, trace=True)
+    edge_index, x, y, clist = get_graph("trapezium")
+    # edge_index, x, y, clist = get_graph("barbell")
+    data = get_data(edge_index, x, y)
+    evec_list = [-1] #goes most neg to most pos, ie most repulsive to attractive
+    # data.x = get_eig_pos(data, evec_list)
+
+    X_all, Y_all = get_dynamics(data)
+
+    #plot T=0
+    # plot_slices(data, X_all, Y_all, num_slices, clist, ax, nodes=True, edges=False, arrows=True, trace=True)
+    plot_graph(data, X_all[:,:,0], 0, clist, ax, nodes=True, edges=True)
+
     #plot_labels
-    offset = [1.8,2.2,1.2,1.9]
-    clist = 4 * ["black"]
-    plot_labels(data.y, offset, X_all, clist, 0, 0, ax)
-    # plot_labels(data.y, offset, X_all, clist, -1, T, ax)
-    clist = ["tab:blue", "tab:purple"]
-    #plot eigs
-    # plot_eigs(eig_vecs, eig_vals, clist, ax, nodes=True, edges=True)
+    # offset = [1.8,2.2,1.2,1.9] #for square
+    # offset = num_nodes * [1.2]
+    # plot_labels(data.y, offset, X_all, num_nodes * ["black"], 0, 0, ax)
+
+    #plot trace
+    # plot_trace_dots(X_all, T_idx, data.dt, clist, ax)
+    plot_trace_lines(X_all, T_idx, data.dt, clist, ax)
+
+    #plot t=T
+    plot_graph(data, X_all[:,:,T_idx], data.T, clist, ax, nodes=True, edges=True)
+
+    #plot eigs arrows
+    clist = ["red", "blue"] # clist = ["tab:blue", "tab:purple"]
+    evec_list = [-1]
+    escale = 1
+    t_idx = 0
+    plot_WA_eigs(data, 0, t_idx, X_all, evec_list, escale, clist, ax)
 
     # ax.set_xlabel('time', fontsize=10)
     # ax.set_ylabel('x0-axis', fontsize=10)
     # ax.set_zlabel('x1-axis', fontsize=10)
     # ax.view_init(30, angle)
 
-    ax.set_axis_off()
-    ax.set_zlim(-4, 3) #control top whitespace
-    ax.set_ylim(-2.5, 4) #control bottom whitespace
+    # ax.set_axis_off()
+    # ax.set_zlim(-4, 3) #control top whitespace
+    # ax.set_ylim(-2.5, 4) #control bottom whitespace
     fig.tight_layout()
 
     if save:
@@ -234,12 +358,12 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     return fig, ax
 
 if __name__ == "__main__":
-    # plot_electric(plot=True, save=True)
     plot_greed(plot=True, save=True)
-    # d3_ax()
-    # quiver()
-    # arrow()
-    # draw0([4, 4])
-    # draw([4, 2], [2, 4])
-    # d3_quiver()
-    # d3_arrow()
+
+    #scenarios tried
+    # trapezoid
+    # barbell
+    #plot in most attractive/repulsive eigen vectors
+    #plot dominant repulsive eigen vector at t=0
+
+    #problem is that node coordinates are the features so can't really show a mixed up graph
