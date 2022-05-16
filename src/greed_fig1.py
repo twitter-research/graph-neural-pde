@@ -38,10 +38,26 @@ class Arrow3D(FancyArrowPatch):
 def get_graph(graph_type):
     if graph_type == "square":
         edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],
-                      [1, 3, 0, 2, 1, 3, 0, 2]], dtype=torch.long)
+                                   [1, 3, 0, 2, 1, 3, 0, 2]], dtype=torch.long)
         x = torch.tensor([[-1, -1], [-1, 1], [1, 1], [1, -1]], dtype=torch.float)
         y = torch.tensor([0, 1, 0, 1])
         clist = ["red", "green", "orange", "blue"]
+    elif graph_type == "rectangle":
+        edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],
+                                   [1, 3, 0, 2, 1, 3, 0, 2]], dtype=torch.long)
+        x_min, x_max = -2., 2.
+        y_min, y_max = -0.6, 0.6
+        x = torch.tensor([[x_min, y_min], [x_min, y_max], [x_max, y_max], [x_max, y_min]], dtype=torch.float)
+        y = torch.tensor([0, 1, 0, 1])
+        clist = 4 * ["grey"]
+    elif graph_type == "rectangle2":
+        edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],
+                                   [1, 3, 0, 2, 1, 3, 0, 2]], dtype=torch.long)
+        x_min, x_max = -3.4, 3.4
+        y_min, y_max = -0.6, 0.6
+        x = torch.tensor([[x_min, y_min], [x_min, y_max], [x_max, y_max], [x_max, y_min]], dtype=torch.float)
+        y = torch.tensor([0, 1, 0, 1])
+        clist = 4 * ["grey"]
     elif graph_type == "trapezium":
         edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],  # , 0, 2],
                                    [1, 3, 0, 2, 1, 3, 0, 2]],  # , 2, 0]],
@@ -66,8 +82,6 @@ def get_graph(graph_type):
         x = torch.tensor([[-1, -h], [-1, h], [-0.5, 0], [0.5, 0], [1, h], [1, -h], [-1.25, 0], [1.25, 0]], dtype=torch.float)
         y = torch.tensor([0, 0, 0, 1, 0, 1])
         clist = ["red", "red", "blue", "red", "blue", "blue", "blue", "red"]
-
-
 
     return edge_index, x, y, clist
 
@@ -185,6 +199,13 @@ def plot_attr_rep(data, x, y, t, xscale, yscale, clist, label_pos, ax):
         label_scale = 1.3
         ax.text(t, label_pos[n][0], label_pos[n][1], labels[n], c=clist[n], size=12)
 
+def plot_time(x, y, t, T, label_pos, ax):
+    xpos = x
+    ypos = y
+    arw = Arrow3D([t, T], [xpos, xpos], [ypos, ypos], arrowstyle="->", color="grey", lw=2,
+                  mutation_scale=25)
+    ax.add_artist(arw)
+    ax.text(label_pos[2], label_pos[0], label_pos[1], "time", c="grey", size=12)
 
 
 def plot_labels(labels, offset, X_all, clist, t_idx, T, ax):
@@ -349,6 +370,14 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     scale = 2.5
     # plot_frames(data, t_idxs, ax, scale)
 
+    #plot manual frame
+    edge_index, x, y, clist = get_graph("rectangle")
+    data = get_data(edge_index, x, y)
+    plot_graph(data, x, 0, clist, ax, nodes=False, edges=True)
+    edge_index, x, y, clist = get_graph("rectangle2")
+    data = get_data(edge_index, x, y)
+    plot_graph(data, x, 2.8, clist, ax, nodes=False, edges=True)
+
     #plot graph
     # edge_index, x, y, clist = get_graph("trapezium")
     # edge_index, x, y, clist = get_graph("barbell")
@@ -386,7 +415,10 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     y_shift = -0.25
     label_pos = [[3.9, 0.2 + y_shift], [3.0, 0.65 + y_shift]]
     plot_attr_rep(data, x=3., y=0.+y_shift, t=1.0, xscale=1.5, yscale=0.6, clist=2*["tab:grey"], label_pos=label_pos, ax=ax)
+    x, y = 0, 0
+    plot_time(x, y, t=0, T=3.3, label_pos=[x-0.2, y-0.2, 2.9], ax=ax)
 
+    #foramt axis
     # ax.set_xlabel('time', fontsize=10)
     # ax.set_ylabel('x0-axis', fontsize=10)
     # ax.set_zlabel('x1-axis', fontsize=10)
@@ -394,7 +426,7 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
 
     ax.set_axis_off()
     ax.set_zlim(-1, 0.2) #control top whitespace
-    ax.set_ylim(-0.66, 3) #control bottom whitespace
+    ax.set_ylim(-1.26, 3) #control bottom whitespace
     ax.set_xlim(0.0, 2.8) #control time axis left/right whitespace
 
     fig.tight_layout()
