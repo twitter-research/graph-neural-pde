@@ -66,9 +66,9 @@ def get_data(edge_index, x, y):
     # eig_vecs = torch.tensor([[0, 1],[1, 0]], dtype=torch.float)
     # invsqrt2 = 1 / torch.sqrt(torch.tensor(2))
     # eig_vecs = invsqrt2 * torch.tensor([[1, 1],[1, -1]], dtype=torch.float)
-    eig_vals = torch.tensor([-3.0, 1.8], dtype=torch.float)
+    eig_vals = torch.tensor([-2.0, 1.0], dtype=torch.float)
     W = eig_vecs @ torch.diag(eig_vals) @ eig_vecs.T
-    T = 3.0
+    T = 2.5
     dt = 0.1
     data.W = W
     data.T = T
@@ -102,6 +102,15 @@ def get_eigs(A,W):
     print(f"WA {WA}")
     print(f"WA_evec {WA_evec}")
     print(f"WA_eval (per row) {WA_eval.T}")
+    print(f"lambda_+ {W_evec.max()}")
+    print(f"lambda_- {W_evec.min()}")
+    L = torch.eye(A.shape[0]) - A
+    L_eval, L_evec = torch.linalg.eigh(L)
+    print(f"L_eval {L_eval}")
+    print(f"L_evec (per row) {L_evec.T}")
+    row_L = torch.abs(L_eval).max()
+    print(f"row_L_ {row_L}")
+    print(f"row_minus {torch.abs(W_evec.min())*(1-row_L)}")
     return A_eval, A_evec, W_eval, W_evec, WA_eval, WA_evec
 
 def get_dynamics(data):
@@ -308,10 +317,10 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     # plot_frames(data, t_idxs, ax)
 
     #plot graph
-    edge_index, x, y, clist = get_graph("trapezium")
-    # edge_index, x, y, clist = get_graph("barbell")
+    # edge_index, x, y, clist = get_graph("trapezium")
+    edge_index, x, y, clist = get_graph("barbell")
     data = get_data(edge_index, x, y)
-    evec_list = [-1] #goes most neg to most pos, ie most repulsive to attractive
+    evec_list = [0,1,2, -3, -2, -1] #goes most neg to most pos of WA
     # data.x = get_eig_pos(data, evec_list)
 
     X_all, Y_all = get_dynamics(data)
@@ -334,10 +343,10 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
 
     #plot eigs arrows
     clist = ["red", "blue"] # clist = ["tab:blue", "tab:purple"]
-    evec_list = [-1]
-    escale = 1
+    evec_list = [-1, 0]
+    escale = 3
     t_idx = 0
-    plot_WA_eigs(data, 0, t_idx, X_all, evec_list, escale, clist, ax)
+    # plot_WA_eigs(data, 0, t_idx, X_all, evec_list, escale, clist, ax)
 
     # ax.set_xlabel('time', fontsize=10)
     # ax.set_ylabel('x0-axis', fontsize=10)
@@ -345,8 +354,8 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     # ax.view_init(30, angle)
 
     # ax.set_axis_off()
-    # ax.set_zlim(-4, 3) #control top whitespace
-    # ax.set_ylim(-2.5, 4) #control bottom whitespace
+    # ax.set_zlim(-3, 3) #control top whitespace
+    # ax.set_ylim(-3, 3) #control bottom whitespace
     fig.tight_layout()
 
     if save:
