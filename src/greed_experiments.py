@@ -1,3 +1,4 @@
+import argparse
 import datetime, time
 import torch
 import numpy as np
@@ -7,7 +8,8 @@ from torch_geometric.utils import homophily, add_remaining_self_loops, to_undire
 import wandb
 
 from run_GNN import main, unpack_gcn_params, unpack_greed_params
-from data import get_dataset, set_train_val_test_split, get_fixed_splits
+from data import get_dataset
+from heterophilic import get_fixed_splits
 from GNN import GNN
 from GNN_early import GNNEarly
 from GNN_KNN import GNN_KNN
@@ -124,17 +126,22 @@ def wall_clock_ablation(opt):
                        top_is_proj=False, use_prelu=False, dropout=opt['dropout']).to(device)
     else:
         model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
-    num_params = model.parameters().numel()
+
+    # num_params = model.parameters().numel()
+    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
     runs = []
     for i in range(100):
         start = time.time()
         _ = model(feat, pos_encoding)
         run_time = time.time() - start
         runs.append(run_time)
-
-    wandb_results = {"num_params": num_params,"av_fwd": np.mean(runs), "std_fwd": np.std(runs)}
+    av_fwd = np.mean(runs)
+    std_fwd = np.std(runs)
+    wandb_results = {"num_params": num_params,"av_fwd": av_fwd, "std_fwd": std_fwd}
     wandb.log(wandb_results)
     wandb_run.finish()
+    print(f"function {opt['function']}: num_params {num_params}, av_fwd {av_fwd}, std_fwd {std_fwd}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -439,4 +446,4 @@ if __name__ == "__main__":
 
     # applied to both sweeps and not sweeps
     opt = tf_ablation_args(opt)
-    main(opt)
+    wall_clock_ablation(opt)

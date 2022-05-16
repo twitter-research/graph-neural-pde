@@ -272,12 +272,49 @@ def plot_1(path, line_scatter, plot=True, save=True):
     if plot:
         fig.show()
 
+def wall_clock(path, line_scatter="scatter", plot=True, save=True):
+    sns.set_theme()
+    sns.color_palette()
+    df = pd.read_csv(path)
+    replace_dict = {0:"0:gcn",1:"1:gcn_enc/dec",2:"2:gcn_residual",3:"3:gcn_share_W",4:"4:gcn_symm_W",5:"5:no_nonLin"}
+    df.loc[:,'gcn_params_idx'].replace(to_replace=replace_dict, inplace=True)
+    fs = 16
+    ps = 25
+    fig, ax = plt.subplots()
+    if line_scatter == "scatter":
+        sns.scatterplot(x="hidden_dim", y="av_fwd", hue="gcn_params_idx", s=ps, data=df,
+                        ax=ax, palette="deep")#, marker="x")
+    elif line_scatter == "line":
+        sns.lineplot(x="hidden_dim", y="av_fwd", hue="gcn_params_idx", data=df, ax=ax)
+    ax.set_xlabel('Hidden dim', fontsize=fs)
+    ax.set_ylabel('Runtime', fontsize=fs)
+    ax.legend(prop=dict(size=fs-4), loc='upper left')
+    if save:
+        plt.savefig('../ablations/wall_clock_runtime.pdf')
+    if plot:
+        fig.show()
+
+    fig, ax = plt.subplots()
+    if line_scatter == "scatter":
+        sns.scatterplot(x="hidden_dim", y="num_params", hue="gcn_params_idx", s=ps, data=df,
+                        ax=ax, palette="deep")#, marker="x")
+    elif line_scatter == "line":
+        sns.lineplot(x="hidden_dim", y="num_params", hue="gcn_params_idx", data=df, ax=ax)
+    ax.set_xlabel('Hidden dim', fontsize=fs)
+    ax.set_ylabel('# params', fontsize=fs)
+    ax.legend(prop=dict(size=fs-4), loc='upper left')
+    if save:
+        plt.savefig('../ablations/wall_clock_params.pdf')
+    if plot:
+        fig.show()
+
 if __name__ == "__main__":
-    path = "../ablations/ablation_syn_cora.csv"
+    # path = "../ablations/ablation_syn_cora.csv"
     # _,_ = syn_cora_plot(path, plot=True, save=True)
     # syn_cora_best_times(path)
     # syn_cora_energy(path)
     # _,_ = syn_cora_homoph(path)
-    plot_1(path, "scatter")
-    plot_1(path, "line")
+    # plot_1(path, "scatter")
+    # plot_1(path, "line")
     # _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
+    wall_clock(path = "../ablations/wallclock.csv")
