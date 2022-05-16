@@ -39,7 +39,7 @@ def get_graph(graph_type):
     if graph_type == "square":
         edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],
                       [1, 3, 0, 2, 1, 3, 0, 2]], dtype=torch.long)
-        x = 2.0 * torch.tensor([[-1, -1], [-1, 1], [1, 1], [1, -1]], dtype=torch.float)
+        x = torch.tensor([[-1, -1], [-1, 1], [1, 1], [1, -1]], dtype=torch.float)
         y = torch.tensor([0, 1, 0, 1])
         clist = ["red", "green", "orange", "blue"]
     elif graph_type == "trapezium":
@@ -54,9 +54,21 @@ def get_graph(graph_type):
                                    [1, 2, 0, 2, 0, 1, 3, 2, 4, 5, 3, 5, 3, 4]],
                                   dtype=torch.long)
         x = torch.tensor([[-1, -1], [-1, 1], [-0.5, 0], [0.5, 0], [1, 1], [1, -1]], dtype=torch.float)
-        y = torch.tensor([0, 1, 0, 1, 0, 1])
-        clist = ["red", "red", "blue", "red", "blue", "blue"]#, "orange", "blue", "purple", "c"]
+        y = torch.tensor([0, 0, 1, 0, 1, 1])
+        clist = ["red", "red", "blue", "red", "blue", "blue"]
         # clist = ["red", "green", "orange", "blue", "purple", "c"]
+    elif graph_type == "barbell2":
+        edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 5, 5, 0, 1, 4, 5],
+                                   [1, 2, 0, 2, 0, 1, 3, 2, 4, 5, 3, 5, 3, 4, 6, 6, 7, 7]],
+                                  dtype=torch.long)
+        # x = torch.tensor([[-1, -1], [-1, 1], [-0.5, 0], [0.5, 0], [1, 1], [1, -1], [-1.25, 0], [1.25, 0]], dtype=torch.float)
+        h = 0.5
+        x = torch.tensor([[-1, -h], [-1, h], [-0.5, 0], [0.5, 0], [1, h], [1, -h], [-1.25, 0], [1.25, 0]], dtype=torch.float)
+        y = torch.tensor([0, 0, 0, 1, 0, 1])
+        clist = ["red", "red", "blue", "red", "blue", "blue", "blue", "red"]
+
+
+
     return edge_index, x, y, clist
 
 def get_data(edge_index, x, y):
@@ -67,9 +79,9 @@ def get_data(edge_index, x, y):
     # eig_vecs = torch.tensor([[0, 1],[1, 0]], dtype=torch.float)
     # invsqrt2 = 1 / torch.sqrt(torch.tensor(2))
     # eig_vecs = invsqrt2 * torch.tensor([[1, 1],[1, -1]], dtype=torch.float)
-    eig_vals = torch.tensor([-2.0, 1.0], dtype=torch.float)
+    eig_vals = torch.tensor([-2.0, 2.0], dtype=torch.float)
     W = eig_vecs @ torch.diag(eig_vals) @ eig_vecs.T
-    T = 2.5
+    T = 2.8#2.5
     dt = 0.1
     data.W = W
     data.T = T
@@ -94,7 +106,7 @@ def get_adj(edge_index):
 
 def get_eigs(A,W):
     A_eval, A_evec = torch.linalg.eigh(A)
-    W_eval, W_evec = torch.linalg.eigh(A)
+    W_eval, W_evec = torch.linalg.eigh(W)
     WA = torch.kron(W, A)
     WA_eval, WA_evec = torch.linalg.eigh(WA)
     print(f"A {A}")
@@ -155,6 +167,25 @@ def plot_WA_eigs(data, offset, t_idx, X_all, evec_list, escale, clist, ax):
             y1pos = ypos + WA_normed[N+n,e]
             arw = Arrow3D([offset,offset],[xpos,x1pos],[ypos,y1pos], arrowstyle="->", color=clist[i], lw = 2, mutation_scale=25)
             ax.add_artist(arw)
+
+def plot_attr_rep(data, x, y, t, xscale, yscale, clist, label_pos, ax):
+    edge_index = data.edge_index
+    W = data.W
+    A = get_adj(edge_index)
+    A_eval, A_evec, W_eval, W_evec, WA_eval, WA_evec = get_eigs(A, W)
+    labels = ["rep","attr"]
+    for n in range(2):
+        xpos = x
+        x1pos = x + W_evec[0,n] * xscale
+        ypos = y
+        y1pos = y + W_evec[1,n] * yscale
+        arw = Arrow3D([t, t], [xpos, x1pos], [ypos, y1pos], arrowstyle="->", color=clist[n], lw=2,
+                      mutation_scale=25)
+        ax.add_artist(arw)
+        label_scale = 1.3
+        ax.text(t, label_pos[n][0], label_pos[n][1], labels[n], c=clist[n], size=12)
+
+
 
 def plot_labels(labels, offset, X_all, clist, t_idx, T, ax):
     N = X_all.shape[0]
@@ -294,12 +325,12 @@ def plot_3d(node_xyz, edge_xyz, clist, ax, nodes, edges):
         # ax.set_zlabel('x1-axis', fontsize=10)
     _format_axes(ax)
 
-def plot_frames(data, t_idxs, ax):
+def plot_frames(data, t_idxs, ax, scale):
     X_all, Y_all = get_dynamics(data)
     clist= 4*["grey"]
     for t_idx in t_idxs:
         t = t_idx * data.dt
-        X = X_all[:,:,t_idx]
+        X = scale * X_all[:,:,t_idx]
         plot_graph(data, X, t, clist, ax, nodes=False, edges=True)
     # plot_slices(data, X_all, Y_all, num_slices, clist, ax, nodes=False, edges=True, arrows=False)
 
@@ -311,15 +342,17 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     #plot frames
     edge_index, x, y, clist = get_graph("square")
     data = get_data(edge_index, x, y)
-    num_slices = 2#3 #excluding initial condition
-    T_idx = int(data.T/data.dt)
+    num_slices = 1#3 #excluding initial condition
+    T_idx = int(np.round(data.T/data.dt, 2)) #int(data.T/data.dt)
     step = int(T_idx//num_slices)
     t_idxs = list(range(0, T_idx + step, step))
-    # plot_frames(data, t_idxs, ax)
+    scale = 2.5
+    # plot_frames(data, t_idxs, ax, scale)
 
     #plot graph
     # edge_index, x, y, clist = get_graph("trapezium")
-    edge_index, x, y, clist = get_graph("barbell")
+    # edge_index, x, y, clist = get_graph("barbell")
+    edge_index, x, y, clist = get_graph("barbell2")
     data = get_data(edge_index, x, y)
     evec_list = [0,1,2, -3, -2, -1] #goes most neg to most pos of WA
     # data.x = get_eig_pos(data, evec_list)
@@ -349,14 +382,21 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     t_idx = 0
     # plot_WA_eigs(data, 0, t_idx, X_all, evec_list, escale, clist, ax)
 
+    #plot attraction repulsion axis
+    y_shift = -0.25
+    label_pos = [[3.9, 0.2 + y_shift], [3.0, 0.65 + y_shift]]
+    plot_attr_rep(data, x=3., y=0.+y_shift, t=1.0, xscale=1.5, yscale=0.6, clist=2*["tab:grey"], label_pos=label_pos, ax=ax)
+
     # ax.set_xlabel('time', fontsize=10)
     # ax.set_ylabel('x0-axis', fontsize=10)
     # ax.set_zlabel('x1-axis', fontsize=10)
     # ax.view_init(30, angle)
 
     ax.set_axis_off()
-    ax.set_zlim(-1, 0.6) #control top whitespace
-    ax.set_ylim(-1, 3) #control bottom whitespace
+    ax.set_zlim(-1, 0.2) #control top whitespace
+    ax.set_ylim(-0.66, 3) #control bottom whitespace
+    ax.set_xlim(0.0, 2.8) #control time axis left/right whitespace
+
     fig.tight_layout()
 
     if save:
