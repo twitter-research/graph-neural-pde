@@ -309,10 +309,14 @@ def wall_clock(path, model, line_scatter="scatter", plot=True, save=True):
         df = df[(df.function == "greed_non_linear")].reset_index(drop=True)
     else:
         df = df[(df.function != "greed_non_linear")].reset_index(drop=True)
-        replace_dict = {0:"0:gcn",1:"1:gcn_enc/dec",2:"2:gcn_residual",3:"3:gcn_share_W",4:"4:gcn_symm_W",5:"5:no_nonLin"}
+        replace_dict = {0:"0:gcn",1:"1:gcn_enc/dec",2:"2:gcn_residual",3:"3:gcn_share_W",4:"4:gcn_symm_W",5:"GraF"}#"5:no_nonLin"}
         df.loc[:,'gcn_params_idx'].replace(to_replace=replace_dict, inplace=True)
 
-    fs = 16
+        mask = (df["function"] == "gat")
+        df.loc[mask, 'gcn_params_idx'] = "gat"
+
+
+    fs = 14
     ps = 25
     fig, ax = plt.subplots()
     if model == "greed_non_linear":
@@ -327,8 +331,8 @@ def wall_clock(path, model, line_scatter="scatter", plot=True, save=True):
                             ax=ax, palette="deep")#, marker="x")
         elif line_scatter == "line":
             sns.lineplot(x="hidden_dim", y="av_fwd", hue="gcn_params_idx", data=df, ax=ax)
-    ax.set_xlabel('Hidden dim', fontsize=fs)
-    ax.set_ylabel('Runtime', fontsize=fs)
+    ax.set_xlabel('hidden dim', fontsize=fs)
+    ax.set_ylabel('runtime', fontsize=fs)
     ax.legend(prop=dict(size=fs-4), loc='upper left')
     if save:
         plt.savefig('../ablations/wall_clock_runtime.pdf')
@@ -360,4 +364,4 @@ if __name__ == "__main__":
     # plot_1(path, "line")
     # _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
     wall_clock(path="../ablations/wallclock.csv", model="gcn")
-    wall_clock(path="../ablations/wallclock.csv", model="greed_non_linear")
+    # wall_clock(path="../ablations/wallclock.csv", model="greed_non_linear")
