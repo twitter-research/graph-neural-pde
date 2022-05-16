@@ -15,7 +15,7 @@ from GNN import GNN
 from GNN_early import GNNEarly
 from GNN_KNN import GNN_KNN
 from GNN_KNN_early import GNNKNNEarly
-from GNN_GCN import GCN, MLP
+from GNN_GCN import GCN, MLP, GAT
 from GNN_GCNMLP import GNNMLP
 from data import get_dataset, set_train_val_test_split
 from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling, dirichlet_energy
@@ -465,6 +465,16 @@ def main(cmd_opt):
                            learnable_mixing=False, use_sage=False, use_gat=False, gat_num_heads=1,
                            top_is_proj=False, use_prelu=False, dropout=opt['dropout']
                            ).to(device)
+        elif opt['function'] in ['gat']:
+            model = GAT(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['dropout'], device=device).to(device)
+            # hidden_feat_repr_dims = int(opt['time'] // opt['step_size']) * [opt['hidden_dim']]
+            # feat_repr_dims = [dataset.data.x.shape[1]] + hidden_feat_repr_dims + [dataset.num_classes]
+            # model = GNNMLP(opt, dataset, device, feat_repr_dims,
+            #                enable_mlp=True if opt['function'] == 'mlp' else False,
+            #                enable_gcn=True, #required for GAT
+            #                learnable_mixing=False, use_sage=False,
+            #                use_gat=True if opt['function'] == 'gat' else False, gat_num_heads=1,
+            #                top_is_proj=False, use_prelu=False, dropout=opt['dropout']).to(device)
         else:
             model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(
                 device)
@@ -846,7 +856,8 @@ if __name__ == '__main__':
     opt = vars(args)
 
     if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero',
-                           'greed_non_linear', 'greed_lie_trotter', 'gcn', 'gcn2', 'mlp', 'gcn_dgl', 'gcn_res_dgl']:
+                           'greed_non_linear', 'greed_lie_trotter', 'gcn', 'gcn2', 'mlp', 'gcn_dgl', 'gcn_res_dgl',
+                           'gat', 'GAT']:
         opt = greed_run_params(opt)  ###basic params for GREED
 
 

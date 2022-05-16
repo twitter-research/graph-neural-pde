@@ -254,11 +254,10 @@ def greed_ablation_params(opt):
 
     #gcn params
     # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
-    opt['gcn_enc_dec'] = True #False #True
+    opt['gcn_enc_dec'] = False #False #True
     opt['gcn_fixed'] = False #False #True
     opt['gcn_symm'] = False#True
     opt['gcn_non_lin'] = True #False #True
-
     opt['gcn_bias'] = True
     opt['gcn_mid_dropout'] = False
     # opt['gcn_params'] = [0, 'gcn_dgl', False, False, False, True]

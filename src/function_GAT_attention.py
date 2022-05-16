@@ -13,6 +13,10 @@ class ODEFuncAtt(ODEFunc):
   def __init__(self, in_features, out_features, opt, data, device):
     super(ODEFuncAtt, self).__init__(opt, data, device)
 
+    self.energy = 0
+    self.epoch = 0
+    self.wandb_step = 0
+
     if opt['self_loop_weight'] > 0:
       self.edge_index, self.edge_weight = add_remaining_self_loops(data.edge_index, data.edge_attr,
                                                                    fill_value=opt['self_loop_weight'])

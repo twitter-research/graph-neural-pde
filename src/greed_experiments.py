@@ -124,6 +124,15 @@ def wall_clock_ablation(opt):
                        enable_gcn=True if opt['function'] in ['gcn2', 'gcn_dgl', 'gcn_res_dgl'] else False,
                        learnable_mixing=False, use_sage=False, use_gat=False, gat_num_heads=1,
                        top_is_proj=False, use_prelu=False, dropout=opt['dropout']).to(device)
+    elif opt['function'] in ['gat']:
+        hidden_feat_repr_dims = int(opt['time'] // opt['step_size']) * [opt['hidden_dim']]
+        feat_repr_dims = [dataset.data.x.shape[1]] + hidden_feat_repr_dims + [dataset.num_classes]
+        model = GNNMLP(opt, dataset, device, feat_repr_dims,
+                       enable_mlp=True if opt['function'] == 'mlp' else False,
+                       enable_gcn=True if opt['function'] in ['gcn2', 'gcn_dgl', 'gcn_res_dgl'] else False,
+                       learnable_mixing=False, use_sage=False,
+                       use_gat=True if opt['function'] == 'gat' else False, gat_num_heads=1,
+                       top_is_proj=False, use_prelu=False, dropout=opt['dropout']).to(device)
     else:
         model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
 
@@ -435,7 +444,8 @@ if __name__ == "__main__":
     opt = vars(args)
 
     if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero',
-                           'greed_non_linear', 'greed_lie_trotter', 'gcn', 'gcn2', 'mlp', 'gcn_dgl', 'gcn_res_dgl']:
+                           'greed_non_linear', 'greed_lie_trotter', 'gcn', 'gcn2', 'mlp', 'gcn_dgl', 'gcn_res_dgl',
+                           'gat', 'GAT']:
         opt = greed_run_params(opt)  ###basic params for GREED
 
     if not opt['wandb_sweep']:  # sweeps are run from YAML config so don't need these
