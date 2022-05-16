@@ -55,7 +55,8 @@ def get_graph(graph_type):
                                   dtype=torch.long)
         x = torch.tensor([[-1, -1], [-1, 1], [-0.5, 0], [0.5, 0], [1, 1], [1, -1]], dtype=torch.float)
         y = torch.tensor([0, 1, 0, 1, 0, 1])
-        clist = ["red", "green", "orange", "blue", "purple", "c"]
+        clist = ["red", "red", "blue", "red", "blue", "blue"]#, "orange", "blue", "purple", "c"]
+        # clist = ["red", "green", "orange", "blue", "purple", "c"]
     return edge_index, x, y, clist
 
 def get_data(edge_index, x, y):
@@ -266,7 +267,7 @@ def plot_trace_lines(X_all, T_idx, dt, colors, ax):
 def plot_3d(node_xyz, edge_xyz, clist, ax, nodes, edges):
     if nodes:
         # Plot the nodes - alpha is scaled by "depth" automatically
-        cmap = plt.get_cmap("tab10")
+        # cmap = plt.get_cmap("tab10")
         ax.scatter(*node_xyz.T, c=clist, s=80)#cmap=cmap#, ec="w")
     if edges:
         # Plot the edges
@@ -335,8 +336,8 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     # plot_labels(data.y, offset, X_all, num_nodes * ["black"], 0, 0, ax)
 
     #plot trace
-    # plot_trace_dots(X_all, T_idx, data.dt, clist, ax)
-    plot_trace_lines(X_all, T_idx, data.dt, clist, ax)
+    plot_trace_dots(X_all, T_idx, data.dt, clist, ax)
+    # plot_trace_lines(X_all, T_idx, data.dt, clist, ax)
 
     #plot t=T
     plot_graph(data, X_all[:,:,T_idx], data.T, clist, ax, nodes=True, edges=True)
@@ -353,9 +354,9 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     # ax.set_zlabel('x1-axis', fontsize=10)
     # ax.view_init(30, angle)
 
-    # ax.set_axis_off()
-    # ax.set_zlim(-3, 3) #control top whitespace
-    # ax.set_ylim(-3, 3) #control bottom whitespace
+    ax.set_axis_off()
+    ax.set_zlim(-1, 0.6) #control top whitespace
+    ax.set_ylim(-1, 3) #control bottom whitespace
     fig.tight_layout()
 
     if save:
