@@ -46,17 +46,26 @@ def jitter():
     plt.title('Use jittered plots to avoid overlapping of points', fontsize=22)
     # fig.show()
 
-def size_d_plot(path, plot=True, save=True):
-    df = pd.read_csv(path)
-    df = df.replace(to_replace={"diag_dom":"diag-dom"})
+def size_d_plot(plot=True, save=True):
+    df2 = pd.read_csv("../ablations/ablation_size_d2.csv")
+    df3 = pd.read_csv("../ablations/ablation_size_d3.csv")
+
     for ds in ["chameleon","squirrel","Cora"]:
-        ds_df = df[(df.dataset == ds)]
-        mask = (df["function"] == "greed_non_linear")
+        #filter out the diagdom, results as they had hidden dim normalisation
+        ds_df2 = df2[(df2.dataset == ds) & ~((df2.gnl_W_style == "diag_dom") & (df2.function == "greed_non_linear"))]
+        #get them from 3
+        ds_df3 = df3[((df3.dataset == ds) & (df3.gnl_W_style == "diag_dom"))]
+
+        ds_df = pd.concat([ds_df2, ds_df3])
+        ds_df = ds_df.reset_index(drop=True)
+        mask = (ds_df["function"] == "greed_non_linear")
         ds_df.loc[mask, 'function'] = ds_df.loc[mask, 'gnl_W_style']
+        ds_df = ds_df.replace(to_replace={"diag_dom": "diag-dom"})
 
         piv = pd.pivot_table(ds_df, values="test_mean", index="hidden_dim", columns="function",
                                  aggfunc=np.max)
-        fs = 16
+        fs = 14
+        sns.set_theme()
         fig, ax = plt.subplots()
         sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax)
         ax.set(xscale='log')
@@ -64,11 +73,11 @@ def size_d_plot(path, plot=True, save=True):
         ax.get_xaxis().set_major_formatter(ScalarFormatter())
 
         ax.set_ylabel('Test acc', fontsize=fs)
-        ax.set_title(f"dataset {ds}", fontsize=fs)
+        ax.set_title(f"dataset {ds.title()}", fontsize=fs)
         # ax.get_xaxis().set_visible(False)
-        ax.legend(prop=dict(size=fs), loc='upper left')
+        ax.legend(prop=dict(size=fs), loc='lower right')
         if save:
-            plt.savefig(f"../ablations/size_d_{ds}.pdf")
+            plt.savefig(f"../ablations/size_d_{ds.lower()}.pdf")
         if plot:
             fig.show()
     #todo make multi-subplots
@@ -365,4 +374,4 @@ if __name__ == "__main__":
     # _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
     # wall_clock(path="../ablations/wallclock.csv", model="gcn")
     # wall_clock(path="../ablations/wallclock.csv", model="greed_non_linear")
-    size_d_plot(path="../ablations/ablation_size_d3.csv")
+    size_d_plot()
