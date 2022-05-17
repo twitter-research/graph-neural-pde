@@ -1,0 +1,61 @@
+program: run_GNN.py
+method: random
+parameters:
+  dataset:
+    values: [squirrel]
+  block:
+    values: [constant]
+  function:
+    values: [greed_non_linear]
+  epoch:
+    values: [200]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_activation:
+    values: [identity]
+  gnl_measure:
+    values: [ones]
+  drift:
+    values: [False]
+  greed_params:
+    values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag_dom, uniform, True, zero, None, False, True, True]]
+  use_mlp:
+    values: [True, False]
+  hidden_dim:
+    values: [64]
+  time:
+    distribution: uniform
+    min: 1.5
+    max: 4
+  step_size:
+    values: [0.25, 0.5, 1.0]
+  input_dropout:
+    distribution: uniform
+    min: 0.3
+    max: 0.85
+  dropout:
+    distribution: uniform
+    min: 0.15
+    max: 0.5
+  optimizer:
+    values: [adam]
+  lr:
+    distribution: uniform
+    min: 0.004
+    max: 0.012
+  decay:
+    distribution: uniform
+    min: 0.000
+    max: 0.002
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --geom_gcn_splits
+entity: graph_neural_diffusion
+project: final3_squirrel_tune_2
