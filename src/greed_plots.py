@@ -314,6 +314,8 @@ def wall_clock(path, model, line_scatter="scatter", plot=True, save=True):
 
         mask = (df["function"] == "gat")
         df.loc[mask, 'gcn_params_idx'] = "gat"
+        mask = (df["function"] == "gcn")
+        df.loc[mask, 'gcn_params_idx'] = "pyg-gcn"
 
     fs = 14
     ps = 25
@@ -362,5 +364,6 @@ if __name__ == "__main__":
     # plot_1(path, "scatter")
     # plot_1(path, "line")
     # _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
-    wall_clock(path="../ablations/wallclock.csv", model="gcn")
+    # wall_clock(path="../ablations/wallclock.csv", model="gcn")
     # wall_clock(path="../ablations/wallclock.csv", model="greed_non_linear")
+    size_d_plot(path="../ablations/ablation_size_d.csv")

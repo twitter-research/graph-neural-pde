@@ -17,10 +17,8 @@ parameters:
     values: [general_graph]
   gnl_activation:
     values: [identity]
-  gnl_W_params:
-    values: [[sum, None, None], [diag, uniform, None], [diag, identity, None], [diag_dom, None, uniform], [diag_dom, None, identity], [k_diag_pc, uniform, None], [k_diag_pc, identity, None]]
-  k_diag_pc:
-    values: [0.10]
+  greed_params:
+    values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag, uniform, False, diag, free, True, True, True]]
   gnl_measure:
     values: [ones]
   gnl_omega:
