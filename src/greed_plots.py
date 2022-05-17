@@ -315,7 +315,6 @@ def wall_clock(path, model, line_scatter="scatter", plot=True, save=True):
         mask = (df["function"] == "gat")
         df.loc[mask, 'gcn_params_idx'] = "gat"
 
-
     fs = 14
     ps = 25
     fig, ax = plt.subplots()
