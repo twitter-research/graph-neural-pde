@@ -18,7 +18,7 @@ parameters:
   gnl_activation:
     values: [identity]
   greed_params:
-    values: [[diag_dom, zero, True, diag, free, False, True, True], [diag, uniform, False, diag, free, True, True, True]]
+    values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag, uniform, False, diag, free, True, True, True]]
   gnl_measure:
     values: [ones]
   gnl_omega:
