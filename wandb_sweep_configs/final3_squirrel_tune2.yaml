@@ -43,12 +43,12 @@ parameters:
     values: [adam]
   lr:
     distribution: uniform
-    min: 0.0008
-    max: 0.004
-  decay:
-    distribution: uniform
     min: 0.004
     max: 0.012
+  decay:
+    distribution: uniform
+    min: 0.000
+    max: 0.002
 command:
   - ${env}
   - python3
