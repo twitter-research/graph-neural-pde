@@ -3,6 +3,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib. pyplot as plt
 from seaborn.relational import _RelationalPlotter, _ScatterPlotter
+from matplotlib.ticker import ScalarFormatter
 
 sns.set_theme(style="whitegrid")
 rs = np.random.RandomState(365)
@@ -45,34 +46,32 @@ def jitter():
     plt.title('Use jittered plots to avoid overlapping of points', fontsize=22)
     # fig.show()
 
-def size_d_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
+def size_d_plot(path, plot=True, save=True):
     df = pd.read_csv(path)
-    df = df.replace(to_replace={"diag_dom":"diag-dom", "neg_prod":"neg-prod"})
-    gnl_df = df[(df.function == "greed_non_linear")]
-    gnl_piv = pd.pivot_table(gnl_df, values="test_mean", index="target_homoph", columns="gnl_W_style", aggfunc=np.max)
-    base_df = df[(df.function != "greed_non_linear")]
-    base_piv = pd.pivot_table(base_df, values="test_mean", index="target_homoph", columns="function", aggfunc=np.max)
-    piv = pd.merge(gnl_piv, base_piv, on=['target_homoph'])
+    df = df.replace(to_replace={"diag_dom":"diag-dom"})
+    for ds in ["chameleon","squirrel","Cora"]:
+        ds_df = df[(df.dataset == ds)]
+        mask = (df["function"] == "greed_non_linear")
+        ds_df.loc[mask, 'function'] = ds_df.loc[mask, 'gnl_W_style']
 
-    fs = 16
-    if ax is None:
+        piv = pd.pivot_table(ds_df, values="test_mean", index="hidden_dim", columns="function",
+                                 aggfunc=np.max)
+        fs = 16
         fig, ax = plt.subplots()
         sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax)
-        # ax.set_xlabel('Target homophily', fontsize=fs)
-        ax.set_ylabel('Test acc', fontsize=fs)
-        ax.get_xaxis().set_visible(False)
-        ax.legend(prop=dict(size=fs), loc='upper left')
-    else:
-        sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax[ax_idx])
-        ax[ax_idx].set_xlabel('Target homophily', fontsize=fs)
-        ax[ax_idx].set_ylabel('Test acc', fontsize=fs)
-        ax[ax_idx].legend(prop=dict(size=fs), loc='upper left')
-    if save:
-        plt.savefig('../ablations/syn_cora_plot.pdf')
-    if plot:
-        fig.show()
-    return fig, ax
+        ax.set(xscale='log')
+        ax.set_xticks([4, 8, 16, 32, 64, 128, 256, 512])
+        ax.get_xaxis().set_major_formatter(ScalarFormatter())
 
+        ax.set_ylabel('Test acc', fontsize=fs)
+        ax.set_title(f"dataset {ds}", fontsize=fs)
+        # ax.get_xaxis().set_visible(False)
+        ax.legend(prop=dict(size=fs), loc='upper left')
+        if save:
+            plt.savefig(f"../ablations/size_d_{ds}.pdf")
+        if plot:
+            fig.show()
+    #todo make multi-subplots
 
 def syn_cora_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
     df = pd.read_csv(path)
@@ -366,4 +365,4 @@ if __name__ == "__main__":
     # _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
     # wall_clock(path="../ablations/wallclock.csv", model="gcn")
     # wall_clock(path="../ablations/wallclock.csv", model="greed_non_linear")
-    size_d_plot(path="../ablations/ablation_size_d.csv")
+    size_d_plot(path="../ablations/ablation_size_d2.csv")
