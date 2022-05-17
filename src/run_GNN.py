@@ -421,9 +421,11 @@ def main(cmd_opt):
 
     dataset = get_dataset(opt, '../data', opt['not_lcc'])
     if opt['dataset'] in ['chameleon','squirrel','other hetero?']: #todo put this in data loader
-        ### added self loops and make undirected for chameleon
-        dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)
-        dataset.data.edge_index = to_undirected(dataset.data.edge_index)
+        ### added self loops and make undirected for chameleon & squirrel
+        if opt['greed_SL']:
+            dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)
+        if opt['greed_undir']:
+            dataset.data.edge_index = to_undirected(dataset.data.edge_index)
 
     if opt['beltrami']:
         pos_encoding = apply_beltrami(dataset.data, opt).to(device)
@@ -851,6 +853,8 @@ if __name__ == '__main__':
     parser.add_argument('--time_dep_struct_w', type=str, default='False', help='Learn a structured time dependent potentials')
     parser.add_argument('--target_homoph', type=str, default='0.80', help='target_homoph for syn_cora [0.00,0.10,..,1.00]')
     parser.add_argument('--greed_params', nargs='+', default=None, help='list of args for focus models')
+    parser.add_argument('--greed_SL', type=str, default='True', help='control self loops for Chameleon/Squirrel')
+    parser.add_argument('--greed_undir', type=str, default='True', help='control undirected for Chameleon/Squirrel')
 
     args = parser.parse_args()
     opt = vars(args)

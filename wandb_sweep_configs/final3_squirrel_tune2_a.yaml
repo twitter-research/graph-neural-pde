@@ -23,6 +23,8 @@ parameters:
     values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag_dom, uniform, True, zero, None, False, True, True]]
   use_mlp:
     values: [True, False]
+  greed_SL:
+    values: [True, False]
   hidden_dim:
     values: [64]
   time:

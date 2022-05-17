@@ -299,7 +299,8 @@ def tf_ablation_args(opt):
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
                 'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
-                'two_hops', 'time_dep_w', 'time_dep_struct_w'
+                'two_hops', 'time_dep_w', 'time_dep_struct_w',
+                'greed_SL', 'greed_undir',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout']
     arg_intersect = list(set(opt.keys()) & set(tf_args))
     for arg in arg_intersect:
@@ -595,6 +596,8 @@ def default_params():
     parser.add_argument('--time_dep_w', type=str, default='False', help='Learn a time dependent potentials')
     parser.add_argument('--target_homoph', type=str, default='0.80', help='target_homoph for syn_cora [0.00,0.10,..,1.00]')
     parser.add_argument('--greed_params', nargs='+', default=None, help='list of args for focus models')
+    parser.add_argument('--greed_SL', type=str, default='True', help='control self loops for Chameleon/Squirrel')
+    parser.add_argument('--greed_undir', type=str, default='True', help='control undirected for Chameleon/Squirrel')
 
     parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
 
