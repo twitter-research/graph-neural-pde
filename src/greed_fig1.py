@@ -199,10 +199,10 @@ def plot_attr_rep(data, x, y, t, xscale, yscale, clist, label_pos, ax):
         label_scale = 1.3
         ax.text(t, label_pos[n][0], label_pos[n][1], labels[n], c=clist[n], size=12)
 
-def plot_time(x, y, t, T, label_pos, color, ax):
+def plot_time(x, y, t, T, label_pos, color, ax, lw=1.):
     xpos = x
     ypos = y
-    arw = Arrow3D([t, T], [xpos, xpos], [ypos, ypos], arrowstyle="->", color=color, lw=2,
+    arw = Arrow3D([t, T], [xpos, xpos], [ypos, ypos], arrowstyle="->", color=color, lw=lw,
                   mutation_scale=25)
     ax.add_artist(arw)
     ax.text(label_pos[2], label_pos[0], label_pos[1], "time", c=color, size=12)
@@ -284,13 +284,13 @@ def plot_slices(data, X_all, Y_all, num_slices, clist, edge_col, ax, nodes=True,
 #     edge_xyz = np.array([(pos[uv[0]], pos[uv[1]]) for uv in edge_index.T])
 #     plot_3d(node_xyz, edge_xyz, clist, ax, nodes, edges)
 
-def plot_graph(data, X, t, clist, edge_col, ax, nodes=True, edges=True):
+def plot_graph(data, X, t, clist, edge_col, ax, nodes=True, edges=True, lw=1):
     edge_index = data.edge_index.detach().numpy()
     N = X.shape[0]
     pos = {i: [t, X[i, 0], X[i, 1]] for i in range(N)}
     node_xyz = np.array([pos[i] for i in range(N)])
     edge_xyz = np.array([(pos[uv[0]], pos[uv[1]]) for uv in edge_index.T])
-    plot_3d(node_xyz, edge_xyz, clist, edge_col, ax, nodes, edges)
+    plot_3d(node_xyz, edge_xyz, clist, edge_col, ax, nodes, edges, lw=lw)
 
 def plot_arrows(X_all, t, t_idx, dt_idx, colors, ax):
     N = X_all.shape[0]
@@ -316,7 +316,7 @@ def plot_trace_lines(X_all, T_idx, dt, colors, ax):
                    lw=2.0, color=colors[n])
 
 # https://networkx.org/documentation/stable/auto_examples/3d_drawing/plot_basic.html
-def plot_3d(node_xyz, edge_xyz, clist, edge_col, ax, nodes, edges):
+def plot_3d(node_xyz, edge_xyz, clist, edge_col, ax, nodes, edges, lw=1):
     if nodes:
         # Plot the nodes - alpha is scaled by "depth" automatically
         # cmap = plt.get_cmap("tab10")
@@ -324,7 +324,7 @@ def plot_3d(node_xyz, edge_xyz, clist, edge_col, ax, nodes, edges):
     if edges:
         # Plot the edges
         for vizedge in edge_xyz:
-            ax.plot(*vizedge.T, color=edge_col, lw=1)
+            ax.plot(*vizedge.T, color=edge_col, lw=lw)
             # ax.plot(*vizedge.T, color="black", lw=1)
 
     def _format_axes(ax):
@@ -373,10 +373,10 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     #plot manual frame
     edge_index, x, y, clist = get_graph("rectangle")
     data = get_data(edge_index, x, y)
-    plot_graph(data, x, 0, clist, "black", ax, nodes=False, edges=True)
+    plot_graph(data, x, 0, clist, "black", ax, nodes=False, edges=True, lw=0.75)
     edge_index, x, y, clist = get_graph("rectangle2")
     data = get_data(edge_index, x, y)
-    plot_graph(data, x, 2.8, clist, "black", ax, nodes=False, edges=True)
+    plot_graph(data, x, 2.8, clist, "black", ax, nodes=False, edges=True, lw=0.75)
 
     #plot graph
     # edge_index, x, y, clist = get_graph("trapezium")
@@ -414,9 +414,9 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     #plot attraction repulsion axis
     y_shift = -0.25
     label_pos = [[3.9, 0.2 + y_shift], [3.0, 0.65 + y_shift]]
-    plot_attr_rep(data, x=3., y=0.+y_shift, t=1.0, xscale=1.5, yscale=0.6, clist=2*["tab:grey"], label_pos=label_pos, ax=ax)
+    # plot_attr_rep(data, x=3., y=0.+y_shift, t=1.0, xscale=1.5, yscale=0.6, clist=2*["tab:grey"], label_pos=label_pos, ax=ax)
     x, y = 0, 0
-    plot_time(x, y, t=0, T=3.3, label_pos=[x-0.2, y-0.2, 2.9], color="black", ax=ax)
+    plot_time(x, y, t=0, T=3.3, label_pos=[x-0.2, y-0.2, 2.9], color="black", ax=ax, lw=0.75)
 
     #foramt axis
     # ax.set_xlabel('time', fontsize=10)
