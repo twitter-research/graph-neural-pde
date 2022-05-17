@@ -35,11 +35,11 @@ parameters:
     values: [0.25, 0.5, 1.0]
   input_dropout:
     distribution: uniform
-    min: 0.0
-    max: 0.55
+    min: 0.3
+    max: 0.85
   dropout:
     distribution: uniform
-    min: 0.0
+    min: 0.15
     max: 0.5
   optimizer:
     values: [adam]
