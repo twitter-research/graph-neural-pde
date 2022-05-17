@@ -365,4 +365,4 @@ if __name__ == "__main__":
     # _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
     # wall_clock(path="../ablations/wallclock.csv", model="gcn")
     # wall_clock(path="../ablations/wallclock.csv", model="greed_non_linear")
-    size_d_plot(path="../ablations/ablation_size_d2.csv")
+    size_d_plot(path="../ablations/ablation_size_d3.csv")
