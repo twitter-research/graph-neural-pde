@@ -415,8 +415,10 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     y_shift = -0.25
     label_pos = [[3.9, 0.2 + y_shift], [3.0, 0.65 + y_shift]]
     # plot_attr_rep(data, x=3., y=0.+y_shift, t=1.0, xscale=1.5, yscale=0.6, clist=2*["tab:grey"], label_pos=label_pos, ax=ax)
-    x, y = 0, 0
-    plot_time(x, y, t=0, T=3.3, label_pos=[x-0.2, y-0.2, 2.9], color="black", ax=ax, lw=0.75)
+
+    # x, y = 0, 0
+    x, y = -2., -0.6
+    plot_time(x, y, t=0, T=2.8, label_pos=[x-0.2, y-0.2, 2.9], color="black", ax=ax, lw=0.75)
 
     #foramt axis
     # ax.set_xlabel('time', fontsize=10)
