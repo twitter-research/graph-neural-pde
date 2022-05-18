@@ -64,4 +64,4 @@ command:
   - --wandb_sweep
   - --geom_gcn_splits
 entity: graph_neural_diffusion
-project: final4_chameleon_tune
+project: final4_chameleon_tune_Wt

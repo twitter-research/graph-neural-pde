@@ -62,4 +62,4 @@ command:
   - --wandb_sweep
   - --geom_gcn_splits
 entity: graph_neural_diffusion
-project: final4_squirrel_tune
+project: final4_squirrel_tune_Wt
