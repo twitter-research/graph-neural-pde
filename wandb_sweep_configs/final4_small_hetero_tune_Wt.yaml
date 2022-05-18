@@ -22,7 +22,11 @@ parameters:
   drift:
     values: [False]
   greed_params:
-    values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag, uniform, False, diag, free, True, True, True]]
+    values: [[diag_dom, uniform, True, diag, free, False, True, True]]
+  time_dep_w:
+    values: [True]
+  use_mlp:
+    values: [True, False]
   greed_SL:
     values: [True, False]
   hidden_dim:
@@ -60,4 +64,4 @@ command:
   - --wandb_sweep
   - --geom_gcn_splits
 entity: graph_neural_diffusion
-project: final4_small_hetero_tune
+project: final4_small_hetero_tune_Wt
