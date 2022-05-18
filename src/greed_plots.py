@@ -317,13 +317,15 @@ def wall_clock(path, model, line_scatter="scatter", plot=True, save=True):
         df = df[(df.function == "greed_non_linear")].reset_index(drop=True)
     else:
         df = df[(df.function != "greed_non_linear")].reset_index(drop=True)
-        replace_dict = {0:"0:gcn",1:"1:gcn_enc/dec",2:"2:gcn_residual",3:"3:gcn_share_W",4:"4:gcn_symm_W",5:"GraF"}#"5:no_nonLin"}
+        replace_dict = {0:"0:gcn",1:"1:gcn_enc/dec",2:"2:gcn_residual",3:"3:gcn_share_W",4:"4:gcn_symm_W",5:"GRAFF"}#"5:no_nonLin"}
         df.loc[:,'gcn_params_idx'].replace(to_replace=replace_dict, inplace=True)
 
         mask = (df["function"] == "gat")
         df.loc[mask, 'gcn_params_idx'] = "gat"
         mask = (df["function"] == "gcn")
         df.loc[mask, 'gcn_params_idx'] = "pyg-gcn"
+        mask = (df["function"] == "GGCN")
+        df.loc[mask, 'gcn_params_idx'] = "GGCN"
 
     fs = 14
     ps = 25
@@ -364,15 +366,16 @@ def wall_clock(path, model, line_scatter="scatter", plot=True, save=True):
 
 
 if __name__ == "__main__":
-    path = "../ablations/ablation_syn_cora.csv"
+    # path = "../ablations/ablation_syn_cora.csv"
     # _,_ = syn_cora_plot(path, plot=True, save=True)
     # syn_cora_best_times(path)
-    syn_cora_energy(path)
+    # syn_cora_energy(path)
     # _,_ = syn_cora_homoph(path)
     # plot_1(path, "scatter")
     # plot_1(path, "line")
     # _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
-    # wall_clock(path="../ablations/wallclock.csv", model="gcn")
+
+    wall_clock(path="../ablations/wallclock.csv", model="gcn")
     # wall_clock(path="../ablations/wallclock.csv", model="greed_non_linear")
 
     # size_d_plot()
