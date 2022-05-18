@@ -211,7 +211,7 @@ def calc_energy_homoph(data, model, opt):
 def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
     model.eval()
 
-    if opt['function'] in ['gcn', 'mlp', 'gcn2', 'gcn_dgl', 'gcn_res_dgl']:
+    if opt['function'] in ['gcn', 'mlp', 'gcn2', 'gcn_dgl', 'gcn_res_dgl', 'gat_dgl']:
         wandb.log({"loss": loss,
                    "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
                    "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
@@ -458,14 +458,15 @@ def main(cmd_opt):
             model = GCN(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['dropout'], device=device).to(device)
         elif opt['function'] in ['mlp']:
             model = MLP(opt, dataset, device=device).to(device)
-        elif opt['function'] in ['gcn2', 'gcn_dgl', 'gcn_res_dgl']:
+        elif opt['function'] in ['gcn2', 'gcn_dgl', 'gcn_res_dgl', 'gat_dgl']:
             hidden_feat_repr_dims = int(opt['time'] // opt['step_size']) * [opt['hidden_dim']]
             feat_repr_dims = [dataset.data.x.shape[1]] + hidden_feat_repr_dims + [dataset.num_classes]
             model = GNNMLP(opt, dataset, device, feat_repr_dims,
                            enable_mlp=True if opt['function']=='mlp' else False,
-                           enable_gcn=True if opt['function'] in ['gcn2', 'gcn_dgl', 'gcn_res_dgl'] else False,
-                           learnable_mixing=False, use_sage=False, use_gat=False, gat_num_heads=1,
-                           top_is_proj=False, use_prelu=False, dropout=opt['dropout']
+                           enable_gcn=True if opt['function'] in ['gcn2', 'gcn_dgl', 'gcn_res_dgl', 'gat_dgl'] else False,
+                           learnable_mixing=False, use_sage=False,
+                           use_gat=True if opt['function'] in ['gat_dgl'] else False,
+                           gat_num_heads=1, top_is_proj=False, use_prelu=False, dropout=opt['dropout']
                            ).to(device)
         elif opt['function'] in ['gat']:
             model = GAT(opt, dataset, hidden=[opt['hidden_dim']], dropout=opt['dropout'], device=device).to(device)
@@ -861,7 +862,7 @@ if __name__ == '__main__':
 
     if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero',
                            'greed_non_linear', 'greed_lie_trotter', 'gcn', 'gcn2', 'mlp', 'gcn_dgl', 'gcn_res_dgl',
-                           'gat', 'GAT']:
+                           'gat', 'GAT', 'gat_dgl']:
         opt = greed_run_params(opt)  ###basic params for GREED
 
 
