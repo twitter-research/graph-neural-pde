@@ -167,78 +167,78 @@ def syn_cora_best_times(path):
 
 def syn_cora_energy(path, fig=None, ax=None, ax_idx=None):
     max_df = get_max_df(path)
-    # max_df['W_homoph'] = max_df.apply(lambda row: str(row.gnl_W_style) + "_" + str(row.target_homoph), axis=1)
+    max_df['W_homoph'] = max_df.apply(lambda row: str(row.gnl_W_style) + "_" + str(row.target_homoph), axis=1)
 
-    # fig, ax = plt.subplots()
-    # ax.set_title(f"T0_dirichlet_energy_mean", fontdict={'fontsize': 24})
-    # sns.stripplot(x="target_homoph", y="T0_dirichlet_mean", hue="gnl_W_style", jitter=False, data=max_df, ax=ax)
-    # fig.show()
-    # fig, ax = plt.subplots()
-    # ax.set_title(f"TN_dirichlet_energy_mean", fontdict={'fontsize': 24})
-    # sns.stripplot(x="target_homoph", y="TN_dirichlet_mean", hue="gnl_W_style", jitter=0.15, data=max_df, ax=ax)
-    # fig.show()
-    # #combined
-    # new_cols = ["target_homoph", "gnl_W_style", "T0_dirichlet_mean"]
-    # df1 = max_df[new_cols]
-    # df1 = df1.rename(columns={"T0_dirichlet_mean": "dirichlet_mean"})
-    # df1['energy_time'] = 'T0'
-    # new_cols = ["target_homoph", "gnl_W_style", "TN_dirichlet_mean"]
-    # df2 = max_df[new_cols]
-    # df2 = df2.rename(columns={"TN_dirichlet_mean": "dirichlet_mean"})
-    # df2['energy_time'] = 'TN'
-    # df_cat = pd.concat([df1, df2])
-    # fig, ax = plt.subplots()
-    # ax.set_title(f"T0->TN_dirichlet_energy_mean", fontdict={'fontsize': 24})
-    # sns.stripplot(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", jitter=False, data=df_cat, ax=ax)
-    # # sns.scatterplot(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", data=df_cat, ax=ax)
-    # fig.show()
-
-    # #regulaised energy
-    # fig, ax = plt.subplots()
-    # ax.set_title(f"T0r_dirichlet_energy_mean", fontdict={'fontsize': 24})
-    # sns.stripplot(x="target_homoph", y="T0r_dirichlet_mean", hue="gnl_W_style", jitter=False, data=max_df, ax=ax)
-    # fig.show()
-    # fig, ax = plt.subplots()
-    # ax.set_title(f"TNr_dirichlet_energy_mean", fontdict={'fontsize': 24})
-    # sns.stripplot(x="target_homoph", y="TNr_dirichlet_mean", hue="gnl_W_style", jitter=0.15, data=max_df, ax=ax)
-    # fig.show()
-
-    new_cols = ["target_homoph", "gnl_W_style", "T0r_dirichlet_mean"]
-    df1 = max_df[new_cols]
-    df1 = df1.rename(columns={"T0r_dirichlet_mean": "dirichlet_mean"})
-    df1['energy_time'] = 'T0'
-    new_cols = ["target_homoph", "gnl_W_style", "TNr_dirichlet_mean"]
-    df2 = max_df[new_cols]
-    df2 = df2.rename(columns={"TNr_dirichlet_mean": "dirichlet_mean"})
-    df2['energy_time'] = 'TN'
-
-    if ax is None:
-        fig, ax = plt.subplots()
-        ax_idx = 0
-    ax.set_title(f"T0->TN dirichlet_energy_reg_mean", fontdict={'fontsize': 24})
-    df_cat = pd.concat([df1, df2])
-    sns.scatterplot(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", style="energy_time", data=df_cat, ax=ax[ax_idx])
-    # sns.stripplot(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", marker="o", data=df1, jitter=0.15, ax=ax)
-    # sns.stripplot(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", marker="X", data=df2, jitter=0.15, ax=ax)
-    x_bins = None
-    y_bins = None
-    estimator = None
-    ci = 95
-    n_boot = 1000,
-    alpha = None
-    x_jitter = None
-    y_jitter = None,
-    legend = "auto"
-    variables = _ScatterPlotter.get_semantics(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", style="energy_time", data=df_cat, ax=ax)
-    sp = _ScatterPlotter(
-        data=data, variables=variables,
-        x_bins=x_bins, y_bins=y_bins,
-        estimator=estimator, ci=ci, n_boot=n_boot,
-        alpha=alpha, x_jitter=x_jitter, y_jitter=y_jitter, legend=legend)
-
-    # SP = _ScatterPlotter(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", style="energy_time", data=df_cat, ax=ax)
-    sp.add_legend_data(ax)
+    fig, ax = plt.subplots()
+    ax.set_title(f"T0_dirichlet_energy_mean", fontdict={'fontsize': 24})
+    sns.stripplot(x="target_homoph", y="T0_dirichlet_mean", hue="gnl_W_style", jitter=False, data=max_df, ax=ax)
     fig.show()
+    fig, ax = plt.subplots()
+    ax.set_title(f"TN_dirichlet_energy_mean", fontdict={'fontsize': 24})
+    sns.stripplot(x="target_homoph", y="TN_dirichlet_mean", hue="gnl_W_style", jitter=0.15, data=max_df, ax=ax)
+    fig.show()
+    #combined
+    new_cols = ["target_homoph", "gnl_W_style", "T0_dirichlet_mean"]
+    df1 = max_df[new_cols]
+    df1 = df1.rename(columns={"T0_dirichlet_mean": "dirichlet_mean"})
+    df1['energy_time'] = 'T0'
+    new_cols = ["target_homoph", "gnl_W_style", "TN_dirichlet_mean"]
+    df2 = max_df[new_cols]
+    df2 = df2.rename(columns={"TN_dirichlet_mean": "dirichlet_mean"})
+    df2['energy_time'] = 'TN'
+    df_cat = pd.concat([df1, df2])
+    fig, ax = plt.subplots()
+    ax.set_title(f"T0->TN_dirichlet_energy_mean", fontdict={'fontsize': 24})
+    sns.stripplot(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", jitter=False, data=df_cat, ax=ax)
+    # sns.scatterplot(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", data=df_cat, ax=ax)
+    fig.show()
+
+    #regulaised energy
+    fig, ax = plt.subplots()
+    ax.set_title(f"T0r_dirichlet_energy_mean", fontdict={'fontsize': 24})
+    sns.stripplot(x="target_homoph", y="T0r_dirichlet_mean", hue="gnl_W_style", jitter=False, data=max_df, ax=ax)
+    fig.show()
+    fig, ax = plt.subplots()
+    ax.set_title(f"TNr_dirichlet_energy_mean", fontdict={'fontsize': 24})
+    sns.stripplot(x="target_homoph", y="TNr_dirichlet_mean", hue="gnl_W_style", jitter=0.15, data=max_df, ax=ax)
+    fig.show()
+
+    # new_cols = ["target_homoph", "gnl_W_style", "T0r_dirichlet_mean"]
+    # df1 = max_df[new_cols]
+    # df1 = df1.rename(columns={"T0r_dirichlet_mean": "dirichlet_mean"})
+    # df1['energy_time'] = 'T0'
+    # new_cols = ["target_homoph", "gnl_W_style", "TNr_dirichlet_mean"]
+    # df2 = max_df[new_cols]
+    # df2 = df2.rename(columns={"TNr_dirichlet_mean": "dirichlet_mean"})
+    # df2['energy_time'] = 'TN'
+    #
+    # if ax is None:
+    #     fig, ax = plt.subplots()
+    #     ax_idx = 0
+    # ax.set_title(f"T0->TN dirichlet_energy_reg_mean", fontdict={'fontsize': 24})
+    # df_cat = pd.concat([df1, df2])
+    # sns.scatterplot(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", style="energy_time", data=df_cat, ax=ax[ax_idx])
+    # # sns.stripplot(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", marker="o", data=df1, jitter=0.15, ax=ax)
+    # # sns.stripplot(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", marker="X", data=df2, jitter=0.15, ax=ax)
+    # x_bins = None
+    # y_bins = None
+    # estimator = None
+    # ci = 95
+    # n_boot = 1000,
+    # alpha = None
+    # x_jitter = None
+    # y_jitter = None,
+    # legend = "auto"
+    # variables = _ScatterPlotter.get_semantics(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", style="energy_time", data=df_cat, ax=ax)
+    # sp = _ScatterPlotter(
+    #     data=data, variables=variables,
+    #     x_bins=x_bins, y_bins=y_bins,
+    #     estimator=estimator, ci=ci, n_boot=n_boot,
+    #     alpha=alpha, x_jitter=x_jitter, y_jitter=y_jitter, legend=legend)
+    #
+    # # SP = _ScatterPlotter(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", style="energy_time", data=df_cat, ax=ax)
+    # sp.add_legend_data(ax)
+    # fig.show()
 
 def syn_cora_homoph(path, line_scatter, fig=None, ax=None, ax_idx=None, plot=False, save=False):
     max_df = get_max_df(path)
@@ -344,7 +344,7 @@ def wall_clock(path, model, line_scatter="scatter", plot=True, save=True):
     ax.set_ylabel('runtime', fontsize=fs)
     ax.legend(prop=dict(size=fs-4), loc='upper left')
     if save:
-        plt.savefig('../ablations/wall_clock_runtime.pdf')
+        plt.savefig('../ablations/runtime.pdf')
     if plot:
         fig.show()
 
@@ -358,20 +358,21 @@ def wall_clock(path, model, line_scatter="scatter", plot=True, save=True):
     ax.set_ylabel('# params', fontsize=fs)
     ax.legend(prop=dict(size=fs-4), loc='upper left')
     if save:
-        plt.savefig('../ablations/wall_clock_params.pdf')
+        plt.savefig('../ablations/runtime_params.pdf')
     if plot:
         fig.show()
 
 
 if __name__ == "__main__":
-    # path = "../ablations/ablation_syn_cora.csv"
+    path = "../ablations/ablation_syn_cora.csv"
     # _,_ = syn_cora_plot(path, plot=True, save=True)
     # syn_cora_best_times(path)
-    # syn_cora_energy(path)
+    syn_cora_energy(path)
     # _,_ = syn_cora_homoph(path)
     # plot_1(path, "scatter")
     # plot_1(path, "line")
     # _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
     # wall_clock(path="../ablations/wallclock.csv", model="gcn")
     # wall_clock(path="../ablations/wallclock.csv", model="greed_non_linear")
-    size_d_plot()
+
+    # size_d_plot()
