@@ -469,7 +469,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W = (W+W.T) / 2
       # W_sum = self.t_a * torch.abs(W).sum(dim=1) + self.r_a #todo regularised wrt hidden_dim
       if self.time_dep_w:
-        W_sum = self.t_a[T] * torch.abs(W).sum(dim=1) / self.in_features + self.r_a[T] #todo regularised wrt hidden_dim
+        # W_sum = self.t_a[T] * torch.abs(W).sum(dim=1) / self.in_features + self.r_a[T] #todo regularised wrt hidden_dim
+        W_sum = self.t_a[T] * torch.abs(W).sum(dim=1) + self.r_a[T] #todo regularised wrt hidden_dim
       elif self.time_dep_struct_w:
         W_sum = W + self.at[T] * F.tanh(self.bt[T] * T + self.gt[T]) * torch.eye(n=W.shape[0], m=W.shape[1], device=self.device)
       else:
