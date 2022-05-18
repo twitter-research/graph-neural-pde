@@ -186,12 +186,16 @@ def wall_clock_ablation_GGCN(opt):
 
     features = feat
     num_labels = dataset.num_classes
-    adj = to_dense_adj(data.edge_index).squeeze()
-    #for sparse
-    #     n = data.x.shape[0]
-    #     e = data.edge_index.shape[1]
-    #     adj = torch.sparse_coo_tensor(data.edge_index, e*[1], (n, n))
-    #     #10138 / 2485
+    if opt['function'] == 'GGCN_sp':
+        use_sparse = True
+        dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index) #needed for sparse implementation
+        n = data.x.shape[0]
+        e = data.edge_index.shape[1]
+        adj = torch.sparse_coo_tensor(data.edge_index, e*[1], (n, n))
+        #10138 / 2485
+    else:
+        adj = to_dense_adj(data.edge_index).squeeze()
+
     #example params provided by GGCN
     use_degree = True
     use_sign = True
@@ -200,7 +204,7 @@ def wall_clock_ablation_GGCN(opt):
     use_ln = False
     model = GGCN(nfeat=features.shape[1], nlayers=2, nhidden=opt['hidden_dim'], nclass=num_labels, dropout=0.0,
              decay_rate=0.0, exponent=3.0, use_degree=use_degree, use_sign=use_sign,
-             use_decay=use_decay, use_sparse=True, scale_init=0.5,
+             use_decay=use_decay, use_sparse=use_sparse, scale_init=0.5,
              deg_intercept_init=0.5, use_bn=use_bn, use_ln=use_ln).to(device)
 
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -513,7 +517,7 @@ if __name__ == "__main__":
 
     if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero',
                            'greed_non_linear', 'greed_lie_trotter', 'gcn', 'gcn2', 'mlp', 'gcn_dgl', 'gcn_res_dgl',
-                           'gat', 'GAT', 'GGCN']:
+                           'gat', 'GAT', 'GGCN', 'GGCN_sp']:
         opt = greed_run_params(opt)  ###basic params for GREED
 
     if not opt['wandb_sweep']:  # sweeps are run from YAML config so don't need these
@@ -524,7 +528,7 @@ if __name__ == "__main__":
 
     # applied to both sweeps and not sweeps
     opt = tf_ablation_args(opt)
-    if opt['function'] == "GGCN":
+    if opt['function'] in ["GGCN", "GGCN_sp"]:
         wall_clock_ablation_GGCN(opt)
     else:
         wall_clock_ablation(opt)

@@ -4,7 +4,7 @@ parameters:
   dataset:
     values: [chameleon]
   function:
-    values: [GGCN]
+    values: [GGCN_sp]
   block:
     values: [constant]
   num_splits:

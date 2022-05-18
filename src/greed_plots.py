@@ -326,6 +326,8 @@ def wall_clock(path, model, line_scatter="scatter", plot=True, save=True):
         df.loc[mask, 'gcn_params_idx'] = "pyg-gcn"
         mask = (df["function"] == "GGCN")
         df.loc[mask, 'gcn_params_idx'] = "GGCN"
+        mask = (df["function"] == "GGCN_sp")
+        df.loc[mask, 'gcn_params_idx'] = "GGCN_sp"
 
     fs = 14
     ps = 25
