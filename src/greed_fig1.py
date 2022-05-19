@@ -388,10 +388,6 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
 
     X_all, Y_all = get_dynamics(data)
 
-    #plot T=0
-    # plot_slices(data, X_all, Y_all, num_slices, clist, ax, nodes=True, edges=False, arrows=True, trace=True)
-    plot_graph(data, X_all[:,:,0], 0, clist, "tab:gray", ax, nodes=True, edges=True)
-
     #plot_labels
     # offset = [1.8,2.2,1.2,1.9] #for square
     # offset = num_nodes * [1.2]
@@ -400,6 +396,10 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     #plot trace
     plot_trace_dots(X_all, T_idx, data.dt, clist, ax)
     # plot_trace_lines(X_all, T_idx, data.dt, clist, ax)
+
+    #plot T=0
+    # plot_slices(data, X_all, Y_all, num_slices, clist, ax, nodes=True, edges=False, arrows=True, trace=True)
+    plot_graph(data, X_all[:,:,0], 0, clist, "tab:gray", ax, nodes=True, edges=True)
 
     #plot t=T
     plot_graph(data, X_all[:,:,T_idx], data.T, clist, "tab:grey", ax, nodes=True, edges=True)

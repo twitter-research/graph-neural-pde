@@ -36,7 +36,8 @@ def report_1(ax, fig, odefunc, row, epoch):
         ax[row, 1].plot(range(L.shape[0]), sort_ra.cpu().numpy(), c='tab:orange', label='r_a', zorder=5)
         ax[row, 1].legend()
 
-    ax[row, 1].set_title(f"Omega, E-values, E-vectors, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
+    # ax[row, 1].set_title(f"W, Eig-vals, Eig-vecs, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
+    ax[row, 1].set_title(f"{odefunc.opt['dataset']}, W: Eig-vals, Eig-vecs, epoch {epoch}", fontdict={'fontsize': 24})
     ax[row, 1].xaxis.set_tick_params(labelsize=16)
     ax[row, 1].yaxis.set_tick_params(labelsize=16)
 

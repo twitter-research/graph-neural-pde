@@ -46,41 +46,6 @@ def jitter():
     plt.title('Use jittered plots to avoid overlapping of points', fontsize=22)
     # fig.show()
 
-def size_d_plot(plot=True, save=True):
-    df2 = pd.read_csv("../ablations/ablation_size_d2.csv")
-    df3 = pd.read_csv("../ablations/ablation_size_d3.csv")
-
-    for ds in ["chameleon","squirrel","Cora"]:
-        #filter out the diagdom, results as they had hidden dim normalisation
-        ds_df2 = df2[(df2.dataset == ds) & ~((df2.gnl_W_style == "diag_dom") & (df2.function == "greed_non_linear"))]
-        #get them from 3
-        ds_df3 = df3[((df3.dataset == ds) & (df3.gnl_W_style == "diag_dom"))]
-
-        ds_df = pd.concat([ds_df2, ds_df3])
-        ds_df = ds_df.reset_index(drop=True)
-        mask = (ds_df["function"] == "greed_non_linear")
-        ds_df.loc[mask, 'function'] = ds_df.loc[mask, 'gnl_W_style']
-        ds_df = ds_df.replace(to_replace={"diag_dom": "diag-dom"})
-
-        piv = pd.pivot_table(ds_df, values="test_mean", index="hidden_dim", columns="function",
-                                 aggfunc=np.max)
-        fs = 14
-        sns.set_theme()
-        fig, ax = plt.subplots()
-        sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax)
-        ax.set(xscale='log')
-        ax.set_xticks([4, 8, 16, 32, 64, 128, 256, 512])
-        ax.get_xaxis().set_major_formatter(ScalarFormatter())
-
-        ax.set_ylabel('Test acc', fontsize=fs)
-        ax.set_title(f"dataset {ds.title()}", fontsize=fs)
-        # ax.get_xaxis().set_visible(False)
-        ax.legend(prop=dict(size=fs), loc='lower right')
-        if save:
-            plt.savefig(f"../ablations/size_d_{ds.lower()}.pdf")
-        if plot:
-            fig.show()
-    #todo make multi-subplots
 
 def syn_cora_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
     df = pd.read_csv(path)
@@ -96,13 +61,13 @@ def syn_cora_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
         fig, ax = plt.subplots()
         sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax)
         # ax.set_xlabel('Target homophily', fontsize=fs)
-        ax.set_ylabel('Test acc', fontsize=fs)
+        ax.set_ylabel('Test accuracy', fontsize=fs)
         ax.get_xaxis().set_visible(False)
         ax.legend(prop=dict(size=fs), loc='upper left')
     else:
         sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax[ax_idx])
         ax[ax_idx].set_xlabel('Target homophily', fontsize=fs)
-        ax[ax_idx].set_ylabel('Test acc', fontsize=fs)
+        ax[ax_idx].set_ylabel('Test accuracy', fontsize=fs)
         ax[ax_idx].legend(prop=dict(size=fs), loc='upper left')
     if save:
         plt.savefig('../ablations/syn_cora_plot.pdf')
@@ -110,9 +75,81 @@ def syn_cora_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
         fig.show()
     return fig, ax
 
+
+def syn_cora_homoph(path, line_scatter, fig=None, ax=None, ax_idx=None, plot=False, save=False):
+    max_df = get_max_df(path)
+    max_df = max_df.replace(to_replace={"diag_dom":"diag-dom", "neg_prod":"neg-prod"})
+    max_df = max_df.rename(columns={"gnl_W_style": "W-style"})    # maxdf ####need tp rename column
+    new_cols = ["target_homoph", "W-style", "enc_pred_homophil"]#, "label_homophil_mean", "pred_homophil_mean"]
+    df1 = max_df[new_cols]
+    df1 = df1.rename(columns={"enc_pred_homophil": "homophily"})
+    df1['module-block'] = 'encoder'
+    new_cols = ["target_homoph", "W-style", "pred_homophil_mean"]
+    df2 = max_df[new_cols]
+    df2 = df2.rename(columns={"pred_homophil_mean": "homophily"})
+    df2['module-block'] = 'prediction'
+    df = pd.concat([df1, df2])
+    df = df.reset_index(drop=True)
+
+    if line_scatter == "scatter":
+        # manually jitter
+        mask = (df["W-style"] == "sum")
+        df.loc[mask, 'target_homoph'] = df.loc[mask, 'target_homoph'] + 0.005
+        mask = (df["W-style"] == "diag-dom")
+        df.loc[mask, 'target_homoph'] = df.loc[mask, 'target_homoph'] - 0.005
+
+    fs = 16
+    ps = 150
+    if ax is None:
+        fig, ax = plt.subplots()
+        if line_scatter == "scatter":
+            sns.scatterplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", s=ps, data=df,
+                            ax=ax)
+        elif line_scatter == "line":
+            sns.lineplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", data=df, ax=ax)
+        ax.set_xlabel('True label homophily', fontsize=fs)
+        ax.set_ylabel('Prediction homophily', fontsize=fs)
+        ax.legend(prop=dict(size=fs-4), loc='upper left')
+    else:
+        if line_scatter == "scatter":
+            sns.scatterplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", s=ps, data=df,
+                            ax=ax[ax_idx])
+        elif line_scatter == "line":
+            sns.lineplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", data=df, ax=ax[ax_idx])
+
+        ax[ax_idx].set_xlabel('True label homophily', fontsize=fs)
+        ax[ax_idx].set_ylabel('Prediction homophily', fontsize=fs)
+        ax[ax_idx].legend(prop=dict(size=fs-4), loc='upper left')
+
+    # ax[ax_idx].set_title(f"T0->TN homophily", fontdict={'fontsize': 18})
+    # sns.stripplot(x="target_homoph", y="homophily", hue="W-style", marker="o", data=df1, jitter=0.15, ax=ax)
+    # sns.stripplot(x="target_homoph", y="homophily", hue="W-style", marker="X", data=df2, jitter=0.15, ax=ax)
+    if save:
+        plt.savefig('../ablations/syn_cora_homoph.pdf')
+    if plot:
+        fig.show()
+    return fig, ax
+
+
+def plot_1(path, line_scatter, plot=True, save=True):
+    sns.set_theme()
+    fig, ax = plt.subplots(2,1,figsize=(10, 10), sharex=True)
+    fig, ax = syn_cora_plot(path, fig, ax, ax_idx=0, plot=False, save=False)
+    fig, ax = syn_cora_homoph(path, line_scatter, fig, ax, ax_idx=1, plot=False, save=False)
+
+    # ax[0].get_shared_x_axes().join(ax[0], ax[1])
+    # ax[0].set_xticklabels([])
+    plt.subplots_adjust(wspace=0, hspace=0.015)
+    fig.tight_layout()
+    if save:
+        plt.savefig(f"../ablations/plot_1_{line_scatter}.pdf", bbox_inches='tight')
+    if plot:
+        fig.show()
+
+
 def syn_cora_gcn_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
     df = pd.read_csv(path)
-    replace_dict = {0:"0:gcn",1:"1:gcn_enc/dec",2:"2:gcn_residual",3:"3:gcn_share_W",4:"4:gcn_symm_W",5:"5:no_nonLin"}
+    replace_dict = {0:"0:gcn",1:"1:gcn_enc/dec",2:"2:gcn_residual",3:"3:gcn_share_W",4:"4:gcn_symm_W",5:"5:GRAFF"}
     df.loc[:,'gcn_params_idx'].replace(to_replace=replace_dict, inplace=True)
 
     piv = pd.pivot_table(df, values="test_mean", index="target_homoph", columns="gcn_params_idx", aggfunc=np.max)
@@ -120,23 +157,67 @@ def syn_cora_gcn_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=Fal
     # base_piv = pd.pivot_table(base_df, values="test_mean", index="target_homoph", columns="function", aggfunc=np.max)
     # piv = pd.merge(gnl_piv, base_piv, on=['target_homoph'])
     sns.set_theme()
+    fs = 12
     if ax is None:
         fig, ax = plt.subplots()
         sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax)
-        ax.set_xlabel('Target homophily', fontsize=14)
-        ax.set_ylabel('Test acc', fontsize=14)
-        ax.legend(prop=dict(size=12))
+        ax.set_xlabel('True label homophily', fontsize=fs)
+        ax.set_ylabel('Test accuracy', fontsize=fs)
+        ax.legend(prop=dict(size=fs-2))
     else:
         sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax[ax_idx])
-        ax[ax_idx].set_xlabel('Target homophily', fontsize=14)
-        ax[ax_idx].set_ylabel('Test acc', fontsize=14)
-        ax[ax_idx].legend(prop=dict(size=12))
+        ax[ax_idx].set_xlabel('True label homophily', fontsize=fs)
+        ax[ax_idx].set_ylabel('Test accuracy', fontsize=fs)
+        ax[ax_idx].legend(prop=dict(size=fs-2))
 
     if save:
         plt.savefig('../ablations/syn_cora_gcn_plot.pdf')
     if plot:
         fig.show()
     return fig, ax
+
+
+def size_d_plot(plot=True, save=True):
+    df2 = pd.read_csv("../ablations/ablation_size_d2.csv")
+    df3 = pd.read_csv("../ablations/ablation_size_d3.csv") #reran diag-dom without hidden dim normalisation
+    sns.set_theme()
+    fig, ax = plt.subplots(2,2,figsize=(12, 10))#, sharex=True)
+
+    for i, ds in enumerate(["chameleon","squirrel","Cora"]):
+        #filter out the diagdom, results as they had hidden dim normalisation
+        ds_df2 = df2[(df2.dataset == ds) & ~((df2.gnl_W_style == "diag_dom") & (df2.function == "greed_non_linear"))]
+        #get them from 3
+        ds_df3 = df3[((df3.dataset == ds) & (df3.gnl_W_style == "diag_dom"))]
+
+        ds_df = pd.concat([ds_df2, ds_df3])
+        ds_df = ds_df.reset_index(drop=True)
+        mask = (ds_df["function"] == "greed_non_linear")
+        ds_df.loc[mask, 'function'] = ds_df.loc[mask, 'gnl_W_style']
+        ds_df = ds_df.replace(to_replace={"diag_dom": "diag-dom"})
+
+        piv = pd.pivot_table(ds_df, values="test_mean", index="hidden_dim", columns="function",
+                                 aggfunc=np.max)
+        fs = 14
+        sns.set_theme()
+        # fig, ax = plt.subplots()
+        sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax[i//2,i%2])
+        ax[i//2,i%2].set(xscale='log')
+        ax[i//2,i%2].set_xticks([4, 8, 16, 32, 64, 128, 256, 512])
+        ax[i//2,i%2].get_xaxis().set_major_formatter(ScalarFormatter())
+
+        ax[i//2,i%2].set_ylabel('Test accuracy', fontsize=fs)
+        ax[i//2,i%2].set_title(f"dataset {ds.title()}", fontsize=fs)
+        # ax.get_xaxis().set_visible(False)
+        ax[i//2,i%2].legend(prop=dict(size=fs), loc='lower right')
+        # if save:
+        #     plt.savefig(f"../ablations/size_d_{ds.lower()}.pdf")
+        # if plot:
+        #     fig.show()
+    fig.tight_layout()
+    if save:
+        plt.savefig(f"../ablations/size_d.pdf")
+    if plot:
+        fig.show()
 
 
 def get_max_df(path):
@@ -239,77 +320,7 @@ def syn_cora_energy(path, fig=None, ax=None, ax_idx=None):
     # # SP = _ScatterPlotter(x="target_homoph", y="dirichlet_mean", hue="gnl_W_style", style="energy_time", data=df_cat, ax=ax)
     # sp.add_legend_data(ax)
     # fig.show()
-
-def syn_cora_homoph(path, line_scatter, fig=None, ax=None, ax_idx=None, plot=False, save=False):
-    max_df = get_max_df(path)
-    max_df = max_df.replace(to_replace={"diag_dom":"diag-dom", "neg_prod":"neg-prod"})
-    max_df = max_df.rename(columns={"gnl_W_style": "W-style"})    # maxdf ####need tp rename column
-    new_cols = ["target_homoph", "W-style", "enc_pred_homophil"]#, "label_homophil_mean", "pred_homophil_mean"]
-    df1 = max_df[new_cols]
-    df1 = df1.rename(columns={"enc_pred_homophil": "homophily"})
-    df1['module-block'] = 'encoder'
-    new_cols = ["target_homoph", "W-style", "pred_homophil_mean"]
-    df2 = max_df[new_cols]
-    df2 = df2.rename(columns={"pred_homophil_mean": "homophily"})
-    df2['module-block'] = 'prediction'
-    df = pd.concat([df1, df2])
-    df = df.reset_index(drop=True)
-
-    if line_scatter == "scatter":
-        # manually jitter
-        mask = (df["W-style"] == "sum")
-        df.loc[mask, 'target_homoph'] = df.loc[mask, 'target_homoph'] + 0.005
-        mask = (df["W-style"] == "diag-dom")
-        df.loc[mask, 'target_homoph'] = df.loc[mask, 'target_homoph'] - 0.005
-
-    fs = 16
-    ps = 150
-    if ax is None:
-        fig, ax = plt.subplots()
-        if line_scatter == "scatter":
-            sns.scatterplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", s=ps, data=df,
-                            ax=ax)
-        elif line_scatter == "line":
-            sns.lineplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", data=df, ax=ax)
-        ax.set_xlabel('Target homophily', fontsize=fs)
-        ax.set_ylabel('Homophily', fontsize=fs)
-        ax.legend(prop=dict(size=fs-4), loc='upper left')
-    else:
-        if line_scatter == "scatter":
-            sns.scatterplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", s=ps, data=df,
-                            ax=ax[ax_idx])
-        elif line_scatter == "line":
-            sns.lineplot(x="target_homoph", y="homophily", hue="W-style", style="module-block", data=df, ax=ax[ax_idx])
-
-        ax[ax_idx].set_xlabel('Target homophily', fontsize=fs)
-        ax[ax_idx].set_ylabel('Homophily', fontsize=fs)
-        ax[ax_idx].legend(prop=dict(size=fs-4), loc='upper left')
-
-    # ax[ax_idx].set_title(f"T0->TN homophily", fontdict={'fontsize': 18})
-    # sns.stripplot(x="target_homoph", y="homophily", hue="W-style", marker="o", data=df1, jitter=0.15, ax=ax)
-    # sns.stripplot(x="target_homoph", y="homophily", hue="W-style", marker="X", data=df2, jitter=0.15, ax=ax)
-    if save:
-        plt.savefig('../ablations/syn_cora_homoph.pdf')
-    if plot:
-        fig.show()
-    return fig, ax
-
-def plot_1(path, line_scatter, plot=True, save=True):
-    sns.set_theme()
-    fig, ax = plt.subplots(2,1,figsize=(10, 10), sharex=True)
-    fig, ax = syn_cora_plot(path, fig, ax, ax_idx=0, plot=False, save=False)
-    fig, ax = syn_cora_homoph(path, line_scatter, fig, ax, ax_idx=1, plot=False, save=False)
-
-    # ax[0].get_shared_x_axes().join(ax[0], ax[1])
-    # ax[0].set_xticklabels([])
-    plt.subplots_adjust(wspace=0, hspace=0.015)
-    fig.tight_layout()
-    if save:
-        plt.savefig(f"../ablations/plot_1_{line_scatter}.pdf", bbox_inches='tight')
-    if plot:
-        fig.show()
-
-def wall_clock(path, model, line_scatter="scatter", plot=True, save=True):
+def wall_clock(path, model, line_scatter="both", plot=True, save=True):
     sns.set_theme()
     sns.color_palette()
     df = pd.read_csv(path)
@@ -317,7 +328,9 @@ def wall_clock(path, model, line_scatter="scatter", plot=True, save=True):
         df = df[(df.function == "greed_non_linear")].reset_index(drop=True)
     else:
         df = df[(df.function != "greed_non_linear")].reset_index(drop=True)
-        replace_dict = {0:"0:gcn",1:"1:gcn_enc/dec",2:"2:gcn_residual",3:"3:gcn_share_W",4:"4:gcn_symm_W",5:"GRAFF"}#"5:no_nonLin"}
+        df = df[(df.function != "gat")].reset_index(drop=True)
+        df = df[(df.function != "gcn")].reset_index(drop=True)
+        replace_dict = {0:"0:gcn",1:"1:gcn_enc/dec",2:"2:gcn_residual",3:"3:gcn_share_W",4:"4:gcn_symm_W",5:"5:GRAFF"}#"5:no_nonLin"}
         df.loc[:,'gcn_params_idx'].replace(to_replace=replace_dict, inplace=True)
 
         mask = (df["function"] == "gat")
@@ -327,57 +340,66 @@ def wall_clock(path, model, line_scatter="scatter", plot=True, save=True):
         mask = (df["function"] == "GGCN")
         df.loc[mask, 'gcn_params_idx'] = "GGCN"
         mask = (df["function"] == "GGCN_sp")
-        df.loc[mask, 'gcn_params_idx'] = "GGCN_sp"
+        df.loc[mask, 'gcn_params_idx'] = "GGCN_sparse"
 
-    fs = 14
-    ps = 25
+    fs = 12
+    ps = 30
     fig, ax = plt.subplots()
-    if model == "greed_non_linear":
+    if model == "greed_non_linear": # <- slow GRAND ablation code
         if line_scatter == "scatter":
             sns.scatterplot(x="hidden_dim", y="av_fwd", hue="gnl_W_style", s=ps, data=df,
                             ax=ax, palette="deep")#, marker="x")
         elif line_scatter == "line":
             sns.lineplot(x="hidden_dim", y="av_fwd", hue="gnl_W_style", data=df, ax=ax)
-    else:
+    else: #for the GCN in DGL ablation <- the one used
         if line_scatter == "scatter":
             sns.scatterplot(x="hidden_dim", y="av_fwd", hue="gcn_params_idx", s=ps, data=df,
                             ax=ax, palette="deep")#, marker="x")
         elif line_scatter == "line":
             sns.lineplot(x="hidden_dim", y="av_fwd", hue="gcn_params_idx", data=df, ax=ax)
-    ax.set_xlabel('hidden dim', fontsize=fs)
-    ax.set_ylabel('runtime', fontsize=fs)
-    ax.legend(prop=dict(size=fs-4), loc='upper left')
+        elif line_scatter == "both":
+            sns.lineplot(x="hidden_dim", y="av_fwd", hue="gcn_params_idx",marker="o", data=df, ax=ax)
+
+    ax.set_xlabel('hidden_dim', fontsize=fs)
+    ax.set_ylabel('Runtime', fontsize=fs)
+    ax.legend(prop=dict(size=fs-2), loc='upper left')
     if save:
         plt.savefig('../ablations/runtime.pdf')
     if plot:
         fig.show()
 
-    fig, ax = plt.subplots()
-    if line_scatter == "scatter":
-        sns.scatterplot(x="hidden_dim", y="num_params", hue="gcn_params_idx", s=ps, data=df,
-                        ax=ax, palette="deep")#, marker="x")
-    elif line_scatter == "line":
-        sns.lineplot(x="hidden_dim", y="num_params", hue="gcn_params_idx", data=df, ax=ax)
-    ax.set_xlabel('Hidden dim', fontsize=fs)
-    ax.set_ylabel('# params', fontsize=fs)
-    ax.legend(prop=dict(size=fs-4), loc='upper left')
-    if save:
-        plt.savefig('../ablations/runtime_params.pdf')
-    if plot:
-        fig.show()
+    # fig, ax = plt.subplots()
+    # if line_scatter == "scatter":
+    #     sns.scatterplot(x="hidden_dim", y="num_params", hue="gcn_params_idx", s=ps, data=df,
+    #                     ax=ax, palette="deep")#, marker="x")
+    # elif line_scatter == "line":
+    #     sns.lineplot(x="hidden_dim", y="num_params", hue="gcn_params_idx", data=df, ax=ax)
+    # ax.set_xlabel('Hidden dim', fontsize=fs)
+    # ax.set_ylabel('# params', fontsize=fs)
+    # ax.legend(prop=dict(size=fs-4), loc='upper left')
+    # if save:
+    #     plt.savefig('../ablations/runtime_params.pdf')
+    # if plot:
+    #     fig.show()
 
 
 if __name__ == "__main__":
-    # path = "../ablations/ablation_syn_cora.csv"
+    path = "../ablations/ablation_syn_cora.csv"
     # _,_ = syn_cora_plot(path, plot=True, save=True)
+    # _,_ = syn_cora_homoph(path)
+
+    # 1)
+    plot_1(path, "scatter")
     # syn_cora_best_times(path)
     # syn_cora_energy(path)
-    # _,_ = syn_cora_homoph(path)
-    # plot_1(path, "scatter")
-    # plot_1(path, "line")
-    # _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
 
+    # 2)
+    _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
+
+    # 3)
+    size_d_plot()
+
+    # 4)
     wall_clock(path="../ablations/wallclock.csv", model="gcn")
     # wall_clock(path="../ablations/wallclock.csv", model="greed_non_linear")
 
-    # size_d_plot()
