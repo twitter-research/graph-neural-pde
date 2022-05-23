@@ -205,6 +205,7 @@ def size_d_plot(plot=True, save=True):
         ax[i//2,i%2].set_xticks([4, 8, 16, 32, 64, 128, 256, 512])
         ax[i//2,i%2].get_xaxis().set_major_formatter(ScalarFormatter())
 
+        ax[i//2,i%2].set_xlabel('Hidden dimension', fontsize=fs)
         ax[i//2,i%2].set_ylabel('Test accuracy', fontsize=fs)
         ax[i//2,i%2].set_title(f"dataset {ds.title()}", fontsize=fs)
         # ax.get_xaxis().set_visible(False)
@@ -360,7 +361,7 @@ def wall_clock(path, model, line_scatter="both", plot=True, save=True):
         elif line_scatter == "both":
             sns.lineplot(x="hidden_dim", y="av_fwd", hue="gcn_params_idx",marker="o", data=df, ax=ax)
 
-    ax.set_xlabel('hidden_dim', fontsize=fs)
+    ax.set_xlabel('Hidden dimension', fontsize=fs)
     ax.set_ylabel('Runtime', fontsize=fs)
     ax.legend(prop=dict(size=fs-2), loc='upper left')
     if save:

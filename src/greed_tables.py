@@ -192,9 +192,11 @@ def data_zip_analysis():
 
 if __name__ == "__main__":
   # syn_cora_analysis()
+
   ds_list = ['Cora', 'Citeseer', 'Pubmed', 'chameleon', 'squirrel', 'cornell', 'texas', 'wisconsin', 'film']
   data_analysis(path="../data", ds_list=ds_list)
-  # data_zip_analysis()
 
+
+  # data_zip_analysis()
   #nb undirected graph is consistent with theory
   #don't have self loops
