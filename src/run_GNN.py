@@ -9,16 +9,10 @@ import torch.nn.functional as F
 from ogb.nodeproppred import Evaluator
 
 from GNN import GNN
-from GNN_early import GNNEarly
-from GNN_KNN import GNN_KNN
-from GNN_KNN_early import GNNKNNEarly
 from data import get_dataset, set_train_val_test_split
-from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling
 from best_params import best_params_dict
 from heterophilic import get_fixed_splits
 from utils import ROOT_DIR
-from CGNN import CGNN, get_sym_adj
-from CGNN import train as train_cgnn
 
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
@@ -211,6 +205,33 @@ def merge_cmd_args(cmd_opt, opt):
   if cmd_opt['num_splits'] != 1:
     opt['num_splits'] = cmd_opt['num_splits']
 
+def unpack_gcn_params(opt):
+    'temp function to help ablation'
+    wandb.config.update({'gcn_params_idx': opt['gcn_params'][0]}, allow_val_change=True)
+    wandb.config.update({'function': opt['gcn_params'][1]}, allow_val_change=True)
+    wandb.config.update({'gcn_enc_dec': opt['gcn_params'][2]}, allow_val_change=True)
+    wandb.config.update({'gcn_fixed': opt['gcn_params'][3]}, allow_val_change=True)
+    wandb.config.update({'gcn_symm': opt['gcn_params'][4]}, allow_val_change=True)
+    wandb.config.update({'gcn_non_lin': opt['gcn_params'][5]}, allow_val_change=True)
+
+def unpack_greed_params(opt):
+    'temp function for "focus" models'
+    # gnl_W_style: diag_dom, diag
+    # gnl_W_diag_init: uniform, uniform
+    # gnl_W_param_free: True, False
+    # gnl_omega: diag, diag
+    # gnl_omega_diag: free, free
+    # use_mlp: False, True
+    # test_mu_0: True, True
+    # add_source: True, True
+    wandb.config.update({'gnl_W_style': opt['greed_params'][0]}, allow_val_change=True)
+    wandb.config.update({'gnl_W_diag_init': opt['greed_params'][1]}, allow_val_change=True)
+    wandb.config.update({'gnl_W_param_free': opt['greed_params'][2]}, allow_val_change=True)
+    wandb.config.update({'gnl_omega': opt['greed_params'][3]}, allow_val_change=True)
+    wandb.config.update({'gnl_omega_diag': opt['greed_params'][4]}, allow_val_change=True)
+    wandb.config.update({'use_mlp': opt['greed_params'][5]}, allow_val_change=True)
+    wandb.config.update({'test_mu_0': opt['greed_params'][6]}, allow_val_change=True)
+    wandb.config.update({'add_source': opt['greed_params'][7]}, allow_val_change=True)
 
 def main(cmd_opt):
   try:
@@ -223,16 +244,7 @@ def main(cmd_opt):
   dataset = get_dataset(opt, f'{ROOT_DIR}/data', opt['not_lcc'])
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-  if opt['beltrami']:
-    pos_encoding = apply_beltrami(dataset.data, opt).to(device)
-    opt['pos_enc_dim'] = pos_encoding.shape[1]
-  else:
-    pos_encoding = None
-
-  if opt['rewire_KNN'] or opt['fa_layer']:
-    model = GNN_KNN(opt, dataset, device).to(device) if opt["no_early"] else GNNKNNEarly(opt, dataset, device).to(device)
-  else:
-    model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
+  model = GNN(opt, dataset, device).to(device)
 
   if not opt['planetoid_split'] and opt['dataset'] in ['Cora','Citeseer','Pubmed']:
     dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data, num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
@@ -249,12 +261,8 @@ def main(cmd_opt):
   for epoch in range(1, opt['epoch']):
     start_time = time.time()
 
-    if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
-      ei = apply_KNN(data, pos_encoding, model, opt)
-      model.odeblock.odefunc.edge_index = ei
-
-    loss = train(model, optimizer, data, pos_encoding)
-    tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
+    loss = train(model, optimizer, data)
+    tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
 
     best_time = opt['time']
     if tmp_val_acc > val_acc:
@@ -263,12 +271,6 @@ def main(cmd_opt):
       val_acc = tmp_val_acc
       test_acc = tmp_test_acc
       best_time = opt['time']
-    if not opt['no_early'] and model.odeblock.test_integrator.solver.best_val > val_acc:
-      best_epoch = epoch
-      val_acc = model.odeblock.test_integrator.solver.best_val
-      test_acc = model.odeblock.test_integrator.solver.best_test
-      train_acc = model.odeblock.test_integrator.solver.best_train
-      best_time = model.odeblock.test_integrator.solver.best_time
 
     log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}, Best time: {:.4f}'
 

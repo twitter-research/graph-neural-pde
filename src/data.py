@@ -49,7 +49,10 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
   elif ds == 'ogbn-arxiv':
     dataset = PygNodePropPredDataset(name=ds, root=path,
                                      transform=T.ToSparseTensor())
-    use_lcc = False  # never need to calculate the lcc with ogb datasets
+    use_lcc = False  #  never need to calculate the lcc with ogb datasets
+  elif ds == 'syn_cora':
+    dataset = get_pyg_syn_cora(data_dir, opt, rep=1)
+    use_lcc = False
   else:
     raise Exception('Unknown dataset.')
 

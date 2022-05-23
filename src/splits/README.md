@@ -1,0 +1,1 @@
+These splits were taken from the code base of the Geom-GCN paper : https://github.com/graphdml-uiuc-jlu/geom-gcn

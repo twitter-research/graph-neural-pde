@@ -166,6 +166,11 @@ def get_full_adjacency(num_nodes):
     edge_index[1][idx * num_nodes: (idx + 1) * num_nodes] = torch.arange(0, num_nodes,dtype=torch.long)
   return edge_index
 
+def dirichlet_energy(edge_index, edge_weight, n, X):
+  edge_index, L = get_laplacian(edge_index, edge_weight, None)
+  LX = torch_sparse.spmm(edge_index, L, n, n, X)
+  # return torch.sum(torch.trace(X.T @ de))
+  return (X * LX).sum()
 
 
 from typing import Optional
