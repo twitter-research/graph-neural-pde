@@ -9,10 +9,12 @@ import wandb
 
 from GNN import GNN
 from data import get_dataset, set_train_val_test_split
-from best_params import best_params_dict
-from greed_params import greed_test_params, greed_run_params, greed_hyper_params, greed_ablation_params, tf_ablation_args, not_sweep_args
 from heterophilic import get_fixed_splits
 from data_synth_hetero import get_pyg_syn_cora
+
+from best_params import best_params_dict
+from greed_params import greed_test_params, greed_run_params, greed_hyper_params, greed_ablation_params, tf_ablation_args, not_sweep_args
+from graff_params import graff_opt
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
     if name == 'sgd':
@@ -182,12 +184,13 @@ def main(cmd_opt):
 
     if opt['gcn_params']: #temp function for GCN ablation
         unpack_gcn_params(opt)
-    if opt['greed_params']: #temp function for GCN ablation
+    if opt['graff_params']: #temp function for GCN ablation
         unpack_greed_params(opt)
 
     dataset = get_dataset(opt, '../data', opt['not_lcc'])
-    if opt['dataset'] in ['chameleon','squirrel','other hetero?']: #todo put this in data loader
-        ### added self loops and make undirected for chameleon & squirrel
+    ### todo put this in data loader
+    if opt['dataset'] in ['chameleon','squirrel','other hetero?']:
+        ###todo added self loops and make undirected for chameleon & squirrel
         if opt['greed_SL']:
             dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)
         if opt['greed_undir']:
@@ -234,12 +237,6 @@ def main(cmd_opt):
                 patience_count = 0
             else:
                 patience_count += 1
-            if not opt['no_early'] and model.odeblock.test_integrator.solver.best_val > val_acc:
-                best_epoch = epoch
-                val_acc = model.odeblock.test_integrator.solver.best_val
-                test_acc = model.odeblock.test_integrator.solver.best_test
-                train_acc = model.odeblock.test_integrator.solver.best_train
-                best_time = model.odeblock.test_integrator.solver.best_time
             print(f"Epoch: {epoch}, Runtime: {time.time() - start_time:.3f}, Loss: {loss:.3f}, "
                   f"forward nfe {model.fm.sum}, backward nfe {model.bm.sum}, "
                   f"tmp_train: {tmp_train_acc:.4f}, tmp_val: {tmp_val_acc:.4f}, tmp_test: {tmp_test_acc:.4f}, "
@@ -270,7 +267,6 @@ def main(cmd_opt):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     #run args
-    parser.add_argument('--use_cora_defaults', action='store_true', help='Whether to run with best params for cora. Overrides the choice of dataset')
     parser.add_argument('--use_best_params', action='store_true', help="flag to take the best BLEND params")
     parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")
     parser.add_argument('--epoch', type=int, default=100, help='Number of training epochs per iteration.')
@@ -288,6 +284,7 @@ if __name__ == '__main__':
     parser.add_argument('--planetoid_split', action='store_true', help='use planetoid splits for Cora/Citeseer/Pubmed')
     parser.add_argument('--geom_gcn_splits', dest='geom_gcn_splits', action='store_true', help='use the 10 fixed splits from https://arxiv.org/abs/2002.05287')
     parser.add_argument('--num_splits', type=int, dest='num_splits', default=1, help='the number of splits to repeat the results on')
+    parser.add_argument("--not_lcc", action="store_false", help="don't use the largest connected component")
     #todo check these
     parser.add_argument('--hetero_SL', type=str, default='True', help='control self loops for Chameleon/Squirrel')
     parser.add_argument('--hetero_undir', type=str, default='True', help='control undirected for Chameleon/Squirrel')
@@ -306,9 +303,8 @@ if __name__ == '__main__':
     parser.add_argument('--beta_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) beta')
     parser.add_argument('--use_mlp', dest='use_mlp', action='store_true', help='Add a fully connected layer to the encoder.')
     parser.add_argument('--add_source', dest='add_source', action='store_true', help='If try get rid of alpha param and the beta*x0 source term')
-    #todo check these
-    # parser.add_argument('--XN_no_activation', type=str, default='False', help='whether to relu activate the terminal state')
-    # parser.add_argument('--m2_mlp', type=str, default='False', help='whether to use decoder mlp')
+    parser.add_argument('--XN_activation', action='store_true', help='whether to relu activate the terminal state')
+    parser.add_argument('--m2_mlp', action='store_true', help='whether to use decoder mlp')
 
     # ODE args
     parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
@@ -341,19 +337,22 @@ if __name__ == '__main__':
     parser.add_argument('--gcn_params_idx', type=int, default=0, help='index to track GCN ablation')
 
     # graff args
-    parser.add_argument('--Omega_style', type=str, default='zero', help='zero, diag, sum')
-    parser.add_argument('--Omega_diag', type=str, default='free', help='free, const')
-    parser.add_argument('--Omega_params', nargs='+', default=None, help='list of Omega args for ablation')
-    parser.add_argument('--W_params', nargs='+', default=None, help='list of W args for ablation')
-    parser.add_argument('--W_style', type=str, default='sum', help='sum, prod, neg_prod, diag_dom, diag')
-    parser.add_argument('--W_diag_init', type=str, default='identity', help='init of diag elements [identity, uniform, linear]')
-    parser.add_argument('--W_param_free', type=str, default='True', help='allow parameter to require gradient')
-    parser.add_argument('--W_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
-    parser.add_argument('--W_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
+    parser.add_argument('--omega_style', type=str, default='zero', help='zero, diag')
+    parser.add_argument('--omega_diag', type=str, default='free', help='free, const')
+    parser.add_argument('--omega_params', nargs='+', default=None, help='list of Omega args for ablation')
+    parser.add_argument('--w_style', type=str, default='sum', help='sum, prod, neg_prod, diag_dom, diag')
+    parser.add_argument('--w_diag_init', type=str, default='identity', help='init of diag elements [identity, uniform, linear]')
+    #todo boolean
+    parser.add_argument('--w_param_free', type=str, default='True', help='allow parameter to require gradient')
+    parser.add_argument('--w_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
+    parser.add_argument('--w_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
+    parser.add_argument('--w_params', nargs='+', default=None, help='list of W args for ablation')
+    #todo boolean
     parser.add_argument('--time_dep_w', type=str, default='False', help='Learn a time dependent potentials')
     parser.add_argument('--time_dep_struct_w', type=str, default='False', help='Learn a structured time dependent potentials')
     parser.add_argument('--graff_params', nargs='+', default=None, help='list of args for focus models')
 
     args = parser.parse_args()
     opt = vars(args)
+    opt = graff_opt(opt)
     main(opt)

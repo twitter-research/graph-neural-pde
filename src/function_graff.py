@@ -28,11 +28,12 @@ class ODEFuncGraff(ODEFunc):
     super(ODEFuncGraff, self).__init__(opt, data, device)
     self.in_features = in_features
     self.out_features = out_features
-    if opt['self_loop_weight'] > 0:
-      self.edge_index, self.edge_weight = add_remaining_self_loops(data.edge_index, data.edge_attr,
-                                                                   fill_value=opt['self_loop_weight'])
-    else:
-      self.edge_index, self.edge_weight = data.edge_index, data.edge_attr
+    # if opt['self_loop_weight'] > 0:
+    #   self.edge_index, self.edge_weight = add_remaining_self_loops(data.edge_index, data.edge_attr,
+    #                                                                fill_value=opt['self_loop_weight'])
+    # else:
+
+    self.edge_index, self.edge_weight = data.edge_index, data.edge_attr
 
     self.n_nodes = data.x.shape[0]
     self.deg_inv_sqrt = self.get_deg_inv_sqrt(data).to(device) #sending this to device because at initi, data is not yet sent to device
@@ -46,26 +47,26 @@ class ODEFuncGraff(ODEFunc):
       self.num_timesteps = math.ceil(self.opt['time']/self.opt['step_size'])
 
     #init Omega
-    if self.opt['gnl_omega'] == 'diag':
+    if self.opt['omega_style'] == 'diag':
       if self.time_dep_w:
         self.om_W = Parameter(torch.Tensor(self.num_timesteps, in_features))
       else:
         self.om_W = Parameter(torch.Tensor(in_features))
-    elif self.opt['gnl_omega'] == 'zero':
+    elif self.opt['omega_style'] == 'zero':
       self.om_W = torch.zeros((in_features,in_features), device=device)
 
     #init W
-    if self.opt['W_style'] in ['sum', 'prod', 'neg_prod']:
+    if self.opt['w_style'] in ['sum', 'prod', 'neg_prod']:
       self.W_W = Parameter(torch.Tensor(in_features, in_features))
-    elif self.opt['W_style'] == 'diag':
-      if self.opt['W_diag_init'] == 'linear':
+    elif self.opt['w_style'] == 'diag':
+      if self.opt['w_diag_init'] == 'linear':
         d = in_features
         if self.time_dep_w or self.time_dep_struct_w:
           # This stores just the time dependent diagonals
           d_range = torch.tensor([list(range(d)) for _ in range(self.num_timesteps)], device=self.device)
           self.W_D = Parameter(
-            self.opt['W_diag_init_q'] * d_range / (d-1) + self.opt['W_diag_init_r'],
-            requires_grad=opt['W_param_free'])
+            self.opt['w_diag_init_q'] * d_range / (d-1) + self.opt['w_diag_init_r'],
+            requires_grad=opt['w_param_free'])
           if self.time_dep_struct_w:
             self.brt = Parameter(
               -2. * torch.rand((self.num_timesteps, d), device=self.device) + 1,
@@ -81,10 +82,10 @@ class ODEFuncGraff(ODEFunc):
             )
         else:
           d_range = torch.tensor(list(range(d)), device=self.device)
-          self.W_D = Parameter(self.opt['W_diag_init_q'] * d_range / (d-1) + self.opt['W_diag_init_r'], requires_grad=opt['W_param_free'])
+          self.W_D = Parameter(self.opt['w_diag_init_q'] * d_range / (d-1) + self.opt['w_diag_init_r'], requires_grad=opt['w_param_free'])
       else:
         if self.time_dep_w or self.time_dep_struct_w:
-          self.W_D = Parameter(torch.ones(self.num_timesteps, in_features), requires_grad=opt['W_param_free'])
+          self.W_D = Parameter(torch.ones(self.num_timesteps, in_features), requires_grad=opt['w_param_free'])
           if self.time_dep_struct_w:
             self.brt = Parameter(
               -2. * torch.rand((self.num_timesteps, in_features), device=self.device) + 1,
@@ -99,14 +100,14 @@ class ODEFuncGraff(ODEFunc):
               requires_grad=True
             )
         else:
-          self.W_D = Parameter(torch.ones(in_features), requires_grad=opt['W_param_free'])
-    elif self.opt['W_style'] == 'diag_dom':
-      self.W_W = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['W_param_free'])
-      self.t_a = Parameter(torch.Tensor(in_features), requires_grad=opt['W_param_free'])
-      self.r_a = Parameter(torch.Tensor(in_features), requires_grad=opt['W_param_free'])
+          self.W_D = Parameter(torch.ones(in_features), requires_grad=opt['w_param_free'])
+    elif self.opt['w_style'] == 'diag_dom':
+      self.W_W = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['w_param_free'])
+      self.t_a = Parameter(torch.Tensor(in_features), requires_grad=opt['w_param_free'])
+      self.r_a = Parameter(torch.Tensor(in_features), requires_grad=opt['w_param_free'])
       if self.time_dep_w:
-        self.t_a = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=opt['W_param_free'])
-        self.r_a = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=opt['W_param_free'])
+        self.t_a = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=opt['w_param_free'])
+        self.r_a = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=opt['w_param_free'])
       if self.time_dep_struct_w:
         self.at = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=True)
         self.bt = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=True)
@@ -116,40 +117,39 @@ class ODEFuncGraff(ODEFunc):
 
   def reset_parameters(self):
     # Omega
-    if self.opt['gnl_omega'] == 'diag':
+    if self.opt['omega_style'] == 'diag':
       uniform(self.om_W, a=-1, b=1)
     # W's
-    if self.opt['W_style'] in ['sum','prod','neg_prod']:
+    if self.opt['w_style'] in ['sum','prod','neg_prod']:
       glorot(self.W_W)
-    elif self.opt['W_style'] == 'diag':
-      if self.opt['W_diag_init'] == 'uniform':
+    elif self.opt['w_style'] == 'diag':
+      if self.opt['w_diag_init'] == 'uniform':
         uniform(self.W_D, a=-1, b=1)
         if self.time_dep_struct_w:
           uniform(self.brt, a=-1, b=1)
           uniform(self.crt, a=-1, b=1)
           uniform(self.drt, a=-1, b=1)
-      elif self.opt['W_diag_init'] == 'identity':
+      elif self.opt['w_diag_init'] == 'identity':
         ones(self.W_D)
-      elif self.opt['W_diag_init'] == 'linear':
+      elif self.opt['w_diag_init'] == 'linear':
         pass #done in init
-    elif self.opt['W_style'] == 'diag_dom':
+    elif self.opt['w_style'] == 'diag_dom':
       if self.time_dep_struct_w:
         uniform(self.at, a=-1, b=1)
         uniform(self.bt, a=-1, b=1)
         uniform(self.gt, a=-1, b=1)
-      if self.opt['W_diag_init'] == 'uniform':
+      if self.opt['w_diag_init'] == 'uniform':
         glorot(self.W_W)
         uniform(self.t_a, a=-1, b=1)
         uniform(self.r_a, a=-1, b=1)
-      elif self.opt['W_diag_init'] == 'identity':
+      elif self.opt['w_diag_init'] == 'identity':
         zeros(self.W_W)
         constant(self.t_a, fill_value=1)
         constant(self.r_a, fill_value=1)
-      elif self.opt['W_diag_init'] == 'linear':
+      elif self.opt['w_diag_init'] == 'linear':
         glorot(self.W_W)
-        constant(self.t_a, fill_value=self.opt['W_diag_init_q'])
-        constant(self.r_a, fill_value=self.opt['W_diag_init_r'])
-
+        constant(self.t_a, fill_value=self.opt['w_diag_init_q'])
+        constant(self.r_a, fill_value=self.opt['w_diag_init_r'])
 
   def get_deg_inv_sqrt(self, data):
     index_tensor = data.edge_index[0]
@@ -169,17 +169,17 @@ class ODEFuncGraff(ODEFunc):
     return src, dst
 
   def set_Omega(self, T=None):
-    if self.opt['gnl_omega'] == 'diag':
-      if self.opt['gnl_omega_diag'] == 'free':
+    if self.opt['omega_style'] == 'diag':
+      if self.opt['omega_diag'] == 'free':
         if self.time_dep_w:
           if T is None:
             T = 0
           Omega = torch.diag(self.om_W[T])
         else:
           Omega = torch.diag(self.om_W)
-      elif self.opt['gnl_omega_diag'] == 'const':
-        Omega = torch.diag(self.opt['gnl_omega_diag_val'] * torch.ones(self.in_features, device=self.device))
-    elif self.opt['gnl_omega'] == 'zero':
+      elif self.opt['omega_diag'] == 'const':
+        Omega = torch.diag(self.opt['omega_diag_val'] * torch.ones(self.in_features, device=self.device))
+    elif self.opt['omega_style'] == 'zero':
       Omega = torch.zeros((self.in_features,self.in_features), device=self.device)
     return Omega
 
@@ -187,13 +187,13 @@ class ODEFuncGraff(ODEFunc):
     if T is None:
       T = 0
     "note every W is made symetric before returning here"
-    if self.opt['W_style'] in ['prod']:
+    if self.opt['w_style'] in ['prod']:
       return self.W_W @ self.W_W.t()
-    elif self.opt['W_style'] in ['neg_prod']:
+    elif self.opt['w_style'] in ['neg_prod']:
       return -self.W_W @ self.W_W.t()
-    elif self.opt['W_style'] in ['sum']:
+    elif self.opt['w_style'] in ['sum']:
       return (self.W_W + self.W_W.t()) / 2
-    elif self.opt['W_style'] == 'diag':
+    elif self.opt['w_style'] == 'diag':
       if self.time_dep_w:
         if T is None:
           T = 0
@@ -209,7 +209,7 @@ class ODEFuncGraff(ODEFunc):
         return alpha @ Wplus - beta @ Wneg
       else:
         return torch.diag(self.W_D)
-    elif self.opt['W_style'] == 'diag_dom':
+    elif self.opt['w_style'] == 'diag_dom':
       W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
       W = (W+W.T) / 2
@@ -221,7 +221,7 @@ class ODEFuncGraff(ODEFunc):
          W_sum = self.t_a * torch.abs(W).sum(dim=1) + self.r_a
       Ws = W + torch.diag(W_sum)
       return Ws
-    elif self.opt['W_style'] == 'identity':
+    elif self.opt['w_style'] == 'identity':
       return torch.eye(self.in_features, device=self.device)
 
 

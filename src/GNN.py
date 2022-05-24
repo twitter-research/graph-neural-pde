@@ -62,7 +62,7 @@ class GNN(BaseGNN):
     if self.opt['augment']:
       z = torch.split(z, z.shape[1] // 2, dim=1)[0]
     # Activation.
-    if not self.opt['XN_no_activation']:
+    if not self.opt['XN_activation']:
       z = F.relu(z)
     # fc from bottleneck
     if self.opt['fc_out']:
