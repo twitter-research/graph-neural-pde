@@ -1,6 +1,6 @@
 from function_laplacian_diffusion import LaplacianODEFunc
 from block_constant import ConstantODEblock
-from function_graff import ODEFuncGreedNonLin
+from function_graff import ODEFuncGraff
 
 class BlockNotDefined(Exception):
   pass
@@ -21,8 +21,8 @@ def set_function(opt):
   ode_str = opt['function']
   if ode_str == 'laplacian':
     f = LaplacianODEFunc
-  elif ode_str == 'greed_non_linear':
-    f = ODEFuncGreedNonLin
+  elif ode_str == 'graff':
+    f = ODEFuncGraff
   else:
     raise FunctionNotDefined
   return f

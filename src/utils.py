@@ -7,11 +7,12 @@ import scipy
 from scipy.stats import sem
 import numpy as np
 from torch_scatter import scatter_add
-from torch_geometric.utils import add_remaining_self_loops
+from torch_geometric.utils import add_remaining_self_loops, get_laplacian
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.utils.convert import to_scipy_sparse_matrix
 from sklearn.preprocessing import normalize
 from torch_geometric.nn.conv.gcn_conv import gcn_norm
+import torch_sparse
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -212,6 +213,14 @@ def squareplus(src: Tensor, index: Optional[Tensor], ptr: Optional[Tensor] = Non
 
   return out / (out_sum + 1e-16)
 
+def sigmoid_deriv(x):
+  return torch.sigmoid(x) * (1 - torch.sigmoid(x))
+
+def tanh_deriv(x):
+  return 1 - torch.tanh(x) ** 2
+
+def squareplus_deriv(x):
+  return (1 + x / torch.sqrt(x ** 2 + 4)) / 2
 
 # Counter of forward and backward passes.
 class Meter(object):

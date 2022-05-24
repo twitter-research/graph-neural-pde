@@ -165,7 +165,7 @@ def greed_ablation_params(opt):
         opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
         opt['gnl_attention'] = False #use L0 attention coefficients
         #Omega
-        opt['gnl_omega'] = 'diag_dom' #'diag'#'zero' Omega_eq_W
+        opt['gnl_omega'] = 'diag'#'zero' Omega_eq_W
         # if opt['gnl_omega'] == 'diag':
         #     opt['gnl_omega_diag'] = 'free' #'free 'const'
         #     if opt['gnl_omega_diag'] == 'const':
@@ -266,7 +266,7 @@ def greed_ablation_params(opt):
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = True #True #True #False #True
+    opt['wandb'] = False #True
     opt['wandb_track_grad_flow'] = True #False  #collect stats for reports
     opt['wandb_watch_grad'] = False
     opt['run_track_reports'] = True #False#True ##run the evolution reports
