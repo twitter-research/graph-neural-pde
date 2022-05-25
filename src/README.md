@@ -10,17 +10,19 @@ Commands to install all the dependencies in a new conda environment
 ```
 conda create --name graff python=3.7
 conda activate graff
-
+TORCH=1.8.1
+CUDA=cu102 or cpu
 pip install torch==1.8.1
-pip install torchdiffeq==0.2.3 -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
-pip install torch-scatter==2.0.9 -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
-pip install torch-sparse==0.6.12 -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
-pip install torch-cluster==1.5.9 -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
-pip install torch-spline-conv==1.2.1 -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
+pip install torchdiffeq==0.2.3 -f https://pytorch-geometric.com/whl/torch-${TORCH}+${CUDA}.html
+pip install torch-scatter==2.0.9 -f https://pytorch-geometric.com/whl/torch-${TORCH}+${CUDA}.html
+pip install torch-sparse==0.6.12 -f https://pytorch-geometric.com/whl/torch-${TORCH}+${CUDA}.html
+pip install torch-cluster==1.5.9 -f https://pytorch-geometric.com/whl/torch-${TORCH}+${CUDA}.html
+pip install torch-spline-conv==1.2.1 -f https://pytorch-geometric.com/whl/torch-${TORCH}+${CUDA}.html
 pip install torch-geometric==2.0.3
+pip install --no-deps deeprobust
 ```
 
-## Training and Evaluation
+# Training and Evaluation
 
 To train and evaluate the model(s) in the paper, run this command:
 
