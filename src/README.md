@@ -1,6 +1,6 @@
 # Graph Neural Networks as Gradient Flows
 
-This repository is the official implementation of [Graph Neural Networks as Gradient Flows](https://nips.cc/).
+This repository is the official implementation of [Graph Neural Networks as Gradient Flows](https://).
 
 ## Requirements
 
