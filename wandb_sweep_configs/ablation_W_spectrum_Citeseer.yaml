@@ -1,0 +1,56 @@
+program: run_GNN.py
+method: grid
+parameters:
+  dataset:
+    values: [Citeseer]
+  block:
+    values: [constant]
+  function:
+    values: [greed_non_linear]
+  epoch:
+    values: [100]
+  num_splits:
+    values: [10]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_activation:
+    values: [identity]
+  gnl_W_style:
+    values: [sum, prod, neg_prod]
+  gnl_measure:
+    values: [ones]
+  gnl_omega:
+     values: [zero]
+  drift:
+    values: [False]
+  test_mu_0:
+    values: [True]
+  add_source:
+    values: [False]
+  step_size:
+    values: [0.5]
+  hidden_dim:
+    values: [64]
+  time:
+    values: [4]
+  input_dropout:
+    values: [0.5]
+  dropout:
+    values: [0.35]
+  optimizer:
+    values: [adam]
+  lr:
+    values: [0.0025]
+  decay:
+    values: [0.01]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+entity: graph_neural_diffusion
+project: ablation_W_spectrum

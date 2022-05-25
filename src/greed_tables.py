@@ -10,6 +10,7 @@ from graph_rewiring import dirichlet_energy
 from greed_params import default_params
 from data import get_dataset
 from data_synth_hetero import CustomDataset, Dpr2Pyg, get_edge_cat
+from heterophilic import get_fixed_splits
 
 def syn_cora_analysis(path="../data"):
   ths = ['0.00', '0.10', '0.20', '0.30', '0.40', '0.50', '0.60', '0.70', '0.80', '0.90', '1.00']
@@ -190,13 +191,57 @@ def data_zip_analysis():
   data_analysis(new_dir, ds_list)
 
 
+
+  #Check it’s true that Cora uses LCC and Citeseer does not by comparing to the provided datasets from geom-gcn
+  #For citeseer check train/val/test for each split
+def check_geom_splits(path, ds_list):
+  df_list = []
+  opt = {}
+  # for ds in ["Cora", "Citeseer", "Pubmed"]:
+  for ds in ds_list:
+    for lcc_tf in [True, False]:
+      opt['dataset'] = ds
+      opt['not_lcc'] = lcc_tf
+      opt['rewiring'] = None
+      opt['geom_gcn_splits'] = True
+      dataset = get_dataset(opt, path, opt['not_lcc'])
+      data = dataset.data
+      for rep in range(10):
+        data = get_fixed_splits(data, opt['dataset'], rep)
+        df_row = [ds, rep, lcc_tf,
+                  data.train_mask.shape[0], torch.count_nonzero(data.train_mask).item(),
+                  data.val_mask.shape[0], torch.count_nonzero(data.val_mask).item(),
+                  data.test_mask.shape[0], torch.count_nonzero(data.test_mask).item(),
+                  torch.count_nonzero(data.train_mask).item() + torch.count_nonzero(data.val_mask).item() + torch.count_nonzero(data.test_mask).item(),
+                  (data.x.shape[0],data.x.shape[1])]
+        df_list.append(df_row)
+  df_cols = ["ds", " rep", "not_lcc",
+              "train_mask.shape", "nonzero(train_mask)",
+              "val_mask.shape", "nonzero(val_mask)",
+              "test_mask.shape", "nonzero(test_mask)",
+              "sum_non_zero", "x.shape"]
+  df = pd.DataFrame(df_list, columns=df_cols)
+  pd.set_option('display.max_rows', None)
+  pd.set_option('display.max_columns', None)
+  pd.set_option('display.width', None)
+  pd.set_option('display.max_colwidth', -1)
+  print(df)
+  df.to_csv("../ablations/geom_gcn_splits_check.csv", index=False)
+
+
+
+
+
+
+
 if __name__ == "__main__":
   # syn_cora_analysis()
 
   ds_list = ['Cora', 'Citeseer', 'Pubmed', 'chameleon', 'squirrel', 'cornell', 'texas', 'wisconsin', 'film']
   data_analysis(path="../data", ds_list=ds_list)
-
+  # check_geom_splits(path="../data", ds_list=ds_list)
 
   # data_zip_analysis()
   #nb undirected graph is consistent with theory
   #don't have self loops
+
