@@ -17,7 +17,6 @@ from torch_geometric.nn.inits import glorot, zeros, ones, constant
 from torch_scatter import scatter_mean
 from torch.nn import Parameter, Softmax, Softplus
 from torch.distributions import Categorical
-import wandb
 from utils import MaxNFEException, sigmoid_deriv, tanh_deriv, squareplus_deriv
 from base_classes import ODEFunc
 

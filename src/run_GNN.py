@@ -5,16 +5,14 @@ import json
 import numpy as np
 import torch
 from torch_geometric.utils import homophily, add_remaining_self_loops, to_undirected
-import wandb
 
 from GNN import GNN
 from data import get_dataset, set_train_val_test_split
 from heterophilic import get_fixed_splits
 from data_synth_hetero import get_pyg_syn_cora
 
-from best_params import best_params_dict
-from greed_params import greed_test_params, greed_run_params, greed_hyper_params, greed_ablation_params, tf_ablation_args, not_sweep_args
-from graff_params import graff_opt
+from graff_params import best_params_dict, shared_graff_params, hetero_params
+
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
     if name == 'sgd':
@@ -110,91 +108,66 @@ def print_model_params(model):
             print(name)
             print(param.data.shape)
 
-#todo check this when have sorted best params
-def merge_cmd_args(cmd_opt, opt):
-    if cmd_opt['beltrami']:
-        opt['beltrami'] = True
-    if cmd_opt['function'] is not None:
-        opt['function'] = cmd_opt['function']
-    if cmd_opt['block'] is not None:
-        opt['block'] = cmd_opt['block']
-    if cmd_opt['self_loop_weight'] is not None:
-        opt['self_loop_weight'] = cmd_opt['self_loop_weight']
-    if cmd_opt['method'] is not None:
-        opt['method'] = cmd_opt['method']
-    if cmd_opt['step_size'] != 1:
-        opt['step_size'] = cmd_opt['step_size']
-    if cmd_opt['time'] != 1:
-        opt['time'] = cmd_opt['time']
-    if cmd_opt['epoch'] != 100:
-        opt['epoch'] = cmd_opt['epoch']
-    if cmd_opt['num_splits'] != 1:
-        opt['num_splits'] = cmd_opt['num_splits']
-    if cmd_opt['attention_type'] != '':
-        opt['attention_type'] = cmd_opt['attention_type']
-    if cmd_opt['max_iters'] != 100:
-        opt['max_iters'] = cmd_opt['max_iters']
-
-
 def unpack_gcn_params(opt):
-    'temp function to help ablation'
-    wandb.config.update({'gcn_params_idx': opt['gcn_params'][0]}, allow_val_change=True)
-    wandb.config.update({'function': opt['gcn_params'][1]}, allow_val_change=True)
-    wandb.config.update({'gcn_enc_dec': opt['gcn_params'][2]}, allow_val_change=True)
-    wandb.config.update({'gcn_fixed': opt['gcn_params'][3]}, allow_val_change=True)
-    wandb.config.update({'gcn_symm': opt['gcn_params'][4]}, allow_val_change=True)
-    wandb.config.update({'gcn_non_lin': opt['gcn_params'][5]}, allow_val_change=True)
+    'temp function for ablation'
+    opt['gcn_params_idx'] = opt['gcn_params'][0]
+    opt['function'] = opt['gcn_params'][1]
+    opt['gcn_enc_dec'] = opt['gcn_params'][2]
+    opt['gcn_fixed'] = opt['gcn_params'][3]
+    opt['gcn_symm'] = opt['gcn_params'][4]
+    opt['gcn_non_lin'] = opt['gcn_params'][5]
+    return opt
 
-
-def unpack_greed_params(opt):
+def unpack_graff_params(opt):
     'temp function for "focus" models'
-    # W_style: diag_dom, diag
-    # W_diag_init: uniform, uniform
-    # W_param_free: True, False
-    # Omega_style: diag, diag
-    # Omega_diag: free, free
+    # w_style: diag_dom, diag
+    # w_diag_init: uniform, uniform
+    # w_param_free: True, False
+    # omega_style: diag, diag
+    # omega_diag: free, free
     # use_mlp: False, True
     # test_mu_0: True, True
     # add_source: True, True
-    wandb.config.update({'W_style': opt['graff_params'][0]}, allow_val_change=True)
-    wandb.config.update({'W_diag_init': opt['graff_params'][1]}, allow_val_change=True)
-    wandb.config.update({'W_param_free': opt['graff_params'][2]}, allow_val_change=True)
-    wandb.config.update({'Omega': opt['graff_params'][3]}, allow_val_change=True)
-    wandb.config.update({'Omega_diag': opt['graff_params'][4]}, allow_val_change=True)
-    wandb.config.update({'use_mlp': opt['graff_params'][5]}, allow_val_change=True)
-    wandb.config.update({'test_mu_0': opt['graff_params'][6]}, allow_val_change=True)
-    wandb.config.update({'add_source': opt['graff_params'][7]}, allow_val_change=True)
+    opt['w_style'] = opt['graff_params'][0]
+    opt['w_diag_init'] = opt['graff_params'][1]
+    opt['w_param_free'] = opt['graff_params'][2]
+    opt['omega'] = opt['graff_params'][3]
+    opt['omega_diag'] = opt['graff_params'][4]
+    opt['use_mlp'] = opt['graff_params'][5]
+    opt['test_mu_0'] = opt['graff_params'][6]
+    opt['add_source'] = opt['graff_params'][7]
+    return opt
 
-def unpack_omega_params(self):
+def unpack_omega_params(opt):
     'temp function to help ablation'
-    wandb.config.update({'Omega': self.opt['Omega_params'][0]}, allow_val_change=True)
-    wandb.config.update({'Omega_diag': self.opt['Omega_params'][1]}, allow_val_change=True)
-    wandb.config.update({'Omega_diag_val': self.opt['Omega_params'][2]}, allow_val_change=True)
+    opt['omega'] = opt['Omega_params'][0]
+    opt['omega_diag'] = opt['Omega_params'][1]
+    opt['omega_diag_val'] = opt['Omega_params'][2]
+    return opt
 
 def main(cmd_opt):
     if cmd_opt['use_best_params']:
         best_opt = best_params_dict[cmd_opt['dataset']]
         opt = {**cmd_opt, **best_opt}
-        merge_cmd_args(cmd_opt, opt)
     else:
         opt = cmd_opt
 
+    opt = shared_graff_params(opt)
+    opt = hetero_params(opt)
+    if opt['gcn_params']: #temp function for ablation
+        unpack_gcn_params(opt)
+    if opt['graff_params']: #temp function for ablation
+        unpack_graff_params(opt)
+    if opt['omega_params']: #temp function for ablation
+        unpack_omega_params(opt)
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     opt['device'] = device
-
-    if opt['gcn_params']: #temp function for GCN ablation
-        unpack_gcn_params(opt)
-    if opt['graff_params']: #temp function for GCN ablation
-        unpack_greed_params(opt)
-
     dataset = get_dataset(opt, '../data', opt['not_lcc'])
-    ### todo put this in data loader
-    if opt['dataset'] in ['chameleon','squirrel','other hetero?']:
-        ###todo added self loops and make undirected for chameleon & squirrel
-        if opt['greed_SL']:
-            dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)
-        if opt['greed_undir']:
-            dataset.data.edge_index = to_undirected(dataset.data.edge_index)
+    if opt['hetero_SL']:
+        dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)
+    if opt['hetero_undir']:
+        dataset.data.edge_index = to_undirected(dataset.data.edge_index)
 
     pos_encoding = None
     this_test = test
@@ -285,9 +258,8 @@ if __name__ == '__main__':
     parser.add_argument('--geom_gcn_splits', dest='geom_gcn_splits', action='store_true', help='use the 10 fixed splits from https://arxiv.org/abs/2002.05287')
     parser.add_argument('--num_splits', type=int, dest='num_splits', default=1, help='the number of splits to repeat the results on')
     parser.add_argument("--not_lcc", action="store_false", help="don't use the largest connected component")
-    #todo check these
-    parser.add_argument('--hetero_SL', type=str, default='True', help='control self loops for Chameleon/Squirrel')
-    parser.add_argument('--hetero_undir', type=str, default='True', help='control undirected for Chameleon/Squirrel')
+    parser.add_argument('--hetero_SL', action='store_true', help='control self loops for Chameleon/Squirrel')
+    parser.add_argument('--hetero_undir', action='store_true', help='control undirected for Chameleon/Squirrel')
 
     # GNN args
     parser.add_argument('--block', type=str, help='constant, mixed, attention, hard_attention')
@@ -342,17 +314,15 @@ if __name__ == '__main__':
     parser.add_argument('--omega_params', nargs='+', default=None, help='list of Omega args for ablation')
     parser.add_argument('--w_style', type=str, default='sum', help='sum, prod, neg_prod, diag_dom, diag')
     parser.add_argument('--w_diag_init', type=str, default='identity', help='init of diag elements [identity, uniform, linear]')
-    #todo boolean
-    parser.add_argument('--w_param_free', type=str, default='True', help='allow parameter to require gradient')
+    parser.add_argument('--w_param_free', action='store_true', help='allow parameter to require gradient')
     parser.add_argument('--w_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
     parser.add_argument('--w_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
     parser.add_argument('--w_params', nargs='+', default=None, help='list of W args for ablation')
-    #todo boolean
-    parser.add_argument('--time_dep_w', type=str, default='False', help='Learn a time dependent potentials')
-    parser.add_argument('--time_dep_struct_w', type=str, default='False', help='Learn a structured time dependent potentials')
+    parser.add_argument('--time_dep_w', action='store_true', help='Learn a time dependent potentials')
+    parser.add_argument('--time_dep_struct_w', action='store_true', help='Learn a structured time dependent potentials')
+
     parser.add_argument('--graff_params', nargs='+', default=None, help='list of args for focus models')
 
     args = parser.parse_args()
     opt = vars(args)
-    opt = graff_opt(opt)
     main(opt)
