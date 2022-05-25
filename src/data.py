@@ -9,7 +9,7 @@ import numpy as np
 import torch
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.datasets import Planetoid, Amazon, Coauthor
-from ogb.nodeproppred import PygNodePropPredDataset
+# from ogb.nodeproppred import PygNodePropPredDataset
 import torch_geometric.transforms as T
 from torch_geometric.utils import to_undirected
 from heterophilic import WebKB, WikipediaNetwork, Actor
