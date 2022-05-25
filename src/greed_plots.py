@@ -176,20 +176,24 @@ def syn_cora_gcn_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=Fal
         fig.show()
     return fig, ax
 
-
+#this is a bit messy sory future reader.
+#data at https://wandb.ai/graph_neural_diffusion/ablation_cora_tune/reports/Ablations--VmlldzoyMDY4ODE1/edit
 def size_d_plot(plot=True, save=True):
     df2 = pd.read_csv("../ablations/ablation_size_d2.csv")
     df3 = pd.read_csv("../ablations/ablation_size_d3.csv") #reran diag-dom without hidden dim normalisation
+    df4 = pd.read_csv("../ablations/ablation_size_d4.csv") #added citeseer to ablation
     sns.set_theme()
     fig, ax = plt.subplots(2,2,figsize=(12, 10))#, sharex=True)
+    for i, ds in enumerate(["chameleon","squirrel","Cora","Citeseer"]):
+        if ds == "Citeseer":
+            ds_df = df4
+        else:
+            #filter out the diagdom, results as they had hidden dim normalisation
+            ds_df2 = df2[(df2.dataset == ds) & ~((df2.gnl_W_style == "diag_dom") & (df2.function == "greed_non_linear"))]
+            #get them from 3
+            ds_df3 = df3[((df3.dataset == ds) & (df3.gnl_W_style == "diag_dom"))]
+            ds_df = pd.concat([ds_df2, ds_df3])
 
-    for i, ds in enumerate(["chameleon","squirrel","Cora"]):
-        #filter out the diagdom, results as they had hidden dim normalisation
-        ds_df2 = df2[(df2.dataset == ds) & ~((df2.gnl_W_style == "diag_dom") & (df2.function == "greed_non_linear"))]
-        #get them from 3
-        ds_df3 = df3[((df3.dataset == ds) & (df3.gnl_W_style == "diag_dom"))]
-
-        ds_df = pd.concat([ds_df2, ds_df3])
         ds_df = ds_df.reset_index(drop=True)
         mask = (ds_df["function"] == "greed_non_linear")
         ds_df.loc[mask, 'function'] = ds_df.loc[mask, 'gnl_W_style']
@@ -390,17 +394,17 @@ if __name__ == "__main__":
     # _,_ = syn_cora_homoph(path)
 
     # 1)
-    plot_1(path, "scatter")
+    # plot_1(path, "scatter")
     # syn_cora_best_times(path)
     # syn_cora_energy(path)
 
     # 2)
-    _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
+    # _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
 
     # 3)
     size_d_plot()
 
     # 4)
-    wall_clock(path="../ablations/wallclock.csv", model="gcn")
+    # wall_clock(path="../ablations/wallclock.csv", model="gcn")
     # wall_clock(path="../ablations/wallclock.csv", model="greed_non_linear")
 

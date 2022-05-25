@@ -53,4 +53,4 @@ command:
   - --wandb
   - --wandb_sweep
 entity: graph_neural_diffusion
-project: ablation_W_spectrum
+project: ablation_W_spectrum4
