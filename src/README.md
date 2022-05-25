@@ -4,7 +4,7 @@ This repository is the official implementation of [Graph Neural Networks as Grad
 
 ## Requirements
 
-Dependencies (with python >= 3.7): Main dependencies are torch==1.8.1 torch-cluster==1.5.9 torch-geometric==1.7.0 torch-scatter==2.0.6 torch-sparse==0.6.9 torch-spline-conv==1.2.1 torchdiffeq==0.2.1 
+Dependencies (with python >= 3.7): Main dependencies are torch==1.8.1 torch-cluster==1.5.9 torch-geometric==2.0.3 torch-scatter==2.0.9 torch-sparse==0.6.12 torch-spline-conv==1.2.1 torchdiffeq==0.2.3 
 Commands to install all the dependencies in a new conda environment
 
 ```
@@ -12,17 +12,17 @@ conda create --name graff python=3.7
 conda activate graff
 
 pip install torch==1.8.1
-pip install torchdiffeq -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
-pip install torch-scatter -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
-pip install torch-sparse -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
-pip install torch-cluster -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
-pip install torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
-pip install torch-geometric
+pip install torchdiffeq==0.2.3 -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
+pip install torch-scatter==2.0.9 -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
+pip install torch-sparse==0.6.12 -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
+pip install torch-cluster==1.5.9 -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
+pip install torch-spline-conv==1.2.1 -f https://pytorch-geometric.com/whl/torch-1.8.1+cu102.html
+pip install torch-geometric==2.0.3
 ```
 
 ## Training and Evaluation
 
-To train the model(s) in the paper, run this command:
+To train and evaluate the model(s) in the paper, run this command:
 
 ```train
 python run_GNN.py --dataset chameleon --use_best_params --num_splits 1
