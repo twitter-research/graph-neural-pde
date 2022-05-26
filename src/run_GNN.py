@@ -240,7 +240,7 @@ def main(cmd_opt):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     #run args
-    parser.add_argument('--use_best_params', action='store_true', help="flag to take the best BLEND params")
+    parser.add_argument('--use_best_params', action='store_true', help="flag to take the best graff params")
     parser.add_argument('--gpu', type=int, default=0, help="GPU to run on (default 0)")
     parser.add_argument('--epoch', type=int, default=100, help='Number of training epochs per iteration.')
     parser.add_argument('--patience', type=int, default=None, help='set if training should use patience on val acc')
