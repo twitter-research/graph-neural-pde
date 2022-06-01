@@ -83,7 +83,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.num_timesteps = math.ceil(self.opt['time']/self.opt['step_size'])
 
     if self.opt['wandb_track_grad_flow']:
-      savefolder = f"./plots/{opt['gnl_savefolder']}"
+      savefolder = f"../plots/{opt['gnl_savefolder']}"
       try:
         os.mkdir(savefolder)
       except OSError:
@@ -96,6 +96,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       else:
         print("Successfully created the directory %s " % savefolder)
 
+    self.paths = []
     self.epoch = 0
     self.wandb_step = 0
     self.prev_grad = None
@@ -805,6 +806,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         eval_means_feat, eval_sds_feat = self.get_distances(self.data, x, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask], base_type="train_avg")
         eval_means_label, eval_sds_label = self.get_distances(self.data, sm_logits, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask], base_type="e_k")
 
+        #todo this could be easily condensed/optimised if just saved all objects in lists and then do the stacking at the end
         if self.attentions is None:
           self.attentions = attention.unsqueeze(0)
           self.fOmf = fOmf.unsqueeze(0)
@@ -827,7 +829,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.val_dist_sd_label = eval_sds_label[0]
           self.test_dist_mean_label = eval_means_label[1]
           self.test_dist_sd_label = eval_sds_label[1]
-
+          self.paths.append(x.detach().numpy())
         else:
           self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
           self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
@@ -858,7 +860,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             self.val_dist_sd_label = torch.stack((self.val_dist_sd_label, eval_sds_label[0]), dim=-1)
             self.test_dist_mean_label = torch.stack((self.test_dist_mean_label, eval_means_label[1]), dim=-1)
             self.test_dist_sd_label = torch.stack((self.test_dist_sd_label, eval_sds_label[1]), dim=-1)
-
+            self.paths.append(x.detach().numpy())
           else:
             self.confusions[0] = torch.cat((self.confusions[0], conf_mat.unsqueeze(-1)), dim=-1)
             self.confusions[1] = torch.cat((self.confusions[1], train_cm.unsqueeze(-1)), dim=-1)
@@ -874,6 +876,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             self.val_dist_sd_label = torch.cat((self.val_dist_sd_label, eval_sds_label[0].unsqueeze(-1)),dim=-1)
             self.test_dist_mean_label = torch.cat((self.test_dist_mean_label, eval_means_label[1].unsqueeze(-1)),dim=-1)
             self.test_dist_sd_label = torch.cat((self.test_dist_sd_label, eval_sds_label[1].unsqueeze(-1)),dim=-1)
+            self.paths.append(x.detach().numpy())
 
         ### extra values for terminal step
 
@@ -923,6 +926,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.val_dist_sd_label = torch.cat((self.val_dist_sd_label, eval_sds_label[0].unsqueeze(-1)), dim=-1)
           self.test_dist_mean_label = torch.cat((self.test_dist_mean_label, eval_means_label[1].unsqueeze(-1)), dim=-1)
           self.test_dist_sd_label = torch.cat((self.test_dist_sd_label, eval_sds_label[1].unsqueeze(-1)), dim=-1)
+          self.paths.append(x.detach().numpy())
 
         self.wandb_step += 1
 

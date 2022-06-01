@@ -148,7 +148,8 @@ def greed_ablation_params(opt):
     opt['time_dep_struct_w'] = False#True
     opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
-    opt['gnl_savefolder'] = 'ablations'#'chameleon_general_drift'#'chameleon_testing'
+    opt['gnl_savefolder'] = 'tsne_evol'#'chameleon_general_drift'#'chameleon_testing'
+    opt['reports_list'] = [8]  # [1]#[1,2,3,4,5,6,7] # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist]
 
     if opt['gnl_style'] == 'scaled_dot':
         opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
@@ -213,7 +214,6 @@ def greed_ablation_params(opt):
         opt['block'] = 'constant'
         opt['drift'] = False#True  # False#True
         opt['gnl_thresholding'] = False
-        opt['reports_list'] = [1]#[1,2,3,4,5,6,7] # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist]
 
         if opt['lie_trotter'] in [None, 'gen_0']:
             opt['threshold_times'] = [2,4] #takes an euler step that would have been taken in drift diffusion and also thresholds between t->t+1
@@ -266,7 +266,7 @@ def greed_ablation_params(opt):
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = True #True #True #False #True
+    opt['wandb'] = False #True #True #False #True
     opt['wandb_track_grad_flow'] = True #False  #collect stats for reports
     opt['wandb_watch_grad'] = False
     opt['run_track_reports'] = True #False#True ##run the evolution reports

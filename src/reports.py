@@ -12,6 +12,7 @@ from matplotlib.colors import ListedColormap, BoundaryNorm
 
 
 def report_1(ax, fig, odefunc, row, epoch):
+    '''spectrum'''
     opt = odefunc.opt
     ###1) multi grid Omega spectrum charts
     # spectral and accuracy plots
@@ -51,6 +52,7 @@ def report_1(ax, fig, odefunc, row, epoch):
 
 
 def report_2(ax, fig, odefunc, row, epoch):
+    '''acc_entropy'''
     opt = odefunc.opt
     train_accs = odefunc.train_accs
     val_accs = odefunc.val_accs
@@ -108,6 +110,7 @@ def report_2(ax, fig, odefunc, row, epoch):
         fig.show()
 
 def report_3(ax, fig, odefunc, row, epoch):
+    '''edge_evol'''
     opt = odefunc.opt
     fOmf = odefunc.fOmf
     edge_homophils = odefunc.edge_homophils
@@ -132,6 +135,7 @@ def report_3(ax, fig, odefunc, row, epoch):
         fig.show()
 
 def report_4(ax, fig, odefunc, row, epoch):
+    '''node_evol'''
     opt = odefunc.opt
     #node magnitudes
     magnitudes = odefunc.node_magnitudes
@@ -182,6 +186,7 @@ def report_4(ax, fig, odefunc, row, epoch):
         fig.show()
 
 def report_5(ax, fig, odefunc, row, epoch):
+    '''node_scatter'''
     opt = odefunc.opt
     # node magnitude against degree or homophilly, colour is class
     magnitudes = odefunc.node_magnitudes
@@ -202,6 +207,7 @@ def report_5(ax, fig, odefunc, row, epoch):
         fig.show()
 
 def report_6(ax, fig, odefunc, row, epoch):
+    '''edge_scatter'''
     opt = odefunc.opt
     # edge dot product against edge distance, coloured by edge homopholliy
     fOmf = odefunc.fOmf
@@ -221,6 +227,7 @@ def report_6(ax, fig, odefunc, row, epoch):
         fig.show()
 
 def report_7(ax, fig, odefunc, row, epoch):
+    '''class_dist'''
     opt = odefunc.opt
     #column 0
     val_dist_mean_feat = odefunc.val_dist_mean_feat
@@ -266,6 +273,49 @@ def report_7(ax, fig, odefunc, row, epoch):
     if not torch.cuda.is_available():
         fig.show()
 
+
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+from sklearn.utils import check_random_state
+
+# def tsne_evol(ax, fig, odefunc, row, epoch):
+def report_8(ax, fig, odefunc, row, epoch):
+    # tsne_evol
+    npy_path = f"../plots/paths_epoch{epoch}_{odefunc.opt['dataset']}.npy"
+    np.save(npy_path, np.stack(odefunc.paths, axis=-1))
+    tsne_evol(ax, fig, odefunc, row, epoch, npy_path)
+
+def tsne_evol(ax, fig, odefunc, row, epoch, npy_path):
+    X = np.load(npy_path)
+    labels = odefunc.labels
+    # load paths np array
+    T = X.shape[-1]
+
+    n_components = 2
+    seed = 123
+    random_state = check_random_state(seed)
+    pca = PCA(n_components=n_components, svd_solver="randomized", random_state=random_state)
+    X0_embedded = pca.fit_transform(X[:, :, 0]).astype(np.float32, copy=False)
+    X0pca2 = pca.components_[:2, :]
+
+    # init multi subplot
+    nr, nc = 4, 4
+    dt_idx = T // nc
+    idx_list = [0] + list(range(dt_idx, dt_idx*(nc-1), dt_idx)) + [-1]
+    for i, t_idx in enumerate(idx_list):
+        X_slice = X[:, :, t_idx]
+        Xi_pca0emb = X_slice @ X0pca2.T
+        # X_emb = TSNE(n_components=2, learning_rate='auto', init = 'pca').fit_transform(X_slice)
+        X_emb = TSNE(n_components=2, learning_rate='auto', init=Xi_pca0emb).fit_transform(Xi_pca0emb)
+        ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels.cpu().numpy())
+        ax[row, i].xaxis.set_tick_params(labelsize=16)
+        ax[row, i].yaxis.set_tick_params(labelsize=16)
+        ax[row, i].set_title(f"{odefunc.opt['dataset']} TSNE, epoch {epoch}, time {t_idx/T*odefunc.opt['time']}", fontdict={'fontsize': 24})
+        ax[row, i].legend(loc="upper right", fontsize=24)
+    if not torch.cuda.is_available():
+        fig.show()
+
+
 def run_reports(odefunc):
     opt = odefunc.opt
     epoch = odefunc.epoch
@@ -277,13 +327,15 @@ def run_reports(odefunc):
     row = idx % num_rows
 
     # self.pdf_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter']
+    #desc, cols, widths, fig_size
     opt['fig_dims'] = {1: ['spectrum', 3, [1, 1, 1], (24, 32)],
                 2: ['acc_entropy', 2, [1, 1], (24, 32)],
                 3: ['edge_evol', 2, [1, 1], (24, 32)],
                 4: ['node_evol', 3, [1, 1, 2], (24, 32)],
                 5: ['node_scatter', 2, [1, 1], (24, 32)],
                 6: ['edge_scatter', 1, [1], (24, 32)],
-                7: ['class_dist', 2, [1, 1], (24, 32)]}
+                7: ['class_dist', 2, [1, 1], (24, 32)],
+                8: ['tsne_evol', 4, [1, 1, 1, 1], (32,32)]}
 
     reports_nums = opt['reports_list']
     for rep_num in reports_nums:
@@ -296,7 +348,7 @@ def run_reports(odefunc):
                 getattr(odefunc, f"report{str(rep_num)}_fig_list").append([fig, ax])
             else:
                 setattr(odefunc, f"report{str(rep_num)}_fig_list", [[fig, ax]])
-                savefolder = f"./plots/{opt['gnl_savefolder']}"
+                savefolder = f"../plots/{opt['gnl_savefolder']}"
                 setattr(odefunc, f"report{str(rep_num)}_pdf", PdfPages(f"{savefolder}/{desc}.pdf"))
         else:
             fig, ax = getattr(odefunc, f"report{str(rep_num)}_fig_list")[-1]
@@ -334,6 +386,7 @@ def reset_stats(odefunc):
     odefunc.val_dist_sd_label = None
     odefunc.test_dist_mean_label = None
     odefunc.test_dist_sd_label = None
+    odefunc.paths = []
 
 def reports_manager(model, data):
     # forward pass through the model in eval mode to generate the data
@@ -351,4 +404,3 @@ def reports_manager(model, data):
         func = model.odeblock.odefunc
         func.block_num = 0
         run_reports(func)
-
