@@ -212,7 +212,7 @@ def greed_ablation_params(opt):
         ###!!! set function 'greed_non_linear'
         # opt['function'] = 'greed_non_linear'
         opt['block'] = 'constant'
-        opt['drift'] = False#True  # False#True
+        opt['drift'] = True  # False#True
         opt['gnl_thresholding'] = False
 
         if opt['lie_trotter'] in [None, 'gen_0']:
@@ -271,7 +271,7 @@ def not_sweep_args(opt, project_name, group_name):
     opt['wandb_watch_grad'] = False
     opt['run_track_reports'] = True #False#True ##run the evolution reports
     opt['save_local_reports'] = True
-    opt['save_wandb_reports'] = True
+    opt['save_wandb_reports'] = False#True
     # opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
     opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8]
     opt['wandb_project'] = project_name #"greed_runs"

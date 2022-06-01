@@ -301,7 +301,7 @@ def tsne_evol(ax, fig, odefunc, row, epoch, npy_path):
     # init multi subplot
     nr, nc = 4, 4
     dt_idx = T // nc
-    idx_list = [0] + list(range(dt_idx, dt_idx*(nc-1), dt_idx)) + [-1]
+    idx_list = [0] + list(range(dt_idx, dt_idx*(nc-1), dt_idx)) + [T-1]
     for i, t_idx in enumerate(idx_list):
         X_slice = X[:, :, t_idx]
         Xi_pca0emb = X_slice @ X0pca2.T
@@ -310,7 +310,7 @@ def tsne_evol(ax, fig, odefunc, row, epoch, npy_path):
         ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels.cpu().numpy())
         ax[row, i].xaxis.set_tick_params(labelsize=16)
         ax[row, i].yaxis.set_tick_params(labelsize=16)
-        ax[row, i].set_title(f"{odefunc.opt['dataset']} TSNE, epoch {epoch}, time {t_idx/T*odefunc.opt['time']}", fontdict={'fontsize': 24})
+        ax[row, i].set_title(f"{odefunc.opt['dataset']} TSNE, epoch {epoch}, time {t_idx/(T-1)*odefunc.opt['time']}", fontdict={'fontsize': 24})
         ax[row, i].legend(loc="upper right", fontsize=24)
     if not torch.cuda.is_available():
         fig.show()
@@ -348,8 +348,9 @@ def run_reports(odefunc):
                 getattr(odefunc, f"report{str(rep_num)}_fig_list").append([fig, ax])
             else:
                 setattr(odefunc, f"report{str(rep_num)}_fig_list", [[fig, ax]])
-                savefolder = f"../plots/{opt['gnl_savefolder']}"
-                setattr(odefunc, f"report{str(rep_num)}_pdf", PdfPages(f"{savefolder}/{desc}.pdf"))
+                # savefolder = f"../plots/{opt['gnl_savefolder']}"
+                savefolder = f"../plots/{opt['gnl_savefolder']}_{opt['dataset']}"
+                setattr(odefunc, f"report{str(rep_num)}_pdf", PdfPages(f"{savefolder}/{desc}_{odefunc.opt['dataset']}.pdf"))
         else:
             fig, ax = getattr(odefunc, f"report{str(rep_num)}_fig_list")[-1]
 

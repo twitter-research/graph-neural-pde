@@ -83,7 +83,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.num_timesteps = math.ceil(self.opt['time']/self.opt['step_size'])
 
     if self.opt['wandb_track_grad_flow']:
-      savefolder = f"../plots/{opt['gnl_savefolder']}"
+      savefolder = f"../plots/{opt['gnl_savefolder']}_{opt['dataset']}"
       try:
         os.mkdir(savefolder)
       except OSError:
@@ -926,7 +926,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.val_dist_sd_label = torch.cat((self.val_dist_sd_label, eval_sds_label[0].unsqueeze(-1)), dim=-1)
           self.test_dist_mean_label = torch.cat((self.test_dist_mean_label, eval_means_label[1].unsqueeze(-1)), dim=-1)
           self.test_dist_sd_label = torch.cat((self.test_dist_sd_label, eval_sds_label[1].unsqueeze(-1)), dim=-1)
-          self.paths.append(x.detach().numpy())
+          self.paths.append(z.detach().numpy())
 
         self.wandb_step += 1
 
