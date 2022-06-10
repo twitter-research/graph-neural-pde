@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
+from torch_geometric.utils import to_networkx
 import wandb
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
@@ -9,6 +10,14 @@ from matplotlib import colors as mcolors
 from matplotlib.backends.backend_pdf import PdfPages
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import ListedColormap, BoundaryNorm
+import matplotlib.animation as animation
+from matplotlib.animation import FuncAnimation
+from mpl_toolkits.mplot3d import Axes3D
+import networkx as nx
+import json
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+from sklearn.utils import check_random_state
 
 
 def report_1(ax, fig, odefunc, row, epoch):
@@ -273,11 +282,6 @@ def report_7(ax, fig, odefunc, row, epoch):
     if not torch.cuda.is_available():
         fig.show()
 
-
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
-from sklearn.utils import check_random_state
-
 # def tsne_evol(ax, fig, odefunc, row, epoch):
 def report_8(ax, fig, odefunc, row, epoch):
     # tsne_evol
@@ -286,30 +290,43 @@ def report_8(ax, fig, odefunc, row, epoch):
     npy_label = savefolder + f"/labels_epoch{epoch}_{odefunc.opt['dataset']}.npy"
     np.save(npy_path, np.stack(odefunc.paths, axis=-1))
     np.save(npy_label, np.stack(odefunc.labels, axis=-1))
+    G = to_networkx(odefunc.data)
+    nx.write_gpickle(G, savefolder + f"/nxgraph_epoch{epoch}_{odefunc.opt['dataset']}.pkl")
+
+    with open(savefolder + 'opt.json', 'w+') as f:
+        json.dump(odefunc.opt, f, indent=4)
+
     tsne_snap(ax, fig, odefunc, row, epoch, npy_path, npy_label)
 
-def tsne_snap(ax, fig, odefunc, row, epoch, npy_path, npy_label, s=None):
-    X = np.load(npy_path)
-    labels = np.load(npy_label) #=odefunc.labels.cpu().numpy()
-    # load paths np array
-    T = X.shape[-1]
-
+def X0_PCA(X):
     n_components = 2
     seed = 123
     random_state = check_random_state(seed)
     pca = PCA(n_components=n_components, svd_solver="randomized", random_state=random_state)
     X0_embedded = pca.fit_transform(X[:, :, 0]).astype(np.float32, copy=False)
     X0pca2 = pca.components_[:2, :]
+    return X0pca2
+
+def Xt_TSNE(X, X0pca2, t_idx):
+    X_slice = X[:, :, t_idx]
+    Xi_pca0emb = X_slice @ X0pca2.T
+    # X_emb = TSNE(n_components=2, learning_rate='auto', init = 'pca').fit_transform(X_slice)
+    X_emb = TSNE(n_components=2, learning_rate='auto', init=Xi_pca0emb).fit_transform(Xi_pca0emb)
+    return X_emb
+
+def tsne_snap(ax, fig, odefunc, row, epoch, npy_path, npy_label, s=None):
+    X = np.load(npy_path)
+    labels = np.load(npy_label) #=odefunc.labels.cpu().numpy()
+    # load paths np array
+    T = X.shape[-1]
+    X0pca2 = X0_PCA(X)
 
     # init multi subplot
     nr, nc = 4, 4
     dt_idx = T // nc
     idx_list = [0] + list(range(dt_idx, dt_idx*(nc-1), dt_idx)) + [T-1]
     for i, t_idx in enumerate(idx_list):
-        X_slice = X[:, :, t_idx]
-        Xi_pca0emb = X_slice @ X0pca2.T
-        # X_emb = TSNE(n_components=2, learning_rate='auto', init = 'pca').fit_transform(X_slice)
-        X_emb = TSNE(n_components=2, learning_rate='auto', init=Xi_pca0emb).fit_transform(Xi_pca0emb)
+        X_emb = Xt_TSNE(X, X0pca2, t_idx)
         if s:
             ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels, s=s)
         else:
@@ -337,22 +354,14 @@ def tsne_full(gnl_savefolder, dataset, epoch, cols, s=None):
     #create pdf
     PdfPages(savefolder + f"tsne_full_epoch{epoch}_{dataset}")
     #do t=0 PCA
-    n_components = 2
-    seed = 123
-    random_state = check_random_state(seed)
-    pca = PCA(n_components=n_components, svd_solver="randomized", random_state=random_state)
-    X0_embedded = pca.fit_transform(X[:, :, 0]).astype(np.float32, copy=False)
-    X0pca2 = pca.components_[:2, :]
+    X0pca2 = X0_PCA(X)
 
     fig, ax = plt.subplots(max_rows, cols, gridspec_kw={'width_ratios': widths}, figsize=fig_size)
     for i in range(T):
         row = (i // cols) % max_rows
         col = i % cols
 
-        X_slice = X[:, :, i]
-        Xi_pca0emb = X_slice @ X0pca2.T
-        # X_emb = TSNE(n_components=2, learning_rate='auto', init = 'pca').fit_transform(X_slice)
-        X_emb = TSNE(n_components=2, learning_rate='auto', init=Xi_pca0emb).fit_transform(Xi_pca0emb)
+        X_emb = Xt_TSNE(X, X0pca2, i)
         if s:
             ax[row, col].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels, s=s)
         else:
@@ -371,114 +380,50 @@ def tsne_full(gnl_savefolder, dataset, epoch, cols, s=None):
     if not torch.cuda.is_available():
         fig.show()
 
-
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from mpl_toolkits.mplot3d import Axes3D
-
-def ani():
-    # References
-    # https://gist.github.com/neale/e32b1f16a43bfdc0608f45a504df5a84
-    # https://towardsdatascience.com/animations-with-matplotlib-d96375c5442c
-    # https://riptutorial.com/matplotlib/example/23558/basic-animation-with-funcanimation
-
-    # ANIMATION FUNCTION
-    def func(num, dataSet, line, redDots):
-        # NOTE: there is no .set_data() for 3 dim data...
-        line.set_data(dataSet[0:2, :num])
-        line.set_3d_properties(dataSet[2, :num])
-        redDots.set_data(dataSet[0:2, :num])
-        redDots.set_3d_properties(dataSet[2, :num])
-        return line
+def tsne_ani(gnl_savefolder, dataset, epoch, cols, s=None):
+    savefolder = f"../plots/{gnl_savefolder}_{dataset}"
+    npy_path = savefolder + f"/paths_epoch{epoch}_{dataset}.npy"
+    npy_label = savefolder + f"/labels_epoch{epoch}_{dataset}.npy"
+    X = np.load(npy_path)
+    X0pca2 = X0_PCA(X)
+    labels = np.load(npy_label)
+    NXgraph = nx.read_gpickle(savefolder + f"/nxgraph_epoch{epoch}_{dataset}.pkl")
+    # opt = json.load(savefolder + 'opt.json')
+    params = {'T': 10, 'fps': 10, 'end_feat_sd_scale': 0.1, 'end_pos_sd_scale': 0.05,
+              'node_size': 50, 'edge_width': 0.25, 'im_height': 8, 'im_width': 16}#, 'kNN': 32}
+    create_animation(X, X0pca2, labels, NXgraph, params, savefolder, dataset, epoch)
 
 
-    # THE DATA POINTS
-    t = np.arange(0, 20, 0.2)  # This would be the z-axis ('t' means time here)
-    x = np.cos(t) - 1
-    y = 1 / 2 * (np.cos(2 * t) - 1)
-    dataSet = np.array([x, y, t])
-    numDataPoints = len(t)
+def create_animation(X, X0pca2, labels, NXgraph, params, savefolder, dataset, epoch):
+    # loop through data and update plot
+    def update(ii, X, X0pca2, labels, ax, NXgraph, params):
+        plt.tight_layout()
+        plt.xlim([-5, 5])
+        plt.ylim([-5, 5])
+        # ax.set_xlim([-3, 3])
+        # ax.set_ylim([-3, 3])
 
-    # GET SOME MATPLOTLIB OBJECTS
-    fig = plt.figure()
-    ax = Axes3D(fig)
-    redDots = plt.plot(dataSet[0], dataSet[1], dataSet[2], lw=2, c='r', marker='o')[0]  # For scatter plot
-    # NOTE: Can't pass empty arrays into 3d version of plot()
-    line = plt.plot(dataSet[0], dataSet[1], dataSet[2], lw=2, c='g')[0]  # For line plot
+        pos_0 = Xt_TSNE(X, X0pca2, 0)
+        ax.clear()
+        x_i = labels #x_t[:, ii]
+        pos_i = Xt_TSNE(X, X0pca2, ii) #X_emb[:, :, ii]
+        pos_i_dict = {i: pos_i[i, :].tolist() for i in range(pos_0.shape[0])}
+        nx.draw(NXgraph, pos=pos_i_dict, ax=ax, node_size=params['node_size'],
+                node_color=x_i, cmap=plt.get_cmap('Spectral'), arrows=False, width=0.25)  # =params['edge_with'] )
 
-    # AXES PROPERTIES]
-    # ax.set_xlim3d([limit0, limit1])
-    ax.set_xlabel('X(t)')
-    ax.set_ylabel('Y(t)')
-    ax.set_zlabel('time')
-    ax.set_title('Trajectory of electron for E vector along [120]')
+        limits = plt.axis('on')
+        ax.patch.set_edgecolor('black')
+        ax.patch.set_linewidth('1')
+        ax.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        plt.title(f"Beltrami Flow, diffusion time={ii // 10}", fontsize=16)
 
-    # Creating the Animation object
-    line_ani = animation.FuncAnimation(fig, func, frames=numDataPoints, fargs=(dataSet, line, redDots), interval=50,
-                                       blit=False)
-    # line_ani.save(r'Animation.mp4')
+    _, ax = plt.subplots(figsize=(params['im_width'], params['im_height']))
+    fig = plt.gcf()
+    animation = FuncAnimation(fig, func=update, frames=params['T'], fargs=(X, X0pca2, labels, ax, NXgraph, params))
+    animation.save(savefolder + "/ani_epoch{epoch}_{dataset}.gif", fps=params['fps'])  #writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=fps)
 
-
-    plt.show()
-
-
-def create_animation(paths, atts, pixel_labels, NXgraph, SuperPixItem, im_height, im_width,
-                     heightSF, widthSF, centroids, num_centroids, weight_max, modelfolder, batch_idx):
-  # draw initial graph
-  time = 0
-  x = paths[:, time, :].detach().numpy()
-  broadcast_pixels = x[pixel_labels].squeeze()
-  r_pixel_values, r_pixel_labels, r_centroids = transform_objects(im_height, im_width, heightSF, widthSF,
-                                                                  broadcast_pixels, pixel_labels.numpy(), centroids)
-  r_y_coords, r_x_coords = get_centroid_coords_array(num_centroids, r_centroids)
-  r_pixel_labels = r_pixel_labels.astype(np.int)
-  out = segmentation.mark_boundaries(r_pixel_values, r_pixel_labels, (1, 0, 0))
-
-  fig, ax = plt.subplots()
-  ax.axis('off')
-  ax.imshow(out)
-  for i in range(num_centroids):
-    ax.annotate(i, (r_x_coords[i], r_y_coords[i]), c="red")
-  ax.scatter(x=r_x_coords, y=r_y_coords)
-  edge_weights = atts[time].detach().numpy()  # * (x[SuperPixItem.edge_index[0,:]].squeeze()
-  #  + x[SuperPixItem.edge_index[1,:]].squeeze())
-  edge_weights = ((edge_weights - edge_weights.min()) / (edge_weights.max() - edge_weights.min())) * (
-            weight_max - 1) + 1
-
-  nx.draw(NXgraph, r_centroids, ax=ax, node_size=300 / 4, edge_color=list(edge_weights),  # "lime",
-          node_color=x, cmap=plt.get_cmap('Spectral'), width=list(edge_weights))
-  plt.title(f"t={time} Attention, Ground Truth: {SuperPixItem.target.item()}")
-
-  # loop through data and update plot
-  def update(ii):
-    plt.tight_layout()
-    x = paths[:, ii, :].detach().numpy()
-    broadcast_pixels = x[pixel_labels].squeeze()
-    r_pixel_values, r_pixel_labels, r_centroids = transform_objects(im_height, im_width, heightSF, widthSF,
-                                                                    broadcast_pixels, pixel_labels.numpy(), centroids)
-    r_y_coords, r_x_coords = get_centroid_coords_array(num_centroids, r_centroids)
-    r_pixel_labels = r_pixel_labels.astype(np.int)
-    out = segmentation.mark_boundaries(r_pixel_values, r_pixel_labels, (1, 0, 0))
-    ax.imshow(out)
-    for i in range(num_centroids):
-      ax.annotate(i, (r_x_coords[i], r_y_coords[i]), c="red")
-    ax.scatter(x=r_x_coords, y=r_y_coords)
-    edge_weights = atts[ii].detach().numpy()  # * (x[SuperPixItem.edge_index[0,:]].squeeze()
-    #    + x[SuperPixItem.edge_index[1,:]].squeeze())
-    edge_weights = ((edge_weights - edge_weights.min()) / (edge_weights.max() - edge_weights.min())) * (
-              weight_max - 1) + 1
-
-    nx.draw(NXgraph, r_centroids, ax=ax, node_size=300 / 4, edge_color=list(edge_weights),  # "lime",
-            node_color=x, cmap=plt.get_cmap('Spectral'), width=list(edge_weights))
-    plt.title(f"t={ii} Attention, Ground Truth: {SuperPixItem.target.item()}")
-
-  fig = plt.gcf()
-  frames = 10
-  fps = 1.5
-  animation = FuncAnimation(fig, func=update, frames=frames)
-  animation.save(f"{modelfolder}/sample_{batch_idx}/animation.gif",
-                 fps=fps)  # , writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=fps)
 
 def run_reports(odefunc):
     opt = odefunc.opt
@@ -577,4 +522,5 @@ if __name__ == "__main__":
     epoch = 128
     cols = 2
     # tsne_full(gnl_savefolder, dataset, epoch, cols, s=120)
-    ani()
+    # ani()
+    tsne_ani(gnl_savefolder, dataset, epoch, cols, s=None)

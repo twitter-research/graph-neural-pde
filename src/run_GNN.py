@@ -510,9 +510,11 @@ def main(cmd_opt):
                 val_acc = tmp_val_acc
                 test_acc = tmp_test_acc
                 best_time = opt['time']
-                patience_count = 0
+                if opt['patience'] is not None:
+                    patience_count = 0
             else:
-                patience_count += 1
+                if opt['patience'] is not None:
+                    patience_count += 1
             if not opt['no_early'] and model.odeblock.test_integrator.solver.best_val > val_acc:
                 best_epoch = epoch
                 val_acc = model.odeblock.test_integrator.solver.best_val
