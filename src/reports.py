@@ -422,6 +422,64 @@ def ani():
 
     plt.show()
 
+
+def create_animation(paths, atts, pixel_labels, NXgraph, SuperPixItem, im_height, im_width,
+                     heightSF, widthSF, centroids, num_centroids, weight_max, modelfolder, batch_idx):
+  # draw initial graph
+  time = 0
+  x = paths[:, time, :].detach().numpy()
+  broadcast_pixels = x[pixel_labels].squeeze()
+  r_pixel_values, r_pixel_labels, r_centroids = transform_objects(im_height, im_width, heightSF, widthSF,
+                                                                  broadcast_pixels, pixel_labels.numpy(), centroids)
+  r_y_coords, r_x_coords = get_centroid_coords_array(num_centroids, r_centroids)
+  r_pixel_labels = r_pixel_labels.astype(np.int)
+  out = segmentation.mark_boundaries(r_pixel_values, r_pixel_labels, (1, 0, 0))
+
+  fig, ax = plt.subplots()
+  ax.axis('off')
+  ax.imshow(out)
+  for i in range(num_centroids):
+    ax.annotate(i, (r_x_coords[i], r_y_coords[i]), c="red")
+  ax.scatter(x=r_x_coords, y=r_y_coords)
+  edge_weights = atts[time].detach().numpy()  # * (x[SuperPixItem.edge_index[0,:]].squeeze()
+  #  + x[SuperPixItem.edge_index[1,:]].squeeze())
+  edge_weights = ((edge_weights - edge_weights.min()) / (edge_weights.max() - edge_weights.min())) * (
+            weight_max - 1) + 1
+
+  nx.draw(NXgraph, r_centroids, ax=ax, node_size=300 / 4, edge_color=list(edge_weights),  # "lime",
+          node_color=x, cmap=plt.get_cmap('Spectral'), width=list(edge_weights))
+  plt.title(f"t={time} Attention, Ground Truth: {SuperPixItem.target.item()}")
+
+  # loop through data and update plot
+  def update(ii):
+    plt.tight_layout()
+    x = paths[:, ii, :].detach().numpy()
+    broadcast_pixels = x[pixel_labels].squeeze()
+    r_pixel_values, r_pixel_labels, r_centroids = transform_objects(im_height, im_width, heightSF, widthSF,
+                                                                    broadcast_pixels, pixel_labels.numpy(), centroids)
+    r_y_coords, r_x_coords = get_centroid_coords_array(num_centroids, r_centroids)
+    r_pixel_labels = r_pixel_labels.astype(np.int)
+    out = segmentation.mark_boundaries(r_pixel_values, r_pixel_labels, (1, 0, 0))
+    ax.imshow(out)
+    for i in range(num_centroids):
+      ax.annotate(i, (r_x_coords[i], r_y_coords[i]), c="red")
+    ax.scatter(x=r_x_coords, y=r_y_coords)
+    edge_weights = atts[ii].detach().numpy()  # * (x[SuperPixItem.edge_index[0,:]].squeeze()
+    #    + x[SuperPixItem.edge_index[1,:]].squeeze())
+    edge_weights = ((edge_weights - edge_weights.min()) / (edge_weights.max() - edge_weights.min())) * (
+              weight_max - 1) + 1
+
+    nx.draw(NXgraph, r_centroids, ax=ax, node_size=300 / 4, edge_color=list(edge_weights),  # "lime",
+            node_color=x, cmap=plt.get_cmap('Spectral'), width=list(edge_weights))
+    plt.title(f"t={ii} Attention, Ground Truth: {SuperPixItem.target.item()}")
+
+  fig = plt.gcf()
+  frames = 10
+  fps = 1.5
+  animation = FuncAnimation(fig, func=update, frames=frames)
+  animation.save(f"{modelfolder}/sample_{batch_idx}/animation.gif",
+                 fps=fps)  # , writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=fps)
+
 def run_reports(odefunc):
     opt = odefunc.opt
     epoch = odefunc.epoch
