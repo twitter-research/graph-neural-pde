@@ -281,13 +281,16 @@ from sklearn.utils import check_random_state
 # def tsne_evol(ax, fig, odefunc, row, epoch):
 def report_8(ax, fig, odefunc, row, epoch):
     # tsne_evol
-    npy_path = f"../plots/paths_epoch{epoch}_{odefunc.opt['dataset']}.npy"
+    savefolder = f"../plots/{odefunc.opt['gnl_savefolder']}_{odefunc.opt['dataset']}"
+    npy_path = savefolder + f"/paths_epoch{epoch}_{odefunc.opt['dataset']}.npy"
+    npy_label = savefolder + f"/labels_epoch{epoch}_{odefunc.opt['dataset']}.npy"
     np.save(npy_path, np.stack(odefunc.paths, axis=-1))
-    tsne_evol(ax, fig, odefunc, row, epoch, npy_path)
+    np.save(npy_label, np.stack(odefunc.labels, axis=-1))
+    tsne_snap(ax, fig, odefunc, row, epoch, npy_path, npy_label)
 
-def tsne_evol(ax, fig, odefunc, row, epoch, npy_path):
+def tsne_snap(ax, fig, odefunc, row, epoch, npy_path, npy_label, s=None):
     X = np.load(npy_path)
-    labels = odefunc.labels
+    labels = np.load(npy_label) #=odefunc.labels.cpu().numpy()
     # load paths np array
     T = X.shape[-1]
 
@@ -307,7 +310,10 @@ def tsne_evol(ax, fig, odefunc, row, epoch, npy_path):
         Xi_pca0emb = X_slice @ X0pca2.T
         # X_emb = TSNE(n_components=2, learning_rate='auto', init = 'pca').fit_transform(X_slice)
         X_emb = TSNE(n_components=2, learning_rate='auto', init=Xi_pca0emb).fit_transform(Xi_pca0emb)
-        ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels.cpu().numpy())
+        if s:
+            ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels, s=s)
+        else:
+            ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels)
         ax[row, i].xaxis.set_tick_params(labelsize=16)
         ax[row, i].yaxis.set_tick_params(labelsize=16)
         ax[row, i].set_title(f"{odefunc.opt['dataset']} TSNE, epoch {epoch}, time {t_idx/(T-1)*odefunc.opt['time']}", fontdict={'fontsize': 24})
@@ -315,6 +321,106 @@ def tsne_evol(ax, fig, odefunc, row, epoch, npy_path):
     if not torch.cuda.is_available():
         fig.show()
 
+def tsne_full(gnl_savefolder, dataset, epoch, cols, s=None):
+    savefolder = f"../plots/{gnl_savefolder}_{dataset}"
+    npy_path = savefolder + f"/paths_epoch{epoch}_{dataset}.npy"
+    npy_label = savefolder + f"/labels_epoch{epoch}_{dataset}.npy"
+    X = np.load(npy_path)
+    labels = np.load(npy_label)
+
+    T = X.shape[-1]
+    max_rows = 4
+    num_rows = T // cols + 1
+    widths = cols * [1]
+    fig_size = (24, 32)
+
+    #create pdf
+    PdfPages(savefolder + f"tsne_full_epoch{epoch}_{dataset}")
+    #do t=0 PCA
+    n_components = 2
+    seed = 123
+    random_state = check_random_state(seed)
+    pca = PCA(n_components=n_components, svd_solver="randomized", random_state=random_state)
+    X0_embedded = pca.fit_transform(X[:, :, 0]).astype(np.float32, copy=False)
+    X0pca2 = pca.components_[:2, :]
+
+    fig, ax = plt.subplots(max_rows, cols, gridspec_kw={'width_ratios': widths}, figsize=fig_size)
+    for i in range(T):
+        row = (i // cols) % max_rows
+        col = i % cols
+
+        X_slice = X[:, :, i]
+        Xi_pca0emb = X_slice @ X0pca2.T
+        # X_emb = TSNE(n_components=2, learning_rate='auto', init = 'pca').fit_transform(X_slice)
+        X_emb = TSNE(n_components=2, learning_rate='auto', init=Xi_pca0emb).fit_transform(Xi_pca0emb)
+        if s:
+            ax[row, col].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels, s=s)
+        else:
+            ax[row, col].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels)
+        ax[row, col].xaxis.set_tick_params(labelsize=16)
+        ax[row, col].yaxis.set_tick_params(labelsize=16)
+        ax[row, col].set_title(f"{dataset} TSNE, epoch {epoch}, time {i/(T-1):.2f}", fontdict={'fontsize': 24})
+        ax[row, col].legend(loc="upper right", fontsize=24)
+
+        if row == max_rows - 1 and col == cols - 1:  # create new figs and pdfs
+            if not torch.cuda.is_available():
+                fig.show()
+            # create fig
+            fig, ax = plt.subplots(max_rows, cols, gridspec_kw={'width_ratios': widths}, figsize=fig_size)
+
+    if not torch.cuda.is_available():
+        fig.show()
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from mpl_toolkits.mplot3d import Axes3D
+
+def ani():
+    # References
+    # https://gist.github.com/neale/e32b1f16a43bfdc0608f45a504df5a84
+    # https://towardsdatascience.com/animations-with-matplotlib-d96375c5442c
+    # https://riptutorial.com/matplotlib/example/23558/basic-animation-with-funcanimation
+
+    # ANIMATION FUNCTION
+    def func(num, dataSet, line, redDots):
+        # NOTE: there is no .set_data() for 3 dim data...
+        line.set_data(dataSet[0:2, :num])
+        line.set_3d_properties(dataSet[2, :num])
+        redDots.set_data(dataSet[0:2, :num])
+        redDots.set_3d_properties(dataSet[2, :num])
+        return line
+
+
+    # THE DATA POINTS
+    t = np.arange(0, 20, 0.2)  # This would be the z-axis ('t' means time here)
+    x = np.cos(t) - 1
+    y = 1 / 2 * (np.cos(2 * t) - 1)
+    dataSet = np.array([x, y, t])
+    numDataPoints = len(t)
+
+    # GET SOME MATPLOTLIB OBJECTS
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    redDots = plt.plot(dataSet[0], dataSet[1], dataSet[2], lw=2, c='r', marker='o')[0]  # For scatter plot
+    # NOTE: Can't pass empty arrays into 3d version of plot()
+    line = plt.plot(dataSet[0], dataSet[1], dataSet[2], lw=2, c='g')[0]  # For line plot
+
+    # AXES PROPERTIES]
+    # ax.set_xlim3d([limit0, limit1])
+    ax.set_xlabel('X(t)')
+    ax.set_ylabel('Y(t)')
+    ax.set_zlabel('time')
+    ax.set_title('Trajectory of electron for E vector along [120]')
+
+    # Creating the Animation object
+    line_ani = animation.FuncAnimation(fig, func, frames=numDataPoints, fargs=(dataSet, line, redDots), interval=50,
+                                       blit=False)
+    # line_ani.save(r'Animation.mp4')
+
+
+    plt.show()
 
 def run_reports(odefunc):
     opt = odefunc.opt
@@ -405,3 +511,12 @@ def reports_manager(model, data):
         func = model.odeblock.odefunc
         func.block_num = 0
         run_reports(func)
+
+
+if __name__ == "__main__":
+    gnl_savefolder = 'tsne_evol'
+    dataset = 'SBM'
+    epoch = 128
+    cols = 2
+    # tsne_full(gnl_savefolder, dataset, epoch, cols, s=120)
+    ani()

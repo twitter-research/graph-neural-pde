@@ -16,7 +16,7 @@ import torch_geometric.transforms as T
 from torch_geometric.utils import to_undirected, is_undirected
 from graph_rewiring import make_symmetric, apply_pos_dist_rewire
 from heterophilic import WebKB, Actor, WikipediaNetwork #todo then copy from ds/ds/geom/raw to ds/ds/raw and process using this
-from data_synth_hetero import get_pyg_syn_cora
+from data_synth_hetero import get_pyg_syn_cora, get_SBM
 
 DATA_PATH = '../data'
 
@@ -57,6 +57,10 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     use_lcc = False
   elif ds == 'syn_cora':
     dataset = get_pyg_syn_cora(data_dir, opt, rep=1)
+    use_lcc = False
+  elif ds == "SBM":
+    dataset = get_SBM(data_dir, opt)
+    dataset.data = set_train_val_test_split(12345, dataset.data, num_development=int(opt['sbm_ng']*opt['sbm_n']*0.75), num_per_class=int(opt['sbm_ng']*0.5))
     use_lcc = False
   else:
     raise Exception('Unknown dataset.')

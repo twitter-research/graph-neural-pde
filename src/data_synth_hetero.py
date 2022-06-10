@@ -1,11 +1,15 @@
+import matplotlib.pyplot as plt
 from deeprobust.graph.data import Dataset, Dpr2Pyg, Pyg2Dpr
 import os.path as osp
 import numpy as np
 import pandas as pd
-from torch_geometric.utils import degree, homophily
+from torch_geometric.utils import degree, homophily, from_networkx
 import torch
 from graph_rewiring import dirichlet_energy
 from greed_params import default_params
+import networkx as nx
+import matplotlib.pyplot as plt
+from utils import DummyDataset
 
 #adopted from https://github.com/GemsLab/H2GCN/tree/master/npz-datasets
 class CustomDataset(Dataset):
@@ -75,6 +79,44 @@ def get_pyg_syn_cora(path, opt, rep):
   pyg_dataset = Dpr2Pyg(dataset)
   return pyg_dataset
 
+def get_SBM(path, opt):
+  # opt = {"sbm_n": 3, "sbm_ng": 10, "sbm_pq": 2}
+  opt['sbm_n'] = 3
+  opt['sbm_ng'] = 10
+  opt['sbm_pq'] = 2
+
+  pq = opt['sbm_pq']
+  N = opt['sbm_n']
+  ng =  opt['sbm_ng']
+  p = 1 - 1/(pq+1)
+  q = 1/(pq+1)
+  # sizes = [15, 15, 30]
+  # probs = [[0.25, 0.05, 0.02], [0.05, 0.35, 0.07], [0.02, 0.07, 0.40]]
+  sizes = N * [ng]
+  probs = []
+  for g in range(N):
+    g_probs = []
+    for n in range(N):
+      if g == n:
+        g_probs.append(p)
+      else:
+        g_probs.append(q)
+    probs.append(g_probs)
+
+  G = nx.stochastic_block_model(sizes, probs, seed=0)
+  labels = [d['block'] for n,d in G.nodes(data=True)]
+  pos = nx.spring_layout(G)
+  nx.draw(G, pos, node_color=labels)
+  plt.show()
+  pyg_data = from_networkx(G)
+  pyg_data.y = torch.tensor(labels, dtype=torch.long)
+  pyg_data.x = torch.from_numpy(np.stack([pos[i]+[labels[i]] for i in range(N*ng)], axis=0)).type(torch.float)
+  pyg_data.train_mask = torch.zeros(N*ng, dtype=torch.bool)
+  pyg_data.test_mask = torch.zeros(N*ng, dtype=torch.bool)
+  pyg_data.val_mask = torch.zeros(N*ng, dtype=torch.bool)
+
+  pyg_dataset = DummyDataset(pyg_data, opt['sbm_n'])
+  return pyg_dataset
 
 def get_edge_cat(edge_index, y, num_classes):
   edges_cats = []
@@ -90,7 +132,10 @@ def get_edge_cat(edge_index, y, num_classes):
   return edges_cats
 
 if __name__ == "__main__":
-  pass
+  opt = {"sbm_n":3, "sbm_ng":10, "sbm_pq":1.0} # 0.3, "sbm_q": 0.5}
+  get_SBM(path="../data/SBM/", opt=opt)
+
+
   # dataset = CustomDataset(root="../data/syn-cora", name="h0.00-r1", setting="gcn", seed=15)
   # adj = dataset.adj  # Access adjacency matrix
   # features = dataset.features  # Access node features

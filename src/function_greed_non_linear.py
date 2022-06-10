@@ -33,7 +33,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def __init__(self, in_features, out_features, opt, data, device, bias=False):
     super(ODEFuncGreedNonLin, self).__init__(in_features, out_features, opt, data, device, bias=False)
-    #temporary for ablation
+    #todo used for wandb ablations
     if self.opt['gnl_omega_params']:
       self.unpack_omega_params()
     if self.opt['gnl_W_params']:

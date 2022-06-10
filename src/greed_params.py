@@ -195,7 +195,7 @@ def greed_ablation_params(opt):
             opt['gnl_W_diag_init_r'] = 0.0
 
     # opt['planetoid_split'] = True
-    opt['geom_gcn_splits'] = True#True #False#True
+    # opt['geom_gcn_splits'] = False #True#True #False#True
     opt['epoch'] = 129#20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1#10#4#1
     # opt['patience'] = 3
@@ -212,14 +212,14 @@ def greed_ablation_params(opt):
         ###!!! set function 'greed_non_linear'
         # opt['function'] = 'greed_non_linear'
         opt['block'] = 'constant'
-        opt['drift'] = True  # False#True
+        opt['drift'] = False#True  # False#True
         opt['gnl_thresholding'] = False
 
         if opt['lie_trotter'] in [None, 'gen_0']:
             opt['threshold_times'] = [2,4] #takes an euler step that would have been taken in drift diffusion and also thresholds between t->t+1
             #solver args
-            opt['time'] = 3.0 #2.0
-            opt['step_size'] = 1.0 #1.0
+            opt['time'] = 4.0 #3.0 #2.0
+            opt['step_size'] = 0.25 #1.0 #1.0
             opt['method'] = 'euler'
         elif opt['lie_trotter'] == 'gen_1':
             #gen1 args
