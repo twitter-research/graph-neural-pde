@@ -205,21 +205,21 @@ def greed_ablation_params(opt):
     #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
     #gen_0 - alternates one step diffusion and drift in alternating lie-trotter scheme (ie eq 42)
     #gen_1 - alternates ranges of diffusion and drift (ie eq 43-44)
-    #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion
+    #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
 
-    opt['lie_trotter'] = None#'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    opt['lie_trotter'] = 'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         ###!!! set function 'greed_non_linear'
         # opt['function'] = 'greed_non_linear'
         opt['block'] = 'constant'
-        opt['drift'] = False#True  # False#True
+        opt['drift'] = True  # False#True
         opt['gnl_thresholding'] = False
 
         if opt['lie_trotter'] in [None, 'gen_0']:
             opt['threshold_times'] = [2,4] #takes an euler step that would have been taken in drift diffusion and also thresholds between t->t+1
             #solver args
             opt['time'] = 4.0 #3.0 #2.0
-            opt['step_size'] = 0.25 #1.0 #1.0
+            opt['step_size'] = 0.1#25 #1.0 #1.0
             opt['method'] = 'euler'
         elif opt['lie_trotter'] == 'gen_1':
             #gen1 args
@@ -230,7 +230,8 @@ def greed_ablation_params(opt):
             opt['step_size'] = 1.0
             opt['method'] = 'euler'
     elif opt['lie_trotter'] == 'gen_2':
-        ###!!! set function 'greed_lie_trotter'
+        ###!!! set function 'greed_lie_trotter' #todo rather than do this, replace the 3 or 4 places where need to indicate it's LT2
+        opt['function'] = 'greed_lie_trotter'
         opt['block'] = 'greed_lie_trotter'
         #gen2 args
         #lt_block_type : 'diffusion / drift / label / threshold
@@ -241,9 +242,9 @@ def greed_ablation_params(opt):
         #                     {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0,'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
         #                     {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': []},
         #                     {'lt_block_type': 'label', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1,2,3,4,5,6,7]}]
-        opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
-                               {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
-                               {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1,2,3,4,5,6,7]}]#[]}]
+        opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': [1]},
+                               {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': [1]},
+                               {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': [1,2,3,4,5,6,7]}]#[]}]
 
         #solver args
         opt['method'] = 'euler'

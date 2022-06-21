@@ -751,14 +751,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           idx = index[:l] + index[l + 1:]
           q_l = eta_hat[:,l] * sm_logits[:,l]
           eta_l = torch.prod(eta_hat[:,idx]**2, dim=1) * q_l
-          f -= self.opt['step_size'] * (-0.5 * measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(sm_logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
+          f -= self.opt['step_size'] * (-measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(sm_logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
 
       if self.opt['gnl_thresholding'] and t in self.opt['threshold_times']:
         x = x + self.opt['step_size'] * f  #take an euler step that would have been taken from diff and dift gradients
         logits, pred = self.predict(x)
         f = self.threshold(x, pred, self.opt['step_size']) #generates change needed to snap to required value
-
-    #todo project every node onto embedding TSNE coordinate basis - https://discuss.pytorch.org/t/t-sne-for-pytorch/44264
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
 

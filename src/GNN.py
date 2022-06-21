@@ -64,7 +64,7 @@ class GNN(BaseGNN):
         if self.opt['repulsion']:
           self.odeblock.odefunc.set_R0()
           self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_WS(x)
-    if self.opt['function'] in ['greed_non_linear', 'greed_lie_trotter']:
+    elif self.opt['function'] in ['greed_non_linear', 'greed_lie_trotter']:
       if self.opt['gnl_style'] == 'scaled_dot':
         self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_scaled_dot_omega()
       elif self.opt['gnl_style'] == 'general_graph':
@@ -91,7 +91,7 @@ class GNN(BaseGNN):
 
   def GNN_postXN(self, z):
     if self.opt['augment']:
-      z = torch.split(z, x.shape[1] // 2, dim=1)[0]
+      z = torch.split(z, z.shape[1] // 2, dim=1)[0]
     # Activation.
     if not self.opt['XN_no_activation']:
       z = F.relu(z)
