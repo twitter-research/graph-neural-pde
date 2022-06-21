@@ -166,7 +166,7 @@ def greed_ablation_params(opt):
         opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
         opt['gnl_attention'] = False #use L0 attention coefficients
         #Omega
-        opt['gnl_omega'] = 'diag_dom' #'diag'#'zero' Omega_eq_W
+        opt['gnl_omega'] = 'diag' #'diag'#'zero' Omega_eq_W
         # if opt['gnl_omega'] == 'diag':
         #     opt['gnl_omega_diag'] = 'free' #'free 'const'
         #     if opt['gnl_omega_diag'] == 'const':

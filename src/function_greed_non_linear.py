@@ -531,26 +531,37 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     return energy_gradient
 
   def do_diffusion(self, t):
-    #todo tighten up these conditionals as dependent on good/accurately setting up of config
-    if self.opt['drift']:
-      return True
-    if self.opt['lie_trotter'] in [None, 'gen_0']:
-      return True
-    if self.opt['lie_trotter'] == 'gen_1':
-      for rng in self.opt['diffusion_ranges']:
-        if t >= rng[0] and t < rng[1]:
-          return True
+    if self.opt['lie_trotter'] == 'gen_2':
+      if self.opt['lt_block_type'] == 'diffusion' or self.opt['lt_block_type'] == 'label':
+        return True
+      else:
+        return False
+    else:
+      if self.opt['drift']:
+        return True
+      if self.opt['lie_trotter'] in [None, 'gen_0']:
+        return True
+      if self.opt['lie_trotter'] == 'gen_1':
+        for rng in self.opt['diffusion_ranges']:
+          if t >= rng[0] and t < rng[1]:
+            return True
     return False
 
   def do_drift(self, t):
-    if self.opt['drift']:
-      return True
-    if self.opt['lie_trotter'] == 'gen_0':
-      return True
-    if self.opt['lie_trotter'] == 'gen_1':
-      for rng in self.opt['drift_ranges']:
-        if t >= rng[0] and t < rng[1]:
-          return True
+    if self.opt['lie_trotter'] == 'gen_2':
+      if self.opt['lt_block_type'] == 'drift':
+        return True
+      else:
+        return False
+    else:
+      if self.opt['drift']:
+        return True
+      if self.opt['lie_trotter'] == 'gen_0':
+        return True
+      if self.opt['lie_trotter'] == 'gen_1':
+        for rng in self.opt['drift_ranges']:
+          if t >= rng[0] and t < rng[1]:
+            return True
     return False
 
   def diffusion_step(self):
@@ -725,12 +736,20 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
               f = f - torch_sparse.spmm(AA_ei, AA_val, x.shape[0], x.shape[0], xWtilde) / 2
             f = f - x @ self.Omega
 
-        if self.opt['test_mu_0']:
-          if self.opt['add_source']:
-            f = f + self.beta_train * self.x0
+        if self.opt['lie_trotter'] == 'gen_2':
+          if self.opt['lt_block_type'] != 'label':
+            if self.opt['test_mu_0']:
+              if self.opt['add_source']:
+                f = f + self.beta_train * self.x0
+            else:
+              f = f - 0.5 * self.mu * (x - self.x0)
         else:
-          f = f - 0.5 * self.mu * (x - self.x0)
-          # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
+          if self.opt['test_mu_0']:
+            if self.opt['add_source']:
+              f = f + self.beta_train * self.x0
+          else:
+            f = f - 0.5 * self.mu * (x - self.x0)
+            # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
 
       if self.do_drift(t):
         if not self.do_diffusion(t):
@@ -761,9 +780,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
 
       # get edge stats if not a diffusion pass/block
+      # if self.do_drift(t):
       if self.do_drift(t):
         src_x, dst_x = self.get_src_dst(x)
         fOmf, attention = self.calc_dot_prod_attention(src_x, dst_x)
+      if self.opt['lie_trotter'] == 'gen_2' and not self.do_drift(t):
+        if self.opt['lt_block_type'] == 'threshold':
+          src_x, dst_x = self.get_src_dst(x)
+          fOmf, attention = self.calc_dot_prod_attention(src_x, dst_x)
 
       with torch.no_grad():
         #todo these energy formulas are wrong
@@ -794,8 +818,16 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
                    f"gf_e{self.epoch}_x": (x ** 2).sum(),
                    "grad_flow_step": self.wandb_step})
 
-        z = x
-        logits, pred = self.predict(z)
+        # z = x
+        # logits, pred = self.predict(z)
+        if self.opt['lie_trotter'] == 'gen_2':
+          if self.opt['lt_block_type'] == 'label':
+            logits = x
+            pred = logits.max(1)[1]
+          else:
+            logits, pred = self.predict(x)
+        else:
+          logits, pred = self.predict(x)
         sm_logits = torch.softmax(logits, dim=1)
         train_acc, val_acc, test_acc = test(logits, self.data)
         homophil = homophily(edge_index=self.edge_index, y=pred)
@@ -884,7 +916,16 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           src_z, dst_z = self.get_src_dst(z)
           fOmf, attention = self.calc_dot_prod_attention(src_z, dst_z)
 
-          logits, pred = self.predict(z)
+          # logits, pred = self.predict(z)
+          if self.opt['lie_trotter'] == 'gen_2':
+            if self.opt['lt_block_type'] == 'label':
+              logits = z
+              pred = logits.max(1)[1]
+            else:
+              logits, pred = self.predict(z)
+          else:
+            logits, pred = self.predict(z)
+
           sm_logits = torch.softmax(logits, dim=1)
           train_acc, val_acc, test_acc = test(logits, self.data)
           homophil = homophily(edge_index=self.edge_index, y=pred)

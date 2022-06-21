@@ -4,7 +4,7 @@ from torch.nn import ModuleList
 from function_transformer_attention import SpGraphTransAttentionLayer
 from base_classes import ODEblock
 from utils import get_rw_adj
-# from function_greed_non_linear import ODEFuncGreedNonLin
+from function_greed_non_linear import ODEFuncGreedNonLin
 from function_greed_non_linear_lie_trotter import ODEFuncGreedLieTrot
 
 class GREEDLTODEblock(ODEblock):
@@ -12,7 +12,7 @@ class GREEDLTODEblock(ODEblock):
     super(GREEDLTODEblock, self).__init__(odefunc, regularization_fns, opt, data, device, t)
     self.aug_dim = 2 if opt['augment'] else 1
     ###dummy func just for tracking epoch/wandb_step/get_evol_stats
-    self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, data, device)
+    # self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, data, device)
 
     self.C = (data.y.max() + 1).item()  #hack!, num class for drift
     funcs = []
@@ -28,7 +28,7 @@ class GREEDLTODEblock(ODEblock):
         opt2['share_block'] = lt2_args['share_block']
       opt2['reports_list'] = lt2_args['reports_list']
 
-      odefunc = ODEFuncGreedLieTrot
+      odefunc = ODEFuncGreedNonLin #ODEFuncGreedLieTrot #todo can just use ODEFuncGreedNonLin ??
       if opt2['share_block'] is not None:
         func = self.funcs[opt2['share_block']]
       else:
@@ -40,7 +40,7 @@ class GREEDLTODEblock(ODEblock):
                                            fill_value=opt2['self_loop_weight'],
                                            num_nodes=data.num_nodes,
                                            dtype=data.x.dtype)
-      func.edge_index = edge_index.to(device)
+      func.edge_index = edge_index.to(device) #todo note could injet the rewiring step in here
       func.edge_weight = edge_weight.to(device)
       func.block_num = block_num
       funcs.append(func)
@@ -53,9 +53,9 @@ class GREEDLTODEblock(ODEblock):
     self.steps = steps
     #adding the first func in module list as block attribute to match signature required in run_GNN.py
     self.odefunc = self.funcs[0]
-    self.odefunc.edge_index = edge_index.to(device)
-    self.odefunc.edge_weight = edge_weight.to(device)
-    self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight
+    # self.odefunc.edge_index = edge_index.to(device)
+    # self.odefunc.edge_weight = edge_weight.to(device)
+    # self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight
 
     if opt['adjoint']:
       from torchdiffeq import odeint_adjoint as odeint
@@ -70,22 +70,29 @@ class GREEDLTODEblock(ODEblock):
     # reg_odefunc.odefunc.x0 = x0.clone().detach()
 
   def set_attributes(self, func, x):
-    if self.opt['function'] in ['greed_linear', 'greed_linear_homo', 'greed_linear_hetero']:
-      func.set_x_0(x) #this x is actually z
-      func.set_tau_0()
-      if self.opt['function'] == 'greed_linear_homo':
-        func.set_L0()
-      if self.opt['function'] == 'greed_linear_hetero':
-        if self.opt['diffusion']:
-          func.set_L0()
-          func.Ws = func.set_WS(x)
-        if self.opt['repulsion']:
-          func.set_R0()
-          func.R_Ws = func.set_WS(x)
+    # if self.opt['function'] in ['greed_linear', 'greed_linear_homo', 'greed_linear_hetero']:
+    #   func.set_x_0(x) #this x is actually z
+    #   func.set_tau_0()
+    #   if self.opt['function'] == 'greed_linear_homo':
+    #     func.set_L0()
+    #   if self.opt['function'] == 'greed_linear_hetero':
+    #     if self.opt['diffusion']:
+    #       func.set_L0()
+    #       func.Ws = func.set_WS(x)
+    #     if self.opt['repulsion']:
+    #       func.set_R0()
+    #       func.R_Ws = func.set_WS(x)
     if self.opt['function'] in ['greed_non_linear', 'greed_lie_trotter'] and self.opt['gnl_style'] == 'general_graph':
-          func.gnl_W = func.set_gnlWS()
-          func.GNN_postXN = self.odefunc.GNN_postXN
-          func.GNN_m2 = self.odefunc.GNN_m2
+      # if self.opt['gnl_style'] == 'scaled_dot':
+      #   self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_scaled_dot_omega()
+        func.gnl_W = func.set_gnlWS()
+        func.Omega = func.set_gnlOmega()
+        func.GNN_postXN = self.odefunc.GNN_postXN
+        func.GNN_m2 = self.odefunc.GNN_m2
+        # if self.opt['two_hops']:
+        #   self.odeblock.odefunc.gnl_W_tilde = self.odeblock.odefunc.set_gnlWS()
+        # if self.opt['gnl_attention']:
+        #   self.odeblock.odefunc.set_L0()
 
   def pass_stats(self, func, block_num):
     func.get_evol_stats = self.odefunc.get_evol_stats
@@ -159,6 +166,7 @@ class GREEDLTODEblock(ODEblock):
           options={'step_size': step},
           atol=self.atol,
           rtol=self.rtol)
+
       #terminal state as initial condition for next block
       if self.training and self.nreg > 0:
         x = state_dt[0][1]

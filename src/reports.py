@@ -547,6 +547,7 @@ def reset_stats(odefunc):
     odefunc.test_dist_sd_label = None
     odefunc.paths = []
 
+@torch.no_grad()
 def reports_manager(model, data):
     # forward pass through the model in eval mode to generate the data
     model.odeblock.odefunc.get_evol_stats = True
