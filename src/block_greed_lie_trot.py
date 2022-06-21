@@ -125,6 +125,8 @@ class GREEDLTODEblock(ODEblock):
       func.test_dist_mean_label = prev_func.test_dist_mean_label[:,:,:end_idx]
       func.test_dist_sd_label = prev_func.test_dist_sd_label[:,:,:end_idx]
 
+      func.paths = prev_func.paths
+
   def forward(self, x):
     integrator = self.train_integrator if self.training else self.test_integrator
     # func = self.reg_odefunc if self.training and self.nreg > 0 else self.odefunc
