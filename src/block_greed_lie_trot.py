@@ -15,7 +15,7 @@ class GREEDLTODEblock(ODEblock):
     # self.odefunc = odefunc(self.aug_dim * opt['hidden_dim'], self.aug_dim * opt['hidden_dim'], opt, data, device)
 
     self.C = (data.y.max() + 1).item()  #hack!, num class for drift
-    funcs = []
+    funcs_list = []
     times = []
     steps = []
     for block_num, lt2_args in enumerate(self.opt['lt_gen2_args']):
@@ -29,26 +29,40 @@ class GREEDLTODEblock(ODEblock):
       opt2['reports_list'] = lt2_args['reports_list']
 
       odefunc = ODEFuncGreedNonLin #ODEFuncGreedLieTrot #todo can just use ODEFuncGreedNonLin ??
-      if opt2['share_block'] is not None:
-        func = self.funcs[opt2['share_block']]
+
+      # if opt2['share_block'] is not None:
+      #   func = funcs_list[opt2['share_block']]
+      # else:
+      #   if opt2['lt_block_type'] == 'label':
+      #     func = odefunc( self.C, self.C, opt2, data, device)
+      #   else:
+      #     func = odefunc(self.aug_dim * opt2['hidden_dim'], self.aug_dim * opt2['hidden_dim'], opt2, data, device)
+
+
+      if opt2['lt_block_type'] == 'label':
+        func = odefunc(self.C, self.C, opt2, data, device)
       else:
-        if opt2['lt_block_type'] == 'label':
-          func = odefunc( self.C, self.C, opt2, data, device)
-        else:
-          func = odefunc(self.aug_dim * opt2['hidden_dim'], self.aug_dim * opt2['hidden_dim'], opt2, data, device)
+        func = odefunc(self.aug_dim * opt2['hidden_dim'], self.aug_dim * opt2['hidden_dim'], opt2, data, device)
+      if opt2['share_block'] is not None:
+        func.load_state_dict(funcs_list[opt2['share_block']].state_dict())
+        # actor2.load_state_dict(actor1.state_dict())
+      #todo - check all required params are in the state dict
+
+
       edge_index, edge_weight = get_rw_adj(data.edge_index, edge_weight=data.edge_attr, norm_dim=1,
                                            fill_value=opt2['self_loop_weight'],
                                            num_nodes=data.num_nodes,
                                            dtype=data.x.dtype)
+
       func.edge_index = edge_index.to(device) #todo note could injet the rewiring step in here
       func.edge_weight = edge_weight.to(device)
       func.block_num = block_num
-      funcs.append(func)
+      funcs_list.append(func)
       time_tensor = torch.tensor([0, opt2['time']], dtype=torch.float).to(device)
       times.append(time_tensor)
       steps.append(lt2_args['lt_block_step'])
 
-    self.funcs = ModuleList(funcs)
+    self.funcs = ModuleList(funcs_list)
     self.times = times
     self.steps = steps
     #adding the first func in module list as block attribute to match signature required in run_GNN.py
@@ -99,8 +113,8 @@ class GREEDLTODEblock(ODEblock):
     func.epoch = self.odefunc.epoch
     func.wandb_step = self.odefunc.wandb_step
 
-    end_idx = -1
-    if block_num != 0 and block_num != len(func.opt['lt_gen2_args']):
+    end_idx = -1 #this is to not carry over the terminal state as it's replaced by the IC from the net block
+    if block_num != 0 and block_num != len(func.opt['lt_gen2_args']): #first block has no preceeding stats.
       prev_func = self.funcs[block_num-1]
       # if func.opt['lt_block_type'] != 'label':
       func.fOmf = prev_func.fOmf[:end_idx,:]
@@ -125,7 +139,7 @@ class GREEDLTODEblock(ODEblock):
       func.test_dist_mean_label = prev_func.test_dist_mean_label[:,:,:end_idx]
       func.test_dist_sd_label = prev_func.test_dist_sd_label[:,:,:end_idx]
 
-      func.paths = prev_func.paths
+      func.paths = prev_func.paths[:end_idx]
 
   def forward(self, x):
     integrator = self.train_integrator if self.training else self.test_integrator

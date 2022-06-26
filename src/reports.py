@@ -294,7 +294,11 @@ def report_8(ax, fig, odefunc, row, epoch):
     nx.write_gpickle(G, savefolder + f"/nxgraph_epoch{epoch}_{odefunc.opt['dataset']}.pkl")
     #save opt
     with open(savefolder + '/opt.json', 'w+') as f:
-        json.dump(odefunc.opt._as_dict(), f, indent=4)
+        try:
+            json.dump(odefunc.opt._as_dict(), f, indent=4)
+        except:
+            json.dump(odefunc.opt, f, indent=4)
+
     #save decoder - https://stackoverflow.com/questions/42703500/best-way-to-save-a-trained-model-in-pytorch
     m2 = odefunc.GNN_m2
     torch.save(m2, savefolder + f"/m2_epoch{epoch}_{odefunc.opt['dataset']}.pt")
@@ -352,13 +356,34 @@ def tsne_snap(ax, fig, odefunc, row, epoch, npy_path, npy_label, s=None):
     X = np.load(npy_path)
     labels = np.load(npy_label) #=odefunc.labels.cpu().numpy()
     # load paths np array
-    T = X.shape[-1]
+    TL = X.shape[-1]
     X0pca2 = X0_PCA(X)
 
     # init multi subplot
     nr, nc = 4, 4
-    dt_idx = T // nc
-    idx_list = [0] + list(range(dt_idx, dt_idx*(nc-1), dt_idx)) + [T-1]
+    dt_idx = TL // nc
+    idx_list = [0] + list(range(dt_idx, dt_idx*(nc-1), dt_idx)) + [TL-1]
+
+    #roll out list of time point idexes
+    #roll out list of actual times
+    #put thi in the initialisation of the function
+    opt = odefunc.opt
+    time_idxs = [0]
+    times = [0]
+    #todo - this needs to be made inside the function at the point the paths slice is corrected
+    if odefunc.opt['lie_trotter'] == 'gen_2':
+        block_types = [opt['lt_gen2_args'][0]['lt_block_type']]
+        for i, block_dict in enumerate(opt['lt_gen2_args']):
+            block_time = block_dict['lt_block_time']
+            block_step = block_dict['lt_block_step']
+            steps = int(block_time / block_step) + 1
+            time_idxs = time_idxs + list(range(time_idxs[-1] + 1, time_idxs[-1] + steps, 1))
+            times = times + list(np.arange(times[-1] + block_step, times[-1] + steps * block_step, block_step))
+            block_types = block_types + (steps - 1) * [block_dict['lt_block_type']]
+    else:
+        time_idxs = list(range(X.shape[-1]))
+        times = list(np.arange(0, opt['time'] + opt['step_size'], opt['step_size']))
+
     for i, t_idx in enumerate(idx_list):
         X_emb = Xt_TSNE(X, X0pca2, t_idx)
         if s:
@@ -367,7 +392,11 @@ def tsne_snap(ax, fig, odefunc, row, epoch, npy_path, npy_label, s=None):
             ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels)
         ax[row, i].xaxis.set_tick_params(labelsize=16)
         ax[row, i].yaxis.set_tick_params(labelsize=16)
-        ax[row, i].set_title(f"{odefunc.opt['dataset']} TSNE, epoch {epoch}, time {t_idx/(T-1)*odefunc.opt['time']}", fontdict={'fontsize': 24})
+        if odefunc.opt['lie_trotter'] == 'gen_2':
+            ax[row, i].set_title(f"{odefunc.opt['dataset']} TSNE, e={epoch}, t={times[t_idx]}, {block_types[t_idx]} ", fontdict={'fontsize': 24})
+        else:
+            ax[row, i].set_title(f"{odefunc.opt['dataset']} TSNE, e={epoch}, t={times[t_idx]}", fontdict={'fontsize': 24})
+
         ax[row, i].legend(loc="upper right", fontsize=24)
     if not torch.cuda.is_available():
         fig.show()
@@ -524,7 +553,6 @@ def run_reports(odefunc):
         if epoch == opt['wandb_epoch_list'][-1] and opt['save_local_reports']:
             getattr(odefunc, f"report{str(rep_num)}_pdf").close()
 
-    reset_stats(odefunc)
 
 def reset_stats(odefunc):
     odefunc.fOmf = None
@@ -560,10 +588,13 @@ def reports_manager(model, data):
             func.get_evol_stats = model.odeblock.odefunc.get_evol_stats
             func.wandb_step = model.odeblock.odefunc.wandb_step
             run_reports(func)
+        for func in model.odeblock.funcs:
+            reset_stats(func)
     else:
         func = model.odeblock.odefunc
         func.block_num = 0
         run_reports(func)
+        reset_stats(func)
 
 
 if __name__ == "__main__":

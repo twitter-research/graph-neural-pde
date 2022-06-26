@@ -79,7 +79,7 @@ class GNN(BaseGNN):
   def forward_XN(self, x):
     ###forward XN
     x = self.encoder(x, pos_encoding=None)
-    if not self.opt['lie_trotter'] == 'gen_2': #do for gen2 in the block as copy over initial conditions
+    if not self.opt['lie_trotter'] == 'gen_2': #do for gen2 in the odeblock as copy over initial conditions
       self.odeblock.set_x0(x)
       self.set_attributes(x)
 

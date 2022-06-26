@@ -752,25 +752,26 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
 
       if self.do_drift(t):
-        if not self.do_diffusion(t):
-          f = torch.zeros(x.shape, device=self.device)
-        f = torch.exp(self.drift_eps) * f
-        x_temp = x
-        if self.opt['lie_trotter'] == 'gen_0':
-          x_temp = x_temp + self.opt['step_size'] * f  # take an euler step in diffusion direction
+        with torch.no_grad(): #todo understand if take the gradient here
+          if not self.do_diffusion(t):
+            f = torch.zeros(x.shape, device=self.device)
+          f = torch.exp(self.drift_eps) * f
+          x_temp = x
+          if self.opt['lie_trotter'] == 'gen_0':
+            x_temp = x_temp + self.opt['step_size'] * f  # take an euler step in diffusion direction
 
-        logits, pred = self.predict(x_temp)
-        sm_logits = torch.softmax(logits, dim=1)
-        eye = torch.eye(self.C, device=self.device)
-        dist_labels = sm_logits.unsqueeze(-1) - eye.unsqueeze(0) #[num_nodes, c, 1] - [1, c, c]
-        eta_hat = torch.sum(torch.abs(dist_labels),dim=1)  #sum abs distances for each node over features
-        P = self.GNN_m2.weight
-        index = list(range(self.C))
-        for l in range(self.C):
-          idx = index[:l] + index[l + 1:]
-          q_l = eta_hat[:,l] * sm_logits[:,l]
-          eta_l = torch.prod(eta_hat[:,idx]**2, dim=1) * q_l
-          f -= self.opt['step_size'] * (-measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(sm_logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
+          logits, pred = self.predict(x_temp)
+          sm_logits = torch.softmax(logits, dim=1)
+          eye = torch.eye(self.C, device=self.device)
+          dist_labels = sm_logits.unsqueeze(-1) - eye.unsqueeze(0) #[num_nodes, c, 1] - [1, c, c]
+          eta_hat = torch.sum(torch.abs(dist_labels),dim=1)  #sum abs distances for each node over features
+          P = self.GNN_m2.weight
+          index = list(range(self.C))
+          for l in range(self.C):
+            idx = index[:l] + index[l + 1:]
+            q_l = eta_hat[:,l] * sm_logits[:,l]
+            eta_l = torch.prod(eta_hat[:,idx]**2, dim=1) * q_l
+            f -= (-measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(sm_logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
 
       if self.opt['gnl_thresholding'] and t in self.opt['threshold_times']:
         x = x + self.opt['step_size'] * f  #take an euler step that would have been taken from diff and dift gradients
@@ -909,8 +910,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             self.paths.append(x.detach().numpy())
 
         ### extra values for terminal step
-
-        if t == self.opt['time'] - self.opt['step_size']:
+        # (only final block and it's not lie-trotter gen2 not final block) <- this is delt with in the "pass_stats" funtion in the LT2 block
+        if t == self.opt['time'] - self.opt['step_size']:# and not(self.opt['lie_trotter'] == 'gen_2' and self.block_num + 1 != len(self.opt['lt_gen2_args'])):
           z = x + self.opt['step_size'] * f #take an euler step
 
           src_z, dst_z = self.get_src_dst(z)
