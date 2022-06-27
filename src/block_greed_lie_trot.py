@@ -17,8 +17,12 @@ class GREEDLTODEblock(ODEblock):
 
     self.C = (data.y.max() + 1).item()  #hack!, num class for drift
     funcs_list = []
+    # needed for torchdiffeq
     times = []
     steps = []
+    # needed for stats and TSNE plots
+    self.cum_steps_list, self.cum_time_points, self.cum_time_ticks, self.block_type_list = self.create_time_lists()
+
     for block_num, lt2_args in enumerate(self.opt['lt_gen2_args']):
       opt2 = self.opt.as_dict().copy()
       opt2['lt_block_type'] = lt2_args['lt_block_type']
@@ -45,15 +49,18 @@ class GREEDLTODEblock(ODEblock):
       func.edge_index = edge_index.to(device) #todo note could inject the rewiring step in here
       func.edge_weight = edge_weight.to(device)
       func.block_num = block_num
+      func.cum_steps_list, func.cum_time_points, func.cum_time_ticks, func.block_type_list = self.cum_steps_list, self.cum_time_points, self.cum_time_ticks, self.block_type_list
+
+
       funcs_list.append(func)
       time_tensor = torch.tensor([0, opt2['time']], dtype=torch.float).to(device)
       times.append(time_tensor)
       steps.append(lt2_args['lt_block_step'])
 
     self.funcs = ModuleList(funcs_list)
-    self.times = times #needed for torchdiffeq
-    self.steps = steps #needed for torchdiffeq
-    self.create_time_lists() #needed for stats
+    self.times = times
+    self.steps = steps
+
     #adding the first func in module list as block attribute to match signature required in run_GNN.py
     # ie model.odeblock.odefunc.epoch
     self.odefunc = self.funcs[0]
@@ -138,7 +145,7 @@ class GREEDLTODEblock(ODEblock):
       cum_time_ticks = list(np.arange(cum_time_points[-2], cum_time_points[-1], block_step)) + [block_time]
       block_type_list = steps * []
 
-    return None
+    return cum_steps_list, cum_time_points, cum_time_ticks, block_type_list
 
   def pass_stats(self, func, block_num):
     func.get_evol_stats = self.odefunc.get_evol_stats

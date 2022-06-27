@@ -303,7 +303,7 @@ def report_8(ax, fig, odefunc, row, epoch):
     m2 = odefunc.GNN_m2
     torch.save(m2, savefolder + f"/m2_epoch{epoch}_{odefunc.opt['dataset']}.pt")
 
-    tsne_snap(ax, fig, odefunc, row, epoch, npy_path, npy_label)
+    tsne_snap(ax, fig, odefunc, row, epoch, savefolder)
 
 '''Note on approach to TSNE / PCA visualisation
 https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html
@@ -350,18 +350,26 @@ def project_label_space(path, X):
     return L.detach().numpy()
 
 
-def tsne_snap(ax, fig, odefunc, row, epoch, npy_path, npy_label, s=None):
+def tsne_snap(ax, fig, odefunc, row, epoch, savefolder, s=None):
     '''function called by report_8 to maintain syntax of "online" reporting
     for a particular epoch will generate fig for the PDF Sheets workflow, ie 4 columns'''
+
+    npy_path = savefolder + f"/paths_epoch{epoch}_{odefunc.opt['dataset']}.npy"
+    npy_label = savefolder + f"/labels_epoch{epoch}_{odefunc.opt['dataset']}.npy"
+    m2_path =  savefolder + f"/m2_epoch{epoch}_{odefunc.opt['dataset']}.pt"
+
     X = np.load(npy_path)
+    X = project_label_space(m2_path, X)
     labels = np.load(npy_label) #=odefunc.labels.cpu().numpy()
     # load paths np array
     TL = X.shape[-1]
     X0pca2 = X0_PCA(X) #2D basis for TSNE inits
 
     nr, nc = 4, 4
-    dt_idx = TL // nc
+    dt_idx = TL // (nc - 1)
     idx_list = [0] + list(range(dt_idx, dt_idx*(nc-1), dt_idx)) + [TL-1]
+    times = odefunc.cum_time_ticks
+    block_types = odefunc.block_type_list
 
     for i, t_idx in enumerate(idx_list):
         X_emb = Xt_TSNE(X, X0pca2, t_idx)
@@ -372,7 +380,7 @@ def tsne_snap(ax, fig, odefunc, row, epoch, npy_path, npy_label, s=None):
         ax[row, i].xaxis.set_tick_params(labelsize=16)
         ax[row, i].yaxis.set_tick_params(labelsize=16)
         if odefunc.opt['lie_trotter'] == 'gen_2':
-            ax[row, i].set_title(f"{odefunc.opt['dataset']} TSNE, e={epoch}, t={times[t_idx]}, {block_types[t_idx]} ", fontdict={'fontsize': 24})
+            ax[row, i].set_title(f"{odefunc.opt['dataset']} TSNE, e={epoch}, t={odefunc.cum_time_ticks[t_idx]}, {block_types[t_idx]} ", fontdict={'fontsize': 24})
         else:
             ax[row, i].set_title(f"{odefunc.opt['dataset']} TSNE, e={epoch}, t={times[t_idx]}", fontdict={'fontsize': 24})
 
@@ -424,7 +432,7 @@ def tsne_full(gnl_savefolder, dataset, epoch, cols, s=None):
     if not torch.cuda.is_available():
         fig.show()
 
-def tsne_ani(gnl_savefolder, dataset, epoch, cols, s=None):
+def tsne_ani(gnl_savefolder, dataset, epoch, s=None):
     '''function to generate TSNE plots in animation for every timestep '''
     savefolder = f"../plots/{gnl_savefolder}_{dataset}"
     npy_path = savefolder + f"/paths_epoch{epoch}_{dataset}.npy"
@@ -437,7 +445,7 @@ def tsne_ani(gnl_savefolder, dataset, epoch, cols, s=None):
     labels = np.load(npy_label)
     NXgraph = nx.read_gpickle(savefolder + f"/nxgraph_epoch{epoch}_{dataset}.pkl")
     # opt = json.load(savefolder + 'opt.json')
-    params = {'fps': 2, 'node_size': 100, 'edge_width': 0.25, 'im_height': 8, 'im_width': 16}
+    params = {'fps': 1, 'node_size': 100, 'edge_width': 0.25, 'im_height': 8, 'im_width': 16}
     create_animation(X, X0pca2, labels, NXgraph, params, savefolder, dataset, epoch)
 
 
@@ -581,6 +589,6 @@ if __name__ == "__main__":
     dataset = 'Cora'
     epoch = 128
     cols = 2
-    # tsne_full(gnl_savefolder, dataset, epoch, cols, s=120)
+    tsne_full(gnl_savefolder, dataset, epoch, cols, s=120)
     # ani()
-    tsne_ani(gnl_savefolder, dataset, epoch, cols, s=None)
+    # tsne_ani(gnl_savefolder, dataset, epoch, s=None)
