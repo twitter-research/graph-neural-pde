@@ -357,32 +357,11 @@ def tsne_snap(ax, fig, odefunc, row, epoch, npy_path, npy_label, s=None):
     labels = np.load(npy_label) #=odefunc.labels.cpu().numpy()
     # load paths np array
     TL = X.shape[-1]
-    X0pca2 = X0_PCA(X)
+    X0pca2 = X0_PCA(X) #2D basis for TSNE inits
 
-    # init multi subplot
     nr, nc = 4, 4
     dt_idx = TL // nc
     idx_list = [0] + list(range(dt_idx, dt_idx*(nc-1), dt_idx)) + [TL-1]
-
-    #roll out list of time point idexes
-    #roll out list of actual times
-    #put thi in the initialisation of the function
-    opt = odefunc.opt
-    time_idxs = [0]
-    times = [0]
-    #todo - this needs to be made inside the function at the point the paths slice is corrected
-    if odefunc.opt['lie_trotter'] == 'gen_2':
-        block_types = [opt['lt_gen2_args'][0]['lt_block_type']]
-        for i, block_dict in enumerate(opt['lt_gen2_args']):
-            block_time = block_dict['lt_block_time']
-            block_step = block_dict['lt_block_step']
-            steps = int(block_time / block_step) + 1
-            time_idxs = time_idxs + list(range(time_idxs[-1] + 1, time_idxs[-1] + steps, 1))
-            times = times + list(np.arange(times[-1] + block_step, times[-1] + steps * block_step, block_step))
-            block_types = block_types + (steps - 1) * [block_dict['lt_block_type']]
-    else:
-        time_idxs = list(range(X.shape[-1]))
-        times = list(np.arange(0, opt['time'] + opt['step_size'], opt['step_size']))
 
     for i, t_idx in enumerate(idx_list):
         X_emb = Xt_TSNE(X, X0pca2, t_idx)

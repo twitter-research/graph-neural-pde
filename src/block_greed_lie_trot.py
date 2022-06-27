@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.nn import ModuleList
@@ -28,33 +29,20 @@ class GREEDLTODEblock(ODEblock):
         opt2['share_block'] = lt2_args['share_block']
       opt2['reports_list'] = lt2_args['reports_list']
 
-      odefunc = ODEFuncGreedNonLin #ODEFuncGreedLieTrot #todo can just use ODEFuncGreedNonLin ??
-
-      # if opt2['share_block'] is not None:
-      #   func = funcs_list[opt2['share_block']]
-      # else:
-      #   if opt2['lt_block_type'] == 'label':
-      #     func = odefunc( self.C, self.C, opt2, data, device)
-      #   else:
-      #     func = odefunc(self.aug_dim * opt2['hidden_dim'], self.aug_dim * opt2['hidden_dim'], opt2, data, device)
-
-
+      odefunc = ODEFuncGreedNonLin
       if opt2['lt_block_type'] == 'label':
         func = odefunc(self.C, self.C, opt2, data, device)
       else:
         func = odefunc(self.aug_dim * opt2['hidden_dim'], self.aug_dim * opt2['hidden_dim'], opt2, data, device)
       if opt2['share_block'] is not None:
         func.load_state_dict(funcs_list[opt2['share_block']].state_dict())
-        # actor2.load_state_dict(actor1.state_dict())
-      #todo - check all required params are in the state dict
-
 
       edge_index, edge_weight = get_rw_adj(data.edge_index, edge_weight=data.edge_attr, norm_dim=1,
                                            fill_value=opt2['self_loop_weight'],
                                            num_nodes=data.num_nodes,
                                            dtype=data.x.dtype)
 
-      func.edge_index = edge_index.to(device) #todo note could injet the rewiring step in here
+      func.edge_index = edge_index.to(device) #todo note could inject the rewiring step in here
       func.edge_weight = edge_weight.to(device)
       func.block_num = block_num
       funcs_list.append(func)
@@ -63,13 +51,12 @@ class GREEDLTODEblock(ODEblock):
       steps.append(lt2_args['lt_block_step'])
 
     self.funcs = ModuleList(funcs_list)
-    self.times = times
-    self.steps = steps
+    self.times = times #needed for torchdiffeq
+    self.steps = steps #needed for torchdiffeq
+    self.create_time_lists() #needed for stats
     #adding the first func in module list as block attribute to match signature required in run_GNN.py
+    # ie model.odeblock.odefunc.epoch
     self.odefunc = self.funcs[0]
-    # self.odefunc.edge_index = edge_index.to(device)
-    # self.odefunc.edge_weight = edge_weight.to(device)
-    # self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight
 
     if opt['adjoint']:
       from torchdiffeq import odeint_adjoint as odeint
@@ -103,10 +90,55 @@ class GREEDLTODEblock(ODEblock):
         func.Omega = func.set_gnlOmega()
         func.GNN_postXN = self.odefunc.GNN_postXN
         func.GNN_m2 = self.odefunc.GNN_m2
-        # if self.opt['two_hops']:
+        # if self.opt['two_hops']: #not currently doing for LT2
         #   self.odeblock.odefunc.gnl_W_tilde = self.odeblock.odefunc.set_gnlWS()
         # if self.opt['gnl_attention']:
         #   self.odeblock.odefunc.set_L0()
+
+
+  def create_time_lists(self):
+    #make lists:
+    # cummaltive block_idxs for paths.npx, ie [0, ...
+    # cummaltive actual times up to and including times of block
+    # description of block types
+    opt = self.opt
+    if opt['lie_trotter'] == 'gen_2':
+      block_type_list = []
+      for i, block_dict in enumerate(opt['lt_gen2_args']):
+        block_time = block_dict['lt_block_time']
+        block_step = block_dict['lt_block_step']
+        block_type = block_dict['lt_block_type']
+        steps = int(block_time / block_step)
+
+        if i==0:
+          cum_steps_list = [steps]
+          cum_time_points = [0, block_time]
+          cum_time_ticks = list(np.arange(cum_time_points[-2], cum_time_points[-1], block_step))
+        else:
+          cum_steps = cum_steps_list[-1] + steps
+          cum_steps_list.append(cum_steps)
+
+          block_start = cum_time_points[-1] + block_time
+          cum_time_points.append(block_start)
+
+          cum_time_ticks += list(np.arange(cum_time_points[-2], cum_time_points[-1], block_step))
+        block_type_list += steps * [block_type]
+
+      block_type_list.append(block_type)
+      cum_time_ticks += [cum_time_ticks[-1] + block_step]
+
+    else:
+      pass
+      #it's only ever lie-trotter gen2 in this block
+      block_time = opt['time']
+      block_step = opt['step_size']
+      steps = int(block_time / block_step)
+      cum_steps_list = [steps]
+      cum_time_points = [0, block_time]
+      cum_time_ticks = list(np.arange(cum_time_points[-2], cum_time_points[-1], block_step)) + [block_time]
+      block_type_list = steps * []
+
+    return None
 
   def pass_stats(self, func, block_num):
     func.get_evol_stats = self.odefunc.get_evol_stats
@@ -140,6 +172,7 @@ class GREEDLTODEblock(ODEblock):
       func.test_dist_sd_label = prev_func.test_dist_sd_label[:,:,:end_idx]
 
       func.paths = prev_func.paths[:end_idx]
+
 
   def forward(self, x):
     integrator = self.train_integrator if self.training else self.test_integrator
