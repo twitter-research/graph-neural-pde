@@ -261,6 +261,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if opt['drift'] or opt['lie_trotter'] in ['gen_0','gen_1','gen_2']:
       self.drift_eps = Parameter(torch.Tensor([0.]))
 
+    # self.attractors = {i: Parameter(torch.Tensor(opt['hidden_dim'])) for i in range(self.C)}
+    # self.attractors = {i: Parameter(F.one_hot(torch.tensor([i], dtype=torch.long), num_classes=self.C).type(torch.float)) for i in range(self.C)}
+    self.attractors = {}
+    for i in range(self.C):
+      z = torch.zeros(opt['hidden_dim'])
+      z[i] = 1.
+      self.attractors[i] = Parameter(z)
+
     self.reset_nonlinG_parameters()
 
 
@@ -377,6 +385,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       ones(self.measure)
     elif self.opt['gnl_measure'] in ['nodewise_exp']:
       zeros(self.measure)
+
+    # for c in self.attractors.values():
+    #   zeros(c)
+
 
   def set_scaled_dot_omega(self, T=None):
     if self.opt['gnl_omega'] == 'sum':
@@ -566,8 +578,38 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def diffusion_step(self):
     pass
-  def drift_step(self):
-    pass
+
+  def drift_step(self, x, f):
+    # old style drift term
+    if self.opt['drift_space'] == 'label':
+      logits, pred = self.predict(x)
+      sm_logits = torch.softmax(logits, dim=1)
+      eye = torch.eye(self.C, device=self.device)
+      dist_labels = sm_logits.unsqueeze(-1) - eye.unsqueeze(0)  # [num_nodes, c, 1] - [1, c, c]
+      eta_hat = torch.sum(torch.abs(dist_labels), dim=1)  # sum abs distances for each node over features
+      P = self.GNN_m2.weight
+      index = list(range(self.C))
+      for l in range(self.C):
+        idx = index[:l] + index[l + 1:]
+        q_l = eta_hat[:, l] * sm_logits[:, l]
+        eta_l = torch.prod(eta_hat[:, idx] ** 2, dim=1) * q_l
+        f -= (-torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(sm_logits.shape[1], device=self.device)) * logits @ P) / torch.exp(self.drift_eps)
+
+    # new style drift term
+    elif self.opt['drift_space'] == 'feature':
+      #todo system is stiff. product and sum of squared distances in R^d
+      z_stack = torch.stack([z for z in self.attractors.values()], dim=1)
+      dist_centers = x.unsqueeze(-1) - z_stack.unsqueeze(0)  # [num_nodes, d, 1] - [1, d, c]
+      eta_hat = torch.sum(dist_centers**2, dim=1)  # sum abs distances for each node over features
+      index = list(range(self.C))
+      for l in range(self.C):
+        idx = index[:l] + index[l + 1:]
+        eta_l = torch.prod(eta_hat[:, idx], dim=1)
+        z = self.attractors[l]
+        f -= 0.5 * (torch.outer(eta_l, torch.ones(self.in_features, device=self.device)) *
+                    (x - torch.outer(torch.ones(self.n_nodes, device=self.device), z))) / (torch.exp(self.drift_eps))
+        #todo might need some feature regularisation or batch norm
+      return f
 
   def predict(self, z):
     z = self.GNN_postXN(z)
@@ -752,26 +794,18 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
 
       if self.do_drift(t):
-        with torch.no_grad(): #todo understand if take the gradient here
-          if not self.do_diffusion(t):
-            f = torch.zeros(x.shape, device=self.device)
-          f = torch.exp(self.drift_eps) * f
-          x_temp = x
-          if self.opt['lie_trotter'] == 'gen_0':
-            x_temp = x_temp + self.opt['step_size'] * f  # take an euler step in diffusion direction
+        if not self.do_diffusion(t):
+          f = torch.zeros(x.shape, device=self.device)
+        f = torch.exp(self.drift_eps) * f
+        x_temp = x
+        if self.opt['lie_trotter'] == 'gen_0':
+          x_temp = x_temp + self.opt['step_size'] * f  # take an euler step in diffusion direction
 
-          logits, pred = self.predict(x_temp)
-          sm_logits = torch.softmax(logits, dim=1)
-          eye = torch.eye(self.C, device=self.device)
-          dist_labels = sm_logits.unsqueeze(-1) - eye.unsqueeze(0) #[num_nodes, c, 1] - [1, c, c]
-          eta_hat = torch.sum(torch.abs(dist_labels),dim=1)  #sum abs distances for each node over features
-          P = self.GNN_m2.weight
-          index = list(range(self.C))
-          for l in range(self.C):
-            idx = index[:l] + index[l + 1:]
-            q_l = eta_hat[:,l] * sm_logits[:,l]
-            eta_l = torch.prod(eta_hat[:,idx]**2, dim=1) * q_l
-            f -= (-measure.unsqueeze(-1) * torch.outer(eta_l, P[l]) + torch.outer(eta_l, torch.ones(sm_logits.shape[1], device=self.device)) * logits @ P)/ torch.exp(self.drift_eps)
+        if self.opt['drift_grad']:
+          self.drift_step(x, f)
+        else:
+          with torch.no_grad(): # todo understand what this means to not take gradient here
+            self.drift_step(x, f)
 
       if self.opt['gnl_thresholding'] and t in self.opt['threshold_times']:
         x = x + self.opt['step_size'] * f  #take an euler step that would have been taken from diff and dift gradients
@@ -779,7 +813,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         f = self.threshold(x, pred, self.opt['step_size']) #generates change needed to snap to required value
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
-
       # get edge stats if not a diffusion pass/block
       # if self.do_drift(t):
       if self.do_drift(t):

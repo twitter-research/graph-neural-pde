@@ -199,7 +199,7 @@ def greed_ablation_params(opt):
     opt['epoch'] = 129#20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1#10#4#1
     # opt['patience'] = 3
-    # opt['target_homoph'] = '0.70'
+    # opt['target_homoph'] = '0.70' #for synthetic cora
 
     #definitions of lie trotter
     #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
@@ -208,6 +208,8 @@ def greed_ablation_params(opt):
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
 
     opt['lie_trotter'] = 'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    opt['drift_space'] = 'feature' #'label' #todo add to params
+    opt['drift_grad'] = False #True #todo add to params
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         ###!!! set function 'greed_non_linear'
         # opt['function'] = 'greed_non_linear'
@@ -236,7 +238,6 @@ def greed_ablation_params(opt):
         #gen2 args
         #lt_block_type : 'diffusion / drift / label / threshold
         # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist]
-
         #todo we only ever want one decoder, do this by setting 'share_block'=0 (to the number of the first block for any drift blocks)
         #todo when sharing blocks, it can't handle generating the reports at the interim time steps
 
