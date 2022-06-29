@@ -131,12 +131,9 @@ class BaseGNN(MessagePassing):
       self.fc = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
 
     if opt['m2_mlp']:
-      # self.m21 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
-      # self.m22 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
       self.m2 = M2_MLP(opt, dataset, device=device)
     else:
       self.m2 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
-
 
     if self.opt['batch_norm']:
       self.bn_in = torch.nn.BatchNorm1d(opt['hidden_dim'])

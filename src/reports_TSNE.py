@@ -53,9 +53,8 @@ def Xt_TSNE(X, X0pca, t_idx):
     #todo https://discuss.pytorch.org/t/t-sne-for-pytorch/44264
     return X_emb
 
-def project_label_space(path, X):
+def project_label_space(m2, X):
     '''converts 3 tensor iin feature spaace into label space'''
-    m2 = torch.load(path)
     X = torch.from_numpy(X)#nodes x features x time
     X = X.permute(dims=[0, 2, 1])
     Y = X.reshape(-1, X.shape[-1])     #reshape to be (nodes*time) x features
@@ -64,19 +63,58 @@ def project_label_space(path, X):
     L = L.permute(dims=[0, 2, 1])
     return L.detach().numpy()
 
+#old style report 8 TSNE where not using wandb logging and artifacts
+# def tsne_snap_old(ax, fig, odefunc, row, epoch, savefolder, s=None):
+#     '''function called by report_8 to maintain syntax of "online" reporting
+#     for a particular epoch will generate fig for the PDF Sheets workflow, ie 4 columns'''
+#
+#     npy_path = savefolder + f"/paths_epoch{epoch}_{odefunc.opt['dataset']}.npy"
+#     npy_label = savefolder + f"/labels_epoch{epoch}_{odefunc.opt['dataset']}.npy"
+#     m2_path =  savefolder + f"/m2_epoch{epoch}_{odefunc.opt['dataset']}.pt"
+#
+#     X = np.load(npy_path)
+#     m2 = torch.load(m2_path)
+#     X = project_label_space(m2, X)
+#     labels = np.load(npy_label) #=odefunc.labels.cpu().numpy()
+#     # load paths np array
+#     TL = X.shape[-1]
+#     X0pca2 = X0_PCA(X) #2D basis for TSNE inits
+#
+#     nr, nc = 4, 4
+#     dt_idx = TL // (nc - 1)
+#     idx_list = [0] + list(range(dt_idx, dt_idx*(nc-1), dt_idx)) + [TL-1]
+#     times = odefunc.cum_time_ticks
+#     block_types = odefunc.block_type_list
+#
+#     for i, t_idx in enumerate(idx_list):
+#         X_emb = Xt_TSNE(X, X0pca2, t_idx)
+#         if s:
+#             ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels, s=s)
+#         else:
+#             ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels)
+#         ax[row, i].xaxis.set_tick_params(labelsize=16)
+#         ax[row, i].yaxis.set_tick_params(labelsize=16)
+#         if odefunc.opt['lie_trotter'] == 'gen_2':
+#             ax[row, i].set_title(f"{odefunc.opt['dataset']} TSNE, e={epoch}, t={odefunc.cum_time_ticks[t_idx]}, {block_types[t_idx]} ", fontdict={'fontsize': 24})
+#         else:
+#             ax[row, i].set_title(f"{odefunc.opt['dataset']} TSNE, e={epoch}, t={times[t_idx]}", fontdict={'fontsize': 24})
+#
+#         ax[row, i].legend(loc="upper right", fontsize=24)
+#     if not torch.cuda.is_available():
+#         fig.show()
 
-def tsne_snap(ax, fig, odefunc, row, epoch, savefolder, s=None):
+def tsne_snap(ax, fig, odefunc, row, epoch, s=None):
     '''function called by report_8 to maintain syntax of "online" reporting
     for a particular epoch will generate fig for the PDF Sheets workflow, ie 4 columns'''
 
-    npy_path = savefolder + f"/paths_epoch{epoch}_{odefunc.opt['dataset']}.npy"
-    npy_label = savefolder + f"/labels_epoch{epoch}_{odefunc.opt['dataset']}.npy"
-    m2_path =  savefolder + f"/m2_epoch{epoch}_{odefunc.opt['dataset']}.pt"
+    X = np.stack(odefunc.paths, axis=-1)
+    labels = np.stack(odefunc.labels, axis=-1)
+    G = to_networkx(odefunc.data) #for optional including of the graph
+    m2 = odefunc.GNN_m2
+    X = project_label_space(m2, X)
+    #todo account for centers in either feature or label space
+    centers = np.eye(odefunc.C)[...,np.newaxis].repeat(repeats=X.shape[-1], axis=-1)
 
-    X = np.load(npy_path)
-    X = project_label_space(m2_path, X)
-    labels = np.load(npy_label) #=odefunc.labels.cpu().numpy()
-    # load paths np array
     TL = X.shape[-1]
     X0pca2 = X0_PCA(X) #2D basis for TSNE inits
 
@@ -92,6 +130,10 @@ def tsne_snap(ax, fig, odefunc, row, epoch, savefolder, s=None):
             ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels, s=s)
         else:
             ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels)
+
+        c_i = Xt_TSNE(centers, X0pca2, i)
+        ax[row, i].scatter(c_i[:,0], c_i[:,1], c='r', s=80, marker='x', linewidths=5, zorder=10)
+
         ax[row, i].xaxis.set_tick_params(labelsize=16)
         ax[row, i].yaxis.set_tick_params(labelsize=16)
         if odefunc.opt['lie_trotter'] == 'gen_2':
@@ -102,6 +144,7 @@ def tsne_snap(ax, fig, odefunc, row, epoch, savefolder, s=None):
         ax[row, i].legend(loc="upper right", fontsize=24)
     if not torch.cuda.is_available():
         fig.show()
+
 
 def tsne_full(gnl_savefolder, dataset, epoch, cols, s=None):
     '''function to generate TSNE plots in PDF pages for every timestep
@@ -147,6 +190,7 @@ def tsne_full(gnl_savefolder, dataset, epoch, cols, s=None):
     if not torch.cuda.is_available():
         fig.show()
 
+
 def tsne_ani(gnl_savefolder, dataset, epoch, s=None):
     '''function to generate TSNE plots in animation for every timestep '''
     savefolder = f"../plots/{gnl_savefolder}_{dataset}"
@@ -154,7 +198,8 @@ def tsne_ani(gnl_savefolder, dataset, epoch, s=None):
     npy_label = savefolder + f"/labels_epoch{epoch}_{dataset}.npy"
     m2_path =  savefolder + f"/m2_epoch{epoch}_{dataset}.pt"
     X = np.load(npy_path)
-    X = project_label_space(m2_path, X)
+    m2 = torch.load(m2_path)
+    X = project_label_space(m2, X)
 
     X0pca2 = X0_PCA(X)
     labels = np.load(npy_label)
@@ -173,9 +218,8 @@ def create_animation(X, X0pca2, labels, NXgraph, params, savefolder, dataset, ep
         # ax.set_xlim([-3, 3])
         # ax.set_ylim([-3, 3])
 
-        #add L coordinates for centers in label space
-        centers = np.eye(X0pca2.shape[-1])[...,np.newaxis].repeat(repeats=X.shape[-1], axis=-1)
         C = labels.max()
+        centers = np.eye(X0pca2.shape[-1])[...,np.newaxis].repeat(repeats=X.shape[-1], axis=-1)
         # X = np.concatenate([X,centers], axis=0)
         # labels = np.concatenate([labels, np.array(X0pca2.shape[-1] * [C])])
 

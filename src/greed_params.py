@@ -149,7 +149,6 @@ def greed_ablation_params(opt):
     opt['gnl_style'] = 'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
     opt['gnl_savefolder'] = 'tsne_evol'#'chameleon_general_drift'#'chameleon_testing'
-    opt['reports_list'] = [8]  # [1]#[1,2,3,4,5,6,7] # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist]
 
     if opt['gnl_style'] == 'scaled_dot':
         opt['gnl_omega'] = 'diag' #'attr_rep' #'sum' #'attr_rep' #'attr_rep' #'attr_rep' #'sum'  # 'product' # 'product'  #method to make Omega symmetric
@@ -179,7 +178,7 @@ def greed_ablation_params(opt):
         opt['gnl_omega_activation'] = 'identity' #identity
         opt['gnl_omega_params'] = ["diag","free","None","identity"] #[opt['gnl_omega'], opt['gnl_omega_diag'], opt['gnl_omega_diag_val'], opt['gnl_omega_activation']]
         #W
-        opt['gnl_W_style'] = 'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_W_style'] = 'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
 
         if opt['gnl_W_style'] == 'k_block':
         # assert in_features % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= in_features, 'must have odd number of k diags'
@@ -196,8 +195,8 @@ def greed_ablation_params(opt):
 
     # opt['planetoid_split'] = True
     # opt['geom_gcn_splits'] = False #True#True #False#True
-    opt['epoch'] = 129#20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
-    opt['num_splits'] = 1#10#4#1
+    opt['epoch'] = 129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
+    opt['num_splits'] = 1 #10#4#1
     # opt['patience'] = 3
     # opt['target_homoph'] = '0.70' #for synthetic cora
 
@@ -207,21 +206,26 @@ def greed_ablation_params(opt):
     #gen_1 - alternates ranges of diffusion and drift (ie eq 43-44)
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
 
-    opt['lie_trotter'] = 'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
-    opt['drift_space'] = 'feature' #'label' #todo add to params
-    opt['drift_grad'] = False #True #todo add to params
+    opt['lie_trotter'] = None #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    opt['drift_space'] = 'label' #feature' #'label' #todo add to params
+    opt['drift_grad'] = True #True #todo add to params
+    opt['m2_aug'] = False #True #False #todo not sure what state this was left
+    opt['GL_loss_reg'] = True
+    # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist]
+    opt['reports_list'] = [1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
+
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         ###!!! set function 'greed_non_linear'
         # opt['function'] = 'greed_non_linear'
         opt['block'] = 'constant'
-        opt['drift'] = True  # False#True
+        opt['drift'] = False  # False#True
         opt['gnl_thresholding'] = False
 
         if opt['lie_trotter'] in [None, 'gen_0']:
             opt['threshold_times'] = [2,4] #takes an euler step that would have been taken in drift diffusion and also thresholds between t->t+1
             #solver args
             opt['time'] = 4.0 #3.0 #2.0
-            opt['step_size'] = 0.1#25 #1.0 #1.0
+            opt['step_size'] = 0.5 #1.0 #1.0
             opt['method'] = 'euler'
         elif opt['lie_trotter'] == 'gen_1':
             #gen1 args
@@ -233,7 +237,7 @@ def greed_ablation_params(opt):
             opt['method'] = 'euler'
     elif opt['lie_trotter'] == 'gen_2':
         ###!!! set function 'greed_lie_trotter' #todo rather than do this, replace the 3 or 4 places where need to indicate it's LT2
-        opt['function'] = 'greed_lie_trotter'
+        # opt['function'] = 'greed_lie_trotter'
         opt['block'] = 'greed_lie_trotter'
         #gen2 args
         #lt_block_type : 'diffusion / drift / label / threshold
@@ -250,12 +254,12 @@ def greed_ablation_params(opt):
                                {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': 0, 'reports_list': [8]}]#,
                                # {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []}]#[1,2,3,4,5,6,7]}]#[]}]
 
-        #solver args
-        opt['method'] = 'euler'
-
+    #solver args
+    opt['method'] = 'euler'
+    opt['max_nfe'] = 2000 #for some reason 1000 not enough with all report building
     opt['wandb_entity'] = "graph_neural_diffusion"
-    opt['wandb_project'] = "ablation_runs_drift" #"reporting_runs_drift"
-    opt['wandb_group'] = "ablation_group"#"reporting_group"
+    opt['wandb_project'] = "reporting_runs_drift"
+    opt['wandb_group'] = "reporting_group" #"ablation_group"#"reporting_group"
 
     #gcn params
     # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
@@ -271,13 +275,13 @@ def greed_ablation_params(opt):
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = False #True #True #False #True
+    opt['wandb'] = True #True #True #False #True
     opt['wandb_track_grad_flow'] = True #False  #collect stats for reports
-    opt['wandb_watch_grad'] = False
     opt['run_track_reports'] = True #False#True ##run the evolution reports
-    opt['save_local_reports'] = True
-    opt['save_wandb_reports'] = False#True
-    # opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]
+    opt['save_local_reports'] = False#True
+    opt['save_wandb_reports'] = True#False#True
+    opt['wandb_watch_grad'] = False
+
     opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8]
     opt['wandb_project'] = project_name #"greed_runs"
     opt['wandb_group'] = group_name #"testing"  # "tuning" eval

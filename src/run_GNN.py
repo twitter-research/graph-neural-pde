@@ -88,6 +88,15 @@ def train(model, optimizer, data, pos_encoding=None):
         # lf = torch.nn.CrossEntropyLoss()
         loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
 
+    #taking the max coordinate of the softmax logits as the prediction is already done in the CEL as a nested step
+    #what about if the prediction was made based on L2 distance from the standard basis
+    #without enforcing that the logits form a probability simplex
+    #means need to find a CEL loss functional without the built in preprocessing step
+    #this is different to..
+    #want to change the loss from cross entropy to #MSE in label space?
+    #
+
+
     if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
         reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
         regularization_coeffs = model.regularization_coeffs
@@ -96,6 +105,33 @@ def train(model, optimizer, data, pos_encoding=None):
             reg_state * coeff for reg_state, coeff in zip(reg_states, regularization_coeffs) if coeff != 0
         )
         loss = loss + reg_loss
+
+    if model.opt['GL_loss_reg']:
+        val_test_mask = data.val_mask + data.test_mask
+        val_test_idx = torch.where(val_test_mask[0])
+        gl_loss = 0.
+        # 1)
+        # for l in range(model.num_classes):
+        #     gl_loss *= lf(out.log_softmax(dim=-1)[val_test_mask], torch.full((sum(val_test_mask).item(),), l))
+        # 2)
+        # for idx in val_test_idx:
+        #     temp_cel = 1
+        #     for l in range(model.num_classes):
+        #         temp_cel *= lf(out.log_softmax(dim=-1)[idx], torch.full((1,), l))
+        #     gl_loss += temp_cel
+        # 3)
+        sm_logits = torch.softmax(out, dim=1)
+        eye = torch.eye(model.num_classes, device=model.device)
+        dist_labels = sm_logits.unsqueeze(-1) - eye.unsqueeze(0)  # [num_nodes, c, 1] - [1, c, c]
+        eta_hat = torch.sum(torch.abs(dist_labels), dim=1)  # sum abs distances for each node over features
+        gl_loss = torch.prod(eta_hat, dim=1).sum()**2 / 4**model.num_classes
+
+        # alpha_GL = torch.Param
+        gl_flag = 1 if model.odeblock.odefunc.epoch > 10 else 0
+        # loss = loss + gl_flag * gl_loss / (1 + loss)**model.num_classes # / (loss + gl_loss)
+        # loss = loss + gl_loss / (1 + loss)**model.num_classes # / (loss + gl_loss)
+        loss = loss + gl_flag * gl_loss / model.num_nodes
+
 
     model.fm.update(model.getNFE())
     model.resetNFE()

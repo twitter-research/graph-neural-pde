@@ -174,10 +174,14 @@ class GNN(BaseGNN):
     z = self.GNN_postXN(z)
     ##todo: need to implement if self.opt['m2_mlp']: from base classfor GNN_early also
     # Decode each node embedding to get node label.
+    if self.opt['m2_aug']:
+      return z[:, self.hidden_dim - self.num_classes:]
+
     if self.opt['lie_trotter'] == 'gen_2': #if we end in label diffusion block don't need to decode to logits
       if self.opt['lt_gen2_args'][-1]['lt_block_type'] != 'label':
         z = self.m2(z)
     else:
       z = self.m2(z)
+
 
     return z

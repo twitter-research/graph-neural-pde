@@ -271,6 +271,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     self.reset_nonlinG_parameters()
 
+    if opt['lie_trotter'] != 'gen_2':
+      self.cum_steps_list, self.cum_time_points, self.cum_time_ticks, self.block_type_list = self.create_time_lists()
+
 
   def reset_nonlinG_parameters(self):
     # Omega
@@ -532,6 +535,27 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_W_style'] == 'positional':
       pass
 
+
+  def create_time_lists(self):
+    #make lists:
+    # cummaltive block_idxs for paths.npx, ie [0, ...
+    # cummaltive actual times up to and including times of block
+    # description of block types
+    opt = self.opt
+    if opt['lie_trotter'] == 'gen_2':
+      pass
+    else:
+      block_time = opt['time']
+      block_step = opt['step_size']
+      steps = int(block_time / block_step)
+      cum_steps_list = [steps]
+      cum_time_points = [0, block_time]
+      cum_time_ticks = list(np.arange(cum_time_points[-2], cum_time_points[-1], block_step)) + [block_time]
+      block_type_list = steps * []
+    return cum_steps_list, cum_time_points, cum_time_ticks, block_type_list
+
+
+
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
     row_sum = scatter_add(attentions, edge_index[0], dim=0, dim_size=n)
     deg_inv_sqrt = torch.pow(row_sum, -0.5)
@@ -610,6 +634,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
                     (x - torch.outer(torch.ones(self.n_nodes, device=self.device), z))) / (torch.exp(self.drift_eps))
         #todo might need some feature regularisation or batch norm
       return f
+  #todo augment potential to flatten extrema
+  #todo argmin of distances to discrete threshold
 
   def predict(self, z):
     z = self.GNN_postXN(z)
@@ -868,7 +894,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         L2dist = torch.sqrt(torch.sum((src_x - dst_x) ** 2, dim=1))
         conf_mat, train_cm, val_cm, test_cm = self.get_confusion(self.data, pred, norm_type='true') #'all')
         eval_means_feat, eval_sds_feat = self.get_distances(self.data, x, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask], base_type="train_avg")
-        eval_means_label, eval_sds_label = self.get_distances(self.data, sm_logits, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask], base_type="e_k")
+        # eval_means_label, eval_sds_label = self.get_distances(self.data, sm_logits, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask], base_type="e_k")
+        eval_means_label, eval_sds_label = self.get_distances(self.data, logits, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask], base_type="train_avg")
 
         #todo this could be easily condensed/optimised if just saved all objects in lists and then do the stacking at the end
         if self.attentions is None:
@@ -967,9 +994,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           conf_mat, train_cm, val_cm, test_cm = self.get_confusion(self.data, pred, norm_type='true')  # 'all')
           eval_means_feat, eval_sds_feat = self.get_distances(self.data, z, self.C, base_mask=self.data.train_mask,
                                                               eval_masks=[self.data.val_mask, self.data.test_mask], base_type='train_avg')
-          eval_means_label, eval_sds_label = self.get_distances(self.data, sm_logits, self.C,
+          # eval_means_label, eval_sds_label = self.get_distances(self.data, sm_logits, self.C,
+          #                                                       base_mask=self.data.train_mask,
+          #                                                       eval_masks=[self.data.val_mask, self.data.test_mask], base_type='e_k')
+          eval_means_label, eval_sds_label = self.get_distances(self.data, logits, self.C,
                                                                 base_mask=self.data.train_mask,
-                                                                eval_masks=[self.data.val_mask, self.data.test_mask], base_type='e_k')
+                                                                eval_masks=[self.data.val_mask, self.data.test_mask], base_type='train_avg')
 
           self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
           self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
