@@ -8,6 +8,7 @@ from torch_geometric.nn import GCNConv, ChebConv  # noqa
 from torch_geometric.utils import homophily, add_remaining_self_loops, to_undirected
 from torch_scatter import scatter_add
 import torch.nn.functional as F
+from torch.distributions import Categorical
 import wandb
 # from ogb.nodeproppred import Evaluator
 
@@ -106,31 +107,40 @@ def train(model, optimizer, data, pos_encoding=None):
         )
         loss = loss + reg_loss
 
-    if model.opt['GL_loss_reg']:
-        val_test_mask = data.val_mask + data.test_mask
-        val_test_idx = torch.where(val_test_mask[0])
+    val_test_mask = data.val_mask + data.test_mask
+    val_test_idx = torch.where(val_test_mask[0])
+    if model.opt['GL_loss_reg'] == 1:
+        gl_loss = 1.
+        # 1) GL type loss - incorrect sum then product
+        for l in range(model.num_classes):
+            gl_loss *= lf(out.log_softmax(dim=-1)[val_test_mask], torch.full((sum(val_test_mask).item(),), l))
+    elif model.opt['GL_loss_reg'] == 2:
+        # 2) GL type loss - corrected product then sum
         gl_loss = 0.
-        # 1)
-        # for l in range(model.num_classes):
-        #     gl_loss *= lf(out.log_softmax(dim=-1)[val_test_mask], torch.full((sum(val_test_mask).item(),), l))
-        # 2)
-        # for idx in val_test_idx:
-        #     temp_cel = 1
-        #     for l in range(model.num_classes):
-        #         temp_cel *= lf(out.log_softmax(dim=-1)[idx], torch.full((1,), l))
-        #     gl_loss += temp_cel
-        # 3)
+        for idx in val_test_idx:
+            temp_cel = 1
+            for l in range(model.num_classes):
+                temp_cel *= lf(out.log_softmax(dim=-1)[idx], torch.full((1,), l))
+            gl_loss += temp_cel
+    elif model.opt['GL_loss_reg'] == 3:
+        # 3) L1 distance from standard basis in label space type loss
+        # note potentially makes sense to restrict this to val/test set
         sm_logits = torch.softmax(out, dim=1)
         eye = torch.eye(model.num_classes, device=model.device)
         dist_labels = sm_logits.unsqueeze(-1) - eye.unsqueeze(0)  # [num_nodes, c, 1] - [1, c, c]
         eta_hat = torch.sum(torch.abs(dist_labels), dim=1)  # sum abs distances for each node over features
         gl_loss = torch.prod(eta_hat, dim=1).sum()**2 / 4**model.num_classes
+    elif model.opt['GL_loss_reg'] == 4:
+        # 4) node entropy certainty control
+        certainy = opt['certainty']
+        sm_logits = torch.softmax(out, dim=1)
+        entropies = Categorical(probs=sm_logits).entropy()
+        gl_loss = (entropies - torch.log(torch.tensor(certainy))).sum()
 
-        # alpha_GL = torch.Param
-        gl_flag = 1 if model.odeblock.odefunc.epoch > 10 else 0
-        # loss = loss + gl_flag * gl_loss / (1 + loss)**model.num_classes # / (loss + gl_loss)
-        # loss = loss + gl_loss / (1 + loss)**model.num_classes # / (loss + gl_loss)
-        loss = loss + gl_flag * gl_loss / model.num_nodes
+    gl_flag = 1 #00 #if model.odeblock.odefunc.epoch > 10 else 0
+    # loss = loss + gl_flag * gl_loss / (1 + loss)**model.num_classes # / (loss + gl_loss)
+    # loss = loss + gl_loss / (1 + loss)**model.num_classes # / (loss + gl_loss)
+    loss = loss + gl_flag * gl_loss / model.num_nodes
 
 
     model.fm.update(model.getNFE())

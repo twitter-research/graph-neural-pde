@@ -326,6 +326,51 @@ def report_8(ax, fig, odefunc, row, epoch):
         # run.log_artifact(artifact)
 
 
+def report_9(ax, fig, odefunc, row, epoch):
+    '''val and test set entropies'''
+    opt = odefunc.opt
+    # entropy plots #getting the line colour to change
+    # https://matplotlib.org/stable/gallery/lines_bars_and_markers/multicolored_line.html
+    # https://matplotlib.org/stable/gallery/shapes_and_collections/line_collection.html
+    # https://matplotlib.org/stable/api/collections_api.html#matplotlib.collections.LineCollection
+    entropies = odefunc.entropies
+
+    def do_plot(col, tvt_set):
+        # fig, ax = plt.subplots() #figsize=(8, 16))
+        x = np.arange(0.0, entropies[f'entropy_{tvt_set}_mask'].shape[0] * opt['step_size'], opt['step_size'])
+        ys = entropies[f'entropy_{tvt_set}_mask'].cpu().numpy()
+        # ax.set_xlim(np.min(x), np.max(x))
+        # ax.set_ylim(np.min(ys), np.max(ys))
+        ax[row, col].set_xlim(np.min(x), np.max(x))
+        ax[row, col].set_ylim(np.min(ys), np.max(ys))
+        ax[row, col].xaxis.set_tick_params(labelsize=16)
+        ax[row, col].yaxis.set_tick_params(labelsize=16)
+
+        cmap = ListedColormap(['r', 'g'])
+        norm = BoundaryNorm([-1, 0.5, 2.0], cmap.N)
+        for i in range(entropies[f'entropy_{tvt_set}_mask'].shape[1]):
+            tf = entropies[f'entropy_{tvt_set}_mask_correct'][:, i].float().cpu().numpy()
+            points = np.expand_dims(np.concatenate([x.reshape(-1, 1),
+                                                    entropies[f'entropy_{tvt_set}_mask'][:, i].reshape(-1, 1).cpu().numpy()], axis=1), axis=1)
+            segs = np.concatenate([points[:-1], points[1:]], axis=1)
+            lc = LineCollection(segs, cmap=cmap, norm=norm)
+            # lc.set_array(tf[:-1]) #correctness at time at start of segment decides colouring
+            lc.set_array(tf[1:]) #correctness at time at end of segment decides colouring
+            # ax.add_collection(lc)
+            ax[row, col].add_collection(lc)
+
+        # ax.set_title(f"Train set (num_nodes {entropies['entropy_train_mask'].shape[1]}) Entropy, epoch {epoch}")
+        ax[row, col].set_title(
+            f"{tvt_set.title()} set (num_nodes {entropies[f'entropy_{tvt_set}_mask'].shape[1]}) Entropy, epoch {epoch}, block {odefunc.block_num}",
+            fontdict={'fontsize': 24})
+    plots = [[0, 'val'],[1, 'test']]
+    for col, tvt_set in plots:
+        do_plot(col, tvt_set)
+
+    if not torch.cuda.is_available():
+        fig.show()
+
+
 def run_reports(odefunc):
     opt = odefunc.opt
     epoch = odefunc.epoch
@@ -345,7 +390,8 @@ def run_reports(odefunc):
                 5: ['node_scatter', 2, [1, 1], (24, 32)],
                 6: ['edge_scatter', 1, [1], (24, 32)],
                 7: ['class_dist', 2, [1, 1], (24, 32)],
-                8: ['tsne_evol', 4, [1, 1, 1, 1], (32,32)]}
+                8: ['tsne_evol', 4, [1, 1, 1, 1], (32,32)],
+                9: ['v_t_entropies', 2, [1, 1], (24, 32)]}
 
     reports_nums = opt['reports_list']
     for rep_num in reports_nums:
