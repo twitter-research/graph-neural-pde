@@ -57,7 +57,7 @@ def report_1(ax, fig, odefunc, row, epoch):
     ax[row, 2].yaxis.set_tick_params(labelsize=16)
     cbar1 = fig.colorbar(mat2, ax=ax[row, 2], shrink=0.75)
     cbar1.ax.tick_params(labelsize=16)
-    if not torch.cuda.is_available():
+    if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
 
 
@@ -116,7 +116,7 @@ def report_2(ax, fig, odefunc, row, epoch):
     ax[row, 1].set_title(
         f"Train set (num_nodes {entropies['entropy_train_mask'].shape[1]}) Entropy, epoch {epoch}, block {odefunc.block_num}",
         fontdict={'fontsize': 24})
-    if not torch.cuda.is_available():
+    if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
 
 def report_3(ax, fig, odefunc, row, epoch):
@@ -141,7 +141,7 @@ def report_3(ax, fig, odefunc, row, epoch):
     ax[row, 1].xaxis.set_tick_params(labelsize=16)
     ax[row, 1].yaxis.set_tick_params(labelsize=16)
     ax[row, 1].set_title(f"L2dist, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
-    if not torch.cuda.is_available():
+    if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
 
 def report_4(ax, fig, odefunc, row, epoch):
@@ -192,7 +192,7 @@ def report_4(ax, fig, odefunc, row, epoch):
     ax[row, 2].yaxis.set_tick_params(labelsize=16)
     ax[row, 2].set_title(f"Correct preds evol, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
     ax[row, 2].legend()
-    if not torch.cuda.is_available():
+    if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
 
 def report_5(ax, fig, odefunc, row, epoch):
@@ -213,7 +213,7 @@ def report_5(ax, fig, odefunc, row, epoch):
     ax[row, 1].xaxis.set_tick_params(labelsize=16)
     ax[row, 1].yaxis.set_tick_params(labelsize=16)
     ax[row, 1].set_title(f"Node measures v node homophils, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
-    if not torch.cuda.is_available():
+    if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
 
 def report_6(ax, fig, odefunc, row, epoch):
@@ -233,7 +233,7 @@ def report_6(ax, fig, odefunc, row, epoch):
     ax[row].yaxis.set_tick_params(labelsize=16)
     ax[row].set_title(f"Edge fOmf against L2, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
     ax[row].legend(loc="upper right", fontsize=24)
-    if not torch.cuda.is_available():
+    if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
 
 def report_7(ax, fig, odefunc, row, epoch):
@@ -280,7 +280,7 @@ def report_7(ax, fig, odefunc, row, epoch):
     ax[row, 1].set_title(f"Class label L2 distances evol, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
     ax[row, 1].legend()
 
-    if not torch.cuda.is_available():
+    if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
 
 # def tsne_evol(ax, fig, odefunc, row, epoch):
@@ -367,7 +367,7 @@ def report_9(ax, fig, odefunc, row, epoch):
     for col, tvt_set in plots:
         do_plot(col, tvt_set)
 
-    if not torch.cuda.is_available():
+    if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
 
 
@@ -395,6 +395,7 @@ def run_reports(odefunc):
 
     reports_nums = opt['reports_list']
     for rep_num in reports_nums:
+        print(f"epoch {epoch}, report {rep_num}")
         report_func = globals()[f"report_{rep_num}"]
 
         if row == 0:  # create new figs and pdfs

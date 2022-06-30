@@ -141,8 +141,8 @@ def tsne_snap(ax, fig, odefunc, row, epoch, s=None):
         else:
             ax[row, i].set_title(f"{odefunc.opt['dataset']} TSNE, e={epoch}, t={times[t_idx]}", fontdict={'fontsize': 24})
 
-        ax[row, i].legend(loc="upper right", fontsize=24)
-    if not torch.cuda.is_available():
+        # ax[row, i].legend(loc="upper right", fontsize=24)
+    if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
 
 

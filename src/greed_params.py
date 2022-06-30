@@ -211,9 +211,9 @@ def greed_ablation_params(opt):
     opt['drift_grad'] = True #True #todo add to params
     opt['m2_aug'] = False #True #False #todo not sure what state this was left in
     opt['GL_loss_reg'] = 4
-    opt['certainty'] = 0.9
+    opt['certainty'] = 0.25
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist]
-    opt['reports_list'] = [2,8,9]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
+    opt['reports_list'] = [2,4,7,8,9]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
 
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         ###!!! set function 'greed_non_linear'
@@ -276,7 +276,7 @@ def greed_ablation_params(opt):
 
 def not_sweep_args(opt, project_name, group_name):
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = False#True #True #True #False #True
+    opt['wandb'] = True #True #True #False #True
     opt['wandb_track_grad_flow'] = True #False  #collect stats for reports
     opt['run_track_reports'] = True #False#True ##run the evolution reports
     opt['save_local_reports'] = False#True
@@ -284,6 +284,8 @@ def not_sweep_args(opt, project_name, group_name):
     opt['wandb_watch_grad'] = False
 
     opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8]
+    opt['display_epoch_list'] = [8,128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8] #todo add to params
+
     opt['wandb_project'] = project_name #"greed_runs"
     opt['wandb_group'] = group_name #"testing"  # "tuning" eval
     DT = datetime.datetime.now()

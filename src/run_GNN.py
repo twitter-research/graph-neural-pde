@@ -136,6 +136,8 @@ def train(model, optimizer, data, pos_encoding=None):
         sm_logits = torch.softmax(out, dim=1)
         entropies = Categorical(probs=sm_logits).entropy()
         gl_loss = (entropies - torch.log(torch.tensor(certainy))).sum()
+    else:
+        gl_loss = 0
 
     gl_flag = 1 #00 #if model.odeblock.odefunc.epoch > 10 else 0
     # loss = loss + gl_flag * gl_loss / (1 + loss)**model.num_classes # / (loss + gl_loss)
