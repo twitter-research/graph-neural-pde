@@ -210,10 +210,10 @@ def greed_ablation_params(opt):
     opt['drift_space'] = 'label' #feature' #'label' #todo add to params
     opt['drift_grad'] = True #True #todo add to params
     opt['m2_aug'] = False #True #False #todo not sure what state this was left in
-    opt['GL_loss_reg'] = 5
-    opt['certainty'] = 0.85
+    opt['GL_loss_reg'] = 6
+    opt['certainty'] = 1.00 #0.95
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist]
-    opt['reports_list'] = [2,4,7,8,9]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
+    opt['reports_list'] = [2,9]#[2,4,7,8,9]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
 
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         ###!!! set function 'greed_non_linear'
