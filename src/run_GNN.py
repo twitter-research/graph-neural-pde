@@ -93,10 +93,6 @@ def train(model, optimizer, data, pos_encoding=None):
     #what about if the prediction was made based on L2 distance from the standard basis
     #without enforcing that the logits form a probability simplex
     #means need to find a CEL loss functional without the built in preprocessing step
-    #this is different to..
-    #want to change the loss from cross entropy to #MSE in label space?
-    #
-
 
     if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
         reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
@@ -111,16 +107,16 @@ def train(model, optimizer, data, pos_encoding=None):
     val_test_idx = torch.where(val_test_mask[0])
     if model.opt['GL_loss_reg'] == 1:
         gl_loss = 1.
-        # 1) GL type loss - incorrect sum then product
+        # 1) GL type loss - WRONG incorrect sum then product
         for l in range(model.num_classes):
-            gl_loss *= lf(out.log_softmax(dim=-1)[val_test_mask], torch.full((sum(val_test_mask).item(),), l))
+            gl_loss *= lf(out[val_test_mask], torch.full((sum(val_test_mask).item(),), l))
     elif model.opt['GL_loss_reg'] == 2:
-        # 2) GL type loss - corrected product then sum
+        # 2) GL type loss - Corrected product then sum - but still 100% certainty
         gl_loss = 0.
         for idx in val_test_idx:
             temp_cel = 1
             for l in range(model.num_classes):
-                temp_cel *= lf(out.log_softmax(dim=-1)[idx], torch.full((1,), l))
+                temp_cel *= lf(out[idx], torch.full((1,), l))
             gl_loss += temp_cel
     elif model.opt['GL_loss_reg'] == 3:
         # 3) L1 distance from standard basis in label space type loss
@@ -131,11 +127,29 @@ def train(model, optimizer, data, pos_encoding=None):
         eta_hat = torch.sum(torch.abs(dist_labels), dim=1)  # sum abs distances for each node over features
         gl_loss = torch.prod(eta_hat, dim=1).sum()**2 / 4**model.num_classes
     elif model.opt['GL_loss_reg'] == 4:
-        # 4) node entropy certainty control
-        certainy = opt['certainty']
+        # 4) node entropy certainty control - this is WRONG, efficteively just adding a constant to the loss
+        certainty = opt['certainty']
         sm_logits = torch.softmax(out, dim=1)
         entropies = Categorical(probs=sm_logits).entropy()
-        gl_loss = (entropies - torch.log(torch.tensor(certainy))).sum()
+        gl_loss = (entropies - torch.log(torch.tensor(certainty))).sum()
+    elif model.opt['GL_loss_reg'] == 5:
+        # 5) GL type loss - corrected product then sum but using -
+        # keep in mind that CrossEntropyLoss does a softmax for you. (It’s actually a LogSoftmax + NLLLoss combined into one function
+        # - https://discuss.pytorch.org/t/softmax-cross-entropy-loss/125383
+        # but now I'm replacing the Y one hot labels with some uncertainty
+        certainty = opt['certainty']
+        log_sm_logits = out.log_softmax(dim=-1)
+        NLL = torch.nn.functional.nll_loss
+        gl_loss = 0.
+        num_classes = model.num_classes
+        for idx in val_test_idx: #or do this for every node inc train set..
+            temp_cel = 1
+            for l in range(num_classes):
+                uncertain_label = torch.full((num_classes,), (1 - certainty)/(num_classes - 1))
+                uncertain_label[l] = certainty
+                temp_cel *= (uncertain_label * log_sm_logits).sum()
+            gl_loss += temp_cel
+#todo consider using out.log_softmax(dim=-1) to take the edge off..
     else:
         gl_loss = 0
 
