@@ -147,17 +147,18 @@ def train(model, optimizer, data, pos_encoding=None):
             for l in range(num_classes):
                 uncertain_label = torch.full((num_classes,), (1 - certainty)/(num_classes - 1))
                 uncertain_label[l] = certainty
-                temp_cel *= (uncertain_label * log_sm_logits).sum()
-            gl_loss += temp_cel
+                class_nll = (uncertain_label * -log_sm_logits[idx]).sum()
+                temp_cel *= class_nll
+            gl_loss += temp_cel / model.num_nodes
 #todo consider using out.log_softmax(dim=-1) to take the edge off..
     else:
         gl_loss = 0
 
-    gl_flag = 1 #00 #if model.odeblock.odefunc.epoch > 10 else 0
+    gl_flag = 1 if model.odeblock.odefunc.epoch > 10 else 0
     # loss = loss + gl_flag * gl_loss / (1 + loss)**model.num_classes # / (loss + gl_loss)
     # loss = loss + gl_loss / (1 + loss)**model.num_classes # / (loss + gl_loss)
-    loss = loss + gl_flag * gl_loss / model.num_nodes
-
+    # loss = loss + gl_flag * gl_loss / model.num_nodes
+    loss = loss + gl_flag * gl_loss
 
     model.fm.update(model.getNFE())
     model.resetNFE()
