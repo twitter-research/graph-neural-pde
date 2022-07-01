@@ -103,45 +103,53 @@ def train(model, optimizer, data, pos_encoding=None):
         )
         loss = loss + reg_loss
 
+    # if model.opt['GL_loss_reg'] == 1:
+    #     gl_loss = 1.
+    #     # 1) GL type loss - WRONG incorrect sum then product
+    #     for l in range(model.num_classes):
+    #         gl_loss *= lf(out[val_test_mask], torch.full((sum(val_test_mask).item(),), l))
     val_test_mask = data.val_mask + data.test_mask
     val_test_idx = torch.where(val_test_mask[0])
+    num_classes = model.num_classes
     if model.opt['GL_loss_reg'] == 1:
-        gl_loss = 1.
-        # 1) GL type loss - WRONG incorrect sum then product
-        for l in range(model.num_classes):
-            gl_loss *= lf(out[val_test_mask], torch.full((sum(val_test_mask).item(),), l))
-    elif model.opt['GL_loss_reg'] == 2:
         # 2) GL type loss - Corrected product then sum - but still 100% certainty
+        #numerical /scale issues
         gl_loss = 0.
         for idx in val_test_idx:
             temp_cel = 1
-            for l in range(model.num_classes):
+            for l in range(num_classes):
                 temp_cel *= lf(out[idx], torch.full((1,), l))
             gl_loss += temp_cel
-    elif model.opt['GL_loss_reg'] == 3:
+    elif model.opt['GL_loss_reg'] == 2:
         # 3) L1 distance from standard basis in label space type loss
-        # note potentially makes sense to restrict this to val/test set
-        sm_logits = torch.softmax(out, dim=1)
-        eye = torch.eye(model.num_classes, device=model.device)
+        sm_logits = torch.softmax(out, dim=1)[val_test_mask]
+        eye = torch.eye(num_classes, device=model.device)
         dist_labels = sm_logits.unsqueeze(-1) - eye.unsqueeze(0)  # [num_nodes, c, 1] - [1, c, c]
         eta_hat = torch.sum(torch.abs(dist_labels), dim=1)  # sum abs distances for each node over features
-        gl_loss = torch.prod(eta_hat, dim=1).sum()**2 / 4**model.num_classes
-    elif model.opt['GL_loss_reg'] == 4:
-        # 4) node entropy certainty control - this is half WRONG, efficteively just adding a constant to the loss
-        certainty = opt['certainty']
-        sm_logits = torch.softmax(out, dim=1)
+        gl_loss = torch.prod(eta_hat, dim=1).sum()**2 / 4**num_classes
+    elif model.opt['GL_loss_reg'] == 3:
+        # 4) node entropy regularisation
+        sm_logits = torch.softmax(out, dim=1)[val_test_mask]
         entropies = Categorical(probs=sm_logits).entropy()
-        gl_loss = (entropies - torch.log(torch.tensor(certainty))).sum()
+        gl_loss = entropies.sum()
+    elif model.opt['GL_loss_reg'] == 4:
+        # 4) node entropy regularisation with uncertainty
+        certainty = opt['certainty']
+        uncertain_label = torch.full((num_classes,), (1 - certainty) / (num_classes - 1))
+        uncertain_label[0] = certainty
+        uncertain_shift = Categorical(probs=uncertain_label).entropy()
+        sm_logits = torch.softmax(out, dim=1)[val_test_mask]
+        entropies = Categorical(probs=sm_logits).entropy()
+        gl_loss = ((entropies - uncertain_shift)**2).sum()
     elif model.opt['GL_loss_reg'] == 5:
         # 5) GL type loss - corrected product then sum but using -
         # keep in mind that CrossEntropyLoss does a softmax for you. (It’s actually a LogSoftmax + NLLLoss combined into one function
         # - https://discuss.pytorch.org/t/softmax-cross-entropy-loss/125383
         # but now I'm replacing the Y one hot labels with some uncertainty
         certainty = opt['certainty']
-        log_sm_logits = out.log_softmax(dim=-1)
+        log_sm_logits = out.log_softmax(dim=-1)[val_test_mask]
         NLL = torch.nn.functional.nll_loss
         gl_loss = 0.
-        num_classes = model.num_classes
         for idx in val_test_idx: #or do this for every node inc train set..
             temp_cel = 1
             for l in range(num_classes):
@@ -152,7 +160,7 @@ def train(model, optimizer, data, pos_encoding=None):
             gl_loss += temp_cel / model.num_nodes
     elif model.opt['GL_loss_reg'] == 6:
         # 6) - idea uncertainty weighted expected L1 distance
-        sm_logits = torch.softmax(out, dim=1)
+        sm_logits = torch.softmax(out, dim=1)[val_test_mask]
         # eye = torch.eye(model.num_classes, device=model.device)
         #replace eye with
         certainty = opt['certainty']
@@ -160,12 +168,9 @@ def train(model, optimizer, data, pos_encoding=None):
         uncertain_label = torch.full((num_classes,), (1 - certainty) / (num_classes - 1))
         uncertain_label[0] = certainty
         simplex = torch.stack([torch.roll(uncertain_label, shifts=i, dims=-1) for i in range(num_classes)])
-
         dist_labels = sm_logits.unsqueeze(-1) - simplex.unsqueeze(0)  # [num_nodes, c, 1] - [1, c, c]
-
         eta_hat = torch.sum(torch.abs(dist_labels), dim=1)  # sum abs distances for each node over features
         gl_loss = torch.prod(eta_hat, dim=1).sum()**2 / (4**model.num_classes * model.num_nodes)
-
     #todo check wandb is recording high watermark
     #todo consider using out.log_softmax(dim=-1) to take the edge off..
     else:
@@ -645,8 +650,11 @@ def main(cmd_opt):
             test_acc_std = np.sqrt(np.var(results, axis=0)[0]) * 100
             wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
                              'test_acc_std': test_acc_std}
-        wandb.log(wandb_results)
-        print(wandb_results)
+    else:
+        wandb_results = {'test_mean': test_acc, 'val_mean': val_acc, 'train_mean': train_acc}
+
+    wandb.log(wandb_results)
+    print(wandb_results)
 
     wandb_run.finish()
     return train_acc, val_acc, test_acc
