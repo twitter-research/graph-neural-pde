@@ -18,7 +18,7 @@ import json
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.utils import check_random_state
-
+from utils import project_paths_label_space
 
 '''Note on approach to TSNE / PCA visualisation
 https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html
@@ -52,16 +52,6 @@ def Xt_TSNE(X, X0pca, t_idx):
     X_emb = TSNE(n_components=2, learning_rate='auto', init=Xi_pca0emb).fit_transform(X_slice)
     #todo https://discuss.pytorch.org/t/t-sne-for-pytorch/44264
     return X_emb
-
-def project_label_space(m2, X):
-    '''converts 3 tensor iin feature spaace into label space'''
-    X = torch.from_numpy(X)#nodes x features x time
-    X = X.permute(dims=[0, 2, 1])
-    Y = X.reshape(-1, X.shape[-1])     #reshape to be (nodes*time) x features
-    M = m2(Y)
-    L = M.reshape(X.shape[0], -1, M.shape[-1])     #reverse reshape to be nodes x features x time
-    L = L.permute(dims=[0, 2, 1])
-    return L.detach().numpy()
 
 #old style report 8 TSNE where not using wandb logging and artifacts
 # def tsne_snap_old(ax, fig, odefunc, row, epoch, savefolder, s=None):
@@ -107,11 +97,11 @@ def tsne_snap(ax, fig, odefunc, row, epoch, s=None):
     '''function called by report_8 to maintain syntax of "online" reporting
     for a particular epoch will generate fig for the PDF Sheets workflow, ie 4 columns'''
 
-    X = np.stack(odefunc.paths, axis=-1)
+    X = torch.stack(odefunc.paths, axis=-1) #np.stack(odefunc.paths, axis=-1)
     labels = np.stack(odefunc.labels, axis=-1)
     G = to_networkx(odefunc.data) #for optional including of the graph
     m2 = odefunc.GNN_m2
-    X = project_label_space(m2, X)
+    X = project_paths_label_space(m2, X).detach().numpy()
     #todo account for centers in either feature or label space
     centers = np.eye(odefunc.C)[...,np.newaxis].repeat(repeats=X.shape[-1], axis=-1)
 
@@ -199,7 +189,7 @@ def tsne_ani(gnl_savefolder, dataset, epoch, s=None):
     m2_path =  savefolder + f"/m2_epoch{epoch}_{dataset}.pt"
     X = np.load(npy_path)
     m2 = torch.load(m2_path)
-    X = project_label_space(m2, X)
+    X = project_paths_label_space(m2, X).detach().numpy()
 
     X0pca2 = X0_PCA(X)
     labels = np.load(npy_label)
@@ -247,3 +237,12 @@ def create_animation(X, X0pca2, labels, NXgraph, params, savefolder, dataset, ep
     n_frames = X.shape[-1]
     animation = FuncAnimation(fig, func=update, frames=n_frames, fargs=(X, X0pca2, labels, ax, NXgraph, params))
     animation.save(savefolder + f"/ani_epoch{epoch}_{dataset}.gif", fps=params['fps'])  #writer='imagemagick', savefig_kwargs={'facecolor': 'white'}, fps=fps)
+
+
+if __name__ == "__main__":
+    gnl_savefolder = 'tsne_evol'
+    dataset = 'Cora'
+    epoch = 128
+    cols = 2
+    # tsne_full(gnl_savefolder, dataset, epoch, cols, s=120)
+    # tsne_ani(gnl_savefolder, dataset, epoch, s=None)

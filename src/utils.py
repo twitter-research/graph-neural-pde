@@ -334,6 +334,16 @@ def gram_schmidt(vv):
     uu[:, k] = uk / uk.norm()
   return uu
 
+def project_paths_label_space(m2, X):
+  '''converts 3 tensor iin feature spaace into label space'''
+  # X = torch.from_numpy(X)  # nodes x features x time
+  X = X.permute(dims=[0, 2, 1])
+  Y = X.reshape(-1, X.shape[-1])  # reshape to be (nodes*time) x features
+  M = m2(Y)
+  L = M.reshape(X.shape[0], -1, M.shape[-1])  # reverse reshape to be nodes x features x time
+  L = L.permute(dims=[0, 2, 1])
+  return L #.detach().numpy()
+
 
 # if __name__ == '__main__':
 #   torch.autograd.set_detect_anomaly(True)

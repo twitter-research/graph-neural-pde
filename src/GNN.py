@@ -3,7 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 from base_classes import BaseGNN
 from model_configurations import set_block, set_function
-
+from utils import project_paths_label_space
 
 # Define the GNN model.
 class GNN(BaseGNN):
@@ -65,6 +65,7 @@ class GNN(BaseGNN):
           self.odeblock.odefunc.set_R0()
           self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_WS(x)
     elif self.opt['function'] in ['greed_non_linear', 'greed_lie_trotter']:
+      self.odeblock.odefunc.paths = []
       if self.opt['gnl_style'] == 'scaled_dot':
         self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_scaled_dot_omega()
       elif self.opt['gnl_style'] == 'general_graph':
@@ -172,10 +173,17 @@ class GNN(BaseGNN):
 
     z = self.forward_XN(x)
     z = self.GNN_postXN(z)
-    ##todo: need to implement if self.opt['m2_mlp']: from base classfor GNN_early also
+    ##todo: need to implement if self.opt['m2_mlp']: from base GNN class for GNN_early also
     # Decode each node embedding to get node label.
     if self.opt['m2_aug']:
       return z[:, self.hidden_dim - self.num_classes:]
+
+    if self.opt['m3_path_dep']:
+      self.odeblock.odefunc.paths.append(z)
+      paths = torch.stack(self.odeblock.odefunc.paths, axis=-1)
+      if self.opt['m3_space'] == 'label':
+        paths = project_paths_label_space(self.m2, paths)
+      return self.m3(paths.reshape(self.num_nodes, -1))
 
     if self.opt['lie_trotter'] == 'gen_2': #if we end in label diffusion block don't need to decode to logits
       if self.opt['lt_gen2_args'][-1]['lt_block_type'] != 'label':

@@ -84,6 +84,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     if self.opt['wandb_track_grad_flow']:
       savefolder = f"../plots/{opt['gnl_savefolder']}_{opt['dataset']}"
+      self.savefolder = savefolder
       try:
         os.mkdir(savefolder)
       except OSError:
@@ -838,18 +839,19 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         logits, pred = self.predict(x)
         f = self.threshold(x, pred, self.opt['step_size']) #generates change needed to snap to required value
 
+    self.paths.append(x)
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:#not self.training:
-      # get edge stats if not a diffusion pass/block
-      # if self.do_drift(t):
-      if self.do_drift(t):
-        src_x, dst_x = self.get_src_dst(x)
-        fOmf, attention = self.calc_dot_prod_attention(src_x, dst_x)
-      if self.opt['lie_trotter'] == 'gen_2' and not self.do_drift(t):
-        if self.opt['lt_block_type'] == 'threshold':
+      with torch.no_grad():
+        # get edge stats if not a diffusion pass/block
+        # if self.do_drift(t):
+        if self.do_drift(t):
           src_x, dst_x = self.get_src_dst(x)
           fOmf, attention = self.calc_dot_prod_attention(src_x, dst_x)
+        if self.opt['lie_trotter'] == 'gen_2' and not self.do_drift(t):
+          if self.opt['lt_block_type'] == 'threshold':
+            src_x, dst_x = self.get_src_dst(x)
+            fOmf, attention = self.calc_dot_prod_attention(src_x, dst_x)
 
-      with torch.no_grad():
         #todo these energy formulas are wrong
         if self.opt['gnl_style'] == 'scaled_dot':
           if self.opt['gnl_activation'] == "sigmoid_deriv":
@@ -863,181 +865,181 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         else:
           energy = 0
 
-        energy = energy + 0.5 * self.delta * torch.sum(x**2)
+          energy = energy + 0.5 * self.delta * torch.sum(x**2)
 
-        if self.opt['test_mu_0'] and self.opt['add_source']:
-          energy = energy - self.beta_train * torch.sum(x * self.x0)
-        elif not self.opt['test_mu_0']:
-          energy = energy + self.mu * torch.sum((x - self.x0) ** 2)
-        else:
-          energy = 0
-          self.energy = energy
+          if self.opt['test_mu_0'] and self.opt['add_source']:
+            energy = energy - self.beta_train * torch.sum(x * self.x0)
+          elif not self.opt['test_mu_0']:
+            energy = energy + self.mu * torch.sum((x - self.x0) ** 2)
+          else:
+            energy = 0
+            self.energy = energy
 
-        wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
-                   f"gf_e{self.epoch}_f": (f**2).sum(),
-                   f"gf_e{self.epoch}_x": (x ** 2).sum(),
-                   "grad_flow_step": self.wandb_step})
+          wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
+                     f"gf_e{self.epoch}_f": (f**2).sum(),
+                     f"gf_e{self.epoch}_x": (x ** 2).sum(),
+                     "grad_flow_step": self.wandb_step})
 
-        # z = x
-        # logits, pred = self.predict(z)
-        if self.opt['lie_trotter'] == 'gen_2':
-          if self.opt['lt_block_type'] == 'label':
-            logits = x
-            pred = logits.max(1)[1]
+          # z = x
+          # logits, pred = self.predict(z)
+          if self.opt['lie_trotter'] == 'gen_2':
+            if self.opt['lt_block_type'] == 'label':
+              logits = x
+              pred = logits.max(1)[1]
+            else:
+              logits, pred = self.predict(x)
           else:
             logits, pred = self.predict(x)
-        else:
-          logits, pred = self.predict(x)
-        sm_logits = torch.softmax(logits, dim=1)
-        train_acc, val_acc, test_acc = test(logits, self.data)
-        homophil = homophily(edge_index=self.edge_index, y=pred)
-        L2dist = torch.sqrt(torch.sum((src_x - dst_x) ** 2, dim=1))
-        conf_mat, train_cm, val_cm, test_cm = self.get_confusion(self.data, pred, norm_type='true') #'all')
-        eval_means_feat, eval_sds_feat = self.get_distances(self.data, x, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask], base_type="train_avg")
-        # eval_means_label, eval_sds_label = self.get_distances(self.data, sm_logits, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask], base_type="e_k")
-        eval_means_label, eval_sds_label = self.get_distances(self.data, logits, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask], base_type="train_avg")
+          sm_logits = torch.softmax(logits, dim=1)
+          train_acc, val_acc, test_acc = test(logits, self.data)
+          homophil = homophily(edge_index=self.edge_index, y=pred)
+          L2dist = torch.sqrt(torch.sum((src_x - dst_x) ** 2, dim=1))
+          conf_mat, train_cm, val_cm, test_cm = self.get_confusion(self.data, pred, norm_type='true') #'all')
+          eval_means_feat, eval_sds_feat = self.get_distances(self.data, x, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask], base_type="train_avg")
+          # eval_means_label, eval_sds_label = self.get_distances(self.data, sm_logits, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask], base_type="e_k")
+          eval_means_label, eval_sds_label = self.get_distances(self.data, logits, self.C, base_mask=self.data.train_mask, eval_masks=[self.data.val_mask, self.data.test_mask], base_type="train_avg")
 
-        #todo this could be easily condensed/optimised if just saved all objects in lists and then do the stacking at the end
-        if self.attentions is None:
-          self.attentions = attention.unsqueeze(0)
-          self.fOmf = fOmf.unsqueeze(0)
-          self.L2dist = L2dist.unsqueeze(0)
-          self.node_magnitudes = torch.sqrt(torch.sum(x**2,dim=1)).unsqueeze(0)
-          self.node_measures = measure.detach().unsqueeze(0)
-          self.train_accs = [train_acc]
-          self.val_accs = [val_acc]
-          self.test_accs = [test_acc]
-          self.homophils = [homophil]
-          self.entropies = get_entropies(logits, self.data)
-          self.confusions = [conf_mat, train_cm, val_cm, test_cm]
+          #todo this could be easily condensed/optimised if just saved all objects in lists and then do the stacking at the end
+          if self.attentions is None:
+            self.attentions = attention.unsqueeze(0)
+            self.fOmf = fOmf.unsqueeze(0)
+            self.L2dist = L2dist.unsqueeze(0)
+            self.node_magnitudes = torch.sqrt(torch.sum(x**2,dim=1)).unsqueeze(0)
+            self.node_measures = measure.detach().unsqueeze(0)
+            self.train_accs = [train_acc]
+            self.val_accs = [val_acc]
+            self.test_accs = [test_acc]
+            self.homophils = [homophil]
+            self.entropies = get_entropies(logits, self.data)
+            self.confusions = [conf_mat, train_cm, val_cm, test_cm]
 
-          self.val_dist_mean_feat = eval_means_feat[0]
-          self.val_dist_sd_feat = eval_sds_feat[0]
-          self.test_dist_mean_feat = eval_means_feat[1]
-          self.test_dist_sd_feat = eval_sds_feat[1]
+            self.val_dist_mean_feat = eval_means_feat[0]
+            self.val_dist_sd_feat = eval_sds_feat[0]
+            self.test_dist_mean_feat = eval_means_feat[1]
+            self.test_dist_sd_feat = eval_sds_feat[1]
 
-          self.val_dist_mean_label = eval_means_label[0]
-          self.val_dist_sd_label = eval_sds_label[0]
-          self.test_dist_mean_label = eval_means_label[1]
-          self.test_dist_sd_label = eval_sds_label[1]
-          self.paths.append(x.detach().numpy())
-        else:
-          self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
-          self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
-          self.L2dist = torch.cat([self.L2dist, L2dist.unsqueeze(0)], dim=0)
-          self.node_magnitudes = torch.cat([self.node_magnitudes, torch.sqrt(torch.sum(x**2,dim=1)).unsqueeze(0)], dim=0)
-          self.node_measures = torch.cat([self.node_measures, measure.detach().unsqueeze(0)], dim=0)
-          self.train_accs.append(train_acc)
-          self.val_accs.append(val_acc)
-          self.test_accs.append(test_acc)
-          self.homophils.append(homophil)
-
-          temp_entropies = get_entropies(logits, self.data)
-          for key, value, in self.entropies.items():
-            self.entropies[key] = torch.cat([value, temp_entropies[key]], dim=0)
-
-          if len(self.confusions[0].shape) == 2:
-            self.confusions[0] = torch.stack((self.confusions[0], conf_mat), dim=-1)
-            self.confusions[1] = torch.stack((self.confusions[1], train_cm), dim=-1)
-            self.confusions[2] = torch.stack((self.confusions[2], val_cm), dim=-1)
-            self.confusions[3] = torch.stack((self.confusions[3], test_cm), dim=-1)
-
-            self.val_dist_mean_feat = torch.stack((self.val_dist_mean_feat, eval_means_feat[0]), dim=-1)
-            self.val_dist_sd_feat = torch.stack((self.val_dist_sd_feat, eval_sds_feat[0]), dim=-1)
-            self.test_dist_mean_feat = torch.stack((self.test_dist_mean_feat, eval_means_feat[1]), dim=-1)
-            self.test_dist_sd_feat = torch.stack((self.test_dist_sd_feat, eval_sds_feat[1]), dim=-1)
-
-            self.val_dist_mean_label = torch.stack((self.val_dist_mean_label, eval_means_label[0]), dim=-1)
-            self.val_dist_sd_label = torch.stack((self.val_dist_sd_label, eval_sds_label[0]), dim=-1)
-            self.test_dist_mean_label = torch.stack((self.test_dist_mean_label, eval_means_label[1]), dim=-1)
-            self.test_dist_sd_label = torch.stack((self.test_dist_sd_label, eval_sds_label[1]), dim=-1)
-            self.paths.append(x.detach().numpy())
+            self.val_dist_mean_label = eval_means_label[0]
+            self.val_dist_sd_label = eval_sds_label[0]
+            self.test_dist_mean_label = eval_means_label[1]
+            self.test_dist_sd_label = eval_sds_label[1]
+            # self.paths.append(x)
           else:
+            self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
+            self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
+            self.L2dist = torch.cat([self.L2dist, L2dist.unsqueeze(0)], dim=0)
+            self.node_magnitudes = torch.cat([self.node_magnitudes, torch.sqrt(torch.sum(x**2,dim=1)).unsqueeze(0)], dim=0)
+            self.node_measures = torch.cat([self.node_measures, measure.detach().unsqueeze(0)], dim=0)
+            self.train_accs.append(train_acc)
+            self.val_accs.append(val_acc)
+            self.test_accs.append(test_acc)
+            self.homophils.append(homophil)
+
+            temp_entropies = get_entropies(logits, self.data)
+            for key, value, in self.entropies.items():
+              self.entropies[key] = torch.cat([value, temp_entropies[key]], dim=0)
+
+            if len(self.confusions[0].shape) == 2:
+              self.confusions[0] = torch.stack((self.confusions[0], conf_mat), dim=-1)
+              self.confusions[1] = torch.stack((self.confusions[1], train_cm), dim=-1)
+              self.confusions[2] = torch.stack((self.confusions[2], val_cm), dim=-1)
+              self.confusions[3] = torch.stack((self.confusions[3], test_cm), dim=-1)
+
+              self.val_dist_mean_feat = torch.stack((self.val_dist_mean_feat, eval_means_feat[0]), dim=-1)
+              self.val_dist_sd_feat = torch.stack((self.val_dist_sd_feat, eval_sds_feat[0]), dim=-1)
+              self.test_dist_mean_feat = torch.stack((self.test_dist_mean_feat, eval_means_feat[1]), dim=-1)
+              self.test_dist_sd_feat = torch.stack((self.test_dist_sd_feat, eval_sds_feat[1]), dim=-1)
+
+              self.val_dist_mean_label = torch.stack((self.val_dist_mean_label, eval_means_label[0]), dim=-1)
+              self.val_dist_sd_label = torch.stack((self.val_dist_sd_label, eval_sds_label[0]), dim=-1)
+              self.test_dist_mean_label = torch.stack((self.test_dist_mean_label, eval_means_label[1]), dim=-1)
+              self.test_dist_sd_label = torch.stack((self.test_dist_sd_label, eval_sds_label[1]), dim=-1)
+              # self.paths.append(x)
+            else:
+              self.confusions[0] = torch.cat((self.confusions[0], conf_mat.unsqueeze(-1)), dim=-1)
+              self.confusions[1] = torch.cat((self.confusions[1], train_cm.unsqueeze(-1)), dim=-1)
+              self.confusions[2] = torch.cat((self.confusions[2], val_cm.unsqueeze(-1)), dim=-1)
+              self.confusions[3] = torch.cat((self.confusions[3], test_cm.unsqueeze(-1)), dim=-1)
+
+              self.val_dist_mean_feat = torch.cat((self.val_dist_mean_feat, eval_means_feat[0].unsqueeze(-1)),dim=-1)
+              self.val_dist_sd_feat = torch.cat((self.val_dist_sd_feat, eval_sds_feat[0].unsqueeze(-1)),dim=-1)
+              self.test_dist_mean_feat = torch.cat((self.test_dist_mean_feat, eval_means_feat[1].unsqueeze(-1)),dim=-1)
+              self.test_dist_sd_feat = torch.cat((self.test_dist_sd_feat, eval_sds_feat[1].unsqueeze(-1)),dim=-1)
+
+              self.val_dist_mean_label = torch.cat((self.val_dist_mean_label, eval_means_label[0].unsqueeze(-1)),dim=-1)
+              self.val_dist_sd_label = torch.cat((self.val_dist_sd_label, eval_sds_label[0].unsqueeze(-1)),dim=-1)
+              self.test_dist_mean_label = torch.cat((self.test_dist_mean_label, eval_means_label[1].unsqueeze(-1)),dim=-1)
+              self.test_dist_sd_label = torch.cat((self.test_dist_sd_label, eval_sds_label[1].unsqueeze(-1)),dim=-1)
+              # self.paths.append(x)
+
+          ### extra values for terminal step
+          # (only final block and it's not lie-trotter gen2 not final block) <- this is delt with in the "pass_stats" funtion in the LT2 block
+          if t == self.opt['time'] - self.opt['step_size']:# and not(self.opt['lie_trotter'] == 'gen_2' and self.block_num + 1 != len(self.opt['lt_gen2_args'])):
+            z = x + self.opt['step_size'] * f #take an euler step
+
+            src_z, dst_z = self.get_src_dst(z)
+            fOmf, attention = self.calc_dot_prod_attention(src_z, dst_z)
+
+            # logits, pred = self.predict(z)
+            if self.opt['lie_trotter'] == 'gen_2':
+              if self.opt['lt_block_type'] == 'label':
+                logits = z
+                pred = logits.max(1)[1]
+              else:
+                logits, pred = self.predict(z)
+            else:
+              logits, pred = self.predict(z)
+
+            sm_logits = torch.softmax(logits, dim=1)
+            train_acc, val_acc, test_acc = test(logits, self.data)
+            homophil = homophily(edge_index=self.edge_index, y=pred)
+            L2dist = torch.sqrt(torch.sum((src_z - dst_z) ** 2, dim=1))
+            conf_mat, train_cm, val_cm, test_cm = self.get_confusion(self.data, pred, norm_type='true')  # 'all')
+            eval_means_feat, eval_sds_feat = self.get_distances(self.data, z, self.C, base_mask=self.data.train_mask,
+                                                                eval_masks=[self.data.val_mask, self.data.test_mask], base_type='train_avg')
+            # eval_means_label, eval_sds_label = self.get_distances(self.data, sm_logits, self.C,
+            #                                                       base_mask=self.data.train_mask,
+            #                                                       eval_masks=[self.data.val_mask, self.data.test_mask], base_type='e_k')
+            eval_means_label, eval_sds_label = self.get_distances(self.data, logits, self.C,
+                                                                  base_mask=self.data.train_mask,
+                                                                  eval_masks=[self.data.val_mask, self.data.test_mask], base_type='train_avg')
+
+            self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
+            self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
+            self.L2dist = torch.cat([self.L2dist, L2dist.unsqueeze(0)], dim=0)
+            self.node_magnitudes = torch.cat([self.node_magnitudes, torch.sqrt(torch.sum(z ** 2, dim=1)).unsqueeze(0)],
+                                             dim=0)
+            self.node_measures = torch.cat([self.node_measures, measure.detach().unsqueeze(0)], dim=0)
+            self.train_accs.append(train_acc)
+            self.val_accs.append(val_acc)
+            self.test_accs.append(test_acc)
+            self.homophils.append(homophil)
+            temp_entropies = get_entropies(logits, self.data)
+            for key, value, in self.entropies.items():
+              self.entropies[key] = torch.cat([value, temp_entropies[key]], dim=0)
+
             self.confusions[0] = torch.cat((self.confusions[0], conf_mat.unsqueeze(-1)), dim=-1)
             self.confusions[1] = torch.cat((self.confusions[1], train_cm.unsqueeze(-1)), dim=-1)
             self.confusions[2] = torch.cat((self.confusions[2], val_cm.unsqueeze(-1)), dim=-1)
             self.confusions[3] = torch.cat((self.confusions[3], test_cm.unsqueeze(-1)), dim=-1)
 
-            self.val_dist_mean_feat = torch.cat((self.val_dist_mean_feat, eval_means_feat[0].unsqueeze(-1)),dim=-1)
-            self.val_dist_sd_feat = torch.cat((self.val_dist_sd_feat, eval_sds_feat[0].unsqueeze(-1)),dim=-1)
-            self.test_dist_mean_feat = torch.cat((self.test_dist_mean_feat, eval_means_feat[1].unsqueeze(-1)),dim=-1)
-            self.test_dist_sd_feat = torch.cat((self.test_dist_sd_feat, eval_sds_feat[1].unsqueeze(-1)),dim=-1)
+            self.val_dist_mean_feat = torch.cat((self.val_dist_mean_feat, eval_means_feat[0].unsqueeze(-1)), dim=-1)
+            self.val_dist_sd_feat = torch.cat((self.val_dist_sd_feat, eval_sds_feat[0].unsqueeze(-1)), dim=-1)
+            self.test_dist_mean_feat = torch.cat((self.test_dist_mean_feat, eval_means_feat[1].unsqueeze(-1)), dim=-1)
+            self.test_dist_sd_feat = torch.cat((self.test_dist_sd_feat, eval_sds_feat[1].unsqueeze(-1)), dim=-1)
 
-            self.val_dist_mean_label = torch.cat((self.val_dist_mean_label, eval_means_label[0].unsqueeze(-1)),dim=-1)
-            self.val_dist_sd_label = torch.cat((self.val_dist_sd_label, eval_sds_label[0].unsqueeze(-1)),dim=-1)
-            self.test_dist_mean_label = torch.cat((self.test_dist_mean_label, eval_means_label[1].unsqueeze(-1)),dim=-1)
-            self.test_dist_sd_label = torch.cat((self.test_dist_sd_label, eval_sds_label[1].unsqueeze(-1)),dim=-1)
-            self.paths.append(x.detach().numpy())
+            self.val_dist_mean_label = torch.cat((self.val_dist_mean_label, eval_means_label[0].unsqueeze(-1)), dim=-1)
+            self.val_dist_sd_label = torch.cat((self.val_dist_sd_label, eval_sds_label[0].unsqueeze(-1)), dim=-1)
+            self.test_dist_mean_label = torch.cat((self.test_dist_mean_label, eval_means_label[1].unsqueeze(-1)), dim=-1)
+            self.test_dist_sd_label = torch.cat((self.test_dist_sd_label, eval_sds_label[1].unsqueeze(-1)), dim=-1)
+            # self.paths.append(z)
 
-        ### extra values for terminal step
-        # (only final block and it's not lie-trotter gen2 not final block) <- this is delt with in the "pass_stats" funtion in the LT2 block
-        if t == self.opt['time'] - self.opt['step_size']:# and not(self.opt['lie_trotter'] == 'gen_2' and self.block_num + 1 != len(self.opt['lt_gen2_args'])):
-          z = x + self.opt['step_size'] * f #take an euler step
-
-          src_z, dst_z = self.get_src_dst(z)
-          fOmf, attention = self.calc_dot_prod_attention(src_z, dst_z)
-
-          # logits, pred = self.predict(z)
-          if self.opt['lie_trotter'] == 'gen_2':
-            if self.opt['lt_block_type'] == 'label':
-              logits = z
-              pred = logits.max(1)[1]
-            else:
-              logits, pred = self.predict(z)
-          else:
-            logits, pred = self.predict(z)
-
-          sm_logits = torch.softmax(logits, dim=1)
-          train_acc, val_acc, test_acc = test(logits, self.data)
-          homophil = homophily(edge_index=self.edge_index, y=pred)
-          L2dist = torch.sqrt(torch.sum((src_z - dst_z) ** 2, dim=1))
-          conf_mat, train_cm, val_cm, test_cm = self.get_confusion(self.data, pred, norm_type='true')  # 'all')
-          eval_means_feat, eval_sds_feat = self.get_distances(self.data, z, self.C, base_mask=self.data.train_mask,
-                                                              eval_masks=[self.data.val_mask, self.data.test_mask], base_type='train_avg')
-          # eval_means_label, eval_sds_label = self.get_distances(self.data, sm_logits, self.C,
-          #                                                       base_mask=self.data.train_mask,
-          #                                                       eval_masks=[self.data.val_mask, self.data.test_mask], base_type='e_k')
-          eval_means_label, eval_sds_label = self.get_distances(self.data, logits, self.C,
-                                                                base_mask=self.data.train_mask,
-                                                                eval_masks=[self.data.val_mask, self.data.test_mask], base_type='train_avg')
-
-          self.attentions = torch.cat([self.attentions, attention.unsqueeze(0)], dim=0)
-          self.fOmf = torch.cat([self.fOmf, fOmf.unsqueeze(0)], dim=0)
-          self.L2dist = torch.cat([self.L2dist, L2dist.unsqueeze(0)], dim=0)
-          self.node_magnitudes = torch.cat([self.node_magnitudes, torch.sqrt(torch.sum(z ** 2, dim=1)).unsqueeze(0)],
-                                           dim=0)
-          self.node_measures = torch.cat([self.node_measures, measure.detach().unsqueeze(0)], dim=0)
-          self.train_accs.append(train_acc)
-          self.val_accs.append(val_acc)
-          self.test_accs.append(test_acc)
-          self.homophils.append(homophil)
-          temp_entropies = get_entropies(logits, self.data)
-          for key, value, in self.entropies.items():
-            self.entropies[key] = torch.cat([value, temp_entropies[key]], dim=0)
-
-          self.confusions[0] = torch.cat((self.confusions[0], conf_mat.unsqueeze(-1)), dim=-1)
-          self.confusions[1] = torch.cat((self.confusions[1], train_cm.unsqueeze(-1)), dim=-1)
-          self.confusions[2] = torch.cat((self.confusions[2], val_cm.unsqueeze(-1)), dim=-1)
-          self.confusions[3] = torch.cat((self.confusions[3], test_cm.unsqueeze(-1)), dim=-1)
-
-          self.val_dist_mean_feat = torch.cat((self.val_dist_mean_feat, eval_means_feat[0].unsqueeze(-1)), dim=-1)
-          self.val_dist_sd_feat = torch.cat((self.val_dist_sd_feat, eval_sds_feat[0].unsqueeze(-1)), dim=-1)
-          self.test_dist_mean_feat = torch.cat((self.test_dist_mean_feat, eval_means_feat[1].unsqueeze(-1)), dim=-1)
-          self.test_dist_sd_feat = torch.cat((self.test_dist_sd_feat, eval_sds_feat[1].unsqueeze(-1)), dim=-1)
-
-          self.val_dist_mean_label = torch.cat((self.val_dist_mean_label, eval_means_label[0].unsqueeze(-1)), dim=-1)
-          self.val_dist_sd_label = torch.cat((self.val_dist_sd_label, eval_sds_label[0].unsqueeze(-1)), dim=-1)
-          self.test_dist_mean_label = torch.cat((self.test_dist_mean_label, eval_means_label[1].unsqueeze(-1)), dim=-1)
-          self.test_dist_sd_label = torch.cat((self.test_dist_sd_label, eval_sds_label[1].unsqueeze(-1)), dim=-1)
-          self.paths.append(z.detach().numpy())
-
-        self.wandb_step += 1
+          self.wandb_step += 1
 
       # if self.opt['greed_momentum'] and self.prev_grad:
       #   f = self.opt['momentum_alpha'] * f + (1 - self.opt['momentum_alpha']) * self.prev_grad
       #   self.prev_grad = f
-
-    return f
+    gamma = 0.5
+    return f# - (1-gamma) * x /self.opt['step_size']
 
   def get_confusion(self, data, pred, norm_type):
     # conf_mat = confusion_matrix(data.y, pred, normalize=norm_type)

@@ -1,3 +1,5 @@
+import math
+
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -134,6 +136,11 @@ class BaseGNN(MessagePassing):
       self.m2 = M2_MLP(opt, dataset, device=device)
     else:
       self.m2 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
+
+    if opt['m3_path_dep']:
+      time_points = math.ceil(opt['time']/opt['step_size'])
+      m3_space = opt['hidden_dim'] if opt['m3_space'] == 'feature' else self.num_classes
+      self.m3 = nn.Linear((time_points + 1) * m3_space, self.num_classes)
 
     if self.opt['batch_norm']:
       self.bn_in = torch.nn.BatchNorm1d(opt['hidden_dim'])

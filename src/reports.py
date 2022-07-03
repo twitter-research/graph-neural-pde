@@ -19,7 +19,7 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.utils import check_random_state
 
-from reports_TSNE import tsne_snap, tsne_ani, tsne_full, project_label_space
+from reports_TSNE import tsne_snap, tsne_ani, tsne_full, project_paths_label_space
 
 def report_1(ax, fig, odefunc, row, epoch):
     '''spectrum'''
@@ -283,35 +283,33 @@ def report_7(ax, fig, odefunc, row, epoch):
     if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
 
-# def tsne_evol(ax, fig, odefunc, row, epoch):
-#old style report 8 TSNE where not using wandb logging and artifacts
-# def report_8(ax, fig, odefunc, row, epoch):
-#     # tsne_evol
-#     savefolder = f"../plots/{odefunc.opt['gnl_savefolder']}_{odefunc.opt['dataset']}"
-#     npy_path = savefolder + f"/paths_epoch{epoch}_{odefunc.opt['dataset']}.npy"
-#     npy_label = savefolder + f"/labels_epoch{epoch}_{odefunc.opt['dataset']}.npy"
-#     np.save(npy_path, np.stack(odefunc.paths, axis=-1))
-#     np.save(npy_label, np.stack(odefunc.labels, axis=-1))
-#     G = to_networkx(odefunc.data)
-#     nx.write_gpickle(G, savefolder + f"/nxgraph_epoch{epoch}_{odefunc.opt['dataset']}.pkl")
-#     #save opt
-#     with open(savefolder + '/opt.json', 'w+') as f:
-#         try:
-#             json.dump(odefunc.opt._as_dict(), f, indent=4)
-#         except:
-#             json.dump(odefunc.opt, f, indent=4)
-#     #save decoder - https://stackoverflow.com/questions/42703500/best-way-to-save-a-trained-model-in-pytorch
-#     m2 = odefunc.GNN_m2
-#     torch.save(m2, savefolder + f"/m2_epoch{epoch}_{odefunc.opt['dataset']}.pt")
-#
-#     tsne_snap(ax, fig, odefunc, row, epoch, savefolder)
+
+def save_TSNE_stats(odefunc, epoch):
+    savefolder = f"../plots/{odefunc.opt['gnl_savefolder']}_{odefunc.opt['dataset']}"
+    npy_path = savefolder + f"/paths_epoch{epoch}_{odefunc.opt['dataset']}.npy"
+    npy_label = savefolder + f"/labels_epoch{epoch}_{odefunc.opt['dataset']}.npy"
+    npy_path_stack = torch.stack(odefunc.paths, dim=-1).detach().numpy()
+    np.save(npy_path, npy_path_stack) #np.stack(odefunc.paths, axis=-1))
+    np.save(npy_label, np.stack(odefunc.labels, axis=-1))
+    G = to_networkx(odefunc.data)
+    nx.write_gpickle(G, savefolder + f"/nxgraph_epoch{epoch}_{odefunc.opt['dataset']}.pkl")
+    #save opt
+    with open(savefolder + '/opt.json', 'w+') as f:
+        try:
+            json.dump(odefunc.opt._as_dict(), f, indent=4)
+        except:
+            json.dump(odefunc.opt, f, indent=4)
+    #save decoder - https://stackoverflow.com/questions/42703500/best-way-to-save-a-trained-model-in-pytorch
+    m2 = odefunc.GNN_m2
+    torch.save(m2, savefolder + f"/m2_epoch{epoch}_{odefunc.opt['dataset']}.pt")
+
 
 def report_8(ax, fig, odefunc, row, epoch):
     '''evol TSNE'''
-    # if in epoch list just add/build the ax/fig
+    #     tsne_snap(ax, fig, odefunc, row, epoch, savefolder)
     tsne_snap(ax, fig, odefunc, row, epoch)
 
-    # if final epoch in epoch list - wandb the attributes
+    #doesn't do anything currently
     if epoch == odefunc.opt['wandb_epoch_list'][-1]:
         X = np.stack(odefunc.paths, axis=-1)
         labels = np.stack(odefunc.labels, axis=-1)
@@ -465,13 +463,3 @@ def reports_manager(model, data):
         func.block_num = 0
         run_reports(func)
         reset_stats(func)
-
-
-if __name__ == "__main__":
-    gnl_savefolder = 'tsne_evol'
-    dataset = 'Cora'
-    epoch = 128
-    cols = 2
-    tsne_full(gnl_savefolder, dataset, epoch, cols, s=120)
-    # ani()
-    # tsne_ani(gnl_savefolder, dataset, epoch, s=None)

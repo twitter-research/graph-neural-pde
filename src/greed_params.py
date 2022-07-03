@@ -178,7 +178,7 @@ def greed_ablation_params(opt):
         opt['gnl_omega_activation'] = 'identity' #identity
         opt['gnl_omega_params'] = ["diag","free","None","identity"] #[opt['gnl_omega'], opt['gnl_omega_diag'], opt['gnl_omega_diag_val'], opt['gnl_omega_activation']]
         #W
-        opt['gnl_W_style'] = 'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_W_style'] = 'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
 
         if opt['gnl_W_style'] == 'k_block':
         # assert in_features % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= in_features, 'must have odd number of k diags'
@@ -210,10 +210,13 @@ def greed_ablation_params(opt):
     opt['drift_space'] = 'label' #feature' #'label' #todo add to params
     opt['drift_grad'] = True #True #todo add to params
     opt['m2_aug'] = False #True #False #todo not sure what state this was left in
-    opt['GL_loss_reg'] = 3#4#5#6
-    opt['certainty'] = None#0.85 #1.00 #0.95
+    opt['m3_path_dep'] = True
+    opt['m3_space'] = 'label'
+    opt['GL_loss_reg'] = 4#3#2#6#5#6
+    opt['GL_loss_weight'] = 4
+    opt['certainty'] = 0.85 #0.95 #1.00 #0.95
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist]
-    opt['reports_list'] = [2,4,7,8,9]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
+    opt['reports_list'] = [1,2,4,7,8,9]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
 
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         ###!!! set function 'greed_non_linear'
@@ -226,7 +229,7 @@ def greed_ablation_params(opt):
             opt['threshold_times'] = [2,4] #takes an euler step that would have been taken in drift diffusion and also thresholds between t->t+1
             #solver args
             opt['time'] = 4.0 #3.0 #2.0
-            opt['step_size'] = 0.5 #1.0 #1.0
+            opt['step_size'] = 0.5 #0.5 #1.0 #1.0
             opt['method'] = 'euler'
         elif opt['lie_trotter'] == 'gen_1':
             #gen1 args
