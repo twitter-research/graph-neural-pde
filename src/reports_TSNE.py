@@ -98,7 +98,7 @@ def tsne_snap(ax, fig, odefunc, row, epoch, s=None):
     for a particular epoch will generate fig for the PDF Sheets workflow, ie 4 columns'''
 
     X = torch.stack(odefunc.paths, axis=-1) #np.stack(odefunc.paths, axis=-1)
-    labels = np.stack(odefunc.labels, axis=-1)
+    labels = odefunc.labels.detach().cpu().numpy()#np.stack(odefunc.labels, axis=-1)
     G = to_networkx(odefunc.data) #for optional including of the graph
     m2 = odefunc.GNN_m2
     X = project_paths_label_space(m2, X).detach().cpu().numpy()
