@@ -285,7 +285,8 @@ def report_7(ax, fig, odefunc, row, epoch):
 
 
 def save_TSNE_stats(odefunc, epoch):
-    savefolder = f"../plots/{odefunc.opt['gnl_savefolder']}_{odefunc.opt['dataset']}"
+    # savefolder = f"../plots/{odefunc.opt['gnl_savefolder']}_{odefunc.opt['dataset']}"
+    savefolder = odefunc.savefolder
     npy_path = savefolder + f"/paths_epoch{epoch}_{odefunc.opt['dataset']}.npy"
     npy_label = savefolder + f"/labels_epoch{epoch}_{odefunc.opt['dataset']}.npy"
     npy_path_stack = torch.stack(odefunc.paths, dim=-1).detach().numpy()
@@ -307,15 +308,16 @@ def save_TSNE_stats(odefunc, epoch):
 def report_8(ax, fig, odefunc, row, epoch):
     '''evol TSNE'''
     #     tsne_snap(ax, fig, odefunc, row, epoch, savefolder)
+    save_TSNE_stats(odefunc, epoch)
     tsne_snap(ax, fig, odefunc, row, epoch)
 
     #doesn't do anything currently
     if epoch == odefunc.opt['wandb_epoch_list'][-1]:
-        X = np.stack(odefunc.paths, axis=-1)
+        X = torch.stack(odefunc.paths, dim=-1) #np.stack(odefunc.paths, axis=-1)
         labels = np.stack(odefunc.labels, axis=-1)
         G = to_networkx(odefunc.data)  # for optional including of the graph
         m2 = odefunc.GNN_m2
-        X = project_label_space(m2, X)
+        X = project_paths_label_space(m2, X)
         centers = np.eye(odefunc.C)[..., np.newaxis].repeat(repeats=X.shape[-1], axis=-1)
 
         # https://docs.wandb.ai/guides/artifacts
@@ -404,7 +406,8 @@ def run_reports(odefunc):
             else:
                 setattr(odefunc, f"report{str(rep_num)}_fig_list", [[fig, ax]])
                 # savefolder = f"../plots/{opt['gnl_savefolder']}"
-                savefolder = f"../plots/{opt['gnl_savefolder']}_{opt['dataset']}"
+                # savefolder = f"../plots/{opt['gnl_savefolder']}_{opt['dataset']}"
+                savefolder = odefunc.savefolder
                 setattr(odefunc, f"report{str(rep_num)}_pdf", PdfPages(f"{savefolder}/{desc}_{odefunc.opt['dataset']}.pdf"))
         else:
             fig, ax = getattr(odefunc, f"report{str(rep_num)}_fig_list")[-1]

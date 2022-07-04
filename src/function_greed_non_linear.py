@@ -83,7 +83,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.num_timesteps = math.ceil(self.opt['time']/self.opt['step_size'])
 
     if self.opt['wandb_track_grad_flow']:
-      savefolder = f"../plots/{opt['gnl_savefolder']}_{opt['dataset']}"
+      savefolder = f"../plots/{opt['gnl_savefolder']}_{opt['dataset']}_{opt['gnl_W_style']}_{opt['time']}_{opt['step_size']}"
       self.savefolder = savefolder
       try:
         os.mkdir(savefolder)

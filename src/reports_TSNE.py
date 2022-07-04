@@ -121,8 +121,9 @@ def tsne_snap(ax, fig, odefunc, row, epoch, s=None):
         else:
             ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels)
 
-        c_i = Xt_TSNE(centers, X0pca2, i)
-        ax[row, i].scatter(c_i[:,0], c_i[:,1], c='r', s=80, marker='x', linewidths=5, zorder=10)
+        #todo check project centres in consistent with the paths
+        # c_i = Xt_TSNE(centers, X0pca2, i)
+        # ax[row, i].scatter(c_i[:,0], c_i[:,1], c='r', s=80, marker='x', linewidths=5, zorder=10)
 
         ax[row, i].xaxis.set_tick_params(labelsize=16)
         ax[row, i].yaxis.set_tick_params(labelsize=16)
