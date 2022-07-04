@@ -101,7 +101,7 @@ def tsne_snap(ax, fig, odefunc, row, epoch, s=None):
     labels = np.stack(odefunc.labels, axis=-1)
     G = to_networkx(odefunc.data) #for optional including of the graph
     m2 = odefunc.GNN_m2
-    X = project_paths_label_space(m2, X).detach().numpy()
+    X = project_paths_label_space(m2, X).detach().cpu().numpy()
     #todo account for centers in either feature or label space
     centers = np.eye(odefunc.C)[...,np.newaxis].repeat(repeats=X.shape[-1], axis=-1)
 
@@ -190,7 +190,7 @@ def tsne_ani(gnl_savefolder, dataset, epoch, s=None):
     m2_path =  savefolder + f"/m2_epoch{epoch}_{dataset}.pt"
     X = np.load(npy_path)
     m2 = torch.load(m2_path)
-    X = project_paths_label_space(m2, X).detach().numpy()
+    X = project_paths_label_space(m2, X).detach().cpu().numpy()
 
     X0pca2 = X0_PCA(X)
     labels = np.load(npy_label)

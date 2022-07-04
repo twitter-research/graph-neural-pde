@@ -289,7 +289,7 @@ def save_TSNE_stats(odefunc, epoch):
     savefolder = odefunc.savefolder
     npy_path = savefolder + f"/paths_epoch{epoch}_{odefunc.opt['dataset']}.npy"
     npy_label = savefolder + f"/labels_epoch{epoch}_{odefunc.opt['dataset']}.npy"
-    npy_path_stack = torch.stack(odefunc.paths, dim=-1).detach().numpy()
+    npy_path_stack = torch.stack(odefunc.paths, dim=-1).detach().cpu().numpy()
     np.save(npy_path, npy_path_stack) #np.stack(odefunc.paths, axis=-1))
     np.save(npy_label, np.stack(odefunc.labels, axis=-1))
     G = to_networkx(odefunc.data)
