@@ -314,7 +314,7 @@ def report_8(ax, fig, odefunc, row, epoch):
     #doesn't do anything currently
     if epoch == odefunc.opt['wandb_epoch_list'][-1]:
         X = torch.stack(odefunc.paths, dim=-1) #np.stack(odefunc.paths, axis=-1)
-        labels = np.stack(odefunc.labels, axis=-1)
+        labels = odefunc.labels.detach().cpu().numpy()  # np.stack(odefunc.labels, axis=-1)
         G = to_networkx(odefunc.data)  # for optional including of the graph
         m2 = odefunc.GNN_m2
         X = project_paths_label_space(m2, X)
