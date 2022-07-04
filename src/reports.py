@@ -291,7 +291,7 @@ def save_TSNE_stats(odefunc, epoch):
     npy_label = savefolder + f"/labels_epoch{epoch}_{odefunc.opt['dataset']}.npy"
     npy_path_stack = torch.stack(odefunc.paths, dim=-1).detach().cpu().numpy()
     np.save(npy_path, npy_path_stack) #np.stack(odefunc.paths, axis=-1))
-    np.save(npy_label, np.stack(odefunc.labels, axis=-1))
+    np.save(npy_label, odefunc.labels.detach().cpu().numpy())
     G = to_networkx(odefunc.data)
     nx.write_gpickle(G, savefolder + f"/nxgraph_epoch{epoch}_{odefunc.opt['dataset']}.pkl")
     #save opt
