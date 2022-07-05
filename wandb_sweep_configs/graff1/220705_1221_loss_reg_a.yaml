@@ -42,7 +42,7 @@ parameters:
   lr:
     values: [0.001]
   decay:
-    values: [0.005]
+    values: [0.0005]
   gnl_W_style:
     values: [sum]
   gnl_omega:

@@ -94,14 +94,15 @@ def greed_hyper_params(opt):
     #hyper-params
     opt['optimizer'] = 'adam'
     opt['lr'] = 0.001
-    opt['dropout'] = 0.6
-    opt['decay'] = 0.005
+    opt['dropout'] = 0.35
+    opt['input_dropout'] = 0.5
+    opt['decay'] = 0.0005
     opt['hidden_dim'] = 64 #512
     opt['use_best_params'] = False #True #False #True
     #solver args
     opt['method'] = 'euler'
     opt['max_nfe'] = 2000 #for some reason 1000 not enough with all report building
-    opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
+    opt['step_size'] = 0.5#1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 3 #4 #18.295 #10
 
     #greed_non_linear params
