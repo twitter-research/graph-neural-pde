@@ -21,7 +21,8 @@ from GNN_GCNMLP import GNNMLP
 from data import get_dataset, set_train_val_test_split
 from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling, dirichlet_energy
 from best_params import best_params_dict
-from greed_params import greed_test_params, greed_run_params, greed_hyper_params, greed_ablation_params, tf_ablation_args, not_sweep_args
+from greed_params import greed_test_params, greed_run_params, greed_hyper_params, tf_ablation_args, not_sweep_args
+from graff_params import hetero_params
 from reports import reports_manager #run_reports, run_reports_lie_trotter, reports_manager
 from heterophilic import get_fixed_splits
 from data_synth_hetero import get_pyg_syn_cora
@@ -103,16 +104,16 @@ def train(model, optimizer, data, pos_encoding=None):
         )
         loss = loss + reg_loss
 
-    # if model.opt['GL_loss_reg'] == 1:
-    #     gl_loss = 1.
+    # if model.opt['Gloss_reg'] == 1:
     #     # 1) GL type loss - WRONG incorrect sum then product
+    #     gl_loss = 1.
     #     for l in range(model.num_classes):
     #         gl_loss *= lf(out[val_test_mask], torch.full((sum(val_test_mask).item(),), l))
     val_test_mask = data.val_mask + data.test_mask
     val_test_idx = torch.where(val_test_mask[0])
     num_classes = model.num_classes
     num_nodes = model.num_nodes
-    if model.opt['GL_loss_reg'] == 1:
+    if model.opt['loss_reg'] == 1:
         # 2) GL type loss - Corrected product then sum - but still 100% certainty
         #numerical /scale issues
         gl_loss = 0.
@@ -121,33 +122,33 @@ def train(model, optimizer, data, pos_encoding=None):
             for l in range(num_classes):
                 temp_cel *= lf(out[idx], torch.full((1,), l))
             gl_loss += temp_cel
-    elif model.opt['GL_loss_reg'] == 2:
+    elif model.opt['loss_reg'] == 2:
         # 3) L1 distance from standard basis in label space type loss
         sm_logits = torch.softmax(out, dim=1)[val_test_mask]
         eye = torch.eye(num_classes, device=model.device)
         dist_labels = sm_logits.unsqueeze(-1) - eye.unsqueeze(0)  # [num_nodes, c, 1] - [1, c, c]
         eta_hat = torch.sum(torch.abs(dist_labels), dim=1)  # sum abs distances for each node over features
         gl_loss = torch.prod(eta_hat, dim=1).sum()**2 / (4**num_classes * num_nodes)
-    elif model.opt['GL_loss_reg'] == 3:
+    elif model.opt['loss_reg'] == 3:
         # 4) node entropy regularisation
         sm_logits = torch.softmax(out, dim=1)[val_test_mask]
         entropies = Categorical(probs=sm_logits).entropy()
-        gl_loss = opt['GL_loss_weight'] * entropies.sum() / num_nodes
-    elif model.opt['GL_loss_reg'] == 4:
+        gl_loss = entropies.sum() / num_nodes
+    elif model.opt['loss_reg'] == 4:
         # 4) node entropy regularisation with uncertainty
-        certainty = opt['certainty']
+        certainty = opt['loss_reg_certainty']
         uncertain_label = torch.full((num_classes,), (1 - certainty) / (num_classes - 1))
         uncertain_label[0] = certainty
         uncertain_shift = Categorical(probs=uncertain_label).entropy()
         sm_logits = torch.softmax(out, dim=1)[val_test_mask]
         entropies = Categorical(probs=sm_logits).entropy()
-        gl_loss = opt['GL_loss_weight'] * ((entropies - uncertain_shift)**2).sum() / num_nodes
-    elif model.opt['GL_loss_reg'] == 5:
+        gl_loss = ((entropies - uncertain_shift)**2).sum() / num_nodes
+    elif model.opt['loss_reg'] == 5:
         # 5) GL type loss - corrected product then sum but using -
         # keep in mind that CrossEntropyLoss does a softmax for you. (It’s actually a LogSoftmax + NLLLoss combined into one function
         # - https://discuss.pytorch.org/t/softmax-cross-entropy-loss/125383
         # but now I'm replacing the Y one hot labels with some uncertainty
-        certainty = opt['certainty']
+        certainty = opt['loss_reg_certainty']
         log_sm_logits = out.log_softmax(dim=-1)[val_test_mask]
         NLL = torch.nn.functional.nll_loss
         gl_loss = 0.
@@ -159,12 +160,12 @@ def train(model, optimizer, data, pos_encoding=None):
                 class_nll = (uncertain_label * -log_sm_logits[idx]).sum()
                 temp_cel *= class_nll
             gl_loss += temp_cel / num_nodes
-    elif model.opt['GL_loss_reg'] == 6:
+    elif model.opt['loss_reg'] == 6:
         # 6) - idea uncertainty weighted expected L1 distance
         sm_logits = torch.softmax(out, dim=1)[val_test_mask]
         # eye = torch.eye(model.num_classes, device=model.device)
         #replace eye with
-        certainty = opt['certainty']
+        certainty = opt['loss_reg_certainty']
         num_classes = model.num_classes
         uncertain_label = torch.full((num_classes,), (1 - certainty) / (num_classes - 1))
         uncertain_label[0] = certainty
@@ -172,16 +173,14 @@ def train(model, optimizer, data, pos_encoding=None):
         dist_labels = sm_logits.unsqueeze(-1) - simplex.unsqueeze(0)  # [num_nodes, c, 1] - [1, c, c]
         eta_hat = torch.sum(torch.abs(dist_labels), dim=1)  # sum abs distances for each node over features
         gl_loss = torch.prod(eta_hat, dim=1).sum()**2 / (4**model.num_classes * num_nodes)
-    #todo check wandb is recording high watermark
-    #todo consider using out.log_softmax(dim=-1) to take the edge off..
     else:
         gl_loss = 0
 
-    gl_flag = 1 if model.odeblock.odefunc.epoch > 10 else 0
+    gl_flag = 1 if model.odeblock.odefunc.epoch > opt['loss_reg_delay'] else 0
     # loss = loss + gl_flag * gl_loss / (1 + loss)**model.num_classes # / (loss + gl_loss)
     # loss = loss + gl_loss / (1 + loss)**model.num_classes # / (loss + gl_loss)
     # loss = loss + gl_flag * gl_loss / model.num_nodes
-    loss = loss + gl_flag * gl_loss
+    loss = loss + opt['loss_reg_weight'] * gl_flag * gl_loss
 
     model.fm.update(model.getNFE())
     model.resetNFE()
@@ -468,6 +467,21 @@ def unpack_greed_params(opt):
     wandb.config.update({'test_mu_0': opt['greed_params'][6]}, allow_val_change=True)
     wandb.config.update({'add_source': opt['greed_params'][7]}, allow_val_change=True)
 
+def unpack_W_params(self):
+    'temp function to help ablation'
+    wandb.config.update({'gnl_W_style': self.opt['gnl_W_params'][0]}, allow_val_change=True)
+    wandb.config.update({'gnl_W_diag_init': self.opt['gnl_W_params'][1]}, allow_val_change=True)
+
+def unpack_omega_params(self):
+    'temp function to help ablation'
+    wandb.config.update({'gnl_omega': self.opt['gnl_omega_params'][0]}, allow_val_change=True)
+    wandb.config.update({'gnl_omega_diag': self.opt['gnl_omega_params'][1]}, allow_val_change=True)
+    wandb.config.update({'gnl_omega_diag_val': self.opt['gnl_omega_params'][2]}, allow_val_change=True)
+    wandb.config.update({'gnl_omega_activation': self.opt['gnl_omega_params'][3]}, allow_val_change=True)
+
+def unpack_regularisation():
+    pass
+
 def main(cmd_opt):
     if cmd_opt['use_best_params']:
         best_opt = best_params_dict[cmd_opt['dataset']]
@@ -475,6 +489,18 @@ def main(cmd_opt):
         merge_cmd_args(cmd_opt, opt)
     else:
         opt = cmd_opt
+
+    if opt['gcn_params']: #temp function for GCN ablation
+        unpack_gcn_params(opt)
+    if opt['greed_params']: #temp function for GCN ablation
+        unpack_greed_params(opt)
+    if opt['W_params']: #temp function for ablation
+        unpack_W_params(opt)
+    if opt['omega_params']: #temp function for ablation
+        unpack_omega_params(opt)
+
+    # opt = shared_graff_params(opt)
+    opt = hetero_params(opt)
 
     if opt['wandb']:
         if opt['use_wandb_offline']:
@@ -495,23 +521,16 @@ def main(cmd_opt):
                                reinit=True, config=opt, allow_val_change=True)  # required when update config
 
     opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
-    if opt['gcn_params']: #temp function for GCN ablation
-        unpack_gcn_params(opt)
-    if opt['greed_params']: #temp function for GCN ablation
-        unpack_greed_params(opt)
-
     wandb.define_metric("epoch_step")  # Customize axes - https://docs.wandb.ai/guides/track/log
     if opt['wandb_track_grad_flow']:
         wandb.define_metric("grad_flow_step")  # Customize axes - https://docs.wandb.ai/guides/track/log
         wandb.define_metric("gf_e*", step_metric="grad_flow_step")  # grad_flow_epoch*
 
     dataset = get_dataset(opt, '../data', opt['not_lcc'])
-    if opt['dataset'] in ['chameleon','squirrel','other hetero?']: #todo put this in data loader
-        ### added self loops and make undirected for chameleon & squirrel
-        if opt['greed_SL']:
-            dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)
-        if opt['greed_undir']:
-            dataset.data.edge_index = to_undirected(dataset.data.edge_index)
+    if opt['hetero_SL']:
+        dataset.data.edge_index, _ = add_remaining_self_loops(dataset.data.edge_index)
+    if opt['hetero_undir']:
+        dataset.data.edge_index = to_undirected(dataset.data.edge_index)
 
     if opt['beltrami']:
         pos_encoding = apply_beltrami(dataset.data, opt).to(device)
@@ -934,8 +953,6 @@ if __name__ == '__main__':
     parser.add_argument('--block_size', type=int, default=5, help='block_size')
     parser.add_argument('--k_diags', type=float, default=11, help='k_diags')
     parser.add_argument('--k_diag_pc', type=float, default=0.1, help='percentage or dims diagonal')
-    parser.add_argument('--gnl_omega_params', nargs='+', default=None, help='list of Omega args for ablation')
-    parser.add_argument('--gnl_W_params', nargs='+', default=None, help='list of W args for ablation')
     parser.add_argument('--gnl_W_diag_init', type=str, default='identity', help='init of diag elements [identity, uniform, linear]')
     parser.add_argument('--gnl_W_param_free', type=str, default='True', help='allow parameter to require gradient')
     parser.add_argument('--gnl_W_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
@@ -944,34 +961,41 @@ if __name__ == '__main__':
     parser.add_argument('--time_dep_w', type=str, default='False', help='Learn a time dependent potentials')
     parser.add_argument('--time_dep_struct_w', type=str, default='False', help='Learn a structured time dependent potentials')
     parser.add_argument('--target_homoph', type=str, default='0.80', help='target_homoph for syn_cora [0.00,0.10,..,1.00]')
-    parser.add_argument('--greed_params', nargs='+', default=None, help='list of args for focus models')
-    parser.add_argument('--greed_SL', type=str, default='True', help='control self loops for Chameleon/Squirrel')
-    parser.add_argument('--greed_undir', type=str, default='True', help='control undirected for Chameleon/Squirrel')
+    parser.add_argument('--hetero_SL', type=str, default='True', help='control self loops for Chameleon/Squirrel')
+    parser.add_argument('--hetero_undir', type=str, default='True', help='control undirected for Chameleon/Squirrel')
+    parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
 
+    parser.add_argument('--omega_params', nargs='+', default=None, help='list of Omega args for ablation')
+    parser.add_argument('--W_params', nargs='+', default=None, help='list of W args for ablation')
+    parser.add_argument('--greed_params', nargs='+', default=None, help='list of args for focus models')
+
+    parser.add_argument('--loss_reg', type=int, default=None, help='1-6')
+    parser.add_argument('--loss_reg_weight', type=float, default=1.0, help='weighting for loss reg term')
+    parser.add_argument('--loss_reg_delay', type=int, default=0.0, help='num epochs epochs to wait before applying loss reg')
+    parser.add_argument('--loss_reg_certainty', type=float, default=1.0, help='amount of certainty to encode in prediction')
     args = parser.parse_args()
     opt = vars(args)
 
     if opt['function'] in ['greed', 'greed_scaledDP', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero',
                            'greed_non_linear', 'greed_lie_trotter', 'gcn', 'gcn2', 'mlp', 'gcn_dgl', 'gcn_res_dgl',
                            'gat', 'GAT', 'gat_dgl']:
-        opt = greed_run_params(opt)  ###basic params for GREED
+        opt = greed_run_params(opt)  ###very basic params for GREED
 
 
     if not opt['wandb_sweep']:  # sweeps are run from YAML config so don't need these
-        opt = not_sweep_args(opt, project_name='greed_runs', group_name='testing')
         # this includes args for running locally - specified in YAML for tunes
-        #  opt = greed_hyper_params(opt)
-        # opt = greed_ablation_params(opt)
+        opt = not_sweep_args(opt, project_name='greed_runs', group_name='testing')
+        opt = greed_hyper_params(opt)
 
     # applied to both sweeps and not sweeps
     opt = tf_ablation_args(opt)
     main(opt)
 
+
 # terminal commands for sweeps
 # wandb sweep ../wandb_sweep_configs/greed_sweep_grid.yaml
 # ./run_sweeps.sh XXX
 # nohup ./run_sweeps.sh XXX &
-
 
 # --dataset texas --geom_gcn_splits --num_splits 10 --epoch 2 --function greed --use_best_params --method euler --step_size 0.25
 # --dataset texas --geom_gcn_splits --num_splits 10 --epoch 2 --function greed_lin_homo --beltrami --pos_enc_type GDC --method euler --step_size 0.25 --self_loop_weight 0

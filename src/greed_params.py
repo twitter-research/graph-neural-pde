@@ -38,62 +38,15 @@ def greed_test_params(opt):
     return opt
 
 def greed_run_params(opt):
-    #fixed greed params - handled by merge_cmd_args
+    #run params
     opt['block'] = 'constant'
-    # opt['beltrami'] = True
-    # opt['pos_enc_type'] = 'GDC'
     opt['self_loop_weight'] = 0.0 #1.0 #0 #needed for greed
-    # opt['method'] = 'euler' #'dopri5' #'dopri5' #'euler' #need to comment this out for tuning
-    # TUNING
-    opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
-    opt['time'] = 3 #4 #18.295 #10
-    opt['epoch'] = 129 #255#129 #254 #100 #40 #40 #10
-    opt['num_splits'] = 10
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
-    opt['gnl_W_style'] = 'diag_dom'
-    opt['gnl_W_diag_init'] = 'uniform'
-    opt['gnl_W_param_free'] = True
-    opt['gnl_omega'] = 'diag'
-    opt['gnl_omega_diag'] = 'free'
-    opt['use_mlp'] = False
-    opt['test_mu_0'] = True
-    opt['add_source'] = True
-
-    #at some point test these  - not  so won't overwrite
-    # not in best aprams
-    # opt['greed_momentum'] = False #new param not in best_params
-    # handled by merge_cmd_args
-    # opt['add_source'] = False #this feels important because of design, ie keep adding back initial condition of the energy grad flow!
-
-    #greed_scaledDP params
-    # opt['dim_p_omega'] = 16
-    # opt['dim_p_w'] = 16
     return opt
 
 def greed_hyper_params(opt):
-    #tuning params
-    opt['hidden_dim'] = 80 # 50 #60 #64
-    opt['attention_dim'] = 32
-    opt['tau_reg'] = 8
-
-    opt["optimizer"] = 'adamax' #tune.choice(["adam", "adamax"]) #parser.add_argument('--optimizer', type=str, default='adam', help='One from sgd, rmsprop, adam, adagrad, adamax.')
-    opt["decay"] = 0.005 #tune.loguniform(0.001, 0.1)  # parser.add_argument('--decay', type=float, default=5e-4, help='Weight decay for optimization')
-    opt["lr"] = 0.02292 #tune.uniform(0.01, 0.2) parser.add_argument('--lr', type=float, default=0.01, help='Learning rate.')
-    opt["input_dropout"] = 0.5 #parser.add_argument('--input_dropout', type=float, default=0.5, help='Input dropout rate.')
-    opt["dropout"] = 0.04687 #tune.uniform(0, 0.15)  # output dropout parser.add_argument('--dropout', type=float, default=0.0, help='Dropout rate.')
-
-    # opt["use_mlp"] = True### this was ignored in Sweeep as string from YAML
-    # alpha = 1
-    # heads = 8
-    # method = 'dopri5'
-    # use_mlp = False
-    return opt
-
-def greed_ablation_params(opt):
     #ablation flags
     opt['test_no_chanel_mix'] = True #True
-    opt['test_mu_0'] = True # False #True
-    opt['add_source'] = True #False #True
     opt['test_tau_remove_tanh'] = False #True
     opt['test_tau_symmetric'] = True#False
 
@@ -101,7 +54,6 @@ def greed_ablation_params(opt):
     opt['test_linear_L0'] = True # flag to make the Laplacian form only dependent on embedding not time #redundant flag should be assumed in greed_linear_{homo, hetro}
     opt['test_R1R2_0'] = True
     # opt['test_grand_metric'] = True #old parameter
-    opt['use_mlp'] = False #True
 
     #greed_linear_homo params
     opt['symmetric_attention'] = True
@@ -116,7 +68,6 @@ def greed_ablation_params(opt):
     opt['laplacian_norm'] = 'lap_symmDeg_RowSumnorm' #'lap_symmAtt_relaxed' #'lap_symmDeg_RowSumnorm'#'lap_symmDeg_RowSumnorm' #'lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
     # opt['R_T0term_normalisation'] = 'T0_rowSum'
     # opt['R_laplacian_norm'] = 'lap_symmAtt_relaxed' #'lap_symmAtt_relaxed' #lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
-
     opt['diffusion'] = True
     opt['repulsion'] = False #True
     opt['R_depon_A'] = 'none' #'inverse'
@@ -131,16 +82,27 @@ def greed_ablation_params(opt):
     opt['R_W_type'] = 'identity'
     opt['tau_residual'] = True
 
+    opt['test_mu_0'] = True # False #True
+    opt['add_source'] = True #False #True
     opt['XN_no_activation'] = True #False
+    opt['use_mlp'] = False #True
     opt['m2_mlp'] = False #False
 
-    #run params
+    opt['beltrami'] = False
+    # opt['pos_enc_type'] = 'GDC'
+
+    #hyper-params
     opt['optimizer'] = 'adam'
-    opt['lr'] = 0.005
+    opt['lr'] = 0.001
     opt['dropout'] = 0.6
-    opt['decay'] = 0.05
+    opt['decay'] = 0.005
     opt['hidden_dim'] = 64 #512
-    opt['use_best_params'] = False#True #False #True
+    opt['use_best_params'] = False #True #False #True
+    #solver args
+    opt['method'] = 'euler'
+    opt['max_nfe'] = 2000 #for some reason 1000 not enough with all report building
+    opt['step_size'] = 1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
+    opt['time'] = 3 #4 #18.295 #10
 
     #greed_non_linear params
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
@@ -163,7 +125,6 @@ def greed_ablation_params(opt):
     elif opt['gnl_style'] == 'general_graph':
         opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
         opt['gnl_attention'] = False #use L0 attention coefficients
-
         #Omega
         opt['gnl_omega'] = 'diag' #'diag'#'zero' Omega_eq_W
         # if opt['gnl_omega'] == 'diag':
@@ -176,10 +137,8 @@ def greed_ablation_params(opt):
         opt['gnl_omega_diag_val'] = None #1 #-1 # 1
         opt['gnl_omega_activation'] = 'identity' #identity
         opt['gnl_omega_params'] = ["diag","free","None","identity"] #[opt['gnl_omega'], opt['gnl_omega_diag'], opt['gnl_omega_diag_val'], opt['gnl_omega_activation']]
-
         #W
         opt['gnl_W_style'] = 'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
-
         if opt['gnl_W_style'] == 'k_block':
         # assert in_features % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
@@ -206,31 +165,25 @@ def greed_ablation_params(opt):
     #gen_1 - alternates ranges of diffusion and drift (ie eq 43-44)
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
 
+    opt['drift'] = False  # False#True
+    opt['gnl_thresholding'] = False
     opt['lie_trotter'] = None #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     opt['drift_space'] = 'label' #feature' #'label' #todo add to params
     opt['drift_grad'] = True #True #todo add to params
     opt['m2_aug'] = False #True #False #todo not sure what state this was left in
     opt['m3_path_dep'] = False#True
     opt['m3_space'] = None #'label'
-    opt['GL_loss_reg'] = None #4#3#2#6#5#6
-    opt['GL_loss_weight'] = None #4
-    opt['certainty'] = None #0.85 #0.95 #1.00 #0.95
-    # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist]
-    opt['reports_list'] = [8]#1,2,4,7,8,9]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
+    opt['loss_reg'] = None #4#3#2#6#5#6
+    opt['loss_reg_weight'] = 1. #4
+    opt['loss_reg_delay'] = 0 #4
+    opt['loss_reg_certainty'] = None #0.85 #0.95 #1.00 #0.95
+
+    # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
+    opt['reports_list'] = [] #[8]#1,2,4,7,8,9]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
 
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
-        ###!!! set function 'greed_non_linear'
-        # opt['function'] = 'greed_non_linear'
-        opt['block'] = 'constant'
-        opt['drift'] = False  # False#True
-        opt['gnl_thresholding'] = False
-
         if opt['lie_trotter'] in [None, 'gen_0']:
             opt['threshold_times'] = [2,4] #takes an euler step that would have been taken in drift diffusion and also thresholds between t->t+1
-            #solver args
-            opt['time'] = 3.0 #3.0 #2.0
-            opt['step_size'] = 1.0#0.25 #0.5 #1.0 #1.0
-            opt['method'] = 'euler'
         elif opt['lie_trotter'] == 'gen_1':
             #gen1 args
             opt['diffusion_ranges'] = [[0,2],[3,5]]
@@ -240,15 +193,10 @@ def greed_ablation_params(opt):
             opt['step_size'] = 1.0
             opt['method'] = 'euler'
     elif opt['lie_trotter'] == 'gen_2':
-        ###!!! set function 'greed_lie_trotter' #todo rather than do this, replace the 3 or 4 places where need to indicate it's LT2
-        # opt['function'] = 'greed_lie_trotter'
         opt['block'] = 'greed_lie_trotter'
         #gen2 args
-        #lt_block_type : 'diffusion / drift / label / threshold
-        # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist]
         #todo we only ever want one decoder, do this by setting 'share_block'=0 (to the number of the first block for any drift blocks)
         #todo when sharing blocks, it can't handle generating the reports at the interim time steps
-
         # opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
         #                     {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': 0, 'reports_list': []},
         #                     {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0,'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
@@ -257,14 +205,6 @@ def greed_ablation_params(opt):
         opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []},
                                {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': 0, 'reports_list': [8]}]#,
                                # {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []}]#[1,2,3,4,5,6,7]}]#[]}]
-
-    #solver args
-    opt['method'] = 'euler'
-    opt['max_nfe'] = 2000 #for some reason 1000 not enough with all report building
-    opt['wandb_entity'] = "graph_neural_diffusion"
-    opt['wandb_project'] = "animation_runs"#"reporting_runs_drift"
-    opt['gnl_savefolder'] = "animation_runs"#'tsne_evol'#'chameleon_general_drift'#'chameleon_testing'
-    opt['wandb_group'] = "reporting_group" #"ablation_group"#"reporting_group"
 
     #gcn params
     # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
@@ -279,6 +219,13 @@ def greed_ablation_params(opt):
     return opt
 
 def not_sweep_args(opt, project_name, group_name):
+    opt['gnl_savefolder'] = "animation_runs"#'tsne_evol'#'chameleon_general_drift'#'chameleon_testing'
+    opt['wandb_entity'] = "graph_neural_diffusion"
+    opt['wandb_project'] = "animation_runs"#"reporting_runs_drift"
+    opt['wandb_group'] = "reporting_group" #"ablation_group"#"reporting_group"
+    # opt['wandb_project'] = project_name #"greed_runs"
+    # opt['wandb_group'] = group_name #"testing"  # "tuning" eval
+
     # args for running locally - specified in YAML for tunes
     opt['wandb'] = True #True #True #False #True
     opt['wandb_track_grad_flow'] = True #False  #collect stats for reports
@@ -290,15 +237,9 @@ def not_sweep_args(opt, project_name, group_name):
     opt['wandb_epoch_list'] = [8, 128]#[1,2,4,8,16,32,64,128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8]
     opt['display_epoch_list'] = [8,128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8] #todo add to params
 
-    opt['wandb_project'] = project_name #"greed_runs"
-    opt['wandb_group'] = group_name #"testing"  # "tuning" eval
     DT = datetime.datetime.now()
-    opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb"#_best_BLEND_params"  # "wandb_log_gradflow_test3"
+    opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb"#
     # hyper-params
-    if not opt['use_best_params']:
-        opt = greed_hyper_params(opt)
-    opt = greed_ablation_params(opt)
-
     return opt
 
 def t_or_f(tf_str):
@@ -602,8 +543,6 @@ def default_params():
     parser.add_argument('--block_size', type=int, default=5, help='block_size')
     parser.add_argument('--k_diags', type=float, default=11, help='k_diags')
     parser.add_argument('--k_diag_pc', type=float, default=0.1, help='percentage or dims diagonal')
-    parser.add_argument('--gnl_omega_params', nargs='+', default=None, help='list of Omega args for ablation')
-    parser.add_argument('--gnl_W_params', nargs='+', default=None, help='list of W args for ablation')
     parser.add_argument('--gnl_W_diag_init', type=str, default='identity', help='init of diag elements [identity, uniform, linear]')
     parser.add_argument('--gnl_W_param_free', type=str, default='True', help='allow parameter to require gradient')
     parser.add_argument('--gnl_W_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
@@ -611,11 +550,22 @@ def default_params():
     parser.add_argument('--two_hops', type=str, default='False', help='flag for 2-hop energy')
     parser.add_argument('--time_dep_w', type=str, default='False', help='Learn a time dependent potentials')
     parser.add_argument('--target_homoph', type=str, default='0.80', help='target_homoph for syn_cora [0.00,0.10,..,1.00]')
-    parser.add_argument('--greed_params', nargs='+', default=None, help='list of args for focus models')
-    parser.add_argument('--greed_SL', type=str, default='True', help='control self loops for Chameleon/Squirrel')
-    parser.add_argument('--greed_undir', type=str, default='True', help='control undirected for Chameleon/Squirrel')
-
+    parser.add_argument('--hetero_SL', type=str, default='True', help='control self loops for Chameleon/Squirrel')
+    parser.add_argument('--hetero_undir', type=str, default='True', help='control undirected for Chameleon/Squirrel')
     parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
+
+    parser.add_argument('--omega_params', nargs='+', default=None, help='list of Omega args for ablation')
+    parser.add_argument('--W_params', nargs='+', default=None, help='list of W args for ablation')
+    parser.add_argument('--greed_params', nargs='+', default=None, help='list of args for focus models')
+
+    parser.add_argument('--loss_reg', type=int, default=None, help='1-6')
+    parser.add_argument('--loss_reg_weight', type=float, default=1.0, help='weighting for loss reg term')
+    parser.add_argument('--loss_reg_delay', type=int, default=0.0, help='num epochs epochs to wait before applying loss reg')
+    parser.add_argument('--loss_reg_certainty', type=float, default=1.0, help='amount of certainty to encode in prediction')
+    args = parser.parse_args()
+    opt = vars(args)
+
+
 
     args = parser.parse_args()
     opt = vars(args)

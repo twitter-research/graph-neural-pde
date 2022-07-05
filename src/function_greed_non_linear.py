@@ -33,12 +33,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def __init__(self, in_features, out_features, opt, data, device, bias=False):
     super(ODEFuncGreedNonLin, self).__init__(in_features, out_features, opt, data, device, bias=False)
-    #todo used for wandb ablations
-    if self.opt['gnl_omega_params']:
-      self.unpack_omega_params()
-    if self.opt['gnl_W_params']:
-      self.unpack_W_params()
-
     self.data = data
     self.get_evol_stats = False
     self.energy = 0
@@ -418,13 +412,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       pass
     return Omega
 
-  def unpack_omega_params(self):
-    'temp function to help ablation'
-    wandb.config.update({'gnl_omega': self.opt['gnl_omega_params'][0]}, allow_val_change=True)
-    wandb.config.update({'gnl_omega_diag': self.opt['gnl_omega_params'][1]}, allow_val_change=True)
-    wandb.config.update({'gnl_omega_diag_val': self.opt['gnl_omega_params'][2]}, allow_val_change=True)
-    wandb.config.update({'gnl_omega_activation': self.opt['gnl_omega_params'][3]}, allow_val_change=True)
-
   def set_gnlOmega(self, T=None):
     if self.opt['gnl_omega'] == 'diag':
       if self.opt['gnl_omega_diag'] == 'free':
@@ -447,12 +434,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       Omega = -self.gnl_W
     return Omega
 
-  def unpack_W_params(self):
-    'temp function to help ablation'
-    wandb.config.update({'gnl_W_style': self.opt['gnl_W_params'][0]}, allow_val_change=True)
-    wandb.config.update({'gnl_W_diag_init': self.opt['gnl_W_params'][1]}, allow_val_change=True)
-
-  # , requires_grad = opt['gnl_W_param_free']
 
   def set_gnlWS(self, T=None):
     if T is None:

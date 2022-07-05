@@ -1,0 +1,68 @@
+program: run_GNN.py
+method: grid
+parameters:
+  dataset:
+    values: [Cora, chameleon]
+  block:
+    values: [constant]
+  epoch:
+    values: [129]
+  num_splits:
+    values: [10]
+  self_loop_weight:
+    values: [0.0]
+  no_early:
+    values: [True]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_activation:
+    values: [identity]
+  gnl_measure:
+    values: [ones]
+  drift:
+    values: [False]
+  test_mu_0:
+    values: [True]
+  add_source:
+    values: [False]
+  step_size:
+    values: [0.5]
+  hidden_dim:
+    values: [64]
+  time:
+    values: [3]
+  input_dropout:
+    values: [0.5]
+  dropout:
+    values: [0.35]
+  optimizer:
+    values: [adam]
+  lr:
+    values: [0.001]
+  decay:
+    values: [0.005]
+  gnl_W_style:
+    values: [sum]
+  gnl_omega:
+    values: [diag]
+  gnl_omega_diag:
+    values: [free]
+  loss_reg:
+    values: [4, 6]
+  loss_reg_weight:
+    values: [0.01, 0.1, 1, 2, 4, 8, 16]
+  loss_reg_delay:
+    values: [0, 10]
+  loss_reg_certainty:
+    values: [0.5, 0.85, 0.95 , 0.98]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+entity: graph_neural_diffusion
+project: loss_reg
