@@ -5,6 +5,8 @@ parameters:
     values: [Cora, chameleon]
   block:
     values: [constant]
+  function:
+    values: [greed_non_linear]
   epoch:
     values: [129]
   num_splits:
