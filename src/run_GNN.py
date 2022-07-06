@@ -957,6 +957,7 @@ if __name__ == '__main__':
     parser.add_argument('--gnl_W_param_free', type=str, default='True', help='allow parameter to require gradient')
     parser.add_argument('--gnl_W_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
     parser.add_argument('--gnl_W_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
+    parser.add_argument('--gnl_W_norm', type=str, default='False', help='divide W matrix by its spectral radius')
     parser.add_argument('--two_hops', type=str, default='False', help='flag for 2-hop energy')
     parser.add_argument('--time_dep_w', type=str, default='False', help='Learn a time dependent potentials')
     parser.add_argument('--time_dep_struct_w', type=str, default='False', help='Learn a structured time dependent potentials')
@@ -974,8 +975,8 @@ if __name__ == '__main__':
     parser.add_argument('--loss_reg_delay', type=int, default=0.0, help='num epochs epochs to wait before applying loss reg')
     parser.add_argument('--loss_reg_certainty', type=float, default=1.0, help='amount of certainty to encode in prediction')
 
-    parser.add_argument('--m2_aug', type=str, default='', help='whether to augment m2 for drift readout')
-    parser.add_argument('--m3_path_dep', type=str, default='', help='whether to use path dependent for m3 decoder')
+    parser.add_argument('--m2_aug', type=str, default='False', help='whether to augment m2 for drift readout')
+    parser.add_argument('--m3_path_dep', type=str, default='False', help='whether to use path dependent for m3 decoder')
     parser.add_argument('--m3_space', type=str, default='', help='label / feature')
 
     args = parser.parse_args()

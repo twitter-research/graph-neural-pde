@@ -438,7 +438,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
   def set_gnlWS(self, T=None):
     if T is None:
       T = 0
-    "note every W is made symetric before returning here"
+    "note every W is made symetric before returning"
     if self.opt['gnl_W_style'] in ['prod']:
       return self.W_W @ self.W_W.t()
     elif self.opt['gnl_W_style'] in ['neg_prod']:

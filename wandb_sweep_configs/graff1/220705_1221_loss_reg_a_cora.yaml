@@ -2,7 +2,7 @@ program: run_GNN.py
 method: grid
 parameters:
   dataset:
-    values: [chameleon]
+    values: [Cora]
   block:
     values: [constant]
   function:
@@ -44,7 +44,7 @@ parameters:
   lr:
     values: [0.001]
   decay:
-    values: [0.0005]
+    values: [0.05]
   gnl_W_style:
     values: [sum]
   gnl_omega:

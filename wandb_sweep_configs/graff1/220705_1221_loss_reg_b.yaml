@@ -2,7 +2,7 @@ program: run_GNN.py
 method: grid
 parameters:
   dataset:
-    values: [Cora, chameleon]
+    values: [chameleon]
   block:
     values: [constant]
   function:
@@ -54,7 +54,7 @@ parameters:
   loss_reg:
     values: [4, 6]
   loss_reg_weight:
-    values: [0.01, 0.1, 1, 2, 4, 8, 16]
+    values: [0.01, 0.1, 1, 2, 4]
   loss_reg_delay:
     values: [0, 10]
   loss_reg_certainty:
