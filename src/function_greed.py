@@ -41,6 +41,7 @@ class ODEFuncGreed(ODEFunc):
       self.edge_index, self.edge_weight = data.edge_index, data.edge_attr
 
     self.n_nodes = data.x.shape[0]
+    self.degree = degree(self.edge_index[0], self.n_nodes).to(device)
     self.self_loops = self.get_self_loops().to(device) #sending this to device because at initi, data is not yet sent to device
 
     self.K = Parameter(torch.Tensor(out_features, 1))

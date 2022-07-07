@@ -43,7 +43,6 @@ def set_reporting_attributes(func, data, opt):
     node_homophils = scatter_mean(func.edge_homophils, col, 0, dim_size=data.y.size(0))
     #todo what are these? where are they used?
     func.node_homophils = node_homophils #in reports 4 and 5
-    # func.degree = degree(func.edge_index[0], func.n_nodes) #nowhere
 
     if opt['lie_trotter'] != 'gen_2':
       func.cum_steps_list, func.cum_time_points, func.cum_time_ticks, func.block_type_list = create_time_lists(opt)

@@ -78,7 +78,14 @@ class GNN(BaseGNN):
         if self.opt['two_hops']:
           self.odeblock.odefunc.gnl_W_tilde = self.odeblock.odefunc.set_gnlWS()
         if self.opt['gnl_attention']:
+          self.odeblock.odefunc.set_M0()
+      elif self.opt['gnl_style'] == 'att_rep_laps':
+        self.odeblock.odefunc.Ws, self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_gnlWS()
+        self.odeblock.odefunc.gnl_W = self.odeblock.odefunc.Ws + self.odeblock.odefunc.R_Ws
+        if self.opt['diffusion']:
           self.odeblock.odefunc.set_L0()
+        if self.opt['repulsion']:
+          self.odeblock.odefunc.set_R0()
 
 
   def forward_XN(self, x):

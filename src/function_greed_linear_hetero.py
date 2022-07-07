@@ -470,6 +470,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       RfW = 0
       if self.opt['diffusion']:
         Ws = self.Ws
+        # todo if use again reverse order of multiplication for efficiency
         Lf = torch_sparse.spmm(edges, -self.L_0, x.shape[0], x.shape[0], x)
         if self.opt['W_type'] in ['lin_layer', 'lin_layer_hh', 'lin_layer_hp', 'res_lin_layer', 'res_layer_hh', 'res_layer_hp']:
           LfW = torch.einsum("ij,ikj->ik", Lf, Ws)
@@ -478,6 +479,7 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
 
       if self.opt['repulsion']:
         R_Ws = self.R_Ws
+        # todo if use again reverse order of multiplication for efficiency
         Rf = torch_sparse.spmm(edges, self.R_0, x.shape[0], x.shape[0], x) #LpRf
         if self.opt['R_W_type'] in ['lin_layer', 'lin_layer_hh', 'lin_layer_hp', 'res_lin_layer', 'res_layer_hh', 'res_layer_hp']:
           RfW = torch.einsum("ij,ikj->ik", Rf, R_Ws)
@@ -553,10 +555,11 @@ class ODEFuncGreedLinHet(ODEFuncGreed):
       wandb.log({f"gf_e{self.epoch}_energy_change": energy - self.energy, f"gf_e{self.epoch}_energy": energy,
                  f"gf_e{self.epoch}_f": (f**2).sum(),
                  "grad_flow_step": self.wandb_step})
-      if self.attentions is None:
-        self.attentions = self.mean_attention_0
-      else:
-        self.attentions = torch.cat([self.attentions, self.mean_attention_0], dim=-1)
+
+      # if self.attentions is None:
+      #   self.attentions = self.mean_attention_0
+      # else:
+      #   self.attentions = torch.cat([self.attentions, self.mean_attention_0], dim=-1)
       # https://wandb.ai/wandb/plots/reports/Custom-Multi-Line-Plots--VmlldzozOTMwMjU
       # I think I need to build the attentions tensor a save at the end
       # f"gf_e{self.epoch}_attentions": wandb.plot.line_series(xs=self.wandb_step, ys=self.mean_attention_0),

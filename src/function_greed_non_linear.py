@@ -34,6 +34,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
   def __init__(self, in_features, out_features, opt, data, device, bias=False):
     super(ODEFuncGreedNonLin, self).__init__(in_features, out_features, opt, data, device, bias=False)
     self.data = data
+
     if self.opt['wandb_track_grad_flow']:
       set_reporting_attributes(self, data, opt)
       set_folders_pdfs(self, opt)
@@ -173,6 +174,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.phi = nn.Linear(self.opt['pos_enc_hidden_dim'], self.in_features)
         self.psi = nn.Linear(self.opt['pos_enc_hidden_dim'], self.in_features)
 
+    elif self.opt['gnl_style'] == 'att_rep_laps':
+      if self.opt['gnl_W_style'] == 'att_rep_lap_block':
+        half_in_features = int(in_features/2)
+        self.L_W = Parameter(torch.Tensor(half_in_features, half_in_features - 1), requires_grad=opt['gnl_W_param_free'])
+        self.L_t_a = Parameter(torch.Tensor(half_in_features), requires_grad=opt['gnl_W_param_free'])
+        self.L_r_a = Parameter(torch.Tensor(half_in_features), requires_grad=opt['gnl_W_param_free'])
+        self.R_W = Parameter(torch.Tensor(half_in_features, half_in_features - 1), requires_grad=opt['gnl_W_param_free'])
+        self.R_t_a = Parameter(torch.Tensor(half_in_features), requires_grad=opt['gnl_W_param_free'])
+        self.R_r_a = Parameter(torch.Tensor(half_in_features), requires_grad=opt['gnl_W_param_free'])
+
+
     self.delta = Parameter(torch.Tensor([1.]))
     self.C = (data.y.max() + 1).item()  #hack!, num class for drift
     if opt['drift'] or opt['lie_trotter'] in ['gen_0','gen_1','gen_2']:
@@ -294,6 +306,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           glorot(self.W_psi_tilde)
       elif self.opt['gnl_W_style'] == 'positional':
         pass #linear layer
+    elif self.opt['gnl_style'] == 'att_rep_laps':
+      if self.opt['gnl_W_style'] == 'att_rep_lap_block':
+        glorot(self.L_W)
+        constant(self.L_t_a, fill_value=self.opt['gnl_W_diag_init_q'])
+        constant(self.L_r_a, fill_value=self.opt['gnl_W_diag_init_r'])
+        glorot(self.R_W)
+        constant(self.R_t_a, fill_value=self.opt['gnl_W_diag_init_q'])
+        constant(self.R_r_a, fill_value=self.opt['gnl_W_diag_init_r'])
 
     if self.opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
       ones(self.m_alpha)
@@ -433,6 +453,25 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_W_style'] == 'positional':
       pass
 
+    elif self.opt['gnl_W_style'] == 'att_rep_lap_block':
+      half_in_features = int(self.in_features / 2)
+      L_temp = torch.cat([self.L_W, torch.zeros((half_in_features, 1), device=self.device)], dim=1)
+      L = torch.stack([torch.roll(L_temp[i], shifts=i+1, dims=-1) for i in range(half_in_features)])
+      L = (L+L.T) / 2
+      L_sum = self.L_t_a * torch.abs(L).sum(dim=1) + self.L_r_a
+      L_block = L + torch.diag(L_sum)
+      Ws = torch.zeros((self.in_features, self.in_features), device=self.device)
+      Ws[0:half_in_features, 0:half_in_features] = L_block
+
+      R_temp = torch.cat([self.R_W, torch.zeros((half_in_features, 1), device=self.device)], dim=1)
+      R = torch.stack([torch.roll(R_temp[i], shifts=i+1, dims=-1) for i in range(half_in_features)])
+      R = (R+R.T) / 2
+      R_sum = self.R_t_a * torch.abs(R).sum(dim=1) + self.R_r_a
+      R_block = R + torch.diag(R_sum)
+      R_Ws = torch.zeros((self.in_features, self.in_features), device=self.device)
+      R_Ws[0:half_in_features, 0:half_in_features] = R_block
+
+      return Ws, R_Ws
 
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
     row_sum = scatter_add(attentions, edge_index[0], dim=0, dim_size=n)
@@ -447,8 +486,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
   def get_measure(self):
     # measure
     if self.opt['gnl_measure'] == 'deg_poly':
-      deg = degree(self.edge_index[0], self.n_nodes)
-      measure = self.m_alpha * deg ** self.m_beta + self.m_gamma
+      measure = self.m_alpha * self.degree ** self.m_beta + self.m_gamma
       src_meas, dst_meas = self.get_src_dst(measure)
       measures_src_dst = 1 / (src_meas * dst_meas)
     elif self.opt['gnl_measure'] == 'nodewise':
@@ -456,8 +494,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       src_meas, dst_meas = self.get_src_dst(measure)
       measures_src_dst = 1 / (src_meas * dst_meas)
     elif self.opt['gnl_measure'] == 'deg_poly_exp':
-      deg = degree(self.edge_index[0], self.n_nodes)
-      measure = torch.exp(self.m_alpha * deg ** self.m_beta + self.m_gamma)
+      measure = torch.exp(self.m_alpha * self.degree ** self.m_beta + self.m_gamma)
       src_meas, dst_meas = self.get_src_dst(measure)
       measures_src_dst = 1 / (src_meas * dst_meas)
     elif self.opt['gnl_measure'] == 'nodewise_exp':
@@ -581,7 +618,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       else:
         attention = fOmf
 
-    elif self.opt['gnl_style'] == 'general_graph':
+    elif self.opt['gnl_style'] in ['general_graph', 'att_rep_laps']:#== 'general_graph':
       # get degrees
       src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)
 
@@ -614,10 +651,25 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         attention = torch.ones(src_deginvsqrt.shape, device=self.device)
     return fOmf, attention
 
-  def set_L0(self):
+  def set_M0(self):
     attention, _ = self.multihead_att_layer(self.x0, self.edge_index)
     # attention = sym_row_col(self.edge_index, attention, self.n_nodes) #already normalised in greed attention block
     self.mean_attention_0 = attention.mean(dim=1)
+
+  def set_L0(self):
+    edges = torch.cat([self.edge_index, self.self_loops], dim=1)
+    A = torch.ones(self.edge_index.shape[1], device=self.device)
+    values = torch.cat([-A, self.degree], dim=-1)
+    L = self.symmetrically_normalise(values, edges)
+    self.L_0 = L
+
+  def set_R0(self):
+    edges = torch.cat([self.edge_index, self.self_loops], dim=1)
+    A = torch.ones(self.edge_index.shape[1], device=self.device)
+    values = torch.cat([-A, -self.degree], dim=-1)
+    R = self.symmetrically_normalise(values, edges)
+    self.R_0 = R
+
 
   def forward(self, t, x):  # t is needed when called by the integrator
     if self.nfe > self.opt["max_nfe"]:
@@ -681,10 +733,41 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
               AA_ei, AA_val = torch_sparse.spspmm(self.edge_index, P, self.edge_index, P, x.shape[0], x.shape[0], x.shape[0])
               f = f - torch_sparse.spmm(AA_ei, AA_val, x.shape[0], x.shape[0], xWtilde) / 2
             f = f - x @ self.Omega
+
         #as per old_main.tex eq (11)
-        elif self.opt['gnl_style'] == 'att_rep_laplacians':
-          pass #todo implement all the functions from function_greed_linear_hetero.py
-          #todo
+        elif self.opt['gnl_style'] == 'att_rep_laps':
+          edges = torch.cat([self.edge_index, self.self_loops], dim=1)
+          LfW = 0
+          RfW = 0
+          if self.opt['diffusion']:
+            Ws = self.Ws
+            fWs = torch.matmul(x, Ws)
+            LfW = torch_sparse.spmm(edges, -self.L_0, x.shape[0], x.shape[0], fWs)
+          if self.opt['repulsion']:
+            R_Ws = self.R_Ws
+            fRWs = torch.matmul(x, R_Ws)
+            RfW = torch_sparse.spmm(edges, self.R_0, x.shape[0], x.shape[0], fRWs)
+
+          try:
+            self.alpha = float(self.opt['alpha_style'])
+          except:
+            if self.opt['alpha_style'] == "sigmoid":
+              self.alpha = torch.sigmoid(self.alpha_train)
+            elif self.opt['alpha_style'] == "free":
+              self.alpha = self.alpha_train
+            elif self.opt['alpha_style'] == "forced":
+              self.alpha = self.opt['fix_alpha']
+            elif self.opt['alpha_style'] == "diag":
+              self.alpha = torch.diag(self.alpha_diag)
+          if self.opt['alpha_style'] == "diag":
+            if self.opt['diffusion'] and self.opt['repulsion']:
+              f = torch.einsum("ij,kj->ki", self.alpha, LfW) + torch.einsum("ij,kj->ki", 1 - self.alpha, RfW)
+            elif self.opt['diffusion'] and not self.opt['repulsion']:
+              f = torch.einsum("ij,kj->ki", self.alpha, LfW)
+            elif not self.opt['diffusion'] and self.opt['repulsion']:
+              f = torch.einsum("ij,kj->ki", 1 - self.alpha, RfW)
+          else:
+            f = self.alpha * LfW + (1 - self.alpha) * RfW
 
 
         if self.opt['lie_trotter'] == 'gen_2':
