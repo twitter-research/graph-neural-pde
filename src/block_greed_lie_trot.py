@@ -6,7 +6,6 @@ from function_transformer_attention import SpGraphTransAttentionLayer
 from base_classes import ODEblock
 from utils import get_rw_adj
 from function_greed_non_linear import ODEFuncGreedNonLin
-from function_greed_non_linear_lie_trotter import ODEFuncGreedLieTrot
 
 class GREEDLTODEblock(ODEblock):
   def __init__(self, odefunc, regularization_fns, opt, data, device, t=torch.tensor([0, 1]), gamma=0.5):

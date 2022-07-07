@@ -72,7 +72,7 @@ class GNN(BaseGNN):
         W = self.odeblock.odefunc.set_gnlWS()
         if self.opt['gnl_W_norm']:
           W_eval, W_evec = torch.linalg.eigh(W)
-          W = W / W_eval.max()
+          W = W / torch.abs(W_eval).max()
         self.odeblock.odefunc.gnl_W = W
         self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_gnlOmega()
         if self.opt['two_hops']:
@@ -109,74 +109,9 @@ class GNN(BaseGNN):
     return z
 
   def forward(self, x, pos_encoding=None):
-    # # Encode each node based on its feature.
-    # if self.opt['use_labels']:
-    #   y = x[:, -self.num_classes:]
-    #   x = x[:, :-self.num_classes]
-    #
-    # if self.opt['beltrami']:
-    #   x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-    #   x = self.mx(x)
-    #   p = F.dropout(pos_encoding, self.opt['input_dropout'], training=self.training)
-    #   p = self.mp(p)
-    #   x = torch.cat([x, p], dim=1)
-    # else:
-    #   x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-    #   x = self.m1(x)
-    #
-    # if self.opt['use_mlp']:
-    #   x = F.dropout(x, self.opt['dropout'], training=self.training)
-    #   x = F.dropout(x + self.m11(F.relu(x)), self.opt['dropout'], training=self.training)
-    #   x = F.dropout(x + self.m12(F.relu(x)), self.opt['dropout'], training=self.training)
-    #
-    # if self.opt['use_labels']:
-    #   x = torch.cat([x, y], dim=-1)
-    #
-    # if self.opt['batch_norm']:
-    #   x = self.bn_in(x)
-    #
-    # # Solve the initial value problem of the ODE.
-    # if self.opt['augment']:
-    #   c_aux = torch.zeros(x.shape).to(self.device)
-    #   x = torch.cat([x, c_aux], dim=1)
-
-    # ###forward_XN
-    # x = self.encoder(x, pos_encoding=None)
-    # self.odeblock.set_x0(x)
-    #
-    # if self.opt['function'] in ['greed_linear', 'greed_linear_homo', 'greed_linear_hetero']:
-    #   self.odeblock.odefunc.set_x_0(x) #this x is actually z
-    #   self.odeblock.odefunc.set_tau_0()
-    #   if self.opt['function'] == 'greed_linear_homo':
-    #     self.odeblock.odefunc.set_L0()
-    #   if self.opt['function'] == 'greed_linear_hetero':
-    #     if self.opt['diffusion']:
-    #       self.odeblock.odefunc.set_L0()
-    #       self.odeblock.odefunc.Ws = self.odeblock.odefunc.set_WS(x)
-    #     if self.opt['repulsion']:
-    #       self.odeblock.odefunc.set_R0()
-    #       self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_WS(x)
-    #
-    # if self.training and self.odeblock.nreg > 0:
-    #   z, self.reg_states = self.odeblock(x)
-    # else:
-    #   z = self.odeblock(x)
-    #
-    # if self.opt['augment']:
-    #   z = torch.split(z, x.shape[1] // 2, dim=1)[0]
-    #
-    # # Activation.
-    # z = F.relu(z)
-    #
-    # if self.opt['fc_out']:
-    #   z = self.fc(z)
-    #   z = F.relu(z)
-    #
-    # # Dropout.
-    # z = F.dropout(z, self.opt['dropout'], training=self.training)
-
     z = self.forward_XN(x)
     z = self.GNN_postXN(z)
+
     ##todo: need to implement if self.opt['m2_mlp']: from base GNN class for GNN_early also
     # Decode each node embedding to get node label.
     if self.opt['m2_aug']:

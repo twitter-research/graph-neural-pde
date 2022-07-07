@@ -85,9 +85,8 @@ def greed_hyper_params(opt):
     opt['test_mu_0'] = True # False #True
     opt['add_source'] = True #False #True
     opt['XN_no_activation'] = True #False
-    opt['use_mlp'] = False #True
-    opt['m2_mlp'] = False #False
-
+    opt['use_mlp'] = False #True #encoder mlp
+    opt['m2_mlp'] = False #False #decoder mlp
     opt['beltrami'] = False
     # opt['pos_enc_type'] = 'GDC'
 
@@ -96,14 +95,19 @@ def greed_hyper_params(opt):
     opt['lr'] = 0.001
     opt['dropout'] = 0.35
     opt['input_dropout'] = 0.5
-    opt['decay'] = 0.0005
+    opt['decay'] = 0.0005 #Cora 0.05 chameleon 0.0005
     opt['hidden_dim'] = 64 #512
     opt['use_best_params'] = False #True #False #True
-    #solver args
     opt['method'] = 'euler'
     opt['max_nfe'] = 2000 #for some reason 1000 not enough with all report building
     opt['step_size'] = 0.5#1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 3 #4 #18.295 #10
+    opt['epoch'] = 129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
+    opt['num_splits'] = 1 #10#4#1
+    # opt['planetoid_split'] = True
+    # opt['geom_gcn_splits'] = False #True#True #False#True
+    # opt['patience'] = 3
+    # opt['target_homoph'] = '0.70' #for synthetic cora
 
     #greed_non_linear params
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
@@ -128,18 +132,12 @@ def greed_hyper_params(opt):
         opt['gnl_attention'] = False #use L0 attention coefficients
         #Omega
         opt['gnl_omega'] = 'diag' #'diag'#'zero' Omega_eq_W
-        # if opt['gnl_omega'] == 'diag':
-        #     opt['gnl_omega_diag'] = 'free' #'free 'const'
-        #     if opt['gnl_omega_diag'] == 'const':
-        #         opt['gnl_omega_diag_val'] = 1 #-1 # 1
-        #     elif opt['gnl_omega_diag'] == 'free':
-        #         opt['gnl_omega_activation'] = 'exponential' #identity
         opt['gnl_omega_diag'] = 'free' #'free 'const'
         opt['gnl_omega_diag_val'] = None #1 #-1 # 1
         opt['gnl_omega_activation'] = 'identity' #identity
         opt['gnl_omega_params'] = ["diag","free","None","identity"] #[opt['gnl_omega'], opt['gnl_omega_diag'], opt['gnl_omega_diag_val'], opt['gnl_omega_activation']]
         #W
-        opt['gnl_W_style'] = 'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_W_style'] = 'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         if opt['gnl_W_style'] == 'k_block':
         # assert in_features % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
@@ -153,34 +151,29 @@ def greed_hyper_params(opt):
             opt['gnl_W_diag_init_q'] = 1.0
             opt['gnl_W_diag_init_r'] = 0.0
 
-    # opt['planetoid_split'] = True
-    # opt['geom_gcn_splits'] = False #True#True #False#True
-    opt['epoch'] = 129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
-    opt['num_splits'] = 1 #10#4#1
-    # opt['patience'] = 3
-    # opt['target_homoph'] = '0.70' #for synthetic cora
-
     #definitions of lie trotter
     #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
     #gen_0 - alternates one step diffusion and drift in alternating lie-trotter scheme (ie eq 42)
     #gen_1 - alternates ranges of diffusion and drift (ie eq 43-44)
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
-
     opt['drift'] = False  # False#True
     opt['gnl_thresholding'] = False
     opt['lie_trotter'] = None #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     opt['drift_space'] = 'label' #feature' #'label' #todo add to params
     opt['drift_grad'] = True #True #todo add to params
-    opt['m2_aug'] = False #True #False #todo not sure what state this was left in
+    opt['m2_aug'] = True #False #todo not sure what state this was left in - it just read outs from C dimensions
     opt['m3_path_dep'] = False#True
     opt['m3_space'] = None #'label'
     opt['loss_reg'] = None #4#3#2#6#5#6
     opt['loss_reg_weight'] = 1. #4
     opt['loss_reg_delay'] = 0 #4
     opt['loss_reg_certainty'] = None #0.85 #0.95 #1.00 #0.95
-
+    #assuming spec rad=4, dampen gamma=0.6, step=0.1
+    opt['dampen_gamma'] = 1.0#0.6
+    opt['gnl_W_norm'] = False  # True #divide by spectral radius
+    opt['step_size'] = 0.5
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
-    opt['reports_list'] = [] #[8]#1,2,4,7,8,9]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
+    opt['reports_list'] = [1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
 
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         if opt['lie_trotter'] in [None, 'gen_0']:
@@ -235,7 +228,7 @@ def not_sweep_args(opt, project_name, group_name):
     opt['save_wandb_reports'] = True#False#True
     opt['wandb_watch_grad'] = False
 
-    opt['wandb_epoch_list'] = [8, 128]#[1,2,4,8,16,32,64,128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8]
+    opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]#[8, 128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8]
     opt['display_epoch_list'] = [8,128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8] #todo add to params
 
     DT = datetime.datetime.now()
