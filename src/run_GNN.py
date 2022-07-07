@@ -596,16 +596,15 @@ def main(cmd_opt):
             patience_count = 0
         for epoch in range(1, opt['epoch']):
             start_time = time.time()
-            if opt['function'] in ['greed', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero',
-                                   'greed_non_linear', 'greed_lie_trotter']:
-                model.odeblock.odefunc.epoch = epoch
+            # if opt['function'] in ['greed', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero',
+            #                        'greed_non_linear', 'greed_lie_trotter']:
+            model.odeblock.odefunc.epoch = epoch
 
             if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
                 ei = apply_KNN(data, pos_encoding, model, opt)
                 model.odeblock.odefunc.edge_index = ei
 
             loss = train(model, optimizer, data, pos_encoding)
-
             tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
 
             best_time = opt['time']

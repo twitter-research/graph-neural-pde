@@ -424,28 +424,7 @@ def run_reports(odefunc):
         if epoch == opt['wandb_epoch_list'][-1] and opt['save_local_reports']:
             getattr(odefunc, f"report{str(rep_num)}_pdf").close()
 
-
-def reset_stats(odefunc):
-    odefunc.fOmf = None
-    odefunc.attentions = None
-    odefunc.L2dist = None
-    odefunc.node_magnitudes = None
-    odefunc.node_measures = None
-    odefunc.train_accs = None
-    odefunc.val_accs = None
-    odefunc.test_accs = None
-    odefunc.entropies = None
-
-    odefunc.val_dist_mean_feat = None
-    odefunc.val_dist_sd_feat = None
-    odefunc.test_dist_mean_feat = None
-    odefunc.test_dist_sd_feat = None
-    odefunc.val_dist_mean_label = None
-    odefunc.val_dist_sd_label = None
-    odefunc.test_dist_mean_label = None
-    odefunc.test_dist_sd_label = None
-    odefunc.paths = []
-
+from greed_reporting_fcts import reset_stats
 @torch.no_grad()
 def reports_manager(model, data):
     # forward pass through the model in eval mode to generate the data

@@ -11,19 +11,19 @@ from torch.distributions import Categorical
 def set_reporting_attributes(func, data, opt):
     func.get_evol_stats = False
     func.energy = 0
-    func.fOmf = None
-    func.attentions = None
-    func.L2dist = None
-    func.node_magnitudes = None
-    func.node_measures = None
+    
+    func.attentions = []
+    func.fOmf = []
+    func.L2dist = []
+    func.node_magnitudes = []
+    func.node_measures = []
+    func.train_accs = []
+    func.val_accs = []
+    func.test_accs = []
+    func.homophils = []
 
-    func.train_accs = None
-    func.val_accs = None
-    func.test_accs = None
-    func.homophils = None
     func.entropies = None
     func.confusions = None
-
     func.val_dist_mean_feat = None
     func.val_dist_sd_feat = None
     func.test_dist_mean_feat = None
@@ -33,17 +33,17 @@ def set_reporting_attributes(func, data, opt):
     func.test_dist_mean_label = None
     func.test_dist_sd_label = None
 
-    func.graph_edge_homophily = homophily(edge_index=func.edge_index, y=data.y, method='edge')
-    func.graph_node_homophily = homophily(edge_index=func.edge_index, y=data.y, method='node')
+    #todo what are these? where are they used?
+    # graph_edge_homophily = homophily(edge_index=func.edge_index, y=data.y, method='edge')
+    # graph_node_homophily = homophily(edge_index=func.edge_index, y=data.y, method='node')
     func.labels = data.y
-
     row, col = data.edge_index
-    edge_homophils = torch.zeros(row.size(0), device=row.device)
-    edge_homophils[data.y[row] == data.y[col]] = 1.
-    node_homophils = scatter_mean(edge_homophils, col, 0, dim_size=data.y.size(0))
-    func.edge_homophils = edge_homophils
-    func.node_homophils = node_homophils
-    func.degree = degree(func.edge_index[0], func.n_nodes)
+    func.edge_homophils = torch.zeros(row.size(0), device=row.device)
+    func.edge_homophils[data.y[row] == data.y[col]] = 1.
+    node_homophils = scatter_mean(func.edge_homophils, col, 0, dim_size=data.y.size(0))
+    #todo what are these? where are they used?
+    func.node_homophils = node_homophils #in reports 4 and 5
+    # func.degree = degree(func.edge_index[0], func.n_nodes) #nowhere
 
     if opt['lie_trotter'] != 'gen_2':
       func.cum_steps_list, func.cum_time_points, func.cum_time_ticks, func.block_type_list = create_time_lists(opt)
@@ -112,6 +112,80 @@ def get_entropies(logits, data, activation="softmax", pos_encoding=None,
     entropies_dic[f"entropy_{mask_name}"] = entropy2.unsqueeze(0)
   return entropies_dic
 
+def get_confusion(func, data, pred, norm_type):
+    # conf_mat = confusion_matrix(data.y, pred, normalize=norm_type)
+    # torch_conf_mat = func.torch_confusion(data.y, pred, norm_type)
+    # print(torch.allclose(torch.from_numpy(conf_mat), torch_conf_mat, rtol=0.001))
+    # train_cm = confusion_matrix(data.y[data.train_mask], pred[data.train_mask], normalize=norm_type)
+    # val_cm = confusion_matrix(data.y[data.val_mask], pred[data.val_mask], normalize=norm_type)
+    # test_cm = confusion_matrix(data.y[data.test_mask], pred[data.test_mask], normalize=norm_type)
+    num_class = func.C
+    conf_mat = torch_confusion(func, data.y, pred, num_class, norm_type)
+    train_cm = torch_confusion(func, data.y[data.train_mask], pred[data.train_mask], num_class, norm_type)
+    val_cm = torch_confusion(func, data.y[data.val_mask], pred[data.val_mask], num_class, norm_type)
+    test_cm = torch_confusion(func, data.y[data.test_mask], pred[data.test_mask], num_class, norm_type)
+    return conf_mat, train_cm, val_cm, test_cm
+
+def torch_confusion(func, labels, pred, num_class, norm_type):
+    '''
+    Truth - row i
+    Pred - col j
+    '''
+    num_nodes = labels.shape[0]
+    conf_mat = torch.zeros((num_class, num_class), dtype=torch.double, device=func.device)
+    for i in range(num_class):
+      for j in range(num_class):
+        conf_mat[i,j] = ((labels==i).long() * (pred==j).long()).sum()
+    if norm_type == None:
+      pass
+    elif norm_type == 'true':
+      trues = torch.zeros(num_class, dtype=torch.double, device=func.device)
+      for c in range(num_class):
+        trues[c] = (labels == c).sum()
+      conf_mat = conf_mat / trues.unsqueeze(-1)
+    elif norm_type == 'pred':
+      preds = torch.zeros(num_class, dtype=torch.double, device=func.device)
+      for c in range(num_class):
+        preds[c] = (pred == c).sum()
+      conf_mat = conf_mat / preds.unsqueeze(0)
+    elif norm_type == 'all':
+      conf_mat / num_nodes
+    return conf_mat
+
+def get_distances(func, data, x, num_class, base_mask, eval_masks, base_type):
+    #this should work for features or preds/label space
+    base_av = torch.zeros((num_class, x.shape[-1]), device=func.device)
+    #calculate average hidden state per class in the baseline set - [C, d]
+    if base_type == 'train_avg':
+      for c in range(num_class):
+        base_c_mask = data.y[base_mask] == c
+        base_av_c = x[base_mask][base_c_mask].mean(dim=0)
+        base_av[c] = base_av_c
+    elif base_type == 'e_k':
+      base_av = torch.eye(num_class, device=func.device)
+
+    #for every node calcualte the L2 distance - [N, C] and [N, C]
+    #todo for label space calc distance from Ek
+    dist = x.unsqueeze(-1) - base_av.T.unsqueeze(0)
+    L2_dist = torch.sqrt(torch.sum(dist**2, dim=1))
+
+    #for every node in each true class in the val/test sets calc the distances away from the average train set for each class
+    eval_means = []
+    eval_sds = []
+    for eval_mask in eval_masks:
+      eval_dist_mean = torch.zeros((num_class, num_class), device=func.device)
+      eval_dist_sd = torch.zeros((num_class, num_class), device=func.device)
+      for c in range(num_class):
+        base_c_mask = data.y[eval_mask] == c
+        eval_dist_mean[c] = L2_dist[eval_mask][base_c_mask].mean(dim=0)
+        eval_dist_sd[c] = L2_dist[eval_mask][base_c_mask].std(dim=0)
+
+      eval_means.append(eval_dist_mean)
+      eval_sds.append(eval_dist_sd)
+    #output: rows base_class, cols eval_class
+    return eval_means, eval_sds
+
+
 def generate_stats(func, t, x, f):
     # get edge stats if not a diffusion pass/block
     # if func.do_drift(t):
@@ -150,8 +224,6 @@ def generate_stats(func, t, x, f):
                    f"gf_e{func.epoch}_x": (x ** 2).sum(),
                    "grad_flow_step": func.wandb_step})
 
-        # z = x
-        # logits, pred = func.predict(z)
         if func.opt['lie_trotter'] == 'gen_2':
             if func.opt['lt_block_type'] == 'label':
                 logits = x
@@ -164,31 +236,36 @@ def generate_stats(func, t, x, f):
         train_acc, val_acc, test_acc = test(logits, func.data)
         homophil = homophily(edge_index=func.edge_index, y=pred)
         L2dist = torch.sqrt(torch.sum((src_x - dst_x) ** 2, dim=1))
-        conf_mat, train_cm, val_cm, test_cm = func.get_confusion(func.data, pred, norm_type='true')  # 'all')
-        eval_means_feat, eval_sds_feat = func.get_distances(func.data, x, func.C, base_mask=func.data.train_mask,
+        conf_mat, train_cm, val_cm, test_cm = get_confusion(func, func.data, pred, norm_type='true')  # 'all')
+        eval_means_feat, eval_sds_feat = get_distances(func, func.data, x, func.C, base_mask=func.data.train_mask,
                                                             eval_masks=[func.data.val_mask, func.data.test_mask],
                                                             base_type="train_avg")
         # eval_means_label, eval_sds_label = func.get_distances(func.data, sm_logits, func.C, base_mask=func.data.train_mask, eval_masks=[func.data.val_mask, func.data.test_mask], base_type="e_k")
-        eval_means_label, eval_sds_label = func.get_distances(func.data, logits, func.C, base_mask=func.data.train_mask,
+        eval_means_label, eval_sds_label = get_distances(func, func.data, logits, func.C, base_mask=func.data.train_mask,
                                                               eval_masks=[func.data.val_mask, func.data.test_mask],
                                                               base_type="train_avg")
         entropies = get_entropies(logits, func.data)
 
-    return L2dist, train_acc, val_acc, test_acc, homophil, conf_mat, train_cm, val_cm, test_cm,\
+    return fOmf, attention, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat, train_cm, val_cm, test_cm,\
            eval_means_feat, eval_sds_feat, eval_means_label, eval_sds_label, entropies
 
+
+# todo this could be easily condensed/optimised if just saved all objects in lists and then do the stacking at the end
+# above job is now half done apart from entropies, confusions and distances
 def append_stats(func, attention, fOmf, x, measure, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat, train_cm, val_cm, test_cm,
            eval_means_feat, eval_sds_feat, eval_means_label, eval_sds_label, entropies):
-    if func.attentions is None:
-        func.attentions = attention.unsqueeze(0)
-        func.fOmf = fOmf.unsqueeze(0)
-        func.L2dist = L2dist.unsqueeze(0)
-        func.node_magnitudes = torch.sqrt(torch.sum(x ** 2, dim=1)).unsqueeze(0)
-        func.node_measures = measure.detach().unsqueeze(0)
-        func.train_accs = [train_acc]
-        func.val_accs = [val_acc]
-        func.test_accs = [test_acc]
-        func.homophils = [homophil]
+
+    func.attentions.append(attention)
+    func.fOmf.append(fOmf)
+    func.L2dist.append(L2dist)
+    func.node_magnitudes.append(torch.sqrt(torch.sum(x ** 2, dim=1)))
+    func.node_measures.append(measure.detach())
+    func.train_accs.append(train_acc)
+    func.val_accs.append(val_acc)
+    func.test_accs.append(test_acc)
+    func.homophils.append(homophil)
+
+    if len(func.attentions) is 1:
         func.entropies = entropies
         func.confusions = [conf_mat, train_cm, val_cm, test_cm]
 
@@ -201,19 +278,7 @@ def append_stats(func, attention, fOmf, x, measure, L2dist, train_acc, val_acc, 
         func.val_dist_sd_label = eval_sds_label[0]
         func.test_dist_mean_label = eval_means_label[1]
         func.test_dist_sd_label = eval_sds_label[1]
-        # func.paths.append(x)
     else:
-        func.attentions = torch.cat([func.attentions, attention.unsqueeze(0)], dim=0)
-        func.fOmf = torch.cat([func.fOmf, fOmf.unsqueeze(0)], dim=0)
-        func.L2dist = torch.cat([func.L2dist, L2dist.unsqueeze(0)], dim=0)
-        func.node_magnitudes = torch.cat([func.node_magnitudes, torch.sqrt(torch.sum(x ** 2, dim=1)).unsqueeze(0)],
-                                         dim=0)
-        func.node_measures = torch.cat([func.node_measures, measure.detach().unsqueeze(0)], dim=0)
-        func.train_accs.append(train_acc)
-        func.val_accs.append(val_acc)
-        func.test_accs.append(test_acc)
-        func.homophils.append(homophil)
-
         temp_entropies = entropies
         for key, value, in func.entropies.items():
             func.entropies[key] = torch.cat([value, temp_entropies[key]], dim=0)
@@ -233,7 +298,6 @@ def append_stats(func, attention, fOmf, x, measure, L2dist, train_acc, val_acc, 
             func.val_dist_sd_label = torch.stack((func.val_dist_sd_label, eval_sds_label[0]), dim=-1)
             func.test_dist_mean_label = torch.stack((func.test_dist_mean_label, eval_means_label[1]), dim=-1)
             func.test_dist_sd_label = torch.stack((func.test_dist_sd_label, eval_sds_label[1]), dim=-1)
-            # func.paths.append(x)
         else:
             func.confusions[0] = torch.cat((func.confusions[0], conf_mat.unsqueeze(-1)), dim=-1)
             func.confusions[1] = torch.cat((func.confusions[1], train_cm.unsqueeze(-1)), dim=-1)
@@ -247,7 +311,40 @@ def append_stats(func, attention, fOmf, x, measure, L2dist, train_acc, val_acc, 
 
             func.val_dist_mean_label = torch.cat((func.val_dist_mean_label, eval_means_label[0].unsqueeze(-1)), dim=-1)
             func.val_dist_sd_label = torch.cat((func.val_dist_sd_label, eval_sds_label[0].unsqueeze(-1)), dim=-1)
-            func.test_dist_mean_label = torch.cat((func.test_dist_mean_label, eval_means_label[1].unsqueeze(-1)),
-                                                  dim=-1)
+            func.test_dist_mean_label = torch.cat((func.test_dist_mean_label, eval_means_label[1].unsqueeze(-1)), dim=-1)
             func.test_dist_sd_label = torch.cat((func.test_dist_sd_label, eval_sds_label[1].unsqueeze(-1)), dim=-1)
-            # func.paths.append(x)
+
+def stack_stats(func):
+    func.attentions = torch.stack(func.attentions)
+    func.fOmf = torch.stack(func.fOmf)
+    func.L2dist = torch.stack(func.L2dist)
+    func.node_magnitudes = torch.stack(func.node_magnitudes)
+    func.node_measures = torch.stack(func.node_measures)
+    # func.train_accs = torch.stack(func.train_accs) #these are lists of floats
+    # func.val_accs = torch.stack(func.val_accs)
+    # func.test_accs = torch.stack(func.test_accs)
+    # func.homophils = torch.stack(func.homophils)
+
+
+def reset_stats(func):
+    func.attentions = []
+    func.fOmf = []
+    func.L2dist = []
+    func.node_magnitudes = []
+    func.node_measures = []
+    func.train_accs = []
+    func.val_accs = []
+    func.test_accs = []
+    func.homophils = []
+
+    func.entropies = None
+    func.confusions = None
+    func.val_dist_mean_feat = None
+    func.val_dist_sd_feat = None
+    func.test_dist_mean_feat = None
+    func.test_dist_sd_feat = None
+    func.val_dist_mean_label = None
+    func.val_dist_sd_label = None
+    func.test_dist_mean_label = None
+    func.test_dist_sd_label = None
+
