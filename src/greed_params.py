@@ -92,7 +92,7 @@ def greed_hyper_params(opt):
 
     #hyper-params
     opt['optimizer'] = 'adam'
-    opt['lr'] = 0.075#0.001
+    opt['lr'] = 0.0075#0.001
     opt['dropout'] = 0.35
     opt['input_dropout'] = 0.5
     opt['decay'] = 0.0005 #Cora 0.05 chameleon 0.0005

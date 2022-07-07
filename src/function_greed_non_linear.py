@@ -458,7 +458,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       L_temp = torch.cat([self.L_W, torch.zeros((half_in_features, 1), device=self.device)], dim=1)
       L = torch.stack([torch.roll(L_temp[i], shifts=i+1, dims=-1) for i in range(half_in_features)])
       L = (L+L.T) / 2
-      L_sum = self.L_t_a * torch.abs(L).sum(dim=1) + self.L_r_a
+      L_sum = (torch.exp(self.L_t_a) + 1) * torch.abs(L).sum(dim=1) + torch.exp(self.L_r_a)
       L_block = L + torch.diag(L_sum)
       Ws = torch.zeros((self.in_features, self.in_features), device=self.device)
       Ws[0:half_in_features, 0:half_in_features] = L_block
@@ -466,7 +466,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       R_temp = torch.cat([self.R_W, torch.zeros((half_in_features, 1), device=self.device)], dim=1)
       R = torch.stack([torch.roll(R_temp[i], shifts=i+1, dims=-1) for i in range(half_in_features)])
       R = (R+R.T) / 2
-      R_sum = self.R_t_a * torch.abs(R).sum(dim=1) + self.R_r_a
+      R_sum = (torch.exp(self.R_t_a) + 1) * torch.abs(R).sum(dim=1) + torch.exp(self.R_r_a)
       R_block = R + torch.diag(R_sum)
       R_Ws = torch.zeros((self.in_features, self.in_features), device=self.device)
       R_Ws[0:half_in_features, 0:half_in_features] = R_block
