@@ -70,3 +70,10 @@ command:
   - --wandb_sweep
 entity: graph_neural_diffusion
 project: att_rep_cham
+
+  File "/home/jrowbottom/workspace/graph-neural-pde/src/function_greed_non_linear.py", line 195, in __init__
+    if self.opt['drift_space'] == 'feature':
+  File "/opt/conda/envs/grand/lib/python3.9/site-packages/wandb/sdk/wandb_config.py", line 128, in __getitem__
+    return self._items[key]
+KeyError: 'drift_space'
+wandb: Waiting for W&B pro

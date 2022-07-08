@@ -977,6 +977,8 @@ if __name__ == '__main__':
     parser.add_argument('--m2_aug', type=str, default='False', help='whether to augment m2 for drift readout')
     parser.add_argument('--m3_path_dep', type=str, default='False', help='whether to use path dependent for m3 decoder')
     parser.add_argument('--m3_space', type=str, default='', help='label / feature')
+    parser.add_argument('--drift_space', type=str, default=None, help='feature, label')
+    parser.add_argument('--drift_grad', type=str, default='True', help='collect gradient off drift term')
 
     args = parser.parse_args()
     opt = vars(args)
