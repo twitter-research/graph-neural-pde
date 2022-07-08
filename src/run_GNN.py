@@ -979,6 +979,7 @@ if __name__ == '__main__':
     parser.add_argument('--m3_space', type=str, default='', help='label / feature')
     parser.add_argument('--drift_space', type=str, default=None, help='feature, label')
     parser.add_argument('--drift_grad', type=str, default='True', help='collect gradient off drift term')
+    parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
 
     args = parser.parse_args()
     opt = vars(args)
