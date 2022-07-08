@@ -92,17 +92,17 @@ def greed_hyper_params(opt):
 
     #hyper-params
     opt['optimizer'] = 'adam'
-    opt['lr'] = 0.0075#0.001
+    opt['lr'] = 0.001#0.001
     opt['dropout'] = 0.35
     opt['input_dropout'] = 0.5
     opt['decay'] = 0.0005 #Cora 0.05 chameleon 0.0005
-    opt['hidden_dim'] = 128#64 #512
+    opt['hidden_dim'] = 64#64 #512
     opt['use_best_params'] = False #True #False #True
     opt['method'] = 'euler'
     opt['max_nfe'] = 2000 #for some reason 1000 not enough with all report building
     opt['step_size'] = 0.5#1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 3 #4 #18.295 #10
-    opt['epoch'] = 257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
+    opt['epoch'] = 129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1 #10#4#1
     # opt['planetoid_split'] = True
     # opt['geom_gcn_splits'] = False #True#True #False#True
@@ -174,7 +174,7 @@ def greed_hyper_params(opt):
     opt['gnl_W_norm'] = False  # True #divide by spectral radius
     opt['step_size'] = 0.5
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
-    opt['reports_list'] = []#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
+    opt['reports_list'] = [1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
 
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         if opt['lie_trotter'] in [None, 'gen_0']:
@@ -222,7 +222,7 @@ def not_sweep_args(opt, project_name, group_name):
     # opt['wandb_group'] = group_name #"testing"  # "tuning" eval
 
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = False#True #True #True #False #True
+    opt['wandb'] = True #True #True #False #True
     opt['wandb_track_grad_flow'] = True #False  #collect stats for reports
     opt['run_track_reports'] = True #False#True ##run the evolution reports
     opt['save_local_reports'] = True#True

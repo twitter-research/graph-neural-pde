@@ -30,6 +30,8 @@ def report_1(ax, fig, odefunc, row, epoch):
         Omega = odefunc.Omega
     elif opt['gnl_style'] == 'general_graph':
         Omega = odefunc.gnl_W
+    elif opt['gnl_style'] == 'att_rep_laps':
+        Omega = odefunc.gnl_W
 
     L, Q = torch.linalg.eigh(Omega)  # fast version for symmetric matrices https://pytorch.org/docs/stable/generated/torch.linalg.eig.html
 

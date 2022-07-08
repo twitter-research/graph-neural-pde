@@ -81,7 +81,7 @@ class GNN(BaseGNN):
           self.odeblock.odefunc.set_M0()
       elif self.opt['gnl_style'] == 'att_rep_laps':
         self.odeblock.odefunc.Ws, self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_gnlWS()
-        self.odeblock.odefunc.gnl_W = self.odeblock.odefunc.Ws + self.odeblock.odefunc.R_Ws
+        self.odeblock.odefunc.gnl_W = self.odeblock.odefunc.Ws - self.odeblock.odefunc.R_Ws
         if self.opt['diffusion']:
           self.odeblock.odefunc.set_L0()
         if self.opt['repulsion']:

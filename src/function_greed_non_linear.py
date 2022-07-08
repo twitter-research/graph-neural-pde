@@ -469,7 +469,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       R_sum = (torch.exp(self.R_t_a) + 1) * torch.abs(R).sum(dim=1) + torch.exp(self.R_r_a)
       R_block = R + torch.diag(R_sum)
       R_Ws = torch.zeros((self.in_features, self.in_features), device=self.device)
-      R_Ws[0:half_in_features, 0:half_in_features] = R_block
+      R_Ws[half_in_features:, half_in_features:] = R_block
 
       return Ws, R_Ws
 
