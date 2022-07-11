@@ -18,7 +18,15 @@ parameters:
   method:
     values: [euler]
   gnl_style:
+    values: [att_rep_laps]
+  gnl_W_style:
     values: [att_rep_lap_block]
+  gnl_W_norm:
+    values: [True, False]
+  diffusion:
+    values: [True]
+  repulsion:
+    values: [True]
   gnl_activation:
     values: [identity]
   gnl_measure:
@@ -29,8 +37,6 @@ parameters:
     values: [True]
   add_source:
     values: [False]
-  gnl_W_style:
-    values: [sum]
   gnl_omega:
     values: [diag]
   gnl_omega_diag:
@@ -61,12 +67,6 @@ parameters:
     distribution: uniform
     min: 0.000
     max: 0.05
-  gnl_W_norm:
-    values: [True, False]
-  diffusion:
-    values: [True]
-  repulsion:
-    values: [True]
 command:
   - ${env}
   - python3
