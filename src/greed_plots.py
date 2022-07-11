@@ -60,9 +60,9 @@ def syn_cora_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
     if ax is None:
         fig, ax = plt.subplots()
         sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax)
-        # ax.set_xlabel('Target homophily', fontsize=fs)
+        ax.set_xlabel('Target homophily', fontsize=fs)
         ax.set_ylabel('Test accuracy', fontsize=fs)
-        ax.get_xaxis().set_visible(False)
+        # ax.get_xaxis().set_visible(False)
         ax.legend(prop=dict(size=fs), loc='upper left')
     else:
         sns.lineplot(data=piv, palette="tab10", linewidth=2.5, ax=ax[ax_idx])
@@ -390,8 +390,8 @@ def wall_clock(path, model, line_scatter="both", plot=True, save=True):
 
 if __name__ == "__main__":
     path = "../ablations/ablation_syn_cora.csv"
-    # _,_ = syn_cora_plot(path, plot=True, save=True)
-    # _,_ = syn_cora_homoph(path)
+    _,_ = syn_cora_plot(path, plot=True, save=True)
+    _,_ = syn_cora_homoph(path, line_scatter='scatter', plot=True, save=True)
 
     # 1)
     # plot_1(path, "scatter")
@@ -402,7 +402,7 @@ if __name__ == "__main__":
     # _,_ = syn_cora_gcn_plot(path="../ablations/ablation_syn_cora_gcn.csv", plot=True, save=True)
 
     # 3)
-    size_d_plot()
+    # size_d_plot()
 
     # 4)
     # wall_clock(path="../ablations/wallclock.csv", model="gcn")

@@ -68,8 +68,6 @@ def greed_hyper_params(opt):
     opt['laplacian_norm'] = 'lap_symmDeg_RowSumnorm' #'lap_symmAtt_relaxed' #'lap_symmDeg_RowSumnorm'#'lap_symmDeg_RowSumnorm' #'lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
     # opt['R_T0term_normalisation'] = 'T0_rowSum'
     # opt['R_laplacian_norm'] = 'lap_symmAtt_relaxed' #'lap_symmAtt_relaxed' #lap_symmAtt_RowSumnorm' #, lap_symmAttM_RowSumnorm
-    opt['diffusion'] = True
-    opt['repulsion'] = False #True
     opt['R_depon_A'] = 'none' #'inverse'
     opt['alpha_style'] = 'sigmoid' #0.5 'sigmoid' #"sigmoid", "free", "forced", "diag"
 
@@ -113,7 +111,7 @@ def greed_hyper_params(opt):
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
     opt['time_dep_w'] = False
     opt['time_dep_struct_w'] = False#True
-    opt['gnl_style'] = 'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
+    opt['gnl_style'] = 'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
 
     if opt['gnl_style'] == 'scaled_dot':
@@ -151,7 +149,7 @@ def greed_hyper_params(opt):
             opt['gnl_W_diag_init_q'] = 1.0
             opt['gnl_W_diag_init_r'] = 0.0
     elif opt['gnl_style'] == 'att_rep_laps':
-        opt['gnl_W_style'] = 'att_rep_lap_block'
+        opt['gnl_W_style'] = 'att_rep_lap_block'#'sum'#'att_rep_lap_block'
     #definitions of lie trotter
     #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
     #gen_0 - alternates one step diffusion and drift in alternating lie-trotter scheme (ie eq 42)
@@ -162,19 +160,21 @@ def greed_hyper_params(opt):
     opt['lie_trotter'] = None #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     opt['drift_space'] = 'label' #feature' #'label' #todo add to params
     opt['drift_grad'] = True #True #todo add to params
-    opt['m2_aug'] = True #False #todo not sure what state this was left in - it just read outs from C dimensions
+    opt['m2_aug'] = False# True #False #reads out (no weights) prediction from bottom C dimensions
     opt['m3_path_dep'] = False#True
     opt['m3_space'] = None #'label'
     opt['loss_reg'] = None #4#3#2#6#5#6
     opt['loss_reg_weight'] = 1. #4
     opt['loss_reg_delay'] = 0 #4
     opt['loss_reg_certainty'] = None #0.85 #0.95 #1.00 #0.95
-    #assuming spec rad=4, dampen gamma=0.6, step=0.1
-    opt['dampen_gamma'] = 1.0#0.6
+    opt['diffusion'] = True#True
+    opt['repulsion'] = True#False#True #True
+    opt['dampen_gamma'] = 1.0#0.6    #assuming spec rad=4, dampen gamma=0.6, step=0.1
     opt['gnl_W_norm'] = False  # True #divide by spectral radius
-    opt['step_size'] = 0.5
+    opt['step_size'] = 0.1#5
+
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
-    opt['reports_list'] = [1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
+    opt['reports_list'] = [1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
 
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         if opt['lie_trotter'] in [None, 'gen_0']:
@@ -191,7 +191,6 @@ def greed_hyper_params(opt):
         opt['block'] = 'greed_lie_trotter'
         #gen2 args
         #todo we only ever want one decoder, do this by setting 'share_block'=0 (to the number of the first block for any drift blocks)
-        #todo when sharing blocks, it can't handle generating the reports at the interim time steps
         # opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
         #                     {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': 0, 'reports_list': []},
         #                     {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0,'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},

@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from base_classes import BaseGNN
 from model_configurations import set_block, set_function
 from utils import project_paths_label_space
+from torch_geometric.utils import contains_self_loops
 
 # Define the GNN model.
 class GNN(BaseGNN):
@@ -70,7 +71,7 @@ class GNN(BaseGNN):
         self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_scaled_dot_omega()
       elif self.opt['gnl_style'] == 'general_graph':
         W = self.odeblock.odefunc.set_gnlWS()
-        if self.opt['gnl_W_norm']:
+        if self.opt['gnl_W_norm']: #need to do this at the GNN level as called once in the forward call
           W_eval, W_evec = torch.linalg.eigh(W)
           W = W / torch.abs(W_eval).max()
         self.odeblock.odefunc.gnl_W = W
@@ -79,9 +80,25 @@ class GNN(BaseGNN):
           self.odeblock.odefunc.gnl_W_tilde = self.odeblock.odefunc.set_gnlWS()
         if self.opt['gnl_attention']:
           self.odeblock.odefunc.set_M0()
-      elif self.opt['gnl_style'] == 'att_rep_laps':
-        self.odeblock.odefunc.Ws, self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_gnlWS()
-        self.odeblock.odefunc.gnl_W = self.odeblock.odefunc.Ws - self.odeblock.odefunc.R_Ws
+      elif self.opt['gnl_style'] == 'att_rep_laps': #contains_self_loops(self.odeblock.odefunc.edge_index)
+        if self.opt['gnl_W_style'] == 'att_rep_lap_block':
+          Ws, R_Ws = self.odeblock.odefunc.set_gnlWS()
+          # self.odeblock.odefunc.Ws, self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_gnlWS()
+          if self.opt['gnl_W_norm']: #need to do this at the GNN level as called once in the forward call
+            Ws_eval, Ws_evec = torch.linalg.eigh(Ws)
+            Ws = Ws / torch.abs(Ws_eval).max()
+            R_Ws_eval, R_Ws_evec = torch.linalg.eigh(R_Ws)
+            R_Ws= R_Ws / torch.abs(R_Ws_eval).max()
+          self.odeblock.odefunc.Ws = Ws
+          self.odeblock.odefunc.R_Ws = R_Ws
+          self.odeblock.odefunc.gnl_W = Ws - R_Ws
+
+        elif self.opt['gnl_W_style'] == 'sum':
+          pass #just testing
+          # self.odeblock.odefunc.Ws = self.odeblock.odefunc.set_gnlWS()
+          # self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_gnlWS()
+          # self.odeblock.odefunc.gnl_W = self.odeblock.odefunc.set_gnlWS()
+
         if self.opt['diffusion']:
           self.odeblock.odefunc.set_L0()
         if self.opt['repulsion']:
