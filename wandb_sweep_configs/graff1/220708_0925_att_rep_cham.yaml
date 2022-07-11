@@ -6,7 +6,7 @@ parameters:
   block:
     values: [constant]
   function:
-    values: [greed_non_linear]
+    values: [att_rep_lap_block]
   epoch:
     values: [129]
   num_splits:
