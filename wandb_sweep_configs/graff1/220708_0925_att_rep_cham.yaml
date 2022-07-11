@@ -63,6 +63,10 @@ parameters:
     max: 0.05
   gnl_W_norm:
     values: [True, False]
+  diffusion:
+    values: [True]
+  repulsion:
+    values: [True]
 command:
   - ${env}
   - python3
