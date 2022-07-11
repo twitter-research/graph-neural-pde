@@ -62,7 +62,7 @@ parameters:
     min: 0.000
     max: 0.05
   gnl_W_norm:
-  values: [True, False]
+    values: [True, False]
 command:
   - ${env}
   - python3
