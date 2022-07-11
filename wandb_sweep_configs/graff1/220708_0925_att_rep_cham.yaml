@@ -27,6 +27,8 @@ parameters:
     values: [True]
   repulsion:
     values: [True]
+  alpha_style:
+    values: [sigmoid]
   gnl_activation:
     values: [identity]
   gnl_measure:
