@@ -6,7 +6,7 @@ parameters:
   block:
     values: [constant]
   function:
-    values: [att_rep_lap_block]
+    values: [greed_non_linear]
   epoch:
     values: [129]
   num_splits:
@@ -18,7 +18,7 @@ parameters:
   method:
     values: [euler]
   gnl_style:
-    values: [general_graph]
+    values: [att_rep_lap_block]
   gnl_activation:
     values: [identity]
   gnl_measure:
