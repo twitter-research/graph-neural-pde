@@ -13,6 +13,7 @@ from matplotlib.colors import ListedColormap, BoundaryNorm
 import matplotlib.animation as animation
 from matplotlib.animation import FuncAnimation
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.lines import Line2D
 import networkx as nx
 import json
 from sklearn.decomposition import PCA
@@ -209,7 +210,7 @@ def report_5(ax, fig, odefunc, row, epoch):
     ax[row, 0].yaxis.set_tick_params(labelsize=16)
     ax[row, 0].set_title(f"f magnitudes v node homophils, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
 
-    # node measure against degree or homophilly, colour is class
+    # node measure against degree or homophily, colour is class
     measures = odefunc.node_measures
     ax[row, 1].scatter(x=measures[-1, :].cpu().numpy(), y=node_homophils.cpu().numpy(), c=labels.cpu().numpy())  # , cmap='Set1')
     ax[row, 1].xaxis.set_tick_params(labelsize=16)
@@ -373,6 +374,47 @@ def report_9(ax, fig, odefunc, row, epoch):
         fig.show()
 
 
+def report_10(ax, fig, odefunc, row, epoch):
+    #idea for report, see what miss classifications each class is making through it's evolution
+    #ultimately if it's possible to use this to characterise nodes for better predictions
+    #make the big dash the actual class and the small dash the predicted class
+    #note this might actually change each time prediod!
+    # y axis will be count, x axis will be time
+    # there will be c**2 lines
+    #
+
+    opt = odefunc.opt
+    confusions = odefunc.confusions
+    colormap = cm.get_cmap(name="Set1")#'viridis')#"Set1")
+    linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
+    conf_set = ['all','train', 'val', 'test']
+    num_class = odefunc.C
+    custom_lines = [Line2D([0], [0], color=colormap(i), lw=3) for i in range(num_class)]
+
+    for a, i in enumerate([1, 2]):
+        conf_mat = confusions[i]
+        for c in range(conf_mat.shape[0]): #base class
+            for k in range(conf_mat.shape[0]): #alt
+                preds = conf_mat[c,k,:]
+                on_for = 6
+                off_for = 3
+                ax[row, a].plot(np.arange(0.0, preds.shape[0] * opt['step_size'], opt['step_size']),
+                                preds.cpu().numpy(), color=colormap(c),
+                                linestyle=(0, (on_for, off_for)), lw=2.5)#, label=f"{conf_set[i]}_base{c}_alt{k}")
+                ax[row, a].plot(np.arange(0.0, preds.shape[0] * opt['step_size'], opt['step_size']),
+                                preds.cpu().numpy(), color=colormap(k),
+                                linestyle=(-on_for, (off_for, on_for)), lw=2.5)#, label=f"{conf_set[i]}_base{c}_alt{k}")
+
+        ax[row, a].xaxis.set_tick_params(labelsize=16)
+        ax[row, a].yaxis.set_tick_params(labelsize=16)
+        ax[row, a].set_title(f"Conf_{conf_set[i]} preds evol, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
+        # ax[row, a].legend()
+        ax[row, a].legend(custom_lines, [f"class {c}" for c in range(num_class)])
+
+    if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
+        fig.show()
+
+
 def run_reports(odefunc):
     opt = odefunc.opt
     epoch = odefunc.epoch
@@ -393,7 +435,8 @@ def run_reports(odefunc):
                 6: ['edge_scatter', 1, [1], (24, 32)],
                 7: ['class_dist', 2, [1, 1], (24, 32)],
                 8: ['tsne_evol', 4, [1, 1, 1, 1], (32,32)],
-                9: ['v_t_entropies', 2, [1, 1], (24, 32)]}
+                9: ['v_t_entropies', 2, [1, 1], (24, 32)],
+                10: ['confusions', 2, [1, 1], (24, 32)]}
 
     reports_nums = opt['reports_list']
     for rep_num in reports_nums:

@@ -3,6 +3,7 @@ import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
 from torch_geometric.utils import to_networkx
 import wandb
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 import matplotlib.cm as cm
@@ -98,11 +99,10 @@ def tsne_snap(ax, fig, odefunc, row, epoch, s=None):
     for a particular epoch will generate fig for the PDF Sheets workflow, ie 4 columns'''
 
     X = torch.stack(odefunc.paths, axis=-1) #np.stack(odefunc.paths, axis=-1)
-    labels = odefunc.labels.detach().cpu().numpy()#np.stack(odefunc.labels, axis=-1)
+    labels = odefunc.labels.detach().cpu().numpy() #np.stack(odefunc.labels, axis=-1)
     G = to_networkx(odefunc.data) #for optional including of the graph
     m2 = odefunc.GNN_m2
     X = project_paths_label_space(m2, X).detach().cpu().numpy()
-    #todo account for centers in either feature or label space
     centers = np.eye(odefunc.C)[...,np.newaxis].repeat(repeats=X.shape[-1], axis=-1)
 
     TL = X.shape[-1]
@@ -113,17 +113,32 @@ def tsne_snap(ax, fig, odefunc, row, epoch, s=None):
     idx_list = [0] + list(range(dt_idx, dt_idx*(nc-1), dt_idx)) + [TL-1]
     times = odefunc.cum_time_ticks
     block_types = odefunc.block_type_list
+    colormap = cm.get_cmap(name='viridis')#"Set1")
 
     for i, t_idx in enumerate(idx_list):
-        X_emb = Xt_TSNE(X, X0pca2, t_idx)
+        # X_emb = Xt_TSNE(X, X0pca2, t_idx)
+        #need to concatonate labels and X together pre TSNE as the point is that TSNE keeps stuff that was close toghether in label space
+        #close together in the 2d representation
+        X_cat_centres = np.concatenate([X, centers], axis=0)
+        X_emb = Xt_TSNE(X_cat_centres, X0pca2, t_idx)
+        num_class = m2.out_features
+        X_emb = X_emb[:-num_class,...]
+        c_i = X_emb[-num_class:,...]
         if s:
-            ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels, s=s)
+            scatter=ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels, cmap=colormap, s=s)
         else:
-            ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels)
+            scatter=ax[row, i].scatter(x=X_emb[:, 0], y=X_emb[:, 1], c=labels, cmap=colormap)
 
-        #todo check project centres in consistent with the paths
+        #project centres into same TSNE as label space point clouds
         # c_i = Xt_TSNE(centers, X0pca2, i)
-        # ax[row, i].scatter(c_i[:,0], c_i[:,1], c='r', s=80, marker='x', linewidths=5, zorder=10)
+        # ax[row, i].scatter(c_i[:,0], c_i[:,1], markerfacecolor=i, markeredgecolor='r', s=150, marker='x', linewidths=5, zorder=10)
+        # ax[row, i].scatter(c_i[:,0], c_i[:,1], c=list(range(num_class)), edgecolors='r', s=150, marker='x', linewidths=5, zorder=10)
+        # cfaces = colormap(np.arange(5))
+        normalize = mpl.colors.Normalize()#vmin=-1, vmax=1)
+        cfaces = colormap(normalize(np.arange(num_class)))
+
+        # cedges = colormap(colors2)
+        ax[row, i].scatter(c_i[:,0], c_i[:,1], facecolors=cfaces, edgecolors='r', s=400, lw=2, marker='X', zorder=10)# linewidths=5,
 
         ax[row, i].xaxis.set_tick_params(labelsize=16)
         ax[row, i].yaxis.set_tick_params(labelsize=16)
@@ -132,7 +147,11 @@ def tsne_snap(ax, fig, odefunc, row, epoch, s=None):
         else:
             ax[row, i].set_title(f"{odefunc.opt['dataset']} TSNE, e={epoch}, t={times[t_idx]}", fontdict={'fontsize': 24})
 
+        # produce a legend with the unique colors from the scatter
+        legend1 = ax[row, i].legend(*scatter.legend_elements(), loc="upper right")#, title="Classes")
+        ax[row, i].add_artist(legend1)
         # ax[row, i].legend(loc="upper right", fontsize=24)
+
     if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
 

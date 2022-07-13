@@ -3,8 +3,9 @@ from torch import nn
 import torch.nn.functional as F
 from base_classes import BaseGNN
 from model_configurations import set_block, set_function
-from utils import project_paths_label_space
+from utils import project_paths_label_space#, project_paths_logit_space
 from torch_geometric.utils import contains_self_loops
+from greed_reporting_fcts import test
 
 # Define the GNN model.
 class GNN(BaseGNN):
@@ -71,9 +72,10 @@ class GNN(BaseGNN):
         self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_scaled_dot_omega()
       elif self.opt['gnl_style'] == 'general_graph':
         W = self.odeblock.odefunc.set_gnlWS()
+        self.W_eval, self.W_evec = torch.linalg.eigh(W)
         if self.opt['gnl_W_norm']: #need to do this at the GNN level as called once in the forward call
-          W_eval, W_evec = torch.linalg.eigh(W)
-          W = W / torch.abs(W_eval).max()
+          # W_eval, W_evec = torch.linalg.eigh(W)
+          W = W / torch.abs(self.W_eval).max()
         self.odeblock.odefunc.gnl_W = W
         self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_gnlOmega()
         if self.opt['two_hops']:
@@ -83,7 +85,6 @@ class GNN(BaseGNN):
       elif self.opt['gnl_style'] == 'att_rep_laps': #contains_self_loops(self.odeblock.odefunc.edge_index)
         if self.opt['gnl_W_style'] == 'att_rep_lap_block':
           Ws, R_Ws = self.odeblock.odefunc.set_gnlWS()
-          # self.odeblock.odefunc.Ws, self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_gnlWS()
           if self.opt['gnl_W_norm']: #need to do this at the GNN level as called once in the forward call
             Ws_eval, Ws_evec = torch.linalg.eigh(Ws)
             Ws = Ws / torch.abs(Ws_eval).max()
@@ -103,6 +104,10 @@ class GNN(BaseGNN):
           self.odeblock.odefunc.set_L0()
         if self.opt['repulsion']:
           self.odeblock.odefunc.set_R0()
+
+  def set_W_spec(self):
+    ### function to calc and control W spec ech epoch
+    pass
 
 
   def forward_XN(self, x):
@@ -141,12 +146,36 @@ class GNN(BaseGNN):
     if self.opt['m2_aug']:
       return z[:, self.hidden_dim - self.num_classes:]
 
+    if self.opt['m2_W_eig']:
+      #project z into eigen space of W_eval
+      z = z @ self.W_evec #todo check if need a transpose - don't think so
+      #use m2 decoder as normal
+      z = self.m2(z)
+      return z
+
     if self.opt['m3_path_dep']:
       self.odeblock.odefunc.paths.append(z)
       paths = torch.stack(self.odeblock.odefunc.paths, axis=-1)
       if self.opt['m3_space'] == 'label':
         paths = project_paths_label_space(self.m2, paths)
       return self.m3(paths.reshape(self.num_nodes, -1))
+
+    if self.opt['m3_best_path_dep']:
+      self.odeblock.odefunc.paths.append(z)
+      paths = torch.stack(self.odeblock.odefunc.paths, axis=-1)
+      path_preds = project_paths_logit_space(self.m2, paths)
+
+      # convert paths to preds and then accuracies
+      # identify time step that each group acheived the best test performance using torch.argmax
+      # input the path dependent prediction with a "STRONG" hint of which time step it should consider via "attention"
+
+      return self.m3(paths.reshape(self.num_nodes, -1))
+
+    # def predict(self, z):
+    #   z = self.GNN_postXN(z)
+    #   logits = self.GNN_m2(z)
+    #   pred = logits.max(1)[1]
+    #   return logits, pred
 
     if self.opt['lie_trotter'] == 'gen_2': #if we end in label diffusion block don't need to decode to logits
       if self.opt['lt_gen2_args'][-1]['lt_block_type'] != 'label':

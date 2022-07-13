@@ -111,7 +111,7 @@ def greed_hyper_params(opt):
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
     opt['time_dep_w'] = False
     opt['time_dep_struct_w'] = False#True
-    opt['gnl_style'] = 'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
+    opt['gnl_style'] = 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
 
     if opt['gnl_style'] == 'scaled_dot':
@@ -158,10 +158,12 @@ def greed_hyper_params(opt):
     opt['drift'] = False  # False#True
     opt['gnl_thresholding'] = False
     opt['lie_trotter'] = None #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
-    opt['drift_space'] = 'label' #feature' #'label' #todo add to params
-    opt['drift_grad'] = True #True #todo add to params
-    opt['m2_aug'] = False# True #False #reads out (no weights) prediction from bottom C dimensions
-    opt['m3_path_dep'] = False#True
+    opt['drift_space'] = 'label' #feature' #'label'
+    opt['drift_grad'] = True #True
+    opt['m2_aug'] = False #True #False #reads out (no weights) prediction from bottom C dimensions
+    opt['m2_W_eig'] = False #True  #todo add to params - projects onto W eigen vectors before decoding
+    opt['m3_path_dep'] = False #True
+    opt['m3_best_path_dep'] = False #todo add to params - makes prediction using path of train set evolution/performance
     opt['m3_space'] = None #'label'
     opt['loss_reg'] = None #4#3#2#6#5#6
     opt['loss_reg_weight'] = 1. #4
@@ -171,10 +173,10 @@ def greed_hyper_params(opt):
     opt['repulsion'] = True#False#True #True
     opt['dampen_gamma'] = 1.0#0.6    #assuming spec rad=4, dampen gamma=0.6, step=0.1
     opt['gnl_W_norm'] = False  # True #divide by spectral radius
-    opt['step_size'] = 0.1#5
+    opt['step_size'] = 0.5#1#5
 
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
-    opt['reports_list'] = [1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
+    opt['reports_list'] = [4,8,9,10]#[1,2,4,7,8,9]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
 
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         if opt['lie_trotter'] in [None, 'gen_0']:
@@ -228,8 +230,8 @@ def not_sweep_args(opt, project_name, group_name):
     opt['save_wandb_reports'] = True#False#True
     opt['wandb_watch_grad'] = False
 
-    opt['wandb_epoch_list'] = [1,2,4,8,16,32,64,128]#[8, 128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8]
-    opt['display_epoch_list'] = [8,128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8] #todo add to params
+    opt['wandb_epoch_list'] = [1,4,8,16,32,64,96,128]#[8, 128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8]
+    opt['display_epoch_list'] = [16,128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8] #todo add to params
 
     DT = datetime.datetime.now()
     opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb"#

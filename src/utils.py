@@ -335,7 +335,7 @@ def gram_schmidt(vv):
   return uu
 
 def project_paths_label_space(m2, X):
-  '''converts 3 tensor iin feature spaace into label space'''
+  '''converts 3 tensor in feature spaace into label space'''
   # X = torch.from_numpy(X)  # nodes x features x time
   X = X.permute(dims=[0, 2, 1])
   Y = X.reshape(-1, X.shape[-1])  # reshape to be (nodes*time) x features
@@ -343,6 +343,44 @@ def project_paths_label_space(m2, X):
   L = M.reshape(X.shape[0], -1, M.shape[-1])  # reverse reshape to be nodes x features x time
   L = L.permute(dims=[0, 2, 1])
   return L #.detach().numpy()
+
+# def project_paths_logit_space(m2, X):
+#   '''converts 3 tensor in feature spaace into label space'''
+#   # X = torch.from_numpy(X)  # nodes x features x time
+#   X = X.permute(dims=[0, 2, 1])
+#   Y = X.reshape(-1, X.shape[-1])  # reshape to be (nodes*time) x features
+#   M = m2(Y)
+#   P = M.max(1)[1]
+#   L = P.reshape(X.shape[0], -1, M.shape[-1])  # reverse reshape to be nodes x features x time
+#   L = L.permute(dims=[0, 2, 1])
+#   return L  # .detach().numpy()
+#
+#
+# def project_paths_test_space(m2, X, data):
+#   '''converts 3 tensor in feature spaace into label space'''
+#   # X = torch.from_numpy(X)  # nodes x features x time
+#   X = X.permute(dims=[0, 2, 1])
+#   Y = X.reshape(-1, X.shape[-1])  # reshape to be (nodes*time) x features
+#   M = m2(Y)
+#   P = M.max(1)[1]
+#   accs = []
+#   for _, mask in data('train_mask', 'val_mask', 'test_mask'):
+#     acc = P.eq(data.y[mask]).sum().item() / mask.sum().item()
+#     accs.append(acc)
+#
+#   L = P.reshape(X.shape[0], -1, M.shape[-1])  # reverse reshape to be nodes x features x time
+#   L = L.permute(dims=[0, 2, 1])
+#   return L  # .detach().numpy()
+
+
+# @torch.no_grad()
+# def test(logits, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
+#   accs = []
+#   for _, mask in data('train_mask', 'val_mask', 'test_mask'):
+#     pred = logits[mask].max(1)[1]
+#     acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
+#     accs.append(acc)
+#   return accs
 
 
 # if __name__ == '__main__':
