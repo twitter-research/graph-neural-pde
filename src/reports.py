@@ -169,7 +169,7 @@ def report_4(ax, fig, odefunc, row, epoch):
         color = colormap(c)
         # ax[row, 0].plot(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size']),
         #                         magnitudes[:,label_mask], color=color)
-        ax[row, 0].scatter(opt['step_size']*c*0.35/num_class +
+        ax[row, 0].scatter(opt['step_size']*c*0.45/num_class +
                            np.repeat(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size'])[...,np.newaxis], label_mask.sum(), axis=1),
                                 magnitudes[:,label_mask], color=color)
 
