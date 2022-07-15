@@ -152,32 +152,46 @@ def report_4(ax, fig, odefunc, row, epoch):
     opt = odefunc.opt
     #node magnitudes
     magnitudes = odefunc.node_magnitudes
-    ax[row, 0].plot(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size']), magnitudes.cpu().numpy())
-    # labels  = odefunc.labels
+    labels  = odefunc.labels
+    # ax[row, 0].plot(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size']),
+    #                 magnitudes.cpu().numpy())
     # colormap = cm.Spectral  # jet
+    colormap = cm.get_cmap(name="Set1")
     # normalize = mcolors.Normalize(vmin=labels.min(), vmax=labels.max())
     # for n in range(magnitudes.shape[1]):
     #   color = colormap(normalize(labels[n]))
     #   ax[row, 0].plot(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size']),
     #                             magnitudes[:,n], color=color)
+    num_class = odefunc.C
+    for c in range(num_class):
+        label_mask = labels == c
+        # color = colormap(normalize(c))
+        color = colormap(c)
+        # ax[row, 0].plot(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size']),
+        #                         magnitudes[:,label_mask], color=color)
+        ax[row, 0].scatter(opt['step_size']*c*0.35/num_class +
+                           np.repeat(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size'])[...,np.newaxis], label_mask.sum(), axis=1),
+                                magnitudes[:,label_mask], color=color)
+
     ax[row, 0].xaxis.set_tick_params(labelsize=16)
     ax[row, 0].yaxis.set_tick_params(labelsize=16)
     ax[row, 0].set_title(f"f magnitudes, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
 
-    measures = odefunc.node_measures
-    ax[row, 1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']), measures.cpu().numpy())
-    node_homophils = odefunc.node_homophils
-    # for n in range(measures.shape[1]):
-    #   normalize = mcolors.Normalize(vmin=node_homophils.min(), vmax=node_homophils.max())
-    #   colormap = cm.Spectral #jet
-    #   color = colormap(normalize(node_homophils[n]))
-    #   ax[row, 1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']),
-    #                             measures[:,n], color=color)
-    ax[row, 1].xaxis.set_tick_params(labelsize=16)
-    ax[row, 1].yaxis.set_tick_params(labelsize=16)
-    ax[row, 1].set_title(f"Node measures, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
+    # measures = odefunc.node_measures
+    # ax[row, 1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']), measures.cpu().numpy())
+    # node_homophils = odefunc.node_homophils
+    # # for n in range(measures.shape[1]):
+    # #   normalize = mcolors.Normalize(vmin=node_homophils.min(), vmax=node_homophils.max())
+    # #   colormap = cm.Spectral #jet
+    # #   color = colormap(normalize(node_homophils[n]))
+    # #   ax[row, 1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']),
+    # #                             measures[:,n], color=color)
+    # ax[row, 1].xaxis.set_tick_params(labelsize=16)
+    # ax[row, 1].yaxis.set_tick_params(labelsize=16)
+    # ax[row, 1].set_title(f"Node measures, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
     # fig.show()
 
+    axe = 1
     confusions = odefunc.confusions
     colormap = cm.get_cmap(name="Set1")
     linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
@@ -185,16 +199,16 @@ def report_4(ax, fig, odefunc, row, epoch):
     for i, conf_mat in enumerate(confusions):
         for c in range(conf_mat.shape[0]):
             correct = conf_mat[c,c,:]
-            ax[row, 2].plot(np.arange(0.0, correct.shape[0] * opt['step_size'], opt['step_size']),
+            ax[row, axe].plot(np.arange(0.0, correct.shape[0] * opt['step_size'], opt['step_size']),
                                   correct.cpu().numpy(), color=colormap(c), linestyle=linestyles[i], label=f"{conf_set[i]}_c{c}")
             # incorrect = torch.sum(conf_mat[c], dim=0) - correct #https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html - sum over predictions j=cols
             # ax[row, 1].plot(np.arange(0.0, incorrect.shape[0] * opt['step_size'], opt['step_size']),
             #                       incorrect, color=colormap(c), linestyle=linestyles[i], label=f"{conf_set[i]}_c{c}")
 
-    ax[row, 2].xaxis.set_tick_params(labelsize=16)
-    ax[row, 2].yaxis.set_tick_params(labelsize=16)
-    ax[row, 2].set_title(f"Correct preds evol, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
-    ax[row, 2].legend()
+    ax[row, axe].xaxis.set_tick_params(labelsize=16)
+    ax[row, axe].yaxis.set_tick_params(labelsize=16)
+    ax[row, axe].set_title(f"Correct preds evol, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
+    ax[row, axe].legend()
     if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
 
@@ -430,7 +444,8 @@ def run_reports(odefunc):
     opt['fig_dims'] = {1: ['spectrum', 3, [1, 1, 1], (24, 32)],
                 2: ['acc_entropy', 2, [1, 1], (24, 32)],
                 3: ['edge_evol', 2, [1, 1], (24, 32)],
-                4: ['node_evol', 3, [1, 1, 2], (24, 32)],
+                # 4: ['node_evol', 3, [1, 1, 2], (24, 32)],
+                4: ['node_evol', 2, [1, 1], (24, 32)],
                 5: ['node_scatter', 2, [1, 1], (24, 32)],
                 6: ['edge_scatter', 1, [1], (24, 32)],
                 7: ['class_dist', 2, [1, 1], (24, 32)],

@@ -575,7 +575,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         f -= 0.5 * (torch.outer(eta_l, torch.ones(self.in_features, device=self.device)) *
                     (x - torch.outer(torch.ones(self.n_nodes, device=self.device), z))) / (torch.exp(self.drift_eps))
         #todo might need some feature regularisation or batch norm
-      return f
+    return f
   #todo augment potential to flatten extrema
   #todo argmin of distances to discrete threshold
 
@@ -829,7 +829,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             append_stats(self, attention, fOmf, z, measure, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat,
                          train_cm, val_cm, test_cm,
                          eval_means_feat, eval_sds_feat, eval_means_label, eval_sds_label, entropies)
-            stack_stats(self)
+            if not(self.opt['lie_trotter'] == 'gen_2' and self.block_num + 1 != len(self.opt['lt_gen2_args'])):
+              stack_stats(self) #todo move this to gnn level to make sure at the end
 
           self.wandb_step += 1
 

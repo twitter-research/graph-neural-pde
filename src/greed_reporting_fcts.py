@@ -70,7 +70,30 @@ def create_time_lists(opt):
     # cummaltive actual times up to and including times of block
     # description of block types
     if opt['lie_trotter'] == 'gen_2':
-      pass
+        block_type_list = []
+        for i, block_dict in enumerate(opt['lt_gen2_args']):
+            block_time = block_dict['lt_block_time']
+            block_step = block_dict['lt_block_step']
+            block_type = block_dict['lt_block_type']
+            steps = int(block_time / block_step)
+
+            if i==0:
+              cum_steps_list = [steps]
+              cum_time_points = [0, block_time]
+              cum_time_ticks = list(np.arange(cum_time_points[-2], cum_time_points[-1], block_step))
+              block_type_list += steps * [block_type]
+            else:
+              cum_steps = cum_steps_list[-1] + steps
+              cum_steps_list.append(cum_steps)
+
+              block_start = cum_time_points[-1] + block_time
+              cum_time_points.append(block_start)
+
+              cum_time_ticks += list(np.arange(cum_time_points[-2], cum_time_points[-1], block_step))
+              block_type_list += steps * [block_type]
+
+            block_type_list.append(block_type)
+            cum_time_ticks += [cum_time_ticks[-1] + block_step]
     else:
       block_time = opt['time']
       block_step = opt['step_size']
@@ -239,10 +262,16 @@ def generate_stats(func, t, x, f):
         eval_means_feat, eval_sds_feat = get_distances(func, func.data, x, func.C, base_mask=func.data.train_mask,
                                                             eval_masks=[func.data.val_mask, func.data.test_mask],
                                                             base_type="train_avg")
-        # eval_means_label, eval_sds_label = func.get_distances(func.data, sm_logits, func.C, base_mask=func.data.train_mask, eval_masks=[func.data.val_mask, func.data.test_mask], base_type="e_k")
-        eval_means_label, eval_sds_label = get_distances(func, func.data, logits, func.C, base_mask=func.data.train_mask,
+        # eval_means_label, eval_sds_label = get_distances(func, func.data, logits, func.C, base_mask=func.data.train_mask,
+        #                                                       eval_masks=[func.data.val_mask, func.data.test_mask],
+        #                                                       base_type="train_avg")
+        eval_means_label, eval_sds_label = get_distances(func, func.data, sm_logits, func.C, base_mask=func.data.train_mask,
                                                               eval_masks=[func.data.val_mask, func.data.test_mask],
-                                                              base_type="train_avg")
+                                                              base_type="e_k")
+        # eval_means_label, eval_sds_label = get_distances(func, func.data, logits, func.C, base_mask=func.data.train_mask,
+        #                                                       eval_masks=[func.data.val_mask, func.data.test_mask],
+        #                                                       base_type="e_k")
+
         entropies = get_entropies(logits, func.data)
 
     return fOmf, attention, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat, train_cm, val_cm, test_cm,\

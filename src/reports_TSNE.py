@@ -12,6 +12,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import ListedColormap, BoundaryNorm
 import matplotlib.animation as animation
+import matplotlib.patheffects as patheffects
 from matplotlib.animation import FuncAnimation
 from mpl_toolkits.mplot3d import Axes3D
 import networkx as nx
@@ -139,6 +140,10 @@ def tsne_snap(ax, fig, odefunc, row, epoch, s=None):
 
         # cedges = colormap(colors2)
         ax[row, i].scatter(c_i[:,0], c_i[:,1], facecolors=cfaces, edgecolors='r', s=400, lw=2, marker='X', zorder=10)# linewidths=5,
+        for j in range(num_class):
+            ax[row, i].annotate(str(j), (c_i[j,0], c_i[j,1]), fontsize=18, c='b', zorder=15,
+                                textcoords='offset points', xytext=(10,10),
+                                path_effects=[patheffects.withStroke(linewidth=3, foreground='white')])
 
         ax[row, i].xaxis.set_tick_params(labelsize=16)
         ax[row, i].yaxis.set_tick_params(labelsize=16)

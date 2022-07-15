@@ -67,7 +67,7 @@ class GNN(BaseGNN):
           self.odeblock.odefunc.set_R0()
           self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_WS(x)
     elif self.opt['function'] in ['greed_non_linear', 'greed_lie_trotter']:
-      self.odeblock.odefunc.paths = []
+      # self.odeblock.odefunc.paths = []
       if self.opt['gnl_style'] == 'scaled_dot':
         self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_scaled_dot_omega()
       elif self.opt['gnl_style'] == 'general_graph':
@@ -113,6 +113,7 @@ class GNN(BaseGNN):
   def forward_XN(self, x):
     ###forward XN
     x = self.encoder(x, pos_encoding=None)
+    self.odeblock.odefunc.paths = []
     if not self.opt['lie_trotter'] == 'gen_2': #do for gen2 in the odeblock as copy over initial conditions
       self.odeblock.set_x0(x)
       self.set_attributes(x)
@@ -154,14 +155,14 @@ class GNN(BaseGNN):
       return z
 
     if self.opt['m3_path_dep']:
-      self.odeblock.odefunc.paths.append(z)
+      self.odeblock.odefunc.paths.append(z) #todo double check this is needed
       paths = torch.stack(self.odeblock.odefunc.paths, axis=-1)
       if self.opt['m3_space'] == 'label':
         paths = project_paths_label_space(self.m2, paths)
       return self.m3(paths.reshape(self.num_nodes, -1))
 
     if self.opt['m3_best_path_dep']:
-      self.odeblock.odefunc.paths.append(z)
+      self.odeblock.odefunc.paths.append(z) #todo double check this is needed
       paths = torch.stack(self.odeblock.odefunc.paths, axis=-1)
       path_preds = project_paths_logit_space(self.m2, paths)
 

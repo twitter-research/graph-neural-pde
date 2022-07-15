@@ -6,6 +6,7 @@ from function_transformer_attention import SpGraphTransAttentionLayer
 from base_classes import ODEblock
 from utils import get_rw_adj
 from function_greed_non_linear import ODEFuncGreedNonLin
+from greed_reporting_fcts import create_time_lists
 
 class GREEDLTODEblock(ODEblock):
   def __init__(self, odefunc, regularization_fns, opt, data, device, t=torch.tensor([0, 1]), gamma=0.5):
@@ -20,7 +21,7 @@ class GREEDLTODEblock(ODEblock):
     times = []
     steps = []
     # needed for stats and TSNE plots
-    self.cum_steps_list, self.cum_time_points, self.cum_time_ticks, self.block_type_list = self.create_time_lists()
+    self.cum_steps_list, self.cum_time_points, self.cum_time_ticks, self.block_type_list = create_time_lists(self.opt) #self.create_time_lists()
 
     for block_num, lt2_args in enumerate(self.opt['lt_gen2_args']):
       opt2 = self.opt.as_dict().copy()
@@ -37,7 +38,7 @@ class GREEDLTODEblock(ODEblock):
         func = odefunc(self.C, self.C, opt2, data, device)
       else:
         func = odefunc(self.aug_dim * opt2['hidden_dim'], self.aug_dim * opt2['hidden_dim'], opt2, data, device)
-      if opt2['share_block'] is not None:
+      if opt2['share_block'] is not None: #todo need to differentiate between W and M2 weights for restart style
         func.load_state_dict(funcs_list[opt2['share_block']].state_dict())
 
       edge_index, edge_weight = get_rw_adj(data.edge_index, edge_weight=data.edge_attr, norm_dim=1,
@@ -109,30 +110,30 @@ class GREEDLTODEblock(ODEblock):
     # description of block types
     opt = self.opt
     if opt['lie_trotter'] == 'gen_2':
-      block_type_list = []
-      for i, block_dict in enumerate(opt['lt_gen2_args']):
-        block_time = block_dict['lt_block_time']
-        block_step = block_dict['lt_block_step']
-        block_type = block_dict['lt_block_type']
-        steps = int(block_time / block_step)
-
-        if i==0:
-          cum_steps_list = [steps]
-          cum_time_points = [0, block_time]
-          cum_time_ticks = list(np.arange(cum_time_points[-2], cum_time_points[-1], block_step))
-        else:
-          cum_steps = cum_steps_list[-1] + steps
-          cum_steps_list.append(cum_steps)
-
-          block_start = cum_time_points[-1] + block_time
-          cum_time_points.append(block_start)
-
-          cum_time_ticks += list(np.arange(cum_time_points[-2], cum_time_points[-1], block_step))
-        block_type_list += steps * [block_type]
-
-      block_type_list.append(block_type)
-      cum_time_ticks += [cum_time_ticks[-1] + block_step]
-
+      pass  # i think this is done from reporting function utils now
+    #   block_type_list = []
+    #   for i, block_dict in enumerate(opt['lt_gen2_args']):
+    #     block_time = block_dict['lt_block_time']
+    #     block_step = block_dict['lt_block_step']
+    #     block_type = block_dict['lt_block_type']
+    #     steps = int(block_time / block_step)
+    #
+    #     if i==0:
+    #       cum_steps_list = [steps]
+    #       cum_time_points = [0, block_time]
+    #       cum_time_ticks = list(np.arange(cum_time_points[-2], cum_time_points[-1], block_step))
+    #     else:
+    #       cum_steps = cum_steps_list[-1] + steps
+    #       cum_steps_list.append(cum_steps)
+    #
+    #       block_start = cum_time_points[-1] + block_time
+    #       cum_time_points.append(block_start)
+    #
+    #       cum_time_ticks += list(np.arange(cum_time_points[-2], cum_time_points[-1], block_step))
+    #     block_type_list += steps * [block_type]
+    #
+    #   block_type_list.append(block_type)
+    #   cum_time_ticks += [cum_time_ticks[-1] + block_step]
     else:
       pass
       #it's only ever lie-trotter gen2 in this block
@@ -155,11 +156,11 @@ class GREEDLTODEblock(ODEblock):
     if block_num != 0 and block_num != len(func.opt['lt_gen2_args']): #first block has no preceeding stats.
       prev_func = self.funcs[block_num-1]
       # if func.opt['lt_block_type'] != 'label':
-      func.fOmf = prev_func.fOmf[:end_idx,:]
-      func.attentions = prev_func.attentions[:end_idx,:]
-      func.L2dist = prev_func.L2dist[:end_idx,:]
-      func.node_magnitudes = prev_func.node_magnitudes[:end_idx,:]
-      func.node_measures = prev_func.node_measures[:end_idx,:]
+      func.fOmf = prev_func.fOmf[:end_idx]#,:]
+      func.attentions = prev_func.attentions[:end_idx]#,:]
+      func.L2dist = prev_func.L2dist[:end_idx]#,:]
+      func.node_magnitudes = prev_func.node_magnitudes[:end_idx]#,:]
+      func.node_measures = prev_func.node_measures[:end_idx]#,:]
 
       func.train_accs = prev_func.train_accs[:end_idx]
       func.val_accs = prev_func.val_accs[:end_idx]
