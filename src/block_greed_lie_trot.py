@@ -178,7 +178,7 @@ class GREEDLTODEblock(ODEblock):
       func.test_dist_mean_label = prev_func.test_dist_mean_label[:,:,:end_idx]
       func.test_dist_sd_label = prev_func.test_dist_sd_label[:,:,:end_idx]
 
-      func.paths = prev_func.paths[:end_idx]
+      func.paths = prev_func.paths#[:end_idx]
 
 
   def forward(self, x):

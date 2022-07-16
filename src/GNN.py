@@ -140,6 +140,8 @@ class GNN(BaseGNN):
 
   def forward(self, x, pos_encoding=None):
     z = self.forward_XN(x)
+    self.odeblock.odefunc.paths.append(z)
+
     z = self.GNN_postXN(z)
 
     ##todo: need to implement if self.opt['m2_mlp']: from base GNN class for GNN_early also
@@ -154,15 +156,14 @@ class GNN(BaseGNN):
       z = self.m2(z)
       return z
 
+
     if self.opt['m3_path_dep']:
-      self.odeblock.odefunc.paths.append(z) #todo double check this is needed
       paths = torch.stack(self.odeblock.odefunc.paths, axis=-1)
       if self.opt['m3_space'] == 'label':
         paths = project_paths_label_space(self.m2, paths)
       return self.m3(paths.reshape(self.num_nodes, -1))
 
     if self.opt['m3_best_path_dep']:
-      self.odeblock.odefunc.paths.append(z) #todo double check this is needed
       paths = torch.stack(self.odeblock.odefunc.paths, axis=-1)
       path_preds = project_paths_logit_space(self.m2, paths)
 

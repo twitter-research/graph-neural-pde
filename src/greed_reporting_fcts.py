@@ -92,8 +92,8 @@ def create_time_lists(opt):
               cum_time_ticks += list(np.arange(cum_time_points[-2], cum_time_points[-1], block_step))
               block_type_list += steps * [block_type]
 
-            block_type_list.append(block_type)
-            cum_time_ticks += [cum_time_ticks[-1] + block_step]
+        block_type_list.append(block_type)
+        cum_time_ticks += [cum_time_ticks[-1] + block_step]
     else:
       block_time = opt['time']
       block_step = opt['step_size']
