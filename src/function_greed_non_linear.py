@@ -809,11 +809,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt['wandb_epoch_list'] and self.get_evol_stats:
       with torch.no_grad():
-          fOmf, attention, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat, train_cm, val_cm, test_cm, \
+          fOmf, logits, attention, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat, train_cm, val_cm, test_cm, \
           eval_means_feat, eval_sds_feat, eval_means_label, eval_sds_label, \
           entropies = generate_stats(self, t, x, f)
 
-          append_stats(self, attention, fOmf, x, measure, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat,
+          append_stats(self, attention, fOmf, logits, x, measure, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat,
                        train_cm, val_cm, test_cm,
                        eval_means_feat, eval_sds_feat, eval_means_label, eval_sds_label, entropies)
 
@@ -822,11 +822,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           if t == self.opt['time'] - self.opt['step_size']:# and not(self.opt['lie_trotter'] == 'gen_2' and self.block_num + 1 != len(self.opt['lt_gen2_args'])):
             z = x + self.opt['step_size'] * f #take an euler step
 
-            fOmf, attention, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat, train_cm, val_cm, test_cm, \
+            fOmf, logits, attention, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat, train_cm, val_cm, test_cm, \
             eval_means_feat, eval_sds_feat, eval_means_label, eval_sds_label, \
             entropies = generate_stats(self, t, z, f) #f here is technically wrong but it only goes into energy calc
 
-            append_stats(self, attention, fOmf, z, measure, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat,
+            append_stats(self, attention, fOmf, logits, z, measure, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat,
                          train_cm, val_cm, test_cm,
                          eval_means_feat, eval_sds_feat, eval_means_label, eval_sds_label, entropies)
             if not(self.opt['lie_trotter'] == 'gen_2' and self.block_num + 1 != len(self.opt['lt_gen2_args'])):

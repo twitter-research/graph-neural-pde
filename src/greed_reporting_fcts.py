@@ -16,6 +16,7 @@ def set_reporting_attributes(func, data, opt):
     func.fOmf = []
     func.L2dist = []
     func.node_magnitudes = []
+    func.logit_magnitudes = []
     func.node_measures = []
     func.train_accs = []
     func.val_accs = []
@@ -265,28 +266,29 @@ def generate_stats(func, t, x, f):
         # eval_means_label, eval_sds_label = get_distances(func, func.data, logits, func.C, base_mask=func.data.train_mask,
         #                                                       eval_masks=[func.data.val_mask, func.data.test_mask],
         #                                                       base_type="train_avg")
-        eval_means_label, eval_sds_label = get_distances(func, func.data, sm_logits, func.C, base_mask=func.data.train_mask,
-                                                              eval_masks=[func.data.val_mask, func.data.test_mask],
-                                                              base_type="e_k")
-        # eval_means_label, eval_sds_label = get_distances(func, func.data, logits, func.C, base_mask=func.data.train_mask,
+        # eval_means_label, eval_sds_label = get_distances(func, func.data, sm_logits, func.C, base_mask=func.data.train_mask,
         #                                                       eval_masks=[func.data.val_mask, func.data.test_mask],
         #                                                       base_type="e_k")
+        eval_means_label, eval_sds_label = get_distances(func, func.data, logits, func.C, base_mask=func.data.train_mask,
+                                                              eval_masks=[func.data.val_mask, func.data.test_mask],
+                                                              base_type="e_k")
 
         entropies = get_entropies(logits, func.data)
 
-    return fOmf, attention, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat, train_cm, val_cm, test_cm,\
+    return fOmf, logits, attention, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat, train_cm, val_cm, test_cm,\
            eval_means_feat, eval_sds_feat, eval_means_label, eval_sds_label, entropies
 
 
 # todo this could be easily condensed/optimised if just saved all objects in lists and then do the stacking at the end
 # above job is now half done apart from entropies, confusions and distances
-def append_stats(func, attention, fOmf, x, measure, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat, train_cm, val_cm, test_cm,
+def append_stats(func, attention, fOmf, logits, x, measure, L2dist, train_acc, val_acc, test_acc, homophil, conf_mat, train_cm, val_cm, test_cm,
            eval_means_feat, eval_sds_feat, eval_means_label, eval_sds_label, entropies):
 
     func.attentions.append(attention)
     func.fOmf.append(fOmf)
     func.L2dist.append(L2dist)
     func.node_magnitudes.append(torch.sqrt(torch.sum(x ** 2, dim=1)))
+    func.logit_magnitudes.append(torch.sqrt(torch.sum(logits ** 2, dim=1)))
     func.node_measures.append(measure.detach())
     func.train_accs.append(train_acc)
     func.val_accs.append(val_acc)
@@ -347,6 +349,7 @@ def stack_stats(func):
     func.fOmf = torch.stack(func.fOmf)
     func.L2dist = torch.stack(func.L2dist)
     func.node_magnitudes = torch.stack(func.node_magnitudes)
+    func.logit_magnitudes = torch.stack(func.logit_magnitudes)
     func.node_measures = torch.stack(func.node_measures)
     # func.train_accs = torch.stack(func.train_accs) #these are lists of floats
     # func.val_accs = torch.stack(func.val_accs)
@@ -359,6 +362,7 @@ def reset_stats(func):
     func.fOmf = []
     func.L2dist = []
     func.node_magnitudes = []
+    func.logit_magnitudes = []
     func.node_measures = []
     func.train_accs = []
     func.val_accs = []

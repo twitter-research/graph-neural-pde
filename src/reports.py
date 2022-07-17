@@ -172,10 +172,25 @@ def report_4(ax, fig, odefunc, row, epoch):
         ax[row, 0].scatter(opt['step_size']*c*0.45/num_class +
                            np.repeat(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size'])[...,np.newaxis], label_mask.sum(), axis=1),
                                 magnitudes[:,label_mask], color=color)
-
     ax[row, 0].xaxis.set_tick_params(labelsize=16)
     ax[row, 0].yaxis.set_tick_params(labelsize=16)
-    ax[row, 0].set_title(f"f magnitudes, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
+    ax[row, 0].set_title(f"feature magnitudes, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
+
+    logit_magnitudes = odefunc.logit_magnitudes
+    for c in range(num_class):
+        label_mask = labels == c
+        # color = colormap(normalize(c))
+        color = colormap(c)
+        # ax[row, 0].plot(np.arange(0.0, magnitudes.shape[0] * opt['step_size'], opt['step_size']),
+        #                         magnitudes[:,label_mask], color=color)
+        ax[row, 1].scatter(opt['step_size']*c*0.45/num_class +
+                           np.repeat(np.arange(0.0, logit_magnitudes.shape[0] * opt['step_size'], opt['step_size'])[...,np.newaxis], label_mask.sum(), axis=1),
+                                logit_magnitudes[:,label_mask], color=color)
+    ax[row, 1].xaxis.set_tick_params(labelsize=16)
+    ax[row, 1].yaxis.set_tick_params(labelsize=16)
+    ax[row, 1].set_title(f"logit magnitudes, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
+
+
 
     # measures = odefunc.node_measures
     # ax[row, 1].plot(np.arange(0.0, measures.shape[0] * opt['step_size'], opt['step_size']), measures.cpu().numpy())
@@ -191,24 +206,25 @@ def report_4(ax, fig, odefunc, row, epoch):
     # ax[row, 1].set_title(f"Node measures, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
     # fig.show()
 
-    axe = 1
-    confusions = odefunc.confusions
-    colormap = cm.get_cmap(name="Set1")
-    linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
-    conf_set = ['all','train', 'val', 'test']
-    for i, conf_mat in enumerate(confusions):
-        for c in range(conf_mat.shape[0]):
-            correct = conf_mat[c,c,:]
-            ax[row, axe].plot(np.arange(0.0, correct.shape[0] * opt['step_size'], opt['step_size']),
-                                  correct.cpu().numpy(), color=colormap(c), linestyle=linestyles[i], label=f"{conf_set[i]}_c{c}")
-            # incorrect = torch.sum(conf_mat[c], dim=0) - correct #https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html - sum over predictions j=cols
-            # ax[row, 1].plot(np.arange(0.0, incorrect.shape[0] * opt['step_size'], opt['step_size']),
-            #                       incorrect, color=colormap(c), linestyle=linestyles[i], label=f"{conf_set[i]}_c{c}")
-
-    ax[row, axe].xaxis.set_tick_params(labelsize=16)
-    ax[row, axe].yaxis.set_tick_params(labelsize=16)
-    ax[row, axe].set_title(f"Correct preds evol, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
-    ax[row, axe].legend()
+    #todo this is a useful train/val/test accuracy evlution plot - don't forget it
+    # axe = 1
+    # confusions = odefunc.confusions
+    # colormap = cm.get_cmap(name="Set1")
+    # linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
+    # conf_set = ['all','train', 'val', 'test']
+    # for i, conf_mat in enumerate(confusions):
+    #     for c in range(conf_mat.shape[0]):
+    #         correct = conf_mat[c,c,:]
+    #         ax[row, axe].plot(np.arange(0.0, correct.shape[0] * opt['step_size'], opt['step_size']),
+    #                               correct.cpu().numpy(), color=colormap(c), linestyle=linestyles[i], label=f"{conf_set[i]}_c{c}")
+    #         # incorrect = torch.sum(conf_mat[c], dim=0) - correct #https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html - sum over predictions j=cols
+    #         # ax[row, 1].plot(np.arange(0.0, incorrect.shape[0] * opt['step_size'], opt['step_size']),
+    #         #                       incorrect, color=colormap(c), linestyle=linestyles[i], label=f"{conf_set[i]}_c{c}")
+    #
+    # ax[row, axe].xaxis.set_tick_params(labelsize=16)
+    # ax[row, axe].yaxis.set_tick_params(labelsize=16)
+    # ax[row, axe].set_title(f"Correct preds evol, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
+    # ax[row, axe].legend()
     if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
 
@@ -258,9 +274,9 @@ def report_7(ax, fig, odefunc, row, epoch):
     opt = odefunc.opt
     #column 0
     val_dist_mean_feat = odefunc.val_dist_mean_feat
-    val_dist_sd_feat = odefunc.val_dist_sd_feat
-    test_dist_mean_feat = odefunc.test_dist_mean_feat
-    test_dist_sd_feat = odefunc.test_dist_sd_feat
+    # val_dist_sd_feat = odefunc.val_dist_sd_feat
+    # test_dist_mean_feat = odefunc.test_dist_mean_feat
+    # test_dist_sd_feat = odefunc.test_dist_sd_feat
     colormap = cm.get_cmap(name="Set1")
     linestyles = ['solid', 'dotted', 'dashed', 'dashdot']
     for c in range(val_dist_mean_feat.shape[0]):
