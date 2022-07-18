@@ -977,6 +977,7 @@ if __name__ == '__main__':
     parser.add_argument('--loss_reg_certainty', type=float, default=1.0, help='amount of certainty to encode in prediction')
 
     parser.add_argument('--m2_aug', type=str, default='False', help='whether to augment m2 for drift readout')
+    parser.add_argument('--m2_W_eig', type=str, default='False', help='project onto W eigen basis before decode')
     parser.add_argument('--m3_path_dep', type=str, default='False', help='whether to use path dependent for m3 decoder')
     parser.add_argument('--m3_space', type=str, default='', help='label / feature')
     parser.add_argument('--drift_space', type=str, default=None, help='feature, label')

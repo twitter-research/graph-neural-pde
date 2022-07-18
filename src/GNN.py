@@ -156,7 +156,6 @@ class GNN(BaseGNN):
       z = self.m2(z)
       return z
 
-
     if self.opt['m3_path_dep']:
       paths = torch.stack(self.odeblock.odefunc.paths, axis=-1)
       if self.opt['m3_space'] == 'label':

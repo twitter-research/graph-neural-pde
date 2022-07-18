@@ -87,10 +87,10 @@ class GREEDLTODEblock(ODEblock):
 
     gen2_args.append({'lt_block_type': 'diffusion', 'lt_block_time': opt['time'], 'lt_block_step': opt['step_size'],
      'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []})
-    if opt['time2'] is not None:
+    if opt['time2'] > 0:
       gen2_args.append({'lt_block_type': 'diffusion', 'lt_block_time': opt['time2'], 'lt_block_step': opt['step_size'],
                         'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []})
-    if opt['time3'] is not None:
+    if opt['time3'] > 0:
       gen2_args.append({'lt_block_type': 'diffusion', 'lt_block_time': opt['time3'], 'lt_block_step': opt['step_size'],
                         'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': [1,2,4,7,8,9,10]})
 

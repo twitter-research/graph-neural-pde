@@ -46,7 +46,7 @@ parameters:
   time2:
     values: [1.0, 2.0, 3.0]
   time3:
-    values: [None, 1.0, 2.0, 3.0]
+    values: [0.0, 1.0, 2.0, 3.0]
   step_size:
     values: [0.1, 0.25, 0.5, 1.0]
   input_dropout:
