@@ -197,12 +197,14 @@ def greed_hyper_params(opt):
         #                     {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0,'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
         #                     {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': 0, 'reports_list': []},
         #                     {'lt_block_type': 'label', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1,2,3,4,5,6,7]}]
-        opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []},
-                               {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []},
-                               {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': [1,2,4,7,8,9,10]}]#,
+        #double diffusion
+        # opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []},
+        #                        {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []},
+        #                        {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': [1,2,4,7,8,9,10]}]#,
                                # {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': 0, 'reports_list': [1,2,4,7,8,9,10]}]#,
                                # {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []}]#[1,2,3,4,5,6,7]}]#[]}]
-
+        opt['time2'] = 2.0
+        opt['time3'] = 1.0
     #gcn params
     # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
     opt['gcn_enc_dec'] = False #False #True
@@ -515,6 +517,8 @@ def default_params():
     parser.add_argument('--drift', type=str, default='False', help='turns on drift')
     parser.add_argument('--gnl_thresholding', type=str, default='False', help='turns on pseudo inverse thresholding')
     parser.add_argument('--lie_trotter', type=str, default=None, help='None, gen_0, gen_1, gen_2')
+    parser.add_argument('--time2', type=float, default=None, help='LT2 block2 - End time of ODE integrator.')
+    parser.add_argument('--time3', type=float, default=None, help='LT2 block3 - End time of ODE integrator.')
 
     # GCN ablation args
     parser.add_argument('--gcn_fixed', type=str, default='False', help='fixes layers in gcn')

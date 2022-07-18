@@ -20,6 +20,7 @@ class GREEDLTODEblock(ODEblock):
     # needed for torchdiffeq
     times = []
     steps = []
+    self.unpack_blocks(opt)
     # needed for stats and TSNE plots
     self.cum_steps_list, self.cum_time_points, self.cum_time_ticks, self.block_type_list = create_time_lists(self.opt) #self.create_time_lists()
 
@@ -32,6 +33,8 @@ class GREEDLTODEblock(ODEblock):
       if 'share_block' in lt2_args.keys():
         opt2['share_block'] = lt2_args['share_block']
       opt2['reports_list'] = lt2_args['reports_list']
+      #todo W init
+      # opt2['gnl_W_style'] = lt2_args['lt_gnl_W_style']
 
       odefunc = ODEFuncGreedNonLin
       if opt2['lt_block_type'] == 'label':
@@ -77,6 +80,22 @@ class GREEDLTODEblock(ODEblock):
     odefunc.x0 = x0.clone().detach()
     # reg_odefunc.odefunc.x0 = x0.clone().detach()
 
+
+  def unpack_blocks(self, opt):
+    '''function for "double diffusion sweeps'''
+    gen2_args = []
+
+    gen2_args.append({'lt_block_type': 'diffusion', 'lt_block_time': opt['time'], 'lt_block_step': opt['step_size'],
+     'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []})
+    if opt['time2'] is not None:
+      gen2_args.append({'lt_block_type': 'diffusion', 'lt_block_time': opt['time2'], 'lt_block_step': opt['step_size'],
+                        'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []})
+    if opt['time3'] is not None:
+      gen2_args.append({'lt_block_type': 'diffusion', 'lt_block_time': opt['time3'], 'lt_block_step': opt['step_size'],
+                        'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': [1,2,4,7,8,9,10]})
+
+    opt['lt_gen2_args'] = gen2_args
+
   def set_attributes(self, func, x):
     # if self.opt['function'] in ['greed_linear', 'greed_linear_homo', 'greed_linear_hetero']:
     #   func.set_x_0(x) #this x is actually z
@@ -103,50 +122,6 @@ class GREEDLTODEblock(ODEblock):
         #   self.odeblock.odefunc.set_L0()
 
 
-  def create_time_lists(self):
-    #make lists:
-    # cummaltive block_idxs for paths.npx, ie [0, ...
-    # cummaltive actual times up to and including times of block
-    # description of block types
-    opt = self.opt
-    if opt['lie_trotter'] == 'gen_2':
-      pass  # i think this is done from reporting function utils now
-    #   block_type_list = []
-    #   for i, block_dict in enumerate(opt['lt_gen2_args']):
-    #     block_time = block_dict['lt_block_time']
-    #     block_step = block_dict['lt_block_step']
-    #     block_type = block_dict['lt_block_type']
-    #     steps = int(block_time / block_step)
-    #
-    #     if i==0:
-    #       cum_steps_list = [steps]
-    #       cum_time_points = [0, block_time]
-    #       cum_time_ticks = list(np.arange(cum_time_points[-2], cum_time_points[-1], block_step))
-    #     else:
-    #       cum_steps = cum_steps_list[-1] + steps
-    #       cum_steps_list.append(cum_steps)
-    #
-    #       block_start = cum_time_points[-1] + block_time
-    #       cum_time_points.append(block_start)
-    #
-    #       cum_time_ticks += list(np.arange(cum_time_points[-2], cum_time_points[-1], block_step))
-    #     block_type_list += steps * [block_type]
-    #
-    #   block_type_list.append(block_type)
-    #   cum_time_ticks += [cum_time_ticks[-1] + block_step]
-    else:
-      pass
-      #it's only ever lie-trotter gen2 in this block
-      block_time = opt['time']
-      block_step = opt['step_size']
-      steps = int(block_time / block_step)
-      cum_steps_list = [steps]
-      cum_time_points = [0, block_time]
-      cum_time_ticks = list(np.arange(cum_time_points[-2], cum_time_points[-1], block_step)) + [block_time]
-      block_type_list = steps * []
-
-    return cum_steps_list, cum_time_points, cum_time_ticks, block_type_list
-
   def pass_stats(self, func, block_num):
     func.get_evol_stats = self.odefunc.get_evol_stats
     func.epoch = self.odefunc.epoch
@@ -160,6 +135,7 @@ class GREEDLTODEblock(ODEblock):
       func.attentions = prev_func.attentions[:end_idx]#,:]
       func.L2dist = prev_func.L2dist[:end_idx]#,:]
       func.node_magnitudes = prev_func.node_magnitudes[:end_idx]#,:]
+      func.logit_magnitudes = prev_func.logit_magnitudes[:end_idx]#,:]
       func.node_measures = prev_func.node_measures[:end_idx]#,:]
 
       func.train_accs = prev_func.train_accs[:end_idx]

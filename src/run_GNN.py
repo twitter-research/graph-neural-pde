@@ -926,6 +926,8 @@ if __name__ == '__main__':
     parser.add_argument('--drift', type=str, default='False', help='turns on drift')
     parser.add_argument('--gnl_thresholding', type=str, default='False', help='turns on pseudo inverse thresholding')
     parser.add_argument('--lie_trotter', type=str, default=None, help='None, gen_0, gen_1, gen_2')
+    parser.add_argument('--time2', type=float, default=None, help='LT2 block2 - End time of ODE integrator.')
+    parser.add_argument('--time3', type=float, default=None, help='LT2 block3 - End time of ODE integrator.')
 
     # GCN ablation args
     parser.add_argument('--gcn_fixed', type=str, default='False', help='fixes layers in gcn')
