@@ -162,15 +162,14 @@ class GNN(BaseGNN):
         paths = project_paths_label_space(self.m2, paths)
       return self.m3(paths.reshape(self.num_nodes, -1))
 
-    if self.opt['m3_best_path_dep']:
-      paths = torch.stack(self.odeblock.odefunc.paths, axis=-1)
-      path_preds = project_paths_logit_space(self.m2, paths)
-
-      # convert paths to preds and then accuracies
-      # identify time step that each group acheived the best test performance using torch.argmax
-      # input the path dependent prediction with a "STRONG" hint of which time step it should consider via "attention"
-
-      return self.m3(paths.reshape(self.num_nodes, -1))
+    # if self.opt['m3_best_path_dep']:
+    #   paths = torch.stack(self.odeblock.odefunc.paths, axis=-1)
+    #   path_preds = project_paths_logit_space(self.m2, paths)
+    #   # convert paths to preds and then accuracies
+    #   # identify time step that each group acheived the best test performance using torch.argmax
+    #   # input the path dependent prediction with a "STRONG" hint of which time step it should consider via "attention"
+    #
+    #   return self.m3(paths.reshape(self.num_nodes, -1))
 
     # def predict(self, z):
     #   z = self.GNN_postXN(z)
