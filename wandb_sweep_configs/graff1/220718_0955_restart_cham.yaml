@@ -49,6 +49,8 @@ parameters:
     values: [0.0, 1.0, 2.0, 3.0]
   step_size:
     values: [0.1, 0.25, 0.5, 1.0]
+  max_nfe:
+    values: [10000]
   input_dropout:
     distribution: uniform
     min: 0.4
