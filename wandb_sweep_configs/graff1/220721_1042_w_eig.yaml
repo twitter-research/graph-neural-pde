@@ -56,9 +56,9 @@ parameters:
   optimizer:
     values: [adam]
   lr:
-    values[0.001]
+    values: [0.001]
   decay:
-    values[0.0005]
+    values: [0.0005]
 command:
   - ${env}
   - python3
