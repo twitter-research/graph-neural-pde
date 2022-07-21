@@ -18,13 +18,13 @@ parameters:
   gnl_style:
     values: [general_graph]
   gnl_W_style:
-    values: [diag_dom, sum, Z_diag]
+    values: [sum, Z_diag, diag_dom]
   m1_W_eig:
-    values: [ True, False ]
+    values: [False, True]
   m2_W_eig:
     values: [True, False]
   gnl_W_norm:
-    values: [True, False]
+    values: [False]
   gnl_activation:
     values: [identity]
   gnl_measure:
@@ -40,9 +40,9 @@ parameters:
   gnl_omega_diag:
     values: [free]
   hidden_dim:
-    values: [32, 64, 128]
+    values: [32, 64]
   time:
-    values: [1.0, 2.0, 3.0, 5.0]
+    values: [1.0, 2.0, 3.0]
   step_size:
     values: [0.25, 0.5, 1.0]
   max_nfe:

@@ -135,7 +135,7 @@ def greed_hyper_params(opt):
         opt['gnl_omega_activation'] = 'identity' #identity
         opt['gnl_omega_params'] = ["diag","free","None","identity"] #[opt['gnl_omega'], opt['gnl_omega_diag'], opt['gnl_omega_diag_val'], opt['gnl_omega_activation']]
         #W
-        opt['gnl_W_style'] = 'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_W_style'] = 'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         if opt['gnl_W_style'] == 'k_block':
         # assert in_features % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
@@ -170,7 +170,7 @@ def greed_hyper_params(opt):
     opt['loss_reg_delay'] = 0 #4
     opt['loss_reg_certainty'] = None #0.85 #0.95 #1.00 #0.95
     opt['dampen_gamma'] = 1.0#0.6    #assuming spec rad=4, dampen gamma=0.6, step=0.1
-    opt['gnl_W_norm'] = False  # True #divide by spectral radius
+    opt['gnl_W_norm'] = True#False  # True #divide by spectral radius
     opt['step_size'] = 0.5#1#5
     # att_rep_laps
     opt['diffusion'] = True#True
