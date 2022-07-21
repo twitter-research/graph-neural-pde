@@ -50,9 +50,9 @@ parameters:
   max_nfe:
     values: [10000]
   input_dropout:
-    values[0.5]
+    values: [0.5]
   dropout:
-    values[0.35]
+    values: [0.35]
   optimizer:
     values: [adam]
   lr:
