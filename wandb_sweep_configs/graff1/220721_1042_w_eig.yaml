@@ -41,8 +41,6 @@ parameters:
     values: [free]
   hidden_dim:
     values: [32, 64, 128]
-  lie_trotter:
-    values: [None]
   time:
     values: [1.0, 2.0, 3.0, 5.0]
   step_size:
