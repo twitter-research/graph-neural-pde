@@ -135,7 +135,7 @@ def greed_hyper_params(opt):
         opt['gnl_omega_activation'] = 'identity' #identity
         opt['gnl_omega_params'] = ["diag","free","None","identity"] #[opt['gnl_omega'], opt['gnl_omega_diag'], opt['gnl_omega_diag_val'], opt['gnl_omega_activation']]
         #W
-        opt['gnl_W_style'] = 'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_W_style'] = 'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         if opt['gnl_W_style'] == 'k_block':
         # assert in_features % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
@@ -160,23 +160,25 @@ def greed_hyper_params(opt):
     opt['drift_space'] = 'label' #feature' #'label'
     opt['drift_grad'] = True #True
     opt['m2_aug'] = False #True #False #reads out (no weights) prediction from bottom C dimensions
-    opt['m2_W_eig'] = False #True  #todo add to params - projects onto W eigen vectors before decoding
+    opt['m1_W_eig'] = False#True
+    opt['m2_W_eig'] = True #True
     opt['m3_path_dep'] = False #True
-    opt['m3_best_path_dep'] = False #todo add to params - makes prediction using path of train set evolution/performance
+    # opt['m3_best_path_dep'] = False #todo add to params - makes prediction using path of train set evolution/performance
     opt['m3_space'] = None #'label'
     opt['loss_reg'] = None #4#3#2#6#5#6
     opt['loss_reg_weight'] = 1. #4
     opt['loss_reg_delay'] = 0 #4
     opt['loss_reg_certainty'] = None #0.85 #0.95 #1.00 #0.95
-    opt['diffusion'] = True#True
-    opt['repulsion'] = True#False#True #True
     opt['dampen_gamma'] = 1.0#0.6    #assuming spec rad=4, dampen gamma=0.6, step=0.1
     opt['gnl_W_norm'] = False  # True #divide by spectral radius
     opt['step_size'] = 0.5#1#5
+    # att_rep_laps
+    opt['diffusion'] = True#True
+    opt['repulsion'] = True#False#True #True
 
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
     opt['reports_list'] = [1,2,4,7,8,9,10]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
-    opt['lie_trotter'] = 'gen_2' #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    opt['lie_trotter'] = None#'gen_2' #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         if opt['lie_trotter'] in [None, 'gen_0']:
             opt['threshold_times'] = [2,4] #takes an euler step that would have been taken in drift diffusion and also thresholds between t->t+1
@@ -256,7 +258,7 @@ def tf_ablation_args(opt):
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
                 'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
                 'two_hops', 'time_dep_w', 'time_dep_struct_w',
-                'greed_SL', 'greed_undir', 'm2_aug', 'm2_W_eig', 'm3_path_dep', 'gnl_W_norm', 'drift_grad',
+                'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'm2_W_eig', 'm3_path_dep', 'gnl_W_norm', 'drift_grad',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout']
     arg_intersect = list(set(opt.keys()) & set(tf_args))
     for arg in arg_intersect:
@@ -566,6 +568,7 @@ def default_params():
     parser.add_argument('--loss_reg_certainty', type=float, default=1.0, help='amount of certainty to encode in prediction')
 
     parser.add_argument('--m2_aug', type=str, default='False', help='whether to augment m2 for drift readout')
+    parser.add_argument('--m1_W_eig', type=str, default='False', help='project encoding onto W eigen basis')
     parser.add_argument('--m2_W_eig', type=str, default='False', help='project onto W eigen basis before decode')
     parser.add_argument('--m3_path_dep', type=str, default='False', help='whether to use path dependent for m3 decoder')
     parser.add_argument('--m3_space', type=str, default='', help='label / feature')

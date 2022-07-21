@@ -1,0 +1,70 @@
+program: run_GNN.py
+method: grid
+parameters:
+  dataset:
+    values: [chameleon]
+  function:
+    values: [greed_non_linear]
+  epoch:
+    values: [129]
+  num_splits:
+    values: [4]
+  self_loop_weight:
+    values: [0.0]
+  no_early:
+    values: [True]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_W_style:
+    values: [diag_dom, sum, Z_diag]
+  m1_W_eig:
+    values: [ True, False ]
+  m2_W_eig:
+    values: [True, False]
+  gnl_W_norm:
+    values: [True, False]
+  gnl_activation:
+    values: [identity]
+  gnl_measure:
+    values: [ones]
+  drift:
+    values: [False]
+  test_mu_0:
+    values: [True]
+  add_source:
+    values: [False]
+  gnl_omega:
+    values: [zero, diag]
+  gnl_omega_diag:
+    values: [free]
+  hidden_dim:
+    values: [32, 64, 128]
+  lie_trotter:
+    values: [None]
+  time:
+    values: [1.0, 2.0, 3.0, 5.0]
+  step_size:
+    values: [0.25, 0.5, 1.0]
+  max_nfe:
+    values: [10000]
+  input_dropout:
+    values[0.5]
+  dropout:
+    values[0.35]
+  optimizer:
+    values: [adam]
+  lr:
+    values[0.001]
+  decay:
+    values[0.0005]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+entity: graph_neural_diffusion
+project: w_eig

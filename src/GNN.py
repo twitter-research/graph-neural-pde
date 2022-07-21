@@ -76,12 +76,17 @@ class GNN(BaseGNN):
         if self.opt['gnl_W_norm']: #need to do this at the GNN level as called once in the forward call
           # W_eval, W_evec = torch.linalg.eigh(W)
           W = W / torch.abs(self.W_eval).max()
-        self.odeblock.odefunc.gnl_W = W
+        if self.opt['gnl_W_style'] == 'Z_diag':
+          self.odeblock.odefunc.gnl_W = torch.diag(self.W_eval)
+        else:
+          self.odeblock.odefunc.gnl_W = W
+
         self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_gnlOmega()
         if self.opt['two_hops']:
           self.odeblock.odefunc.gnl_W_tilde = self.odeblock.odefunc.set_gnlWS()
         if self.opt['gnl_attention']:
           self.odeblock.odefunc.set_M0()
+
       elif self.opt['gnl_style'] == 'att_rep_laps': #contains_self_loops(self.odeblock.odefunc.edge_index)
         if self.opt['gnl_W_style'] == 'att_rep_lap_block':
           Ws, R_Ws = self.odeblock.odefunc.set_gnlWS()
@@ -113,10 +118,15 @@ class GNN(BaseGNN):
   def forward_XN(self, x):
     ###forward XN
     x = self.encoder(x, pos_encoding=None)
+
     self.odeblock.odefunc.paths = []
     if not self.opt['lie_trotter'] == 'gen_2': #do for gen2 in the odeblock as copy over initial conditions
       self.odeblock.set_x0(x)
       self.set_attributes(x)
+
+    if self.opt['m1_W_eig']:
+      #project x0 into eigen space of W_eval
+      x = x @ self.W_evec # X(t) = Z(t)U_{W}.T  iff X(t)U_{W} = Z(t)  # sorry switching notion between math and code
 
     if self.training and self.odeblock.nreg > 0:
       z, self.reg_states = self.odeblock(x)
@@ -149,9 +159,12 @@ class GNN(BaseGNN):
     if self.opt['m2_aug']:
       return z[:, self.hidden_dim - self.num_classes:]
 
+    if self.opt['gnl_W_style'] == 'Z_diag':
+      z = z @ self.W_evec.T
+
     if self.opt['m2_W_eig']:
       #project z into eigen space of W_eval
-      z = z @ self.W_evec #todo check if need a transpose - don't think so
+      z = z @ self.W_evec # X(t) = Z(t)U_{W}.T  iff X(t)U_{W} = Z(t)  # sorry switching notion between math and code
       #use m2 decoder as normal
       z = self.m2(z)
       return z
@@ -168,9 +181,7 @@ class GNN(BaseGNN):
     #   # convert paths to preds and then accuracies
     #   # identify time step that each group acheived the best test performance using torch.argmax
     #   # input the path dependent prediction with a "STRONG" hint of which time step it should consider via "attention"
-    #
     #   return self.m3(paths.reshape(self.num_nodes, -1))
-
     # def predict(self, z):
     #   z = self.GNN_postXN(z)
     #   logits = self.GNN_m2(z)

@@ -92,6 +92,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.W_W = Parameter(torch.Tensor(in_features, in_features))
         if self.opt['two_hops']:
           self.W_W_tilde = Parameter(torch.Tensor(in_features, in_features))
+      elif self.opt['gnl_W_style'] in ['Z_diag']:
+        self.W_W = Parameter(torch.Tensor(in_features, in_features))
       elif self.opt['gnl_W_style'] == 'diag':
         if self.opt['gnl_W_diag_init'] == 'linear':
           d = in_features
@@ -220,6 +222,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         glorot(self.W_W)
         if self.opt['two_hops']:
           glorot(self.W_W_tilde)
+      elif self.opt['gnl_W_style'] in ['Z_diag']:
+        glorot(self.W_W)
       elif self.opt['gnl_W_style'] == 'diag':
         if self.opt['gnl_W_diag_init'] == 'uniform':
           uniform(self.gnl_W_D, a=-1, b=1)
@@ -381,6 +385,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_W_style'] in ['neg_prod']:
       return -self.W_W @ self.W_W.t()
     elif self.opt['gnl_W_style'] in ['sum']:
+      return (self.W_W + self.W_W.t()) / 2
+    elif self.opt['gnl_W_style'] in ['Z_diag']:
       return (self.W_W + self.W_W.t()) / 2
     elif self.opt['gnl_W_style'] == 'diag':
       if self.time_dep_w:

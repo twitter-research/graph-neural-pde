@@ -8,8 +8,9 @@ from mpl_toolkits.mplot3d import proj3d, axes3d
 from matplotlib.patches import FancyArrowPatch
 from pylab import rcParams
 import torch
-from torch_geometric.utils import to_dense_adj, to_undirected
+from torch_geometric.utils import to_dense_adj, to_undirected, contains_self_loops
 from utils import DummyData
+
 
 
 class Arrow3D(FancyArrowPatch):
@@ -35,13 +36,14 @@ class Arrow3D(FancyArrowPatch):
 #       for lengthening axis
 #     pass
 
-def get_graph(graph_type):
+def get_graph(graph_type, shift=torch.tensor([0., 0.]), shift1=torch.tensor([0., 0.])):
     if graph_type == "square":
         edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],
                                    [1, 3, 0, 2, 1, 3, 0, 2]], dtype=torch.long)
         x = torch.tensor([[-1, -1], [-1, 1], [1, 1], [1, -1]], dtype=torch.float)
         y = torch.tensor([0, 1, 0, 1])
         clist = ["red", "green", "orange", "blue"]
+        x = x + shift.unsqueeze(0)
     elif graph_type == "rectangle":
         edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],
                                    [1, 3, 0, 2, 1, 3, 0, 2]], dtype=torch.long)
@@ -50,6 +52,7 @@ def get_graph(graph_type):
         x = torch.tensor([[x_min, y_min], [x_min, y_max], [x_max, y_max], [x_max, y_min]], dtype=torch.float)
         y = torch.tensor([0, 1, 0, 1])
         clist = 4 * ["black"]
+        x = x + shift.unsqueeze(0)
     elif graph_type == "rectangle2":
         edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],
                                    [1, 3, 0, 2, 1, 3, 0, 2]], dtype=torch.long)
@@ -58,6 +61,7 @@ def get_graph(graph_type):
         x = torch.tensor([[x_min, y_min], [x_min, y_max], [x_max, y_max], [x_max, y_min]], dtype=torch.float)
         y = torch.tensor([0, 1, 0, 1])
         clist = 4 * ["black"]
+        x = x + shift.unsqueeze(0)
     elif graph_type == "trapezium":
         edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 3, 3],  # , 0, 2],
                                    [1, 3, 0, 2, 1, 3, 0, 2]],  # , 2, 0]],
@@ -65,6 +69,7 @@ def get_graph(graph_type):
         x = torch.tensor([[-1, -1], [-1, 1], [1.5, 2], [1, -1]], dtype=torch.float)
         y = torch.tensor([0, 1, 0, 1])
         clist = ["red", "green", "orange", "blue"]
+        x = x + shift.unsqueeze(0)
     elif graph_type == "barbell":
         edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 5, 5],
                                    [1, 2, 0, 2, 0, 1, 3, 2, 4, 5, 3, 5, 3, 4]],
@@ -73,29 +78,63 @@ def get_graph(graph_type):
         y = torch.tensor([0, 0, 1, 0, 1, 1])
         clist = ["red", "red", "blue", "red", "blue", "blue"]
         # clist = ["red", "green", "orange", "blue", "purple", "c"]
+        x = x + shift.unsqueeze(0)
     elif graph_type == "barbell2":
-        edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 5, 5, 0, 1, 4, 5],
-                                   [1, 2, 0, 2, 0, 1, 3, 2, 4, 5, 3, 5, 3, 4, 6, 6, 7, 7]],
+        # edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 5, 5, 0, 1, 4, 5],
+        #                            [1, 2, 0, 2, 0, 1, 3, 2, 4, 5, 3, 5, 3, 4, 6, 6, 7, 7]],
+        #                           dtype=torch.long)
+        edge_index = torch.tensor([[0, 0, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 5, 5, 0, 1, 4, 5, 6, 6, 7, 7],
+                                   [1, 2, 0, 2, 0, 1, 3, 2, 4, 5, 3, 5, 3, 4, 6, 6, 7, 7, 1, 0, 4, 5]],
                                   dtype=torch.long)
+
         # x = torch.tensor([[-1, -1], [-1, 1], [-0.5, 0], [0.5, 0], [1, 1], [1, -1], [-1.25, 0], [1.25, 0]], dtype=torch.float)
         h = 0.5
         x = torch.tensor([[-1, -h], [-1, h], [-0.5, 0], [0.5, 0], [1, h], [1, -h], [-1.25, 0], [1.25, 0]], dtype=torch.float)
+        #validate sqrtdeg vector dot x corords is 0
         y = torch.tensor([0, 0, 0, 1, 0, 1])
-        clist = ["red", "red", "blue", "red", "blue", "blue", "blue", "red"]
 
+        #"breaking the symetry" #todo check the actual action here
+        bell0 = torch.tensor([1, 1, 1, 0, 0, 0, 1, 0], dtype=torch.float)
+        temp_shift0 = shift.unsqueeze(0) * bell0.unsqueeze(-1)
+        temp_shift1 = (shift + shift1).unsqueeze(0) * -((bell0 - 1.).unsqueeze(-1))
+        shift = temp_shift0 + temp_shift1
+
+        clist = ["red", "red", "blue", "red", "blue", "blue", "blue", "red"]
+        x = x + shift
     return edge_index, x, y, clist
 
 def get_data(edge_index, x, y):
     num_nodes = x.shape[0]
     num_classes = y.max()
     data = DummyData(edge_index, None, num_nodes, x, y, num_classes)
-    eig_vecs = torch.tensor([[1, 0],[0, 1]], dtype=torch.float)
-    # eig_vecs = torch.tensor([[0, 1],[1, 0]], dtype=torch.float)
-    # invsqrt2 = 1 / torch.sqrt(torch.tensor(2))
-    # eig_vecs = invsqrt2 * torch.tensor([[1, 1],[1, -1]], dtype=torch.float)
-    eig_vals = torch.tensor([-2.0, 2.0], dtype=torch.float)
+
+    ex = "iii"
+
+    # i) Oversmoothing
+    if ex == 'i': #looks at last column of A - verified dot product not zero
+        eig_vecs = torch.tensor([[1, 0], [0, 1]], dtype=torch.float)
+        eig_vals = torch.tensor([1., 0.], dtype=torch.float)
+        #or eig_vals = torch.tensor([1., 1.], dtype=torch.float)
+        T = 40#2.8 #2.5
+        data.norm = ""#"rayleigh"  #or ""
+    # ii) figure 1 - attraction repulsion
+    elif ex == 'ii': #figure 1 - nb requires "broken assymetric adjacency" line 78
+        # invsqrt2 = 1 / torch.sqrt(torch.tensor(2))
+        # eig_vecs = invsqrt2 * torch.tensor([[1, 1],[1, -1]], dtype=torch.float)
+        eig_vecs = torch.tensor([[1, 0], [0, 1]], dtype=torch.float)
+        eig_vals = torch.tensor([-2.0, 2.0], dtype=torch.float) #figure1
+        T = 3.0#2.8 #2.5
+        data.norm = ""#"rayleigh"
+    #iii) HFG - high frequency
+    elif ex == 'iii': #looks at last column of A - problem dot product is zero (in y coords) caus symetry - need to break
+        eig_vecs = torch.tensor([[1, 0], [0, 1]], dtype=torch.float)
+        # eig_vals = torch.tensor([-1.1, -1.1], dtype=torch.float)
+        eig_vals = torch.tensor([0., -1.1], dtype=torch.float)
+        # eig_vals = torch.tensor([-1.1, 0.], dtype=torch.float)
+        T = 10.0#2.8 #2.5
+        data.norm = ""#"rayleigh"
+
     W = eig_vecs @ torch.diag(eig_vals) @ eig_vecs.T
-    T = 2.8#2.5
     dt = 0.1
     data.W = W
     data.T = T
@@ -140,18 +179,28 @@ def get_eigs(A,W):
     print(f"row_minus {torch.abs(W_evec.min())*(1-row_L)}")
     return A_eval, A_evec, W_eval, W_evec, WA_eval, WA_evec
 
-def get_dynamics(data):
+def get_dynamics(data, norm=None):
     W, T, dt = data.W, data.T, data.dt
     edge_index = to_undirected(data.edge_index)
     A = get_adj(edge_index)
     x = data.x
+
     X = x.unsqueeze(dim=-1)
+    if norm == 'rayleigh':
+        X_viz = x.unsqueeze(dim=-1) / torch.norm(x, p="fro")
     Y = torch.zeros(X.shape, dtype=torch.float)
     for t in range(math.ceil(T/dt)):
         x = x + dt * A @ x @ W
         X = torch.cat((X, x.unsqueeze(dim=-1)), dim=-1)
         Y = torch.cat((Y, (dt * A @ x @ W).unsqueeze(dim=-1)), dim=-1)
-    return X.detach().numpy(), Y.detach().numpy()
+
+        if norm == 'rayleigh':
+            X_viz = torch.cat((X_viz, x.unsqueeze(dim=-1) / torch.norm(x, p="fro")), dim=-1)
+
+    if norm == 'rayleigh':
+        return X_viz.detach().numpy(), Y.detach().numpy()
+    else:
+        return X.detach().numpy(), Y.detach().numpy()
 
 def plot_eigs(eig_vecs, eig_vals, clist, ax, nodes=True, edges=True):
     t = -0.70
@@ -199,7 +248,7 @@ def plot_attr_rep(data, x, y, t, xscale, yscale, clist, label_pos, ax):
         label_scale = 1.3
         ax.text(t, label_pos[n][0], label_pos[n][1], labels[n], c=clist[n], size=12)
 
-def plot_time(x, y, t, T, label_pos, color, ax, lw=1.):
+def plot_time(x, y, shift, t, T, label_pos, color, ax, lw=1.):
     xpos = x
     ypos = y
     arw = Arrow3D([t, T], [xpos, xpos], [ypos, ypos], arrowstyle="->", color=color, lw=lw,
@@ -360,8 +409,13 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
         fig = plt.figure()#figsize=(12,8))
         ax = fig.add_subplot(111, projection="3d")
 
-    #plot frames
-    edge_index, x, y, clist = get_graph("square")
+    # shift = torch.tensor([0., 0.])
+    shift = torch.tensor([1.5, 1.5])
+    # shift1 = torch.tensor([0., 0.])
+    shift1 = torch.tensor([1.0, 1.0])
+
+    #plot frames in time slices
+    edge_index, x, y, clist = get_graph("square", shift)
     data = get_data(edge_index, x, y)
     num_slices = 1#3 #excluding initial condition
     T_idx = int(np.round(data.T/data.dt, 2)) #int(data.T/data.dt)
@@ -370,23 +424,24 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     scale = 2.5
     # plot_frames(data, t_idxs, ax, scale)
 
-    #plot manual frame
-    edge_index, x, y, clist = get_graph("rectangle")
+    #plot manual frames - initial and terminal frames
+    edge_index, x, y, clist = get_graph("rectangle", shift)
     data = get_data(edge_index, x, y)
-    plot_graph(data, x, 0, clist, "black", ax, nodes=False, edges=True, lw=0.75)
-    edge_index, x, y, clist = get_graph("rectangle2")
+    # plot_graph(data, x, 0, clist, "black", ax, nodes=False, edges=True, lw=0.75)
+    edge_index, x, y, clist = get_graph("rectangle2", shift)
     data = get_data(edge_index, x, y)
-    plot_graph(data, x, 2.8, clist, "black", ax, nodes=False, edges=True, lw=0.75)
+    # plot_graph(data, x, 2.8, clist, "black", ax, nodes=False, edges=True, lw=0.75)
 
     #plot graph
-    # edge_index, x, y, clist = get_graph("trapezium")
-    # edge_index, x, y, clist = get_graph("barbell")
-    edge_index, x, y, clist = get_graph("barbell2")
+    # edge_index, x, y, clist = get_graph("trapezium", shift)
+    # edge_index, x, y, clist = get_graph("barbell", shift)
+    edge_index, x, y, clist = get_graph("barbell2", shift, shift1)
     data = get_data(edge_index, x, y)
-    evec_list = [0,1,2, -3, -2, -1] #goes most neg to most pos of WA
+    # evec_list = [0,1,2, -3, -2, -1] #goes most neg to most pos of WA
+    evec_list = [-2]
     # data.x = get_eig_pos(data, evec_list)
 
-    X_all, Y_all = get_dynamics(data)
+    X_all, Y_all = get_dynamics(data, norm=data.norm)
 
     #plot_labels
     # offset = [1.8,2.2,1.2,1.9] #for square
@@ -412,13 +467,13 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     # plot_WA_eigs(data, 0, t_idx, X_all, evec_list, escale, clist, ax)
 
     #plot attraction repulsion axis
-    y_shift = -0.25
-    label_pos = [[3.9, 0.2 + y_shift], [3.0, 0.65 + y_shift]]
+    # y_shift = -0.25
+    # label_pos = [[3.9, 0.2 + y_shift], [3.0, 0.65 + y_shift]]
     # plot_attr_rep(data, x=3., y=0.+y_shift, t=1.0, xscale=1.5, yscale=0.6, clist=2*["tab:grey"], label_pos=label_pos, ax=ax)
 
     # x, y = 0, 0
     x, y = -2., -0.6
-    plot_time(x, y, t=0, T=2.8, label_pos=[x-0.2, y-0.2, 2.9], color="black", ax=ax, lw=0.75)
+    # plot_time(x+shift[0], y+shift[1], shift, t=0, T=2.8, label_pos=[x-0.2+shift[0], y-0.2+shift[1], 2.9], color="black", ax=ax, lw=0.75)
 
     #foramt axis
     # ax.set_xlabel('time', fontsize=10)
@@ -426,15 +481,21 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     # ax.set_zlabel('x1-axis', fontsize=10)
     # ax.view_init(30, angle)
 
-    ax.set_axis_off()
-    ax.set_zlim(-1, 0.2) #control top whitespace
-    ax.set_ylim(-1.26, 3) #control bottom whitespace
-    ax.set_xlim(0.0, 2.8) #control time axis left/right whitespace
+    # ax.set_axis_off()
+
+    # ax.set_zlim(-1, 0.2) #control top whitespace
+    # ax.set_ylim(-1.26, 3) #control bottom whitespace
+    # ax.set_xlim(0.0, 2.8) #control time axis left/right whitespace
+
+    # ax.set_zlim(-1+shift[1], 0.2+shift[1]) #control top whitespace - ie is y-axis
+    # ax.set_ylim(-1.26+shift[0], 3+shift[0]) #control bottom whitespace - ie is x axis
+    # ax.set_xlim(0.0, 2.8) #control time axis left/right whitespace - ie is time axis
+
 
     fig.tight_layout()
 
     if save:
-        plt.savefig('../ablations/fig1_graph.pdf', bbox_inches='tight')
+        plt.savefig('../ablations/fig1_HFD_y.pdf', bbox_inches='tight')
         # plt.savefig('../ablations/fig1_graph.svg')
 
     if plot:
