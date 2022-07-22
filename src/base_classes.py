@@ -144,7 +144,8 @@ class BaseGNN(MessagePassing):
     elif self.opt['m3_path_dep'] == 'label_jk':
       self.m3 = nn.Linear((time_points + 1) * self.num_classes, self.num_classes)
     elif self.opt['m3_path_dep'] == 'label_att':
-      self.label_atts = nn.Parameter(torch.Tensor(time_points + 1))
+      # self.label_atts = nn.Parameter(torch.Tensor(time_points + 1))
+      self.label_atts = nn.Parameter(torch.ones(time_points + 1))
 
     if self.opt['batch_norm']:
       self.bn_in = torch.nn.BatchNorm1d(opt['hidden_dim'])
@@ -165,7 +166,7 @@ class BaseGNN(MessagePassing):
     if self.opt['m3_path_dep'] in ['feature_jk', 'label_jk']:
       self.m3.reset_parameters()
     elif self.opt['m3_path_dep'] == 'label_att':
-      xavier_uniform_(self.label_atts)
+      pass # xavier_uniform_(self.label_atts)
 
 
   def __repr__(self):

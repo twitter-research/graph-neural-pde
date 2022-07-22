@@ -189,7 +189,7 @@ class GNN(BaseGNN):
       label_paths_list = [self.m2(p) for p in self.odeblock.odefunc.paths]
       label_paths = torch.stack(label_paths_list, axis=-1)
       return (self.label_atts * label_paths).sum(-1)
-
+      #todo maybe generalise this with different attention per class
 
     #todo normalisation for readout
 
