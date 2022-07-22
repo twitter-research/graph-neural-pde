@@ -32,7 +32,7 @@ class GNN(BaseGNN):
       x = torch.cat([x, p], dim=1)
     else:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-      x = self.m1(x)
+      x = self.m1(  x)
 
     if self.opt['use_mlp']:
       x = F.dropout(x, self.opt['dropout'], training=self.training)
@@ -72,11 +72,22 @@ class GNN(BaseGNN):
         self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_scaled_dot_omega()
       elif self.opt['gnl_style'] == 'general_graph':
         W = self.odeblock.odefunc.set_gnlWS()
-        self.W_eval, self.W_evec = torch.linalg.eigh(W)
+
+        if self.opt['gnl_W_style'] == 'GS_Z_diag':
+          self.W_eval, self.W_evec = self.odeblock.odefunc.gnl_W_D, self.odeblock.odefunc.V_hat
+        else:
+          W_eval, W_evec = torch.linalg.eigh(W)
+          l2_norm = torch.pow(W_evec,2).sum(dim=0)
+          self.W_eval = W_eval / l2_norm
+          self.W_evec = W_evec# * l2_norm
+
         if self.opt['gnl_W_norm']: #need to do this at the GNN level as called once in the forward call
           # W_eval, W_evec = torch.linalg.eigh(W)
           W = W / torch.abs(self.W_eval).max()
+
         if self.opt['gnl_W_style'] == 'Z_diag':
+          self.odeblock.odefunc.gnl_W = torch.diag(self.W_eval)
+        elif self.opt['gnl_W_style'] == 'GS_Z_diag':
           self.odeblock.odefunc.gnl_W = torch.diag(self.W_eval)
         else:
           self.odeblock.odefunc.gnl_W = W
@@ -159,13 +170,13 @@ class GNN(BaseGNN):
     if self.opt['m2_aug']:
       return z[:, self.hidden_dim - self.num_classes:]
 
-    if self.opt['gnl_W_style'] == 'Z_diag':
-      z = z @ self.W_evec.T
 
-    if self.opt['m2_W_eig']:
-      #project z into eigen space of W_eval
+    if self.opt['m2_W_eig'] =='x2z':
       z = z @ self.W_evec # X(t) = Z(t)U_{W}.T  iff X(t)U_{W} = Z(t)  # sorry switching notion between math and code
-      #use m2 decoder as normal
+      z = self.m2(z)
+      return z
+    elif self.opt['m2_W_eig'] == 'z2x':
+      z = z @ self.W_evec.T # X(t) = Z(t)U_{W}.T  iff X(t)U_{W} = Z(t)  # sorry switching notion between math and code
       z = self.m2(z)
       return z
 

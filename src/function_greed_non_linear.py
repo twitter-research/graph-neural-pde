@@ -154,7 +154,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.gnl_W_diags = Parameter(torch.Tensor(in_features, opt['k_diags'])) #or (2k-1) * n + k * (k - 1) if don't wrap around
         if self.opt['two_hops']:
           self.gnl_W_diags_tilde = Parameter(torch.Tensor(in_features, opt['k_diags']))
-      elif self.opt['gnl_W_style'] == 'GS':
+      elif self.opt['gnl_W_style'] in ['GS', 'GS_Z_diag']:
         self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
         self.gnl_W_D = Parameter(torch.ones(in_features))
         if self.opt['two_hops']:
@@ -289,8 +289,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           ones(self.gnl_W_diags)
           if self.opt['two_hops']:
             ones(self.gnl_W_diags_tilde)
-      elif self.opt['gnl_W_style'] == 'GS':
+      elif self.opt['gnl_W_style'] in ['GS', 'GS_Z_diag']:
         glorot(self.gnl_W_U)
+        uniform(self.gnl_W_D, a=-1, b=1)
         if self.opt['two_hops']:
           glorot(self.gnl_W_U_tilde)
       elif self.opt['gnl_W_style'] == 'cgnn':
@@ -434,14 +435,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W = torch.stack([torch.roll(W_temp[i], shifts=int(i - (self.opt['k_diags'] - 1) / 2), dims=-1) for i in range(self.in_features)])
       Ws = (W + W.T) / 2
       return Ws
-    elif self.opt['gnl_W_style'] == 'GS':
-      V_hat = gram_schmidt(self.gnl_W_U)
-      W_D = torch.tanh(self.gnl_W_D) #      # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1)
-      W_hat = V_hat @ torch.diag(W_D) @ V_hat.t()
+    elif self.opt['gnl_W_style'] in ['GS', 'GS_Z_diag']:
+      self.V_hat = gram_schmidt(self.gnl_W_U)
+      # W_D = torch.tanh(self.gnl_W_D) #      # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1)
+      # W_hat = V_hat @ torch.diag(W_D) @ V_hat.t()
+      W_hat = self.V_hat @ torch.diag(self.gnl_W_D) @ self.V_hat.t()
       return W_hat
-    elif self.opt['gnl_W_style'] == 'cgnn': # https://github.com/JRowbottomGit/ContinuousGNN/blob/85d47b0748a19e06e305c21e99e1dd03d36ad314/src/trainer.py
+    elif self.opt['gnl_W_style'] in ['cgnn', 'cgnn_Z_diag']: # https://github.com/JRowbottomGit/ContinuousGNN/blob/85d47b0748a19e06e305c21e99e1dd03d36ad314/src/trainer.py
       beta = self.opt['W_beta']
-      with torch.no_grad():
+      with torch.no_grad(): #todo need to check and undertand how/why this learns again
         W_U = self.gnl_W_U.clone()
         W_U = self.gnl_W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
       # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1) #self.gnl_W_D
