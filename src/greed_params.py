@@ -162,9 +162,9 @@ def greed_hyper_params(opt):
     opt['m2_aug'] = False #True #False #reads out (no weights) prediction from bottom C dimensions
     opt['m1_W_eig'] = False#True
     opt['m2_W_eig'] = 'x2z'#'z2x' #True #True
-    opt['m3_path_dep'] = False #True
+    opt['m3_path_dep'] = 'label_att'#'label_jk'#'feature_jk' #'label_jk' 'label_att'
     # opt['m3_best_path_dep'] = False #todo add to params - makes prediction using path of train set evolution/performance
-    opt['m3_space'] = None #'label'
+    # opt['m3_space'] = None
     opt['loss_reg'] = None #4#3#2#6#5#6
     opt['loss_reg_weight'] = 1. #4
     opt['loss_reg_delay'] = 0 #4
@@ -177,7 +177,7 @@ def greed_hyper_params(opt):
     opt['repulsion'] = True#False#True #True
 
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
-    opt['reports_list'] = [1,2,4,7,8,9,10]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
+    opt['reports_list'] = []#[1,2,4,7,9,10,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
     opt['lie_trotter'] = None#'gen_2' #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         if opt['lie_trotter'] in [None, 'gen_0']:
@@ -258,7 +258,7 @@ def tf_ablation_args(opt):
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
                 'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
                 'two_hops', 'time_dep_w', 'time_dep_struct_w',
-                'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'm2_W_eig', 'm3_path_dep', 'gnl_W_norm', 'drift_grad',
+                'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'm2_W_eig', 'gnl_W_norm', 'drift_grad',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout']
     arg_intersect = list(set(opt.keys()) & set(tf_args))
     for arg in arg_intersect:
@@ -571,7 +571,7 @@ def default_params():
     parser.add_argument('--m1_W_eig', type=str, default='False', help='project encoding onto W eigen basis')
     parser.add_argument('--m2_W_eig', type=str, default='False', help='project onto W eigen basis before decode')
     parser.add_argument('--m3_path_dep', type=str, default='False', help='whether to use path dependent for m3 decoder')
-    parser.add_argument('--m3_space', type=str, default='', help='label / feature')
+    # parser.add_argument('--m3_space', type=str, default='', help='label / feature')
     parser.add_argument('--drift_space', type=str, default=None, help='feature, label')
     parser.add_argument('--drift_grad', type=str, default='True', help='collect gradient off drift term')
     parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')

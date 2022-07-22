@@ -661,6 +661,7 @@ def main(cmd_opt):
 
             wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
                              'test_acc_std': test_acc_std,
+                             'test_acc': test_acc, 'val_acc': val_acc, 'train_acc': train_acc, #todo see if this line fixes wandb logging issue
                              'T0_dirichlet_mean': T0_dirichlet_mean, 'T0r_dirichlet_mean': T0r_dirichlet_mean,
                              'TN_dirichlet_mean': TN_dirichlet_mean, 'TNr_dirichlet_mean': TNr_dirichlet_mean,
                              'enc_pred_homophil_mean': enc_pred_homophil_mean, 'pred_homophil_mean': pred_homophil_mean, 'label_homophil_mean': label_homophil_mean}
@@ -980,7 +981,7 @@ if __name__ == '__main__':
     parser.add_argument('--m1_W_eig', type=str, default='False', help='project encoding onto W eigen basis')
     parser.add_argument('--m2_W_eig', type=str, default='False', help='project onto W eigen basis before decode')
     parser.add_argument('--m3_path_dep', type=str, default='False', help='whether to use path dependent for m3 decoder')
-    parser.add_argument('--m3_space', type=str, default='', help='label / feature')
+    # parser.add_argument('--m3_space', type=str, default='', help='label / feature')
     parser.add_argument('--drift_space', type=str, default=None, help='feature, label')
     parser.add_argument('--drift_grad', type=str, default='True', help='collect gradient off drift term')
     parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')

@@ -335,7 +335,7 @@ def gram_schmidt(vv):
   return uu
 
 def project_paths_label_space(m2, X):
-  '''converts 3 tensor in feature spaace into label space'''
+  '''converts 3 tensor in feature space into label space'''
   # X = torch.from_numpy(X)  # nodes x features x time
   X = X.permute(dims=[0, 2, 1])
   Y = X.reshape(-1, X.shape[-1])  # reshape to be (nodes*time) x features

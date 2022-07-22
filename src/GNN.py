@@ -178,11 +178,20 @@ class GNN(BaseGNN):
       z = self.m2(z)
       return z
 
-    if self.opt['m3_path_dep']:
-      paths = torch.stack(self.odeblock.odefunc.paths, axis=-1)
-      if self.opt['m3_space'] == 'label':
-        paths = project_paths_label_space(self.m2, paths)
-      return self.m3(paths.reshape(self.num_nodes, -1))
+    if self.opt['m3_path_dep'] == 'feature_jk':
+      paths = torch.cat(self.odeblock.odefunc.paths, axis=-1)
+      return self.m3(paths)#.reshape(self.num_nodes, -1))
+    elif self.opt['m3_path_dep'] == 'label_jk':
+      label_paths_list = [self.m2(p) for p in self.odeblock.odefunc.paths]
+      label_paths = torch.cat(label_paths_list, axis=-1)
+      return self.m3(label_paths)#.reshape(self.num_nodes, -1))
+    elif self.opt['m3_path_dep'] == 'label_att':
+      label_paths_list = [self.m2(p) for p in self.odeblock.odefunc.paths]
+      label_paths = torch.stack(label_paths_list, axis=-1)
+      return (self.label_atts * label_paths).sum(-1)
+
+
+    #todo normalisation for readout
 
     # if self.opt['m3_best_path_dep']:
     #   paths = torch.stack(self.odeblock.odefunc.paths, axis=-1)

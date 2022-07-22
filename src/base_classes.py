@@ -3,6 +3,7 @@ import math
 import torch
 from torch import nn
 import torch.nn.functional as F
+from torch.nn.init import uniform, xavier_uniform_
 from torch_geometric.nn.conv import MessagePassing
 from utils import Meter
 from regularized_ODE_function import RegularizedODEfunc
@@ -137,10 +138,13 @@ class BaseGNN(MessagePassing):
     else:
       self.m2 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
 
-    if opt['m3_path_dep']:
-      time_points = math.ceil(opt['time']/opt['step_size'])
-      m3_space = opt['hidden_dim'] if opt['m3_space'] == 'feature' else self.num_classes
-      self.m3 = nn.Linear((time_points + 1) * m3_space, self.num_classes)
+    time_points = math.ceil(opt['time']/opt['step_size'])
+    if self.opt['m3_path_dep'] == 'feature_jk':
+      self.m3 = nn.Linear((time_points + 1) * opt['hidden_dim'], self.num_classes)
+    elif self.opt['m3_path_dep'] == 'label_jk':
+      self.m3 = nn.Linear((time_points + 1) * self.num_classes, self.num_classes)
+    elif self.opt['m3_path_dep'] == 'label_att':
+      self.label_atts = nn.Parameter(torch.Tensor(time_points + 1))
 
     if self.opt['batch_norm']:
       self.bn_in = torch.nn.BatchNorm1d(opt['hidden_dim'])
@@ -158,6 +162,11 @@ class BaseGNN(MessagePassing):
   def reset(self):
     self.m1.reset_parameters()
     self.m2.reset_parameters()
+    if self.opt['m3_path_dep'] in ['feature_jk', 'label_jk']:
+      self.m3.reset_parameters()
+    elif self.opt['m3_path_dep'] == 'label_att':
+      xavier_uniform_(self.label_atts)
+
 
   def __repr__(self):
     return self.__class__.__name__

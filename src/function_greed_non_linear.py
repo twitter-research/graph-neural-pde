@@ -381,8 +381,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # broke
       Omega = -self.gnl_W
     elif self.opt['gnl_omega'] == 'Omega_W_eig':
-
       Omega = self.W_evec @ torch.diag(self.om_W) @ self.W_evec.T
+
     return Omega
 
 

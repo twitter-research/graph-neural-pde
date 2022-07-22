@@ -412,7 +412,6 @@ def report_10(ax, fig, odefunc, row, epoch):
     # y axis will be count, x axis will be time
     # there will be c**2 lines
     #
-
     opt = odefunc.opt
     confusions = odefunc.confusions
     colormap = cm.get_cmap(name="Set1")#'viridis')#"Set1")
@@ -445,6 +444,29 @@ def report_10(ax, fig, odefunc, row, epoch):
         fig.show()
 
 
+def report_11(ax, fig, odefunc, row, epoch):
+    '''decoder weight and bias in W basis'''
+    opt = odefunc.opt
+    U = odefunc.W_evec
+    W = odefunc.GNN_m2.weight
+    B = odefunc.GNN_m2.bias.unsqueeze(0).repeat(U.shape[0], 1).T
+
+    mat = ax[row, 0].matshow(W@U.cpu().numpy(), interpolation='nearest')
+    ax[row, 0].xaxis.set_tick_params(labelsize=16)
+    ax[row, 0].yaxis.set_tick_params(labelsize=16)
+    cbar = fig.colorbar(mat, ax=ax[row, 0], shrink=0.75)
+    cbar.ax.tick_params(labelsize=16)
+
+    mat2 = ax[row, 1].matshow((W+B)@U.cpu().numpy(), interpolation='nearest')
+    ax[row, 1].xaxis.set_tick_params(labelsize=16)
+    ax[row, 1].yaxis.set_tick_params(labelsize=16)
+    cbar1 = fig.colorbar(mat2, ax=ax[row, 1], shrink=0.75)
+    cbar1.ax.tick_params(labelsize=16)
+    if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
+        fig.show()
+
+
+
 def run_reports(odefunc):
     opt = odefunc.opt
     epoch = odefunc.epoch
@@ -467,7 +489,8 @@ def run_reports(odefunc):
                 7: ['class_dist', 2, [1, 1], (24, 32)],
                 8: ['tsne_evol', 4, [1, 1, 1, 1], (32,32)],
                 9: ['v_t_entropies', 2, [1, 1], (24, 32)],
-                10: ['confusions', 2, [1, 1], (24, 32)]}
+                10: ['confusions', 2, [1, 1], (24, 32)],
+                11: ['decoder', 2, [1, 1], (24, 32)]}
 
     reports_nums = opt['reports_list']
     for rep_num in reports_nums:
