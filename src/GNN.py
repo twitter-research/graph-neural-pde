@@ -76,10 +76,9 @@ class GNN(BaseGNN):
         if self.opt['gnl_W_style'] == 'GS_Z_diag':
           self.W_eval, self.W_evec = self.odeblock.odefunc.gnl_W_D, self.odeblock.odefunc.V_hat
         else:
-          W_eval, W_evec = torch.linalg.eigh(W)
-          l2_norm = torch.pow(W_evec,2).sum(dim=0)
-          self.W_eval = W_eval / l2_norm
-          self.W_evec = W_evec# * l2_norm
+          self.W_eval, self.W_evec = torch.linalg.eigh(W) #confirmed unit norm output vectors
+
+        self.odeblock.odefunc.W_eval, self.odeblock.odefunc.W_evec = self.W_eval, self.W_evec
 
         if self.opt['gnl_W_norm']: #need to do this at the GNN level as called once in the forward call
           # W_eval, W_evec = torch.linalg.eigh(W)
@@ -169,7 +168,6 @@ class GNN(BaseGNN):
     # Decode each node embedding to get node label.
     if self.opt['m2_aug']:
       return z[:, self.hidden_dim - self.num_classes:]
-
 
     if self.opt['m2_W_eig'] =='x2z':
       z = z @ self.W_evec # X(t) = Z(t)U_{W}.T  iff X(t)U_{W} = Z(t)  # sorry switching notion between math and code

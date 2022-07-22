@@ -67,6 +67,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       else:
         self.om_W = Parameter(torch.Tensor(in_features))
       self.om_W_eps = 0
+    elif self.opt['gnl_omega'] == 'Omega_W_eig':
+      self.om_W = Parameter(torch.Tensor(in_features))
+      self.om_W_eps = 0
     elif self.opt['gnl_omega'] == 'zero':
       self.om_W = torch.zeros((in_features,in_features), device=device)
       self.om_W_eps = 0
@@ -216,6 +219,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       glorot(self.om_W_rep)
     elif self.opt['gnl_omega'] == 'diag':
       uniform(self.om_W, a=-1, b=1)
+    elif self.opt['gnl_omega'] == 'Omega_W_eig':
+      uniform(self.om_W, a=-1, b=1)
+
     # W's
     if self.opt['gnl_style'] == 'general_graph':
       if self.opt['gnl_W_style'] in ['sum','prod','neg_prod']:
@@ -374,6 +380,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_omega'] == 'Omega_eq_W':
       # broke
       Omega = -self.gnl_W
+    elif self.opt['gnl_omega'] == 'Omega_W_eig':
+
+      Omega = self.W_evec @ torch.diag(self.om_W) @ self.W_evec.T
     return Omega
 
 
