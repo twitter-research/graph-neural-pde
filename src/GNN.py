@@ -3,7 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 from base_classes import BaseGNN
 from model_configurations import set_block, set_function
-from utils import project_paths_label_space#, project_paths_logit_space
+from utils import rayleigh_quotient #project_paths_label_space#, project_paths_logit_space
 from torch_geometric.utils import contains_self_loops
 from greed_reporting_fcts import test
 
@@ -171,27 +171,39 @@ class GNN(BaseGNN):
 
     if self.opt['m2_W_eig'] =='x2z':
       z = z @ self.W_evec # X(t) = Z(t)U_{W}.T  iff X(t)U_{W} = Z(t)  # sorry switching notion between math and code
-      z = self.m2(z)
-      return z
+      # z = self.m2(z)
+      # return z
     elif self.opt['m2_W_eig'] == 'z2x':
       z = z @ self.W_evec.T # X(t) = Z(t)U_{W}.T  iff X(t)U_{W} = Z(t)  # sorry switching notion between math and code
-      z = self.m2(z)
-      return z
+      # z = self.m2(z)
+      # return z
+
+    paths = self.odeblock.odefunc.paths
+
+    if self.opt['path_dep_norm'] == 'nodewise':
+      paths = [F.normalize(z_t, dim=1) for z_t in paths]
+    elif self.opt['path_dep_norm'] == 'rayleigh':
+      paths = [z_t / rayleigh_quotient(self.odeblock.odefunc.edge_index, self.num_nodes, z_t) for z_t in paths]
+    elif self.opt['path_dep_norm'] == 'full_concat_nodewise':
+      paths = [torch.cat((z_t, F.normalize(z_t, dim=1)),dim=1) for z_t in paths]
 
     if self.opt['m3_path_dep'] == 'feature_jk':
-      paths = torch.cat(self.odeblock.odefunc.paths, axis=-1)
-      return self.m3(paths)#.reshape(self.num_nodes, -1))
+      paths = torch.cat(paths, axis=-1)
+      return self.m3(paths)
     elif self.opt['m3_path_dep'] == 'label_jk':
-      label_paths_list = [self.m2(p) for p in self.odeblock.odefunc.paths]
+      if self.opt['path_dep_norm'] == 'full_concat_nodewise':
+        label_paths_list = [0.5 * self.m2(p[:,:self.opt['hidden_dim']]) + 0.5 * self.m2_concat(p[:,self.opt['hidden_dim']:]) for p in paths]
+      else:
+        label_paths_list = [self.m2(p) for p in paths]
       label_paths = torch.cat(label_paths_list, axis=-1)
-      return self.m3(label_paths)#.reshape(self.num_nodes, -1))
+      return self.m3(label_paths)
     elif self.opt['m3_path_dep'] == 'label_att':
-      label_paths_list = [self.m2(p) for p in self.odeblock.odefunc.paths]
+      if self.opt['path_dep_norm'] == 'full_concat_nodewise':
+        label_paths_list = [0.5 * self.m2(p[:,:self.opt['hidden_dim']]) + 0.5 * self.m2_concat(p[:,self.opt['hidden_dim']:]) for p in paths]
+      else:
+        label_paths_list = [self.m2(p) for p in paths]
       label_paths = torch.stack(label_paths_list, axis=-1)
-      return (self.label_atts * label_paths).sum(-1)
-      #todo maybe generalise this with different attention per class
-
-    #todo normalisation for readout
+      return (self.label_atts * label_paths).sum(-1)  #todo maybe generalise this with different attention per class
 
     # if self.opt['m3_best_path_dep']:
     #   paths = torch.stack(self.odeblock.odefunc.paths, axis=-1)
@@ -212,5 +224,5 @@ class GNN(BaseGNN):
     else:
       z = self.m2(z)
 
-
+    #todo think about making a conccated normalised predict like in the path dependent case
     return z

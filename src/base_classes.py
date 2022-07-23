@@ -134,13 +134,17 @@ class BaseGNN(MessagePassing):
       self.fc = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
 
     if opt['m2_mlp']:
-      self.m2 = M2_MLP(opt, dataset, device=device)
+      self.m2 = M2_MLP(opt['hidden_dim'], dataset.num_classes, opt)
     else:
       self.m2 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
 
+    if self.opt['path_dep_norm'] == 'full_concat_nodewise':
+      self.m2_concat = nn.Linear(opt['hidden_dim'], dataset.num_classes)
+
+    out_dim = 2*opt['hidden_dim'] if self.opt['path_dep_norm'] == 'full_concat_nodewise' else opt['hidden_dim']
     time_points = math.ceil(opt['time']/opt['step_size'])
     if self.opt['m3_path_dep'] == 'feature_jk':
-      self.m3 = nn.Linear((time_points + 1) * opt['hidden_dim'], self.num_classes)
+      self.m3 = nn.Linear((time_points + 1) * out_dim, self.num_classes)
     elif self.opt['m3_path_dep'] == 'label_jk':
       self.m3 = nn.Linear((time_points + 1) * self.num_classes, self.num_classes)
     elif self.opt['m3_path_dep'] == 'label_att':
@@ -173,11 +177,11 @@ class BaseGNN(MessagePassing):
     return self.__class__.__name__
 
 class M2_MLP(nn.Module):
-  def __init__(self, opt, dataset, device=torch.device('cpu')):
+  def __init__(self, out_dim, num_classes, opt):
     super().__init__()
     self.opt = opt
-    self.m21 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
-    self.m22 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
+    self.m21 = nn.Linear(out_dim, out_dim)
+    self.m22 = nn.Linear(out_dim, num_classes)
 
   def forward(self, x):
     x = F.dropout(x, self.opt['dropout'], training=self.training)

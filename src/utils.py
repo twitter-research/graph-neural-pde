@@ -13,6 +13,9 @@ from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.utils.convert import to_scipy_sparse_matrix
 from sklearn.preprocessing import normalize
 from torch_geometric.nn.conv.gcn_conv import gcn_norm
+import torch_sparse
+from torch_geometric.utils import get_laplacian
+
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -333,6 +336,20 @@ def gram_schmidt(vv):
     uk = uu[:, k].clone()
     uu[:, k] = uk / uk.norm()
   return uu
+
+def dirichlet_energy(edge_index, n, X, edge_weight=None):
+  edge_index, L = get_laplacian(edge_index, edge_weight, None)
+  LX = torch_sparse.spmm(edge_index, L, n, n, X)
+  # return torch.sum(torch.trace(X.T @ de))
+  return (X * LX).sum()
+
+def rayleigh_quotient(edge_index, n, X, edge_weight=None):
+  # X is a matrix of shape (num_nodes, feature_channels)
+  ######## Your code here ##############
+  energy = dirichlet_energy(edge_index, n, X, edge_weight)
+  rayleigh = energy / torch.pow(torch.norm(X, p="fro"), 2)
+  ######################################
+  return rayleigh
 
 def project_paths_label_space(m2, X):
   '''converts 3 tensor in feature space into label space'''

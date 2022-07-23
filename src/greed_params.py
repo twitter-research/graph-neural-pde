@@ -162,7 +162,8 @@ def greed_hyper_params(opt):
     opt['m2_aug'] = False #True #False #reads out (no weights) prediction from bottom C dimensions
     opt['m1_W_eig'] = False#True
     opt['m2_W_eig'] = 'x2z'#'z2x' #True #True
-    opt['m3_path_dep'] = 'label_att'#'label_jk'#'feature_jk' #'label_jk' 'label_att'
+    opt['m3_path_dep'] = 'feature_jk'#'label_jk'#'feature_jk' #'label_jk' 'label_att'
+    opt['path_dep_norm'] = 'full_concat_nodewise'#'rayleigh'#'nodewise' #'rayleigh'
     # opt['m3_best_path_dep'] = False #todo add to params - makes prediction using path of train set evolution/performance
     # opt['m3_space'] = None
     opt['loss_reg'] = None #4#3#2#6#5#6
