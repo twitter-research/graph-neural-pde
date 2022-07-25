@@ -572,6 +572,7 @@ def default_params():
     parser.add_argument('--m1_W_eig', type=str, default='False', help='project encoding onto W eigen basis')
     parser.add_argument('--m2_W_eig', type=str, default='False', help='project onto W eigen basis before decode')
     parser.add_argument('--m3_path_dep', type=str, default='False', help='whether to use path dependent for m3 decoder')
+    parser.add_argument('--path_dep_norm', type=str, default='False', help='whether to norm the path dependent solution for m3 decoder')
     # parser.add_argument('--m3_space', type=str, default='', help='label / feature')
     parser.add_argument('--drift_space', type=str, default=None, help='feature, label')
     parser.add_argument('--drift_grad', type=str, default='True', help='collect gradient off drift term')
