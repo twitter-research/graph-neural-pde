@@ -188,7 +188,6 @@ def get_distances(func, data, x, num_class, base_mask, eval_masks, base_type):
       base_av = torch.eye(num_class, device=func.device)
 
     #for every node calcualte the L2 distance - [N, C] and [N, C]
-    #todo for label space calc distance from Ek
     dist = x.unsqueeze(-1) - base_av.T.unsqueeze(0)
     L2_dist = torch.sqrt(torch.sum(dist**2, dim=1))
 

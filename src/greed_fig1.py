@@ -125,14 +125,14 @@ def get_data(edge_index, x, y):
         eig_vals = torch.tensor([-2.0, 2.0], dtype=torch.float) #figure1
         T = 3.0#2.8 #2.5
         data.norm = ""#"rayleigh"
-    #iii) HFG - high frequency
+    #iii) HFD - high frequency
     elif ex == 'iii': #looks at last column of A - problem dot product is zero (in y coords) caus symetry - need to break
         eig_vecs = torch.tensor([[1, 0], [0, 1]], dtype=torch.float)
-        # eig_vals = torch.tensor([-1.1, -1.1], dtype=torch.float)
-        eig_vals = torch.tensor([0., -1.1], dtype=torch.float)
+        eig_vals = torch.tensor([-1.1, -1.1], dtype=torch.float)
+        # eig_vals = torch.tensor([0., -1.1], dtype=torch.float)
         # eig_vals = torch.tensor([-1.1, 0.], dtype=torch.float)
         T = 10.0#2.8 #2.5
-        data.norm = ""#"rayleigh"
+        data.norm = "rayleigh"
 
     W = eig_vecs @ torch.diag(eig_vals) @ eig_vecs.T
     dt = 0.1
@@ -495,7 +495,8 @@ def plot_greed(fig=None, ax=None, ax_idx=None, plot=False, save=False):
     fig.tight_layout()
 
     if save:
-        plt.savefig('../ablations/fig1_HFD_y.pdf', bbox_inches='tight')
+        plt.savefig('../ablations/fig1_HFD_xy_norm.pdf', bbox_inches='tight')
+        # plt.savefig('../ablations/fig1_HFD_y.pdf', bbox_inches='tight')
         # plt.savefig('../ablations/fig1_graph.svg')
 
     if plot:

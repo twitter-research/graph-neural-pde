@@ -150,6 +150,8 @@ class BaseGNN(MessagePassing):
     elif self.opt['m3_path_dep'] == 'label_att':
       # self.label_atts = nn.Parameter(torch.Tensor(time_points + 1))
       self.label_atts = nn.Parameter(torch.ones(time_points + 1))
+    elif self.opt['m3_path_dep'] == 'train_centers':
+      self.m3 = nn.Linear((time_points + 1) * self.num_classes, self.num_classes)
 
     if self.opt['batch_norm']:
       self.bn_in = torch.nn.BatchNorm1d(opt['hidden_dim'])

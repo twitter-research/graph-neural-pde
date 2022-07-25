@@ -190,33 +190,46 @@ class GNN(BaseGNN):
     if self.opt['m3_path_dep'] == 'feature_jk':
       paths = torch.cat(paths, axis=-1)
       return self.m3(paths)
+
     elif self.opt['m3_path_dep'] == 'label_jk':
       if self.opt['path_dep_norm'] == 'full_concat_nodewise':
-        label_paths_list = [0.5 * self.m2(p[:,:self.opt['hidden_dim']]) + 0.5 * self.m2_concat(p[:,self.opt['hidden_dim']:]) for p in paths]
+        #todo replace 0.5 with learnable weight
+        label_paths_list = [0.5 * self.m2(p[:, :self.opt['hidden_dim']]) + 0.5 * self.m2_concat(p[:, self.opt['hidden_dim']:]) for p in paths]
       else:
         label_paths_list = [self.m2(p) for p in paths]
       label_paths = torch.cat(label_paths_list, axis=-1)
       return self.m3(label_paths)
+
     elif self.opt['m3_path_dep'] == 'label_att':
       if self.opt['path_dep_norm'] == 'full_concat_nodewise':
-        label_paths_list = [0.5 * self.m2(p[:,:self.opt['hidden_dim']]) + 0.5 * self.m2_concat(p[:,self.opt['hidden_dim']:]) for p in paths]
+        label_paths_list = [0.5 * self.m2(p[:, :self.opt['hidden_dim']]) + 0.5 * self.m2_concat(p[:, self.opt['hidden_dim']:]) for p in paths]
       else:
         label_paths_list = [self.m2(p) for p in paths]
       label_paths = torch.stack(label_paths_list, axis=-1)
-      return (self.label_atts * label_paths).sum(-1)  #todo maybe generalise this with different attention per class
+      return (self.label_atts * label_paths).sum(-1)  # todo maybe generalise this with different attention per class
 
-    # if self.opt['m3_best_path_dep']:
-    #   paths = torch.stack(self.odeblock.odefunc.paths, axis=-1)
-    #   path_preds = project_paths_logit_space(self.m2, paths)
-    #   # convert paths to preds and then accuracies
-    #   # identify time step that each group acheived the best test performance using torch.argmax
-    #   # input the path dependent prediction with a "STRONG" hint of which time step it should consider via "attention"
-    #   return self.m3(paths.reshape(self.num_nodes, -1))
-    # def predict(self, z):
-    #   z = self.GNN_postXN(z)
-    #   logits = self.GNN_m2(z)
-    #   pred = logits.max(1)[1]
-    #   return logits, pred
+    elif self.opt['m3_path_dep'] == 'train_centers':
+      #get paths of training nodes in feature space
+      #for each node work out distance from the C evolving centres
+      # make prediction based on these path distances and standard decoder
+      label_dist_list = []
+      for p in paths:
+        base_mask = self.odeblock.odefunc.data.train_mask
+        base_av = torch.zeros((self.num_classes, p.shape[-1]), device=self.device)
+        # calculate average hidden state per class in the baseline set - [C, d]
+        # if base_type == 'train_avg':
+        for c in range(self.num_classes):
+          base_c_mask = self.odeblock.odefunc.data.y[base_mask] == c
+          base_av_c = p[base_mask][base_c_mask].mean(dim=0)
+          base_av[c] = base_av_c
+        # for every node calcualte the L2 distance - [N, C] and [N, C]
+        dist = p.unsqueeze(-1) - base_av.T.unsqueeze(0)
+        L2_dist = torch.sqrt(torch.sum(dist ** 2, dim=1))
+        label_dist_list.append(L2_dist)
+
+      label_dist_paths = torch.cat(label_dist_list, axis=-1)
+      return self.m3(label_dist_paths)
+
 
     if self.opt['lie_trotter'] == 'gen_2': #if we end in label diffusion block don't need to decode to logits
       if self.opt['lt_gen2_args'][-1]['lt_block_type'] != 'label':

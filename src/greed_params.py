@@ -100,7 +100,7 @@ def greed_hyper_params(opt):
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
     opt['step_size'] = 0.5#1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 3 #4 #18.295 #10
-    opt['epoch'] = 129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
+    opt['epoch'] = 257#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1 #10#4#1
     # opt['planetoid_split'] = True
     # opt['geom_gcn_splits'] = False #True#True #False#True
@@ -161,9 +161,9 @@ def greed_hyper_params(opt):
     opt['drift_grad'] = True #True
     opt['m2_aug'] = False #True #False #reads out (no weights) prediction from bottom C dimensions
     opt['m1_W_eig'] = False#True
-    opt['m2_W_eig'] = 'x2z'#'z2x' #True #True
-    opt['m3_path_dep'] = 'feature_jk'#'label_jk'#'feature_jk' #'label_jk' 'label_att'
-    opt['path_dep_norm'] = 'full_concat_nodewise'#'rayleigh'#'nodewise' #'rayleigh'
+    opt['m2_W_eig'] = False #'x2z'#'z2x' #True #True
+    opt['m3_path_dep'] = 'train_centers'#'feature_jk'#'label_jk'#'feature_jk' #'label_jk' 'label_att'
+    opt['path_dep_norm'] = None #'full_concat_nodewise'#'rayleigh'#'nodewise' #'rayleigh'
     # opt['m3_best_path_dep'] = False #todo add to params - makes prediction using path of train set evolution/performance
     # opt['m3_space'] = None
     opt['loss_reg'] = None #4#3#2#6#5#6
