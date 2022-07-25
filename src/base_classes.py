@@ -138,10 +138,11 @@ class BaseGNN(MessagePassing):
     else:
       self.m2 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
 
-    if self.opt['path_dep_norm'] == 'full_concat_nodewise':
+    if self.opt['path_dep_norm'] == 'z_cat_normed_z':
       self.m2_concat = nn.Linear(opt['hidden_dim'], dataset.num_classes)
+      self.alpha_z = nn.Parameter(torch.ones(1)/2) #todo are these even used
 
-    out_dim = 2*opt['hidden_dim'] if self.opt['path_dep_norm'] == 'full_concat_nodewise' else opt['hidden_dim']
+    out_dim = 2 * opt['hidden_dim'] if self.opt['path_dep_norm'] == 'full_concat_nodewise' else opt['hidden_dim']
     time_points = math.ceil(opt['time']/opt['step_size'])
     if self.opt['m3_path_dep'] == 'feature_jk':
       self.m3 = nn.Linear((time_points + 1) * out_dim, self.num_classes)
@@ -152,6 +153,7 @@ class BaseGNN(MessagePassing):
       self.label_atts = nn.Parameter(torch.ones(time_points + 1))
     elif self.opt['m3_path_dep'] == 'train_centers':
       self.m3 = nn.Linear((time_points + 1) * self.num_classes, self.num_classes)
+
 
     if self.opt['batch_norm']:
       self.bn_in = torch.nn.BatchNorm1d(opt['hidden_dim'])
@@ -173,7 +175,8 @@ class BaseGNN(MessagePassing):
       self.m3.reset_parameters()
     elif self.opt['m3_path_dep'] == 'label_att':
       pass # xavier_uniform_(self.label_atts)
-
+    if self.opt['path_dep_norm'] == 'z_cat_normed_z':
+      pass
 
   def __repr__(self):
     return self.__class__.__name__

@@ -184,7 +184,7 @@ class GNN(BaseGNN):
       paths = [F.normalize(z_t, dim=1) for z_t in paths]
     elif self.opt['path_dep_norm'] == 'rayleigh':
       paths = [z_t / rayleigh_quotient(self.odeblock.odefunc.edge_index, self.num_nodes, z_t) for z_t in paths]
-    elif self.opt['path_dep_norm'] == 'full_concat_nodewise':
+    elif self.opt['path_dep_norm'] == 'z_cat_normed_z':
       paths = [torch.cat((z_t, F.normalize(z_t, dim=1)),dim=1) for z_t in paths]
 
     if self.opt['m3_path_dep'] == 'feature_jk':
@@ -192,17 +192,16 @@ class GNN(BaseGNN):
       return self.m3(paths)
 
     elif self.opt['m3_path_dep'] == 'label_jk':
-      if self.opt['path_dep_norm'] == 'full_concat_nodewise':
-        #todo replace 0.5 with learnable weight
-        label_paths_list = [0.5 * self.m2(p[:, :self.opt['hidden_dim']]) + 0.5 * self.m2_concat(p[:, self.opt['hidden_dim']:]) for p in paths]
+      if self.opt['path_dep_norm'] == 'z_cat_normed_z':
+        label_paths_list = [self.alpha_z * self.m2(p[:, :self.opt['hidden_dim']]) + (1 - self.alpha_z) * self.m2_concat(p[:, self.opt['hidden_dim']:]) for p in paths]
       else:
         label_paths_list = [self.m2(p) for p in paths]
       label_paths = torch.cat(label_paths_list, axis=-1)
       return self.m3(label_paths)
 
     elif self.opt['m3_path_dep'] == 'label_att':
-      if self.opt['path_dep_norm'] == 'full_concat_nodewise':
-        label_paths_list = [0.5 * self.m2(p[:, :self.opt['hidden_dim']]) + 0.5 * self.m2_concat(p[:, self.opt['hidden_dim']:]) for p in paths]
+      if self.opt['path_dep_norm'] == 'z_cat_normed_z':
+        label_paths_list = [self.alpha_z * self.m2(p[:, :self.opt['hidden_dim']]) + (1 - self.alpha_z) * self.m2_concat(p[:, self.opt['hidden_dim']:]) for p in paths]
       else:
         label_paths_list = [self.m2(p) for p in paths]
       label_paths = torch.stack(label_paths_list, axis=-1)
