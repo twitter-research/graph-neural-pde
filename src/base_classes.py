@@ -142,9 +142,9 @@ class BaseGNN(MessagePassing):
       self.m2_concat = nn.Linear(opt['hidden_dim'], dataset.num_classes)
       self.alpha_z = nn.Parameter(torch.ones(1)/2) #todo are these even used
 
-    out_dim = 2 * opt['hidden_dim'] if self.opt['path_dep_norm'] == 'z_cat_normed_z' else opt['hidden_dim']
     time_points = math.ceil(opt['time']/opt['step_size'])
     if self.opt['m3_path_dep'] == 'feature_jk':
+      out_dim = 2 * opt['hidden_dim'] if self.opt['path_dep_norm'] == 'z_cat_normed_z' else opt['hidden_dim']
       self.m3 = nn.Linear((time_points + 1) * out_dim, self.num_classes)
     elif self.opt['m3_path_dep'] == 'label_jk':
       self.m3 = nn.Linear((time_points + 1) * self.num_classes, self.num_classes)
