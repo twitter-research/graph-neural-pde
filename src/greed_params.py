@@ -162,7 +162,7 @@ def greed_hyper_params(opt):
     opt['m2_aug'] = False #True #False #reads out (no weights) prediction from bottom C dimensions
     opt['m1_W_eig'] = False#True
     opt['m2_W_eig'] = False #'x2z'#'z2x' #True #True
-    opt['m3_path_dep'] = 'label_jk'#'train_centers'#'feature_jk'#'label_jk'#'feature_jk' #'label_jk' 'label_att'
+    opt['m3_path_dep'] = None#'label_jk'#'train_centers'#'feature_jk'#'label_jk'#'feature_jk' #'label_jk' 'label_att'
     opt['path_dep_norm'] = None #'z_cat_normed_z'#'rayleigh'#'nodewise' #'rayleigh'
     # opt['m3_best_path_dep'] = False #todo add to params - makes prediction using path of train set evolution/performance
     # opt['m3_space'] = None
@@ -206,6 +206,7 @@ def greed_hyper_params(opt):
         #                        {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': [1,2,4,7,8,9,10]}]#,
                                # {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': 0, 'reports_list': [1,2,4,7,8,9,10]}]#,
                                # {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []}]#[1,2,3,4,5,6,7]}]#[]}]
+        #for "restart" diffusion
         opt['time2'] = 2.0
         opt['time3'] = 1.0
     #gcn params
@@ -229,9 +230,9 @@ def not_sweep_args(opt, project_name, group_name):
     # opt['wandb_group'] = group_name #"testing"  # "tuning" eval
 
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = True #True #True #False #True
-    opt['wandb_track_grad_flow'] = True #False  #collect stats for reports
-    opt['run_track_reports'] = True #False#True ##run the evolution reports
+    opt['wandb'] = False #True #True #False #True
+    opt['wandb_track_grad_flow'] = False#True #False  #collect stats for reports
+    opt['run_track_reports'] = False#True #False#True ##run the evolution reports
     opt['save_local_reports'] = True#True
     opt['save_wandb_reports'] = True#False#True
     opt['wandb_watch_grad'] = False
