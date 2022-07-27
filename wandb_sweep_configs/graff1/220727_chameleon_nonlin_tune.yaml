@@ -16,7 +16,7 @@ parameters:
   gnl_style:
     values: [general_graph]
   gnl_activation:
-    values: [identity, sigmoid, squareplus, sigmoid_deriv, tanh_deriv, squareplus_deriv, exponential]
+    values: [identity, sigmoid, squareplus, sigmoid_deriv, tanh_deriv, squareplus_deriv]
   gnl_measure:
     values: [ones]
   drift:
