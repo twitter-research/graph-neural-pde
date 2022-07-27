@@ -490,18 +490,6 @@ def main(cmd_opt):
     else:
         opt = cmd_opt
 
-    if opt['gcn_params']: #temp function for GCN ablation
-        unpack_gcn_params(opt)
-    if opt['greed_params']: #temp function for GCN ablation
-        unpack_greed_params(opt)
-    if opt['W_params']: #temp function for ablation
-        unpack_W_params(opt)
-    if opt['omega_params']: #temp function for ablation
-        unpack_omega_params(opt)
-
-    # opt = shared_graff_params(opt)
-    opt = hetero_params(opt)
-
     if opt['wandb']:
         if opt['use_wandb_offline']:
             os.environ["WANDB_MODE"] = "offline"
@@ -521,6 +509,19 @@ def main(cmd_opt):
                                reinit=True, config=opt, allow_val_change=True)  # required when update config
 
     opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
+
+    if opt['gcn_params']: #temp function for GCN ablation
+        unpack_gcn_params(opt)
+    if opt['greed_params']: #temp function for GCN ablation
+        unpack_greed_params(opt)
+    if opt['W_params']: #temp function for ablation
+        unpack_W_params(opt)
+    if opt['omega_params']: #temp function for ablation
+        unpack_omega_params(opt)
+
+    # opt = shared_graff_params(opt)
+    opt = hetero_params(opt)
+
     wandb.define_metric("epoch_step")  # Customize axes - https://docs.wandb.ai/guides/track/log
     if opt['wandb_track_grad_flow']:
         wandb.define_metric("grad_flow_step")  # Customize axes - https://docs.wandb.ai/guides/track/log
