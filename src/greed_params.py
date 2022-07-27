@@ -102,6 +102,7 @@ def greed_hyper_params(opt):
     opt['time'] = 3 #4 #18.295 #10
     opt['epoch'] = 129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1 #10#4#1
+    opt['use_labels'] = True
     # opt['planetoid_split'] = True
     # opt['geom_gcn_splits'] = False #True#True #False#True
     # opt['patience'] = 3
@@ -230,7 +231,7 @@ def not_sweep_args(opt, project_name, group_name):
     # opt['wandb_group'] = group_name #"testing"  # "tuning" eval
 
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = False #True #True #False #True
+    opt['wandb'] = True #True #False #True
     opt['wandb_track_grad_flow'] = False#True #False  #collect stats for reports
     opt['run_track_reports'] = False#True #False#True ##run the evolution reports
     opt['save_local_reports'] = True#True
@@ -255,7 +256,7 @@ def tf_ablation_args(opt):
     tf_args = ['test_no_chanel_mix','test_omit_metric_L', 'test_omit_metric_R','test_mu_0',
                 'test_tau_remove_tanh','test_tau_symmetric','test_grand_metric','test_tau_ones',
                 'test_tau_outside', 'test_linear_L0', 'test_R1R2_0',
-                'use_mlp', 'use_best_params', 'no_early',
+                'use_mlp', 'use_best_params', 'no_early', 'use_labels',
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
                 'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',

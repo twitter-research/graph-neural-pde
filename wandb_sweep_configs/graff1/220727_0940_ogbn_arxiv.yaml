@@ -29,7 +29,9 @@ parameters:
     values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag_dom, uniform, True, zero, None, False, True, True]]
   use_mlp:
     values: [True, False]
-  greed_SL:
+  hetero_SL:
+    values: [True, False]
+  use_labels:
     values: [True, False]
   hidden_dim:
     values: [32, 64]
@@ -40,7 +42,7 @@ parameters:
   input_dropout:
     distribution: uniform
     min: 0.3
-    max: 0.85
+    max: 0.6
   dropout:
     distribution: uniform
     min: 0.15
@@ -51,7 +53,7 @@ parameters:
     distribution: uniform
     min: 0.001
     max: 0.01
-  decay:  #no decay
+  decay:
     distribution: uniform
     min: 0.000
     max: 0.002
