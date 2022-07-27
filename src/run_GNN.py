@@ -10,7 +10,7 @@ from torch_scatter import scatter_add
 import torch.nn.functional as F
 from torch.distributions import Categorical
 import wandb
-# from ogb.nodeproppred import Evaluator
+from ogb.nodeproppred import Evaluator
 
 from GNN import GNN
 from GNN_early import GNNEarly
@@ -109,78 +109,79 @@ def train(model, optimizer, data, pos_encoding=None):
     #     gl_loss = 1.
     #     for l in range(model.num_classes):
     #         gl_loss *= lf(out[val_test_mask], torch.full((sum(val_test_mask).item(),), l))
-    val_test_mask = data.val_mask + data.test_mask
-    val_test_idx = torch.where(val_test_mask[0])
-    num_classes = model.num_classes
-    num_nodes = model.num_nodes
-    if model.opt['loss_reg'] == 1:
-        # 2) GL type loss - Corrected product then sum - but still 100% certainty
-        #numerical /scale issues
-        gl_loss = 0.
-        for idx in val_test_idx:
-            temp_cel = 1
-            for l in range(num_classes):
-                temp_cel *= lf(out[idx], torch.full((1,), l))
-            gl_loss += temp_cel
-    elif model.opt['loss_reg'] == 2:
-        # 3) L1 distance from standard basis in label space type loss
-        sm_logits = torch.softmax(out, dim=1)[val_test_mask]
-        eye = torch.eye(num_classes, device=model.device)
-        dist_labels = sm_logits.unsqueeze(-1) - eye.unsqueeze(0)  # [num_nodes, c, 1] - [1, c, c]
-        eta_hat = torch.sum(torch.abs(dist_labels), dim=1)  # sum abs distances for each node over features
-        gl_loss = torch.prod(eta_hat, dim=1).sum()**2 / (4**num_classes * num_nodes)
-    elif model.opt['loss_reg'] == 3:
-        # 4) node entropy regularisation
-        sm_logits = torch.softmax(out, dim=1)[val_test_mask]
-        entropies = Categorical(probs=sm_logits).entropy()
-        gl_loss = entropies.sum() / num_nodes
-    elif model.opt['loss_reg'] == 4:
-        # 4) node entropy regularisation with uncertainty
-        certainty = opt['loss_reg_certainty']
-        uncertain_label = torch.full((num_classes,), (1 - certainty) / (num_classes - 1))
-        uncertain_label[0] = certainty
-        uncertain_shift = Categorical(probs=uncertain_label).entropy()
-        sm_logits = torch.softmax(out, dim=1)[val_test_mask]
-        entropies = Categorical(probs=sm_logits).entropy()
-        gl_loss = ((entropies - uncertain_shift)**2).sum() / num_nodes
-    elif model.opt['loss_reg'] == 5:
-        # 5) GL type loss - corrected product then sum but using -
-        # keep in mind that CrossEntropyLoss does a softmax for you. (It’s actually a LogSoftmax + NLLLoss combined into one function
-        # - https://discuss.pytorch.org/t/softmax-cross-entropy-loss/125383
-        # but now I'm replacing the Y one hot labels with some uncertainty
-        certainty = opt['loss_reg_certainty']
-        log_sm_logits = out.log_softmax(dim=-1)[val_test_mask]
-        NLL = torch.nn.functional.nll_loss
-        gl_loss = 0.
-        for idx in val_test_idx: #or do this for every node inc train set..
-            temp_cel = 1
-            for l in range(num_classes):
-                uncertain_label = torch.full((num_classes,), (1 - certainty)/(num_classes - 1))
-                uncertain_label[l] = certainty
-                class_nll = (uncertain_label * -log_sm_logits[idx]).sum()
-                temp_cel *= class_nll
-            gl_loss += temp_cel / num_nodes
-    elif model.opt['loss_reg'] == 6:
-        # 6) - idea uncertainty weighted expected L1 distance
-        sm_logits = torch.softmax(out, dim=1)[val_test_mask]
-        # eye = torch.eye(model.num_classes, device=model.device)
-        #replace eye with
-        certainty = opt['loss_reg_certainty']
+    if model.opt['loss_reg'] is not None:
+        val_test_mask = data.val_mask + data.test_mask
+        val_test_idx = torch.where(val_test_mask[0])
         num_classes = model.num_classes
-        uncertain_label = torch.full((num_classes,), (1 - certainty) / (num_classes - 1))
-        uncertain_label[0] = certainty
-        simplex = torch.stack([torch.roll(uncertain_label, shifts=i, dims=-1) for i in range(num_classes)])
-        dist_labels = sm_logits.unsqueeze(-1) - simplex.unsqueeze(0)  # [num_nodes, c, 1] - [1, c, c]
-        eta_hat = torch.sum(torch.abs(dist_labels), dim=1)  # sum abs distances for each node over features
-        gl_loss = torch.prod(eta_hat, dim=1).sum()**2 / (4**model.num_classes * num_nodes)
-    else:
-        gl_loss = 0
+        num_nodes = model.num_nodes
+        if model.opt['loss_reg'] == 1:
+            # 2) GL type loss - Corrected product then sum - but still 100% certainty
+            #numerical /scale issues
+            gl_loss = 0.
+            for idx in val_test_idx:
+                temp_cel = 1
+                for l in range(num_classes):
+                    temp_cel *= lf(out[idx], torch.full((1,), l))
+                gl_loss += temp_cel
+        elif model.opt['loss_reg'] == 2:
+            # 3) L1 distance from standard basis in label space type loss
+            sm_logits = torch.softmax(out, dim=1)[val_test_mask]
+            eye = torch.eye(num_classes, device=model.device)
+            dist_labels = sm_logits.unsqueeze(-1) - eye.unsqueeze(0)  # [num_nodes, c, 1] - [1, c, c]
+            eta_hat = torch.sum(torch.abs(dist_labels), dim=1)  # sum abs distances for each node over features
+            gl_loss = torch.prod(eta_hat, dim=1).sum()**2 / (4**num_classes * num_nodes)
+        elif model.opt['loss_reg'] == 3:
+            # 4) node entropy regularisation
+            sm_logits = torch.softmax(out, dim=1)[val_test_mask]
+            entropies = Categorical(probs=sm_logits).entropy()
+            gl_loss = entropies.sum() / num_nodes
+        elif model.opt['loss_reg'] == 4:
+            # 4) node entropy regularisation with uncertainty
+            certainty = opt['loss_reg_certainty']
+            uncertain_label = torch.full((num_classes,), (1 - certainty) / (num_classes - 1))
+            uncertain_label[0] = certainty
+            uncertain_shift = Categorical(probs=uncertain_label).entropy()
+            sm_logits = torch.softmax(out, dim=1)[val_test_mask]
+            entropies = Categorical(probs=sm_logits).entropy()
+            gl_loss = ((entropies - uncertain_shift)**2).sum() / num_nodes
+        elif model.opt['loss_reg'] == 5:
+            # 5) GL type loss - corrected product then sum but using -
+            # keep in mind that CrossEntropyLoss does a softmax for you. (It’s actually a LogSoftmax + NLLLoss combined into one function
+            # - https://discuss.pytorch.org/t/softmax-cross-entropy-loss/125383
+            # but now I'm replacing the Y one hot labels with some uncertainty
+            certainty = opt['loss_reg_certainty']
+            log_sm_logits = out.log_softmax(dim=-1)[val_test_mask]
+            NLL = torch.nn.functional.nll_loss
+            gl_loss = 0.
+            for idx in val_test_idx: #or do this for every node inc train set..
+                temp_cel = 1
+                for l in range(num_classes):
+                    uncertain_label = torch.full((num_classes,), (1 - certainty)/(num_classes - 1))
+                    uncertain_label[l] = certainty
+                    class_nll = (uncertain_label * -log_sm_logits[idx]).sum()
+                    temp_cel *= class_nll
+                gl_loss += temp_cel / num_nodes
+        elif model.opt['loss_reg'] == 6:
+            # 6) - idea uncertainty weighted expected L1 distance
+            sm_logits = torch.softmax(out, dim=1)[val_test_mask]
+            # eye = torch.eye(model.num_classes, device=model.device)
+            #replace eye with
+            certainty = opt['loss_reg_certainty']
+            num_classes = model.num_classes
+            uncertain_label = torch.full((num_classes,), (1 - certainty) / (num_classes - 1))
+            uncertain_label[0] = certainty
+            simplex = torch.stack([torch.roll(uncertain_label, shifts=i, dims=-1) for i in range(num_classes)])
+            dist_labels = sm_logits.unsqueeze(-1) - simplex.unsqueeze(0)  # [num_nodes, c, 1] - [1, c, c]
+            eta_hat = torch.sum(torch.abs(dist_labels), dim=1)  # sum abs distances for each node over features
+            gl_loss = torch.prod(eta_hat, dim=1).sum()**2 / (4**model.num_classes * num_nodes)
+        # else:
+        #     gl_loss = 0
 
-    gl_flag = 1 if model.odeblock.odefunc.epoch > opt['loss_reg_delay'] else 0
-    # loss = loss + gl_flag * gl_loss / (1 + loss)**model.num_classes # / (loss + gl_loss)
-    # loss = loss + gl_loss / (1 + loss)**model.num_classes # / (loss + gl_loss)
-    # loss = loss + gl_flag * gl_loss / model.num_nodes
-    loss = loss + opt['loss_reg_weight'] * gl_flag * gl_loss
+        gl_flag = 1 if model.odeblock.odefunc.epoch > opt['loss_reg_delay'] else 0
+        # loss = loss + gl_flag * gl_loss / (1 + loss)**model.num_classes # / (loss + gl_loss)
+        # loss = loss + gl_loss / (1 + loss)**model.num_classes # / (loss + gl_loss)
+        # loss = loss + gl_flag * gl_loss / model.num_nodes
+        loss = loss + opt['loss_reg_weight'] * gl_flag * gl_loss
 
     model.fm.update(model.getNFE())
     model.resetNFE()
@@ -385,34 +386,33 @@ def print_model_params(model):
 
 @torch.no_grad()
 def test_OGB(model, data, pos_encoding, opt):
-    pass
-    # if opt['dataset'] == 'ogbn-arxiv':
-    #     name = 'ogbn-arxiv'
-    #
-    # feat = data.x
-    # if model.opt['use_labels']:
-    #     feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
-    #
-    # evaluator = Evaluator(name=name)
-    # model.eval()
-    #
-    # out = model(feat, pos_encoding).log_softmax(dim=-1)
-    # y_pred = out.argmax(dim=-1, keepdim=True)
-    #
-    # train_acc = evaluator.eval({
-    #     'y_true': data.y[data.train_mask],
-    #     'y_pred': y_pred[data.train_mask],
-    # })['acc']
-    # valid_acc = evaluator.eval({
-    #     'y_true': data.y[data.val_mask],
-    #     'y_pred': y_pred[data.val_mask],
-    # })['acc']
-    # test_acc = evaluator.eval({
-    #     'y_true': data.y[data.test_mask],
-    #     'y_pred': y_pred[data.test_mask],
-    # })['acc']
-    #
-    # return train_acc, valid_acc, test_acc
+    if opt['dataset'] == 'ogbn-arxiv':
+        name = 'ogbn-arxiv'
+
+    feat = data.x
+    if model.opt['use_labels']:
+        feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
+
+    evaluator = Evaluator(name=name)
+    model.eval()
+
+    out = model(feat, pos_encoding).log_softmax(dim=-1)
+    y_pred = out.argmax(dim=-1, keepdim=True)
+
+    train_acc = evaluator.eval({
+        'y_true': data.y[data.train_mask],
+        'y_pred': y_pred[data.train_mask],
+    })['acc']
+    valid_acc = evaluator.eval({
+        'y_true': data.y[data.val_mask],
+        'y_pred': y_pred[data.val_mask],
+    })['acc']
+    test_acc = evaluator.eval({
+        'y_true': data.y[data.test_mask],
+        'y_pred': y_pred[data.test_mask],
+    })['acc']
+
+    return train_acc, valid_acc, test_acc
 
 
 def merge_cmd_args(cmd_opt, opt):
