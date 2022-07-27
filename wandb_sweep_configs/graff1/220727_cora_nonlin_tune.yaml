@@ -2,21 +2,21 @@ program: run_GNN.py
 method: random
 parameters:
   dataset:
-    values: [Cora, Citeseer]
+    values: [Cora]
   block:
     values: [constant]
   function:
     values: [greed_non_linear]
   epoch:
-    values: [250]
+    values: [129]
   num_splits:
-    values: [10]
+    values: [4]
   method:
     values: [euler]
   gnl_style:
     values: [general_graph]
   gnl_activation:
-    values: [sigmoid, squareplus, sigmoid_deriv, tanh_deriv, squareplus_deriv, exponential]
+    values: [identity, sigmoid, squareplus, sigmoid_deriv, tanh_deriv, squareplus_deriv, exponential]
   gnl_measure:
     values: [ones]
   drift:
