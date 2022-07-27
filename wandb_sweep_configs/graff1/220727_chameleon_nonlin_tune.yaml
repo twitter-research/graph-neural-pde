@@ -2,7 +2,7 @@ program: run_GNN.py
 method: random
 parameters:
   dataset:
-    values: [Cora]
+    values: [chameleon]
   block:
     values: [constant]
   function:
@@ -26,7 +26,7 @@ parameters:
   hidden_dim:
     values: [32, 64, 128]
   time:
-    values: [2, 2.5, 3, 4, 8]
+    values: [2, 2.5, 3, 4]
   step_size:
     values: [0.25, 0.5, 1.0]
   input_dropout:
@@ -46,7 +46,7 @@ parameters:
   decay:
     distribution: uniform
     min: 0.000
-    max: 0.05
+    max: 0.001
 command:
   - ${env}
   - python3
