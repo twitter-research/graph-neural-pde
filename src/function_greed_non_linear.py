@@ -636,6 +636,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         attention = fOmf
 
     elif self.opt['gnl_style'] in ['general_graph', 'att_rep_laps']:#== 'general_graph':
+      del src_x
+      del dst_x
+      torch.cuda.empty_cache()
       # get degrees
       src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)
 

@@ -8,7 +8,7 @@ parameters:
   function:
     values: [greed_non_linear]
   epoch:
-    values: [129]
+    values: [250]
   num_splits:
     values: [ 2 ]
   self_loop_weight:
@@ -26,7 +26,7 @@ parameters:
   drift:
     values: [False]
   greed_params:
-    values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag_dom, uniform, True, zero, None, False, True, True]]
+    values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag_dom, uniform, True, zero, None, False, True, True], [diag, uniform, False, diag, free, True, True, True]]
   use_mlp:
     values: [True, False]
   hetero_SL:
@@ -34,7 +34,7 @@ parameters:
   use_labels:
     values: [False]
   hidden_dim:
-    values: [64, 96, 128, 256]
+    values: [64, 96, 128]
   time:
     values: [2.0, 3.0, 5.0]
   step_size:
