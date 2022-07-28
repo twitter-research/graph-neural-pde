@@ -691,7 +691,8 @@ if __name__ == '__main__':
     parser.add_argument('--data_norm', type=str, default='rw',
                         help='rw for random walk, gcn for symmetric gcn norm')
     parser.add_argument('--self_loop_weight', type=float, help='Weight of self-loops.')
-    parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
+    # parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
+    parser.add_argument('--use_labels', type=str, default='False', help='Also diffuse labels')
     parser.add_argument('--label_rate', type=float, default=0.5,
                         help='% of training labels to use when --use_labels is set.')
     parser.add_argument('--planetoid_split', action='store_true',
