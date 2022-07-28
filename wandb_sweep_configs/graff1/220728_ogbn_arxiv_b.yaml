@@ -1,5 +1,5 @@
 program: run_GNN.py
-method: grid
+method: random
 parameters:
   dataset:
     values: [ogbn-arxiv]
@@ -45,12 +45,12 @@ parameters:
     values: [0.25, 0.5]
   input_dropout:
     distribution: uniform
-    min: 0.3
-    max: 0.6
+    min: 0.1
+    max: 0.5
   dropout:
     distribution: uniform
-    min: 0.15
-    max: 0.5
+    min: 0.0
+    max: 0.3
   optimizer:
     values: [adam]
   lr:
