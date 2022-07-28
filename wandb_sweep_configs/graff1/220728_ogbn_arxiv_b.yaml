@@ -1,0 +1,75 @@
+program: run_GNN.py
+method: grid
+parameters:
+  dataset:
+    values: [ogbn-arxiv]
+  block:
+    values: [constant]
+  function:
+    values: [greed_non_linear]
+  epoch:
+    values: [129]
+  num_splits:
+    values: [ 2 ]
+  self_loop_weight:
+    values: [ 0.0 ]
+  no_early:
+    values: [ True ]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_activation:
+    values: [identity]
+  gnl_measure:
+    values: [ones]
+  drift:
+    values: [False]
+  greed_params:
+    values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag_dom, uniform, True, zero, None, False, True, True]]
+  use_mlp:
+    values: [True, False]
+  hetero_SL:
+    values: [True, False]
+  use_labels:
+    values: [True, False]
+  hidden_dim:
+    values: [64, 128, 256]
+  time:
+    values: [2.0, 3.0, 5.0]
+  step_size:
+    values: [0.25, 0.5, 1.0]
+  adjoint_method:
+    values: [euler]
+  adjoint_step_size:
+    values: [0.25, 0.5]
+  input_dropout:
+    distribution: uniform
+    min: 0.3
+    max: 0.6
+  dropout:
+    distribution: uniform
+    min: 0.15
+    max: 0.5
+  optimizer:
+    values: [adam]
+  lr:
+    distribution: uniform
+    min: 0.001
+    max: 0.01
+  decay:
+    distribution: uniform
+    min: 0.000
+    max: 0.001
+  max_nfe:
+    values: [10000]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --adjoint
+entity: graph_neural_diffusion
+project: ogbn_arxiv_tune
