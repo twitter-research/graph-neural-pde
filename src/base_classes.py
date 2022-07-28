@@ -127,6 +127,7 @@ class BaseGNN(MessagePassing):
       self.m12 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
     if opt['use_labels']:
       # todo - fastest way to propagate this everywhere, but error prone - refactor later
+      #note not using labels in this branch but need to verify if labels are being added to raw features as per run_GNN or hidden dimension
       if opt['wandb']:
         wandb.config.update({'hidden_dim': opt['feat_hidden_dim'] + dataset.num_classes}, allow_val_change=True)  # required when update hidden_dim in beltrami
       else:
