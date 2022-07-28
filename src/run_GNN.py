@@ -523,7 +523,6 @@ def main(cmd_opt):
     opt = hetero_params(opt)
 
     wandb.define_metric("epoch_step")  # Customize axes - https://docs.wandb.ai/guides/track/log
-    wandb.define_metric(step_metric="epoch_step")
     wandb.define_metric("train_acc", step_metric="epoch_step")
     wandb.define_metric("val_acc", step_metric="epoch_step")
     wandb.define_metric("test_acc", step_metric="epoch_step")
