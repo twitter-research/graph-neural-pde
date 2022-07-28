@@ -34,7 +34,7 @@ parameters:
   use_labels:
     values: [False]
   hidden_dim:
-    values: [64, 96, 128, 160]
+    values: [64, 96]
   time:
     values: [2.0, 3.0, 5.0]
   step_size:
