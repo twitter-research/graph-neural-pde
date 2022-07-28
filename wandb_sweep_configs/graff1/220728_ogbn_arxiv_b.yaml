@@ -34,15 +34,15 @@ parameters:
   use_labels:
     values: [False]
   hidden_dim:
-    values: [64, 96]
+    values: [64, 96, 128]
   time:
     values: [2.0, 3.0, 5.0]
   step_size:
-    values: [0.1, 0.25, 0.5, 1.0]
+    values: [0.25, 0.5, 1.0]
   adjoint_method:
     values: [euler]
   adjoint_step_size:
-    values: [0.1, 0.25, 0.5]
+    values: [0.25, 0.5]
   input_dropout:
     distribution: uniform
     min: 0.1

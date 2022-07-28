@@ -519,7 +519,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       src_meas, dst_meas = self.get_src_dst(measure)
       measures_src_dst = 1 / (src_meas * dst_meas)
     elif self.opt['gnl_measure'] == 'ones':
-      measure = torch.ones(self.n_nodes, device=self.device) #torch.tensor([1.]) #torch.ones(x.shape[0], device=self.device)
+      measure = 1 #torch.ones(self.n_nodes, device=self.device) #torch.tensor([1.]) #torch.ones(x.shape[0], device=self.device)
       src_meas = 1
       dst_meas = 1
       measures_src_dst = 1
@@ -640,7 +640,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)
 
       # calc bilinear form
-      if not self.opt['gnl_activation'] == 'identity':
+      if self.opt['gnl_activation'] != 'identity':
         fOmf = torch.einsum("ij,jk,ik->i", src_x * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W,
                             dst_x * dst_deginvsqrt.unsqueeze(dim=1))
         # in the overleaf this is actually fWf just keeping for code homogeniety
@@ -665,7 +665,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
                               dst_x * dst_deginvsqrt.unsqueeze(dim=1))  # calc'd just for stats
         else:
           fOmf = torch.ones(src_deginvsqrt.shape, device=self.device)
-        attention = torch.ones(src_deginvsqrt.shape, device=self.device)
+        attention = 1#torch.ones(src_deginvsqrt.shape, device=self.device)
     return fOmf, attention
 
   def set_M0(self):

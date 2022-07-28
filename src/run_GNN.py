@@ -671,7 +671,6 @@ def main(cmd_opt):
 
             wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
                              'test_acc_std': test_acc_std,
-                             # 'test_acc': test_acc, 'val_acc': val_acc, 'train_acc': train_acc, #todo see if this line fixes wandb logging issue
                              'T0_dirichlet_mean': T0_dirichlet_mean, 'T0r_dirichlet_mean': T0r_dirichlet_mean,
                              'TN_dirichlet_mean': TN_dirichlet_mean, 'TNr_dirichlet_mean': TNr_dirichlet_mean,
                              'enc_pred_homophil_mean': enc_pred_homophil_mean, 'pred_homophil_mean': pred_homophil_mean, 'label_homophil_mean': label_homophil_mean}
