@@ -250,9 +250,6 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
         accs.append(acc)
     epoch = model.odeblock.odefunc.epoch
     if opt['wandb']:
-        print("testwandblog")
-        # wandb tracking
-        # need to calc loss again
         lf = torch.nn.CrossEntropyLoss()
         loss = lf(logits[data.train_mask], data.y.squeeze()[data.train_mask])
         wandb_log(data, model, opt, loss, accs[0], accs[1], accs[2], epoch)
@@ -412,6 +409,14 @@ def test_OGB(model, data, pos_encoding, opt):
         'y_true': data.y[data.test_mask],
         'y_pred': y_pred[data.test_mask],
     })['acc']
+
+
+    wandb.log({"train_acc": train_acc, "val_acc": valid_acc, "test_acc": test_acc,
+                "delta": model.odeblock.odefunc.delta.detach(),
+               "drift_eps": model.odeblock.odefunc.drift_eps.detach() if opt['drift'] else 0,
+               "W_rank": torch.matrix_rank(model.odeblock.odefunc.gnl_W.detach()),
+               # "a_row_max": a_row_max, "a_row_min": a_row_min,
+               "epoch_step": model.odeblock.odefunc.epoch})
 
     return train_acc, valid_acc, test_acc
 
