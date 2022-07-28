@@ -191,10 +191,19 @@ def set_train_val_test_split(
 
 if __name__ == '__main__':
   # example for heterophilic datasets
-  from heterophilic import get_fixed_splits
-  opt = {'dataset': 'Cora', 'device': 'cpu'}
-  dataset = get_dataset(opt)
-  for fold in range(10):
-    data = dataset[0]
-    data = get_fixed_splits(data, opt['dataset'], fold)
-    data = data.to(opt['device'])
+  # from heterophilic import get_fixed_splits
+  # opt = {'dataset': 'Cora', 'device': 'cpu'}
+  # dataset = get_dataset(opt)
+  # for fold in range(10):
+  #   data = dataset[0]
+  #   data = get_fixed_splits(data, opt['dataset'], fold)
+  #   data = data.to(opt['device'])
+
+  #calc ogbn-arxiv homoph
+  from torch_geometric.utils import homophily
+  opt = {'dataset': 'Cora', 'device': 'cpu', 'not_lcc': True, 'rewiring': None, 'geom_gcn_splits': False}
+  dataset = get_dataset(opt, '../data', opt['not_lcc'])
+  data = dataset.data
+  label_homophil = homophily(edge_index=data.edge_index, y=data.y)
+  print(f"label_homophil {label_homophil}")
+
