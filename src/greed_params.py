@@ -262,7 +262,8 @@ def tf_ablation_args(opt):
                 'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
                 'two_hops', 'time_dep_w', 'time_dep_struct_w',
                 'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'm2_W_eig', 'gnl_W_norm', 'drift_grad',
-                'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout']
+                'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout',
+                'wandb', 'wandb_sweep', 'adjoint']
     arg_intersect = list(set(opt.keys()) & set(tf_args))
     for arg in arg_intersect:
         str_tf = opt[arg]
