@@ -250,6 +250,7 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
         accs.append(acc)
     epoch = model.odeblock.odefunc.epoch
     if opt['wandb']:
+        print("testwandblog")
         # wandb tracking
         # need to calc loss again
         lf = torch.nn.CrossEntropyLoss()
