@@ -32,9 +32,7 @@ parameters:
   hetero_SL:
     values: [True, False]
   use_labels:
-    values: [True, False]
-  label_rate:
-    values: [ 0.25, 0.5, 0.75, 1.0 ]
+    values: [False]
   hidden_dim:
     values: [64, 128, 256]
   time:
