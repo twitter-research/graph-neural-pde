@@ -238,6 +238,48 @@ def train_OGB(model, mp, optimizer, data, pos_encoding=None):
 
 
 @torch.no_grad()
+def test_OGB(model, data, pos_encoding, opt):
+    if opt['dataset'] == 'ogbn-arxiv':
+        name = 'ogbn-arxiv'
+
+    feat = data.x
+    if model.opt['use_labels']:
+        feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
+
+    evaluator = Evaluator(name=name)
+    model.eval()
+
+    out = model(feat, pos_encoding).log_softmax(dim=-1)
+    y_pred = out.argmax(dim=-1, keepdim=True)
+
+    train_acc = evaluator.eval({
+        'y_true': data.y[data.train_mask],
+        'y_pred': y_pred[data.train_mask],
+    })['acc']
+    valid_acc = evaluator.eval({
+        'y_true': data.y[data.val_mask],
+        'y_pred': y_pred[data.val_mask],
+    })['acc']
+    test_acc = evaluator.eval({
+        'y_true': data.y[data.test_mask],
+        'y_pred': y_pred[data.test_mask],
+    })['acc']
+
+    lf = torch.nn.functional.nll_loss if model.opt['dataset'] == 'ogbn-arxiv' else torch.nn.CrossEntropyLoss()
+    loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
+
+    wandb.log({"train_acc": train_acc, "val_acc": valid_acc, "test_acc": test_acc,
+               "loss": loss,
+                "delta": model.odeblock.odefunc.delta.detach(),
+               "drift_eps": model.odeblock.odefunc.drift_eps.detach() if opt['drift'] else 0,
+               "W_rank": torch.matrix_rank(model.odeblock.odefunc.gnl_W.detach()),
+               # "a_row_max": a_row_max, "a_row_min": a_row_min,
+               "epoch_step": model.odeblock.odefunc.epoch})
+
+    return train_acc, valid_acc, test_acc
+
+
+@torch.no_grad()
 def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
     model.eval()
     feat = data.x
@@ -380,45 +422,6 @@ def print_model_params(model):
         if param.requires_grad:
             print(name)
             print(param.data.shape)
-
-
-@torch.no_grad()
-def test_OGB(model, data, pos_encoding, opt):
-    if opt['dataset'] == 'ogbn-arxiv':
-        name = 'ogbn-arxiv'
-
-    feat = data.x
-    if model.opt['use_labels']:
-        feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
-
-    evaluator = Evaluator(name=name)
-    model.eval()
-
-    out = model(feat, pos_encoding).log_softmax(dim=-1)
-    y_pred = out.argmax(dim=-1, keepdim=True)
-
-    train_acc = evaluator.eval({
-        'y_true': data.y[data.train_mask],
-        'y_pred': y_pred[data.train_mask],
-    })['acc']
-    valid_acc = evaluator.eval({
-        'y_true': data.y[data.val_mask],
-        'y_pred': y_pred[data.val_mask],
-    })['acc']
-    test_acc = evaluator.eval({
-        'y_true': data.y[data.test_mask],
-        'y_pred': y_pred[data.test_mask],
-    })['acc']
-
-
-    wandb.log({"train_acc": train_acc, "val_acc": valid_acc, "test_acc": test_acc,
-                "delta": model.odeblock.odefunc.delta.detach(),
-               "drift_eps": model.odeblock.odefunc.drift_eps.detach() if opt['drift'] else 0,
-               "W_rank": torch.matrix_rank(model.odeblock.odefunc.gnl_W.detach()),
-               # "a_row_max": a_row_max, "a_row_min": a_row_min,
-               "epoch_step": model.odeblock.odefunc.epoch})
-
-    return train_acc, valid_acc, test_acc
 
 
 def merge_cmd_args(cmd_opt, opt):

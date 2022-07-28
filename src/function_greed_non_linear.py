@@ -738,7 +738,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           fOmf, attention = self.calc_dot_prod_attention(src_x, dst_x)
           src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)
           P = attention * src_deginvsqrt * dst_deginvsqrt
-          xW = x @ self.gnl_W
+
+          del fOmf
+          del src_x
+          del dst_x
+          del src_deginvsqrt
+          del dst_deginvsqrt
+          torch.cuda.empty_cache()
+
+          # xW = x @ self.gnl_W
           if not self.opt['gnl_measure'] == 'ones':
             f1 = torch_sparse.spmm(self.edge_index, P / src_meas, x.shape[0], x.shape[0], xW) / 2
             f2 = torch_sparse.spmm(self.edge_index, P / dst_meas, x.shape[0], x.shape[0], xW) / 2
@@ -747,7 +755,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           else:
             if self.opt['gnl_attention']: #todo attention only implemented for measure==ones
               P = P * self.mean_attention_0
-            f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], xW)
+            f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x @ self.gnl_W)
             if self.opt['two_hops']:
               xWtilde = x @ self.gnl_W_tilde
               AA_ei, AA_val = torch_sparse.spspmm(self.edge_index, P, self.edge_index, P, x.shape[0], x.shape[0], x.shape[0])
