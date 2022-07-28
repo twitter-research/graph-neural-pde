@@ -523,6 +523,16 @@ def main(cmd_opt):
     opt = hetero_params(opt)
 
     wandb.define_metric("epoch_step")  # Customize axes - https://docs.wandb.ai/guides/track/log
+    wandb.define_metric(step_metric="epoch_step")
+    wandb.define_metric("train_acc", step_metric="epoch_step")
+    wandb.define_metric("val_acc", step_metric="epoch_step")
+    wandb.define_metric("test_acc", step_metric="epoch_step")
+    wandb.define_metric("T0_dirichlet", step_metric="epoch_step")
+    wandb.define_metric("TN_dirichlet", step_metric="epoch_step")
+    wandb.define_metric("enc_pred_homophil", step_metric="epoch_step")
+    wandb.define_metric("pred_homophil", step_metric="epoch_step")
+    wandb.define_metric("label_homophil", step_metric="epoch_step")
+
     if opt['wandb_track_grad_flow']:
         wandb.define_metric("grad_flow_step")  # Customize axes - https://docs.wandb.ai/guides/track/log
         wandb.define_metric("gf_e*", step_metric="grad_flow_step")  # grad_flow_epoch*
