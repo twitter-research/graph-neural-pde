@@ -1,4 +1,5 @@
 import argparse
+import  wandb
 
 best_params_dict = {
 'chameleon': { 'w_style': 'diag_dom' ,'lr': 0.001411 ,'decay': 0.0004295 ,'dropout': 0.3674 ,'input_dropout': 0.4327 ,'hidden_dim': 64 ,'time': 3.194 ,'step_size': 1 },
@@ -25,9 +26,14 @@ def shared_graff_params(opt):
     return opt
 
 def hetero_params(opt):
-    #added self loops and make undirected for chameleon & squirrel
+    # adding self loops and make undirected for chameleon & squirrel
     if opt['dataset'] in ['chameleon', 'squirrel']:
-        opt['hetero_SL'] = True
-        opt['hetero_undir'] = True
-        opt['geom_gcn_splits'] = True
+        if opt['wandb']:
+            wandb.config.update({'hetero_SL': True}, allow_val_change=True)
+            wandb.config.update({'hetero_undir': True}, allow_val_change=True)
+            wandb.config.update({'geom_gcn_splits': True}, allow_val_change=True)
+        else:
+                opt['hetero_SL'] = True
+                opt['hetero_undir'] = True
+                opt['geom_gcn_splits'] = True
     return opt

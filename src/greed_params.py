@@ -93,12 +93,12 @@ def greed_hyper_params(opt):
     opt['lr'] = 0.001#0.001
     opt['dropout'] = 0.35
     opt['input_dropout'] = 0.5
-    opt['decay'] = 0.0005 #Cora 0.05 chameleon 0.0005
+    opt['decay'] = 0.0005#005 #Cora 0.05 chameleon 0.0005
     opt['hidden_dim'] = 64#64 #512
     opt['use_best_params'] = False #True #False #True
     opt['method'] = 'euler'
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
-    opt['step_size'] = 0.5#1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
+    opt['step_size'] = 0.25#1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 3 #4 #18.295 #10
     opt['epoch'] = 129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1 #10#4#1
@@ -130,13 +130,13 @@ def greed_hyper_params(opt):
         opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
         opt['gnl_attention'] = False #use L0 attention coefficients
         #Omega
-        opt['gnl_omega'] = 'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
+        opt['gnl_omega'] = 'diag'#'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
         opt['gnl_omega_diag'] = 'free' #'free 'const'
         opt['gnl_omega_diag_val'] = None #1 #-1 # 1
         opt['gnl_omega_activation'] = 'identity' #identity
         opt['gnl_omega_params'] = ["diag","free","None","identity"] #[opt['gnl_omega'], opt['gnl_omega_diag'], opt['gnl_omega_diag_val'], opt['gnl_omega_activation']]
         #W
-        opt['gnl_W_style'] = 'sum'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_W_style'] = 'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         if opt['gnl_W_style'] == 'k_block':
         # assert in_features % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
@@ -151,11 +151,6 @@ def greed_hyper_params(opt):
             opt['gnl_W_diag_init_r'] = 0.0
     elif opt['gnl_style'] == 'att_rep_laps':
         opt['gnl_W_style'] = 'att_rep_lap_block'#'sum'#'att_rep_lap_block'
-    #definitions of lie trotter
-    #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
-    #gen_0 - alternates one step diffusion and drift in alternating lie-trotter scheme (ie eq 42)
-    #gen_1 - alternates ranges of diffusion and drift (ie eq 43-44)
-    #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
     opt['drift'] = False  # False#True
     opt['gnl_thresholding'] = False
     opt['drift_space'] = 'label' #feature' #'label'
@@ -172,12 +167,18 @@ def greed_hyper_params(opt):
     opt['loss_reg_delay'] = 0 #4
     opt['loss_reg_certainty'] = None #0.85 #0.95 #1.00 #0.95
     opt['dampen_gamma'] = 1.0#0.6    #assuming spec rad=4, dampen gamma=0.6, step=0.1
-    opt['gnl_W_norm'] = True#False  # True #divide by spectral radius
-    opt['step_size'] = 0.5#1#5
-    # att_rep_laps
+    opt['gnl_W_norm'] = False#True#False  # True #divide by spectral radius
+    opt['pointwise_nonlin'] = False#True#False#True
+
+    # att_rep_laplacians
     opt['diffusion'] = True#True
     opt['repulsion'] = True#False#True #True
 
+    #definitions of lie trotter
+    #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
+    #gen_0 - alternates one step diffusion and drift in alternating lie-trotter scheme (ie eq 42)
+    #gen_1 - alternates ranges of diffusion and drift (ie eq 43-44)
+    #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
     opt['reports_list'] = []#[1,2,4,7,9,10,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
     opt['lie_trotter'] = None#'gen_2' #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'

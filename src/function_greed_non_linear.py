@@ -865,7 +865,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # if self.opt['greed_momentum'] and self.prev_grad:
       #   f = self.opt['momentum_alpha'] * f + (1 - self.opt['momentum_alpha']) * self.prev_grad
       #   self.prev_grad = f
-    return f - (1-self.opt['dampen_gamma']) * x /self.opt['step_size']
+
+    if self.opt['pointwise_nonlin']:
+      damp_f = f - (1-self.opt['dampen_gamma']) * x /self.opt['step_size']
+      # return torch.sigmoid(damp_f)
+      return torch.tanh(damp_f)
+    else:
+      return f - (1-self.opt['dampen_gamma']) * x /self.opt['step_size']
 
 def __repr__(self):
   return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'
