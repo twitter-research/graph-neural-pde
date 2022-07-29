@@ -192,15 +192,16 @@ class GNNMLP(BaseGNN):
         return features
 
     def forward_XN(self, graph, features):
+        if self.opt['function'] in ['gcn_dgl', 'gcn_res_dgl']:
+            graph = dgl.graph((self.edge_index[0], self.edge_index[1])).to(self.device)
+        elif self.opt['function'] == 'gcn2':
+            graph = self.edge_index
+
         features = self.encoder(features, pos_encoding=None)
         features = self.gcn_stack(graph, features)
         return features
 
     def forward(self, features, pos_encoding=None): #run_GNN.py
-        if self.opt['function'] in ['gcn_dgl', 'gcn_res_dgl']:
-            graph = dgl.graph((self.edge_index[0], self.edge_index[1])).to(self.device)
-        elif self.opt['function'] == 'gcn2':
-            graph = self.edge_index
 
         if self.enable_gcn and self.enable_mlp:
             pass
@@ -208,7 +209,7 @@ class GNNMLP(BaseGNN):
             #     graph, features)
         elif self.enable_gcn:
 
-            features = self.forward_XN(graph, features)
+            features = self.forward_XN(features)
 
             if self.opt['gcn_enc_dec']:
                 self.m2 = nn.Linear(features)
