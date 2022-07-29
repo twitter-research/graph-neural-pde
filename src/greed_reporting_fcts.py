@@ -7,6 +7,7 @@ from torch_scatter import scatter_mean
 import wandb
 from torch.nn import Parameter, Softmax, Softplus
 from torch.distributions import Categorical
+from utils import dirichlet_energy, W_dirichlet_energy
 
 def set_reporting_attributes(func, data, opt):
     func.get_evol_stats = False
@@ -206,6 +207,46 @@ def get_distances(func, data, x, num_class, base_mask, eval_masks, base_type):
       eval_sds.append(eval_dist_sd)
     #output: rows base_class, cols eval_class
     return eval_means, eval_sds
+
+
+@torch.no_grad()
+def calc_energy_homoph(data, model, opt):
+    # every epoch stats for greed linear and non linear
+    num_nodes = data.num_nodes
+
+    x0 = model.encoder(data.x)
+    T0_DE = dirichlet_energy(data.edge_index, num_nodes, x0, data.edge_attr, 'sym')
+
+    x0r = x0 / torch.norm(x0, p='fro')
+    T0r_DE = dirichlet_energy(data.edge_index, num_nodes, x0r, data.edge_attr, 'sym')
+
+    xN = model.forward_XN(data.x)
+    TN_DE = dirichlet_energy(data.edge_index, num_nodes, xN, data.edge_attr, 'sym')
+
+    xNr = xN / torch.norm(xN, p='fro')
+    TNr_DE = dirichlet_energy(data.edge_index, num_nodes, xNr, data.edge_attr, 'sym')
+
+    if opt['function'] == 'greed_non_linear':
+        W = model.odeblock.odefunc.gnl_W
+        T0_WDE = W_dirichlet_energy(x0, data.edge_index, W)
+        TN_WDE = W_dirichlet_energy(xN, data.edge_index, W)
+    else:
+        T0_WDE = 0.
+        TN_WDE = 0.
+
+    enc_pred = model.m2(x0).max(1)[1]
+    if opt['lie_trotter'] == 'gen_2':
+        if model.odeblock.funcs[-1].opt['lt_block_type'] == 'label':
+            logits = model.odeblock.odefunc.GNN_postXN(xN)
+            pred = logits.max(1)[1]
+        else:
+            pred = model.m2(xN).max(1)[1]
+    else:
+        pred = model.m2(xN).max(1)[1]
+    enc_pred_homophil = homophily(edge_index=data.edge_index, y=enc_pred)
+    pred_homophil = homophily(edge_index=data.edge_index, y=pred)
+    label_homophil = homophily(edge_index=data.edge_index, y=data.y)
+    return T0_DE, T0r_DE, TN_DE, TNr_DE, T0_WDE, TN_WDE, enc_pred_homophil, pred_homophil, label_homophil
 
 
 def generate_stats(func, t, x, f):

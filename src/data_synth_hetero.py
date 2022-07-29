@@ -5,11 +5,10 @@ import numpy as np
 import pandas as pd
 from torch_geometric.utils import degree, homophily, from_networkx
 import torch
-from graph_rewiring import dirichlet_energy
 from greed_params import default_params
 import networkx as nx
 import matplotlib.pyplot as plt
-from utils import DummyDataset
+from utils import DummyDataset, dirichlet_energy
 
 #adopted from https://github.com/GemsLab/H2GCN/tree/master/npz-datasets
 class CustomDataset(Dataset):

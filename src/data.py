@@ -204,6 +204,7 @@ if __name__ == '__main__':
   opt = {'dataset': 'Cora', 'device': 'cpu', 'not_lcc': True, 'rewiring': None, 'geom_gcn_splits': False}
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
   data = dataset.data
+  data.edge_index = to_undirected(data.edge_index)
   label_homophil = homophily(edge_index=data.edge_index, y=data.y)
   print(f"label_homophil {label_homophil}")
 

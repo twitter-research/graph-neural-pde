@@ -19,9 +19,11 @@ from GNN_KNN_early import GNNKNNEarly
 from GNN_GCN import GCN, MLP, GAT
 from GNN_GCNMLP import GNNMLP
 from data import get_dataset, set_train_val_test_split
-from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling, dirichlet_energy
+from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling
+from utils import dirichlet_energy
 from best_params import best_params_dict
 from greed_params import greed_test_params, greed_run_params, greed_hyper_params, tf_ablation_args, not_sweep_args
+from greed_reporting_fcts import calc_energy_homoph
 from graff_params import hetero_params
 from reports import reports_manager #run_reports, run_reports_lie_trotter, reports_manager
 from heterophilic import get_fixed_splits
@@ -302,36 +304,6 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
 
     return accs
 
-@torch.no_grad()
-def calc_energy_homoph(data, model, opt):
-    # every epoch stats for greed linear and non linear
-    num_nodes = data.num_nodes
-
-    x0 = model.encoder(data.x)
-    T0_dirichlet = dirichlet_energy(data.edge_index, data.edge_attr, num_nodes, x0)
-
-    x0r = x0 / torch.norm(x0, p='fro')
-    T0r_dirichlet = dirichlet_energy(data.edge_index, data.edge_attr, num_nodes, x0r)
-
-    xN = model.forward_XN(data.x)
-    TN_dirichlet = dirichlet_energy(data.edge_index, data.edge_attr, num_nodes, xN)
-
-    xNr = xN / torch.norm(xN, p='fro')
-    TNr_dirichlet = dirichlet_energy(data.edge_index, data.edge_attr, num_nodes, xNr)
-
-    enc_pred = model.m2(x0).max(1)[1]
-    if opt['lie_trotter'] == 'gen_2':
-        if model.odeblock.funcs[-1].opt['lt_block_type'] == 'label':
-            logits = model.odeblock.odefunc.GNN_postXN(xN)
-            pred = logits.max(1)[1]
-        else:
-            pred = model.m2(xN).max(1)[1]
-    else:
-        pred = model.m2(xN).max(1)[1]
-    enc_pred_homophil = homophily(edge_index=data.edge_index, y=enc_pred)
-    pred_homophil = homophily(edge_index=data.edge_index, y=pred)
-    label_homophil = homophily(edge_index=data.edge_index, y=data.y)
-    return T0_dirichlet, T0r_dirichlet, TN_dirichlet, TNr_dirichlet, enc_pred_homophil, pred_homophil, label_homophil
 
 @torch.no_grad()
 def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
@@ -349,7 +321,7 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
     x0 = model.encoder(data.x)
     edges = torch.cat([model.odeblock.odefunc.edge_index, model.odeblock.odefunc.self_loops], dim=1)
     xN = model.forward_XN(data.x)
-    T0_dirichlet, T0r_dirichlet, TN_dirichlet, TNr_dirichlet, enc_pred_homophil, pred_homophil, label_homophil = calc_energy_homoph(data, model, opt)
+    T0_DE, T0r_DE, TN_DE, TNr_DE, T0_WDE, TN_WDE, enc_pred_homophil, pred_homophil, label_homophil = calc_energy_homoph(data, model, opt)
 
     if opt['function'] == "greed_linear_hetero":
         LpR = model.odeblock.odefunc.L_0 + model.odeblock.odefunc.R_0
@@ -383,12 +355,14 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
             pass
             # placeholder for if we need to apply the evolution visualisations to the linear case
 
+        T0_DE, T0r_DE, TN_DE, TNr_DE, T0_WDE, TN_WDE
         wandb.log({"loss": loss,
                    # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
                    "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
                    "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
-                   "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
-                   "T0_dirichlet_W": T0_dirichlet_W, "TN_dirichlet_W": TN_dirichlet_W,
+                   "T0_DE": T0_DE, "T0r_DE": T0r_DE,
+                   "TN_DE": TN_DE, "TNr_DE": TNr_DE,
+                   "T0_DE_W": T0_WDE, "TN_DE_W": TN_WDE,
                    "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil,
                    "label_homophil": label_homophil,
                    "a_row_max": a_row_max, "a_row_min": a_row_min, "b_row_max": b_row_max, "b_row_min": b_row_min,
@@ -402,7 +376,9 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
                    # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
                    "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
                    "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
-                   "T0_dirichlet": T0_dirichlet, "TN_dirichlet": TN_dirichlet,
+                   "T0_DE": T0_DE, "T0r_DE": T0r_DE,
+                   "TN_DE": TN_DE, "TNr_DE": TNr_DE,
+                   "T0_DE_W": T0_WDE, "TN_DE_W": TN_WDE,
                    "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil,
                    "label_homophil": label_homophil, "delta": model.odeblock.odefunc.delta.detach(),
                    "drift_eps": model.odeblock.odefunc.drift_eps.detach() if opt['drift'] else 0,
@@ -660,12 +636,13 @@ def main(cmd_opt):
         print(
             f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
         if opt['function'] == 'greed_non_linear':
-            T0_dirichlet, T0r_dirichlet, TN_dirichlet, TNr_dirichlet, enc_pred_homophil, pred_homophil, label_homophil = calc_energy_homoph(data, model, opt)
+            T0_DE, T0r_DE, TN_DE, TNr_DE, T0_WDE, TN_WDE, enc_pred_homophil, pred_homophil, label_homophil = calc_energy_homoph(data, model, opt)
         if opt['num_splits'] > 1:
             if opt['function'] == 'greed_non_linear':
                 results.append([test_acc, val_acc, train_acc,
-                                T0_dirichlet.cpu().detach().numpy(), T0r_dirichlet.cpu().detach().numpy(),
-                                TN_dirichlet.cpu().detach().numpy(), TNr_dirichlet.cpu().detach().numpy(),
+                                T0_DE.cpu().detach().numpy(), T0r_DE.cpu().detach().numpy(),
+                                TN_DE.cpu().detach().numpy(), TNr_DE.cpu().detach().numpy(),
+                                T0_WDE.cpu().detach().numpy(), TN_WDE.cpu().detach().numpy(),
                                 enc_pred_homophil, pred_homophil, label_homophil])
             else:
                 results.append([test_acc, val_acc, train_acc])
@@ -673,15 +650,16 @@ def main(cmd_opt):
     if opt['num_splits'] > 1:
         if opt['function'] == 'greed_non_linear':
             test_acc_mean, val_acc_mean, train_acc_mean, \
-            T0_dirichlet_mean, T0r_dirichlet_mean, TN_dirichlet_mean, TNr_dirichlet_mean,\
+            T0_DE_mean, T0r_DE_mean, TN_DE_mean, TNr_DE_mean, T0_WDE_mean, TN_WDE_mean,\
             enc_pred_homophil_mean, pred_homophil_mean, label_homophil_mean \
                 = np.mean(results, axis=0) * 100
             test_acc_std = np.sqrt(np.var(results, axis=0)[0]) * 100
 
             wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
                              'test_acc_std': test_acc_std,
-                             'T0_dirichlet_mean': T0_dirichlet_mean, 'T0r_dirichlet_mean': T0r_dirichlet_mean,
-                             'TN_dirichlet_mean': TN_dirichlet_mean, 'TNr_dirichlet_mean': TNr_dirichlet_mean,
+                             'T0_DE_mean': T0_DE_mean, 'T0r_DE_mean': T0r_DE_mean,
+                             'TN_DE_mean': TN_DE_mean, 'TNr_DE_mean': TNr_DE_mean,
+                             'T0_WDE_mean': T0_WDE_mean, 'TN_WDE_mean': TN_WDE_mean,
                              'enc_pred_homophil_mean': enc_pred_homophil_mean, 'pred_homophil_mean': pred_homophil_mean, 'label_homophil_mean': label_homophil_mean}
         else:
             test_acc_mean, val_acc_mean, train_acc_mean = np.mean(results, axis=0) * 100
@@ -689,7 +667,14 @@ def main(cmd_opt):
             wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
                              'test_acc_std': test_acc_std}
     else:
-        wandb_results = {'test_mean': test_acc, 'val_mean': val_acc, 'train_mean': train_acc}
+        if opt['function'] == 'greed_non_linear':
+            wandb_results = {'test_mean': test_acc, 'val_mean': val_acc, 'train_mean': train_acc,
+                             'T0_DE_mean': T0_DE, 'T0r_DE_mean': T0r_DE,
+                             'TN_DE_mean': TN_DE, 'TNr_DE_mean': TNr_DE,
+                             'T0_WDE_mean': T0_WDE, 'TN_WDE_mean': TN_WDE,
+                             'enc_pred_homophil_mean': enc_pred_homophil, 'pred_homophil_mean': pred_homophil, 'label_homophil_mean': label_homophil}
+        else:
+            wandb_results = {'test_mean': test_acc, 'val_mean': val_acc, 'train_mean': train_acc}
 
     wandb.log(wandb_results)
     print(wandb_results)

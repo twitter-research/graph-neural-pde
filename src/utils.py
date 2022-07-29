@@ -8,7 +8,7 @@ from scipy.stats import sem
 import numpy as np
 from torch_scatter import scatter_add
 from torch_sparse import coalesce, transpose
-from torch_geometric.utils import add_remaining_self_loops
+from torch_geometric.utils import add_remaining_self_loops, degree
 from torch_geometric.utils.num_nodes import maybe_num_nodes
 from torch_geometric.utils.convert import to_scipy_sparse_matrix
 from sklearn.preprocessing import normalize
@@ -337,8 +337,8 @@ def gram_schmidt(vv):
     uu[:, k] = uk / uk.norm()
   return uu
 
-def dirichlet_energy(edge_index, n, X, edge_weight=None):
-  edge_index, L = get_laplacian(edge_index, edge_weight, None)
+def dirichlet_energy(edge_index, n, X, edge_weight=None, norm_type=None):
+  edge_index, L = get_laplacian(edge_index, edge_weight, norm_type)
   LX = torch_sparse.spmm(edge_index, L, n, n, X)
   # return torch.sum(torch.trace(X.T @ de))
   return (X * LX).sum()
@@ -350,6 +350,20 @@ def rayleigh_quotient(edge_index, n, X, edge_weight=None):
   rayleigh = energy / torch.pow(torch.norm(X, p="fro"), 2)
   ######################################
   return rayleigh
+
+def W_dirichlet_energy(X, edge_index, W):
+    src_x = X[edge_index[0, :]]
+    dst_x = X[edge_index[1, :]]
+
+    deg = degree(edge_index[0, :], X.shape[0])
+    deginvsqrt = deg.pow_(-0.5)
+    src_deginvsqrt = deginvsqrt[edge_index[0, :]]
+    dst_deginvsqrt = deginvsqrt[edge_index[1, :]]
+
+    fWf = torch.einsum("ij,jk,ik->i", src_x * src_deginvsqrt.unsqueeze(dim=1), W,
+                            dst_x * dst_deginvsqrt.unsqueeze(dim=1)).data
+    return -0.5 * fWf.sum()
+
 
 def project_paths_label_space(m2, X):
   '''converts 3 tensor in feature space into label space'''

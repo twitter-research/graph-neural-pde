@@ -105,13 +105,6 @@ def make_symmetric(data):
   return ei, ew
 
 
-def dirichlet_energy(edge_index, edge_weight, n, X):
-  edge_index, L = get_laplacian(edge_index, edge_weight, None)
-  LX = torch_sparse.spmm(edge_index, L, n, n, X)
-  # return torch.sum(torch.trace(X.T @ de))
-  return (X * LX).sum()
-
-
 def KNN(x, opt):
   # https://github.com/getkeops/keops/tree/3efd428b55c724b12f23982c06de00bc4d02d903
   k = opt['rewire_KNN_k']

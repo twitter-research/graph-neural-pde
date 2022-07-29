@@ -868,7 +868,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     if self.opt['pointwise_nonlin']:
       damp_f = f - (1-self.opt['dampen_gamma']) * x /self.opt['step_size']
-      # return torch.sigmoid(damp_f)
       return torch.tanh(damp_f)
     else:
       return f - (1-self.opt['dampen_gamma']) * x /self.opt['step_size']
