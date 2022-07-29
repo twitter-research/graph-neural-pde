@@ -98,7 +98,7 @@ def greed_hyper_params(opt):
     opt['use_best_params'] = False #True #False #True
     opt['method'] = 'euler'
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
-    opt['step_size'] = 0.25#1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
+    opt['step_size'] = 1.0#1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 3 #4 #18.295 #10
     opt['epoch'] = 129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1 #10#4#1
@@ -154,7 +154,7 @@ def greed_hyper_params(opt):
     opt['drift'] = False  # False#True
     opt['gnl_thresholding'] = False
     opt['drift_space'] = 'label' #feature' #'label'
-    opt['drift_grad'] = True #True
+    opt['drift_grad'] = False#True #True
     opt['m2_aug'] = False #True #False #reads out (no weights) prediction from bottom C dimensions
     opt['m1_W_eig'] = False#True
     opt['m2_W_eig'] = False #'x2z'#'z2x' #True #True

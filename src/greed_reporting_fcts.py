@@ -234,7 +234,7 @@ def calc_energy_homoph(data, model, opt):
         T0_WDE = 0.
         TN_WDE = 0.
 
-    enc_pred = model.m2(x0).max(1)[1]
+    enc_pred = x0.max(1)[1]
     if opt['lie_trotter'] == 'gen_2':
         if model.odeblock.funcs[-1].opt['lt_block_type'] == 'label':
             logits = model.odeblock.odefunc.GNN_postXN(xN)

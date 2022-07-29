@@ -178,32 +178,46 @@ class GNNMLP(BaseGNN):
 
         if self.opt['gcn_enc_dec']:
             stack.append(nn.Dropout(dropout))
-            stack.append(nn.Linear(dims[-1][0], dims[-1][1]))
+            # stack.append(nn.Linear(dims[-1][0], dims[-1][1]))
+            self.m2 = nn.Linear(dims[-1][0], dims[-1][1])
 
         return GraphSequential(stack, self.opt)
 
-    # def forward(self, graph, features): #run_GCN.py
+    def encoder(self, features, pos_encoding=None):
+        if not self.opt['gcn_enc_dec']:
+            features = self.m1(self, features, pos_encoding=None)
+        return features
+
+    def forward_XN(self, graph, features):
+        features = self.encoder(features, pos_encoding=None)
+        features = self.gcn_stack(graph, features)
+        return features
+
     def forward(self, features, pos_encoding): #run_GNN.py
         if self.opt['function'] in ['gcn_dgl', 'gcn_res_dgl']:
             graph = dgl.graph((self.edge_index[0], self.edge_index[1])).to(self.device)
         elif self.opt['function'] == 'gcn2':
             graph = self.edge_index
 
-
         if self.enable_gcn and self.enable_mlp:
-            features = self.mixing_coeffs[0] * self.gcn_stack(graph, features) + self.mixing_coeffs[0] * self.mlp_stack(
-                graph, features)
+            pass
+            # features = self.mixing_coeffs[0] * self.gcn_stack(graph, features) + self.mixing_coeffs[0] * self.mlp_stack(
+            #     graph, features)
         elif self.enable_gcn:
-            features = self.gcn_stack(graph, features)
+
+            features = self.forward_XN(features)
+
+            if self.opt['gcn_enc_dec']:
+                self.m2 = nn.Linear(features)
+
         elif self.enable_mlp:
-            features = self.mlp_stack(graph, features)
+            pass
+            # features = self.mlp_stack(graph, features)
 
         if self.top_is_proj:
-            if self.enable_gcn and self.enable_mlp:
-                features = self.pre_top_proj_nonlinearity(features)
-            features = self.top_proj(features)
+            pass
+            # if self.enable_gcn and self.enable_mlp:
+            #     features = self.pre_top_proj_nonlinearity(features)
+            # features = self.top_proj(features)
 
         return features
-
-
-

@@ -309,7 +309,7 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
 def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
     model.eval()
 
-    if opt['function'] in ['gcn', 'mlp', 'gcn2', 'gcn_dgl', 'gcn_res_dgl', 'gat_dgl']:
+    if opt['function'] in ['gcn', 'mlp', 'gcn2', 'gcn_res_dgl', 'gat_dgl']: #removed 'gcn_dgl' for energy ablation rebuttal
         wandb.log({"loss": loss,
                    "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
                    "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
@@ -385,6 +385,18 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
                    "W_rank": torch.matrix_rank(model.odeblock.odefunc.gnl_W.detach()),
                    # "a_row_max": a_row_max, "a_row_min": a_row_min,
                    "epoch_step": epoch})
+
+    elif opt['function'] == "gcn_dgl":
+
+        wandb.log({"loss": loss,
+                   "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+                   "T0_DE": T0_DE, "T0r_DE": T0r_DE,
+                   "TN_DE": TN_DE, "TNr_DE": TNr_DE,
+                   "T0_DE_W": T0_WDE, "TN_DE_W": TN_WDE,
+                   "enc_pred_homophil": enc_pred_homophil, "pred_homophil": pred_homophil,
+                   "label_homophil": label_homophil,
+                   "epoch_step": epoch})
+
     else:
         wandb.log({"loss": loss,
                    "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
