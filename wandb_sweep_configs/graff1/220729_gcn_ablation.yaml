@@ -8,7 +8,7 @@ parameters:
   epoch:
     values: [129]
   num_splits:
-    values: [4]
+    values: [10]
   self_loop_weight:
     values: [0.0]
   no_early:
