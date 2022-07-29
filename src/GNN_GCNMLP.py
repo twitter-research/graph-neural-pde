@@ -205,7 +205,7 @@ class GNNMLP(BaseGNN):
             #     graph, features)
         elif self.enable_gcn:
 
-            features = self.forward_XN(features)
+            features = self.forward_XN(graph, features)
 
             if self.opt['gcn_enc_dec']:
                 self.m2 = nn.Linear(features)
