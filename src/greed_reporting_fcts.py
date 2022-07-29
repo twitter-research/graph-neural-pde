@@ -240,12 +240,12 @@ def calc_energy_homoph(data, model, opt):
             logits = model.odeblock.odefunc.GNN_postXN(xN)
             pred = logits.max(1)[1]
         else:
-            if opt['function'] == 'gcn_dgl' and not opt['gcn_enc_dec']:
+            if opt['function'] in ['gcn_dgl', 'gcn_res_dgl'] and not opt['gcn_enc_dec']:
                 pred = model(data.x).max(1)[1]
             else:
                 pred = model.m2(xN).max(1)[1]
     else:
-        if opt['function'] == 'gcn_dgl' and not opt['gcn_enc_dec']:
+        if opt['function'] in ['gcn_dgl', 'gcn_res_dgl'] and not opt['gcn_enc_dec']:
             pred = model(data.x).max(1)[1]
         else:
             pred = model.m2(xN).max(1)[1]

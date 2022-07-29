@@ -309,7 +309,7 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
 def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
     model.eval()
 
-    if opt['function'] in ['gcn', 'mlp', 'gcn2', 'gcn_res_dgl', 'gat_dgl']: #removed 'gcn_dgl' for energy ablation rebuttal
+    if opt['function'] in ['gcn', 'mlp', 'gcn2', 'gat_dgl']: #removed 'gcn_dgl' 'gcn_res_dgl', for energy ablation rebuttal
         wandb.log({"loss": loss,
                    "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
                    "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
@@ -386,7 +386,7 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
                    # "a_row_max": a_row_max, "a_row_min": a_row_min,
                    "epoch_step": epoch})
 
-    elif opt['function'] == "gcn_dgl":
+    elif opt['function'] in ["gcn_dgl", "gcn_res_dgl"]:
 
         wandb.log({"loss": loss,
                    "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
@@ -647,10 +647,10 @@ def main(cmd_opt):
                     break
         print(
             f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
-        if opt['function'] == 'greed_non_linear':
+        if opt['function'] in ['greed_non_linear', 'gcn_dgl', 'gcn_res_dgl']:
             T0_DE, T0r_DE, TN_DE, TNr_DE, T0_WDE, TN_WDE, enc_pred_homophil, pred_homophil, label_homophil = calc_energy_homoph(data, model, opt)
         if opt['num_splits'] > 1:
-            if opt['function'] == 'greed_non_linear':
+            if opt['function'] in ['greed_non_linear', 'gcn_dgl', 'gcn_res_dgl']:
                 results.append([test_acc, val_acc, train_acc,
                                 T0_DE.cpu().detach().numpy(), T0r_DE.cpu().detach().numpy(),
                                 TN_DE.cpu().detach().numpy(), TNr_DE.cpu().detach().numpy(),
@@ -660,7 +660,7 @@ def main(cmd_opt):
                 results.append([test_acc, val_acc, train_acc])
 
     if opt['num_splits'] > 1:
-        if opt['function'] == 'greed_non_linear':
+        if opt['function']  in ['greed_non_linear', 'gcn_dgl', 'gcn_res_dgl']:
             test_acc_mean, val_acc_mean, train_acc_mean, \
             T0_DE_mean, T0r_DE_mean, TN_DE_mean, TNr_DE_mean, T0_WDE_mean, TN_WDE_mean,\
             enc_pred_homophil_mean, pred_homophil_mean, label_homophil_mean \
@@ -679,7 +679,7 @@ def main(cmd_opt):
             wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
                              'test_acc_std': test_acc_std}
     else:
-        if opt['function'] in ['greed_non_linear', 'gcn_dgl'] :
+        if opt['function'] in ['greed_non_linear', 'gcn_dgl', 'gcn_res_dgl']:
             wandb_results = {'test_mean': test_acc, 'val_mean': val_acc, 'train_mean': train_acc,
                              'T0_DE_mean': T0_DE, 'T0r_DE_mean': T0r_DE,
                              'TN_DE_mean': TN_DE, 'TNr_DE_mean': TNr_DE,
