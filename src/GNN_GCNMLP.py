@@ -191,7 +191,7 @@ class GNNMLP(BaseGNN):
             features = self.m1(features, pos_encoding=None)
         return features
 
-    def forward_XN(self, graph, features):
+    def forward_XN(self, features):
         if self.opt['function'] in ['gcn_dgl', 'gcn_res_dgl']:
             graph = dgl.graph((self.edge_index[0], self.edge_index[1])).to(self.device)
         elif self.opt['function'] == 'gcn2':
