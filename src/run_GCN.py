@@ -213,9 +213,16 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
   xN = model.forward_XN(data.x)
   TN_dirichlet = dirichlet_energy(data.edge_index, data.edge_attr, num_nodes, xN)
   # enc_pred = model.m2(model.encoder(data.x)).max(1)[1]
-  enc_pred = model.m2(x0).max(1)[1]
+  if opt['function'] == 'gcn_dgl' and not opt['gcn_enc_dec']:
+    enc_pred = 0.
+  else:
+    enc_pred = model.m2(x0).max(1)[1]
+
   # pred = model.forward(data.x).max(1)[1]
-  pred = model.m2(xN).max(1)[1]
+  if opt['function'] == 'gcn_dgl' and not opt['gcn_enc_dec']:
+    pred = model(data.x).max(1)[1]
+  else:
+    pred = model.m2(xN).max(1)[1]
   enc_pred_homophil = homophily(edge_index=data.edge_index, y=enc_pred)
   pred_homophil = homophily(edge_index=data.edge_index, y=pred)
   label_homophil = homophily(edge_index=data.edge_index, y=data.y)

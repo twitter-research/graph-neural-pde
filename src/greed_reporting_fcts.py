@@ -240,9 +240,16 @@ def calc_energy_homoph(data, model, opt):
             logits = model.odeblock.odefunc.GNN_postXN(xN)
             pred = logits.max(1)[1]
         else:
-            pred = model.m2(xN).max(1)[1]
+            if opt['function'] == 'gcn_dgl' and not opt['gcn_enc_dec']:
+                pred = model(data.x).max(1)[1]
+            else:
+                pred = model.m2(xN).max(1)[1]
     else:
-        pred = model.m2(xN).max(1)[1]
+        if opt['function'] == 'gcn_dgl' and not opt['gcn_enc_dec']:
+            pred = model(data.x).max(1)[1]
+        else:
+            pred = model.m2(xN).max(1)[1]
+
     enc_pred_homophil = homophily(edge_index=data.edge_index, y=enc_pred)
     pred_homophil = homophily(edge_index=data.edge_index, y=pred)
     label_homophil = homophily(edge_index=data.edge_index, y=data.y)

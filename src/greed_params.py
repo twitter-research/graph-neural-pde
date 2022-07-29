@@ -212,14 +212,14 @@ def greed_hyper_params(opt):
         opt['time2'] = 2.0
         opt['time3'] = 1.0
     #gcn params
-    # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
-    opt['gcn_enc_dec'] = False #False #True
-    opt['gcn_fixed'] = False #False #True
-    opt['gcn_symm'] = False#True
-    opt['gcn_non_lin'] = True #False #True
-    opt['gcn_bias'] = True
-    opt['gcn_mid_dropout'] = False
-    # opt['gcn_params'] = [0, 'gcn_dgl', False, False, False, True]
+    opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
+    # opt['gcn_enc_dec'] = False #False #True
+    # opt['gcn_fixed'] = False #False #True
+    # opt['gcn_symm'] = False#True
+    # opt['gcn_non_lin'] = True #False #True
+    # opt['gcn_bias'] = True
+    # opt['gcn_mid_dropout'] = False
+    opt['gcn_params'] = [0, 'gcn_dgl', False, False, False, True]#[1, 'gcn_dgl', True, False, False, True]#[2, 'gcn_res_dgl', True, False, False, True]#[3, 'gcn_res_dgl', True, True, False, True]#[4, 'gcn_res_dgl', True, True, True, True]#[5, 'gcn_res_dgl', True, True, True, False]
 
     return opt
 

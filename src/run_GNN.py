@@ -679,7 +679,7 @@ def main(cmd_opt):
             wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
                              'test_acc_std': test_acc_std}
     else:
-        if opt['function'] == 'greed_non_linear':
+        if opt['function'] in ['greed_non_linear', 'gcn_dgl'] :
             wandb_results = {'test_mean': test_acc, 'val_mean': val_acc, 'train_mean': train_acc,
                              'T0_DE_mean': T0_DE, 'T0r_DE_mean': T0r_DE,
                              'TN_DE_mean': TN_DE, 'TNr_DE_mean': TNr_DE,

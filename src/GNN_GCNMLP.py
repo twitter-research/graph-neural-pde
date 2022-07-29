@@ -8,7 +8,7 @@ from dgl.nn.pytorch import GraphConv, SAGEConv, GATConv
 from torch_geometric.nn import GCNConv
 from model_configurations import set_block, set_function
 from base_classes import BaseGNN
-
+from functools import partial
 #code adapted from https://github.com/kdd-submitter/on_local_aggregation/blob/main/models.py - converted to PyG
 
 class PyG_GCN(nn.Module):
@@ -178,17 +178,16 @@ class GNNMLP(BaseGNN):
                 if self.opt['gcn_non_lin']:
                     stack.append(self.nonlinearity())
 
+
         if self.opt['gcn_enc_dec']:
-            stack.append(nn.Dropout(dropout))
-            # stack.append(nn.Linear(dims[-1][0], dims[-1][1]))
-            self.m2 = nn.Linear(dims[-1][0], dims[-1][1])
+            self.m2 = nn.Linear(stack_dims[0][0], stack_dims[0][1])
 
         return GraphSequential(stack, self.opt)
 
     def encoder(self, features, pos_encoding=None):
         if self.opt['gcn_enc_dec']:
             features = F.dropout(features, self.opt['input_dropout'], training=self.training)
-            features = self.m1(features, pos_encoding=None)
+            features = self.m1(features)
         return features
 
     def forward_XN(self, features):
@@ -212,7 +211,7 @@ class GNNMLP(BaseGNN):
             features = self.forward_XN(features)
 
             if self.opt['gcn_enc_dec']:
-                self.m2 = nn.Linear(features)
+                features = self.m2(features)
 
         elif self.enable_mlp:
             pass
