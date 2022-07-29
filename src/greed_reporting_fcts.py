@@ -231,8 +231,8 @@ def calc_energy_homoph(data, model, opt):
         T0_WDE = W_dirichlet_energy(x0, data.edge_index, W)
         TN_WDE = W_dirichlet_energy(xN, data.edge_index, W)
     else:
-        T0_WDE = 0.
-        TN_WDE = 0.
+        T0_WDE = torch.tensor([0.], device=model.device)
+        TN_WDE = torch.tensor([0.], device=model.device)
 
     enc_pred = x0.max(1)[1]
     if opt['lie_trotter'] == 'gen_2':
