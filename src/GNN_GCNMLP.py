@@ -127,8 +127,10 @@ class GNNMLP(BaseGNN):
         stack = []
 
         if self.opt['gcn_enc_dec']:
-            stack.append(nn.Dropout(dropout))
-            stack.append(nn.Linear(stack_dims[0][0], stack_dims[0][1]))
+            # stack.append(nn.Dropout(dropout))
+            # stack.append(nn.Linear(stack_dims[0][0], stack_dims[0][1]))
+            self.m1 = nn.Linear(stack_dims[0][0], stack_dims[0][1])
+
             stack_dims = dims[1:-1]
 
         #initialise the fixed shared layer if required
@@ -184,8 +186,9 @@ class GNNMLP(BaseGNN):
         return GraphSequential(stack, self.opt)
 
     def encoder(self, features, pos_encoding=None):
-        if not self.opt['gcn_enc_dec']:
-            features = self.m1(self, features, pos_encoding=None)
+        if self.opt['gcn_enc_dec']:
+            features = F.dropout(features, self.opt['input_dropout'], training=self.training)
+            features = self.m1(features, pos_encoding=None)
         return features
 
     def forward_XN(self, graph, features):
