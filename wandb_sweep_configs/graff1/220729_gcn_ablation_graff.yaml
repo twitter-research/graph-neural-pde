@@ -21,6 +21,8 @@ parameters:
     values: [ones]
   drift:
     values: [False]
+  function:
+    values: [greed_non_linear]
   greed_params:
     values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag, uniform, False, diag, free, True, True, True]]
   gnl_activation:
