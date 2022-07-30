@@ -625,6 +625,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_activation'] == "sigmoid_deriv":
         attention = sigmoid_deriv(fOmf)
       elif self.opt['gnl_activation'] == "tanh_deriv":
+        attention = torch.tanh(fOmf)
+      elif self.opt['gnl_activation'] == "tanh_deriv":
         attention = tanh_deriv(fOmf)
       elif self.opt['gnl_activation'] == "squareplus_deriv":
         attention = squareplus_deriv(fOmf)
@@ -653,6 +655,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           attention = (fOmf + torch.sqrt(fOmf ** 2 + 4)) / 2
         elif self.opt['gnl_activation'] == "sigmoid_deriv":
           attention = sigmoid_deriv(fOmf)
+        elif self.opt['gnl_activation'] == "tanh":
+          attention = torch.tanh(fOmf)
         elif self.opt['gnl_activation'] == "tanh_deriv":
           attention = tanh_deriv(fOmf)
         elif self.opt['gnl_activation'] == "squareplus_deriv":

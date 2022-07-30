@@ -1,0 +1,56 @@
+program: run_GNN.py
+method: grid
+parameters:
+  dataset:
+    values: [Cora, Citeseer, chameleon, squirrel]
+  block:
+    values: [constant]
+  epoch:
+    values: [129]
+  num_splits:
+    values: [10]
+  self_loop_weight:
+    values: [0.0]
+  no_early:
+    values: [True]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_measure:
+    values: [ones]
+  drift:
+    values: [False]
+  greed_params:
+    values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag, uniform, False, diag, free, True, True, True]]
+  gnl_activation:
+    values: [identity, tanh]
+  test_mu_0:
+    values: [True]
+  add_source:
+    values: [False]
+  step_size:
+    values: [0.5, 1.0]
+  hidden_dim:
+    values: [64]
+  time:
+    values: [2, 3, 4]
+  input_dropout:
+    values: [0.5]
+  dropout:
+    values: [0.35]
+  optimizer:
+    values: [adam]
+  lr:
+    values: [0.0001, 0.001, 0.005]
+  decay:
+    values: [0.0, 0.001, 0.005]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+entity: graph_neural_diffusion
+project: nonlin_gcn_ablation
