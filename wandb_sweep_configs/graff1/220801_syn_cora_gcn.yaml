@@ -9,6 +9,8 @@ parameters:
     values: [constant]
   self_loop_weight:
     values: [ 0.0 ]
+  no_early:
+    values: [True]
   epoch:
     values: [129]
   num_splits:

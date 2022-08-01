@@ -11,6 +11,8 @@ parameters:
     values: [greed_non_linear]
   self_loop_weight:
     values: [0.0]
+  no_early:
+    values: [ True ]
   epoch:
     values: [129]
   num_splits:
