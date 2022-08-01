@@ -100,8 +100,8 @@ def greed_hyper_params(opt):
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
     opt['step_size'] = 1.0#1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 3 #4 #18.295 #10
-    opt['epoch'] = 129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
-    opt['num_splits'] = 1 #10#4#1
+    opt['epoch'] = 3#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
+    opt['num_splits'] = 2#1 #10#4#1
     opt['use_labels'] = False #True
     # opt['planetoid_split'] = True
     # opt['geom_gcn_splits'] = False #True#True #False#True
@@ -219,7 +219,7 @@ def greed_hyper_params(opt):
     # opt['gcn_non_lin'] = True #False #True
     # opt['gcn_bias'] = True
     # opt['gcn_mid_dropout'] = False
-    opt['gcn_params'] = [5, 'gcn_res_dgl', True, True, True, False]#[0, 'gcn_dgl', False, False, False, True]#[1, 'gcn_dgl', True, False, False, True]#[2, 'gcn_res_dgl', True, False, False, True]#[3, 'gcn_res_dgl', True, True, False, True]#[4, 'gcn_res_dgl', True, True, True, True]#[5, 'gcn_res_dgl', True, True, True, False]
+    # opt['gcn_params'] = [5, 'gcn_res_dgl', True, True, True, False]#[0, 'gcn_dgl', False, False, False, True]#[1, 'gcn_dgl', True, False, False, True]#[2, 'gcn_res_dgl', True, False, False, True]#[3, 'gcn_res_dgl', True, True, False, True]#[4, 'gcn_res_dgl', True, True, True, True]#[5, 'gcn_res_dgl', True, True, True, False]
 
     return opt
 
@@ -233,7 +233,7 @@ def not_sweep_args(opt, project_name, group_name):
 
     # args for running locally - specified in YAML for tunes
     opt['wandb'] = True #True #False #True
-    opt['wandb_track_grad_flow'] = False#True #False  #collect stats for reports
+    opt['wandb_track_grad_flow'] = True #False  #collect stats for reports
     opt['run_track_reports'] = False#True #False#True ##run the evolution reports
     opt['save_local_reports'] = True#True
     opt['save_wandb_reports'] = True#False#True
