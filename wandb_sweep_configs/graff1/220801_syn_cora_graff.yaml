@@ -8,7 +8,7 @@ parameters:
   block:
     values: [constant]
   function:
-    values: [non_linear_greed]
+    values: [greed_non_linear]
   self_loop_weight:
     values: [0.0]
   epoch:
