@@ -21,8 +21,12 @@ parameters:
     values: [euler]
   gnl_style:
     values: [general_graph]
+  greed_params:
+    values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag, uniform, False, diag, free, True, True, True]]
   gnl_activation:
     values: [identity]
+  pointwise_nonlin:
+    values: [True, False]
   gnl_measure:
     values: [ones]
   gnl_omega:
