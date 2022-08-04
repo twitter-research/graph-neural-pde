@@ -185,6 +185,11 @@ def train(model, optimizer, data, pos_encoding=None):
         # loss = loss + gl_flag * gl_loss / model.num_nodes
         loss = loss + opt['loss_reg_weight'] * gl_flag * gl_loss
 
+    if model.opt['gnl_W_style'] == 'loss_W_orthog':
+        W = model.odeblock.odefunc.W_evec
+        loss_orthog = torch.pow(torch.norm(W.T @ W - torch.eye(model.hidden_dim, device=model.device), "fro"), 2)
+        loss = loss + loss_orthog
+
     model.fm.update(model.getNFE())
     model.resetNFE()
     # torch.autograd.set_detect_anomaly(True)

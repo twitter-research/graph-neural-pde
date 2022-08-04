@@ -346,7 +346,7 @@ def dirichlet_energy(edge_index, n, X, edge_weight=None, norm_type=None):
 def rayleigh_quotient(edge_index, n, X, edge_weight=None):
   # X is a matrix of shape (num_nodes, feature_channels)
   ######## Your code here ##############
-  energy = dirichlet_energy(edge_index, n, X, edge_weight)
+  energy = dirichlet_energy(edge_index, n, X, edge_weight, 'sym')
   rayleigh = energy / torch.pow(torch.norm(X, p="fro"), 2)
   ######################################
   return rayleigh

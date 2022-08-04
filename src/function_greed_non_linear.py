@@ -163,12 +163,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         if self.opt['two_hops']:
           self.gnl_W_U_tilde = Parameter(torch.Tensor(in_features, in_features))
           self.gnl_W_D_tilde = Parameter(torch.ones(in_features))          
-      elif self.opt['gnl_W_style'] == 'cgnn':
+      elif self.opt['gnl_W_style'] in ['cgnn', 'cgnn_Z_diag']:
         self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
         self.gnl_W_D = Parameter(torch.ones(in_features))
         if self.opt['two_hops']:
           self.gnl_W_U_tilde = Parameter(torch.Tensor(in_features, in_features))
           self.gnl_W_D_tilde = Parameter(torch.ones(in_features))
+      elif self.opt['gnl_W_style'] == 'loss_W_orthog':
+        self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
+        self.gnl_W_D = Parameter(torch.ones(in_features))
       elif self.opt['gnl_W_style'] == 'feature':
         self.Om_phi = Parameter(torch.Tensor(in_features))
         self.W_psi = Parameter(torch.Tensor(in_features))
@@ -300,10 +303,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         uniform(self.gnl_W_D, a=-1, b=1)
         if self.opt['two_hops']:
           glorot(self.gnl_W_U_tilde)
-      elif self.opt['gnl_W_style'] == 'cgnn':
+      elif self.opt['gnl_W_style'] in ['cgnn', 'cgnn_Z_diag']:
         glorot(self.gnl_W_U)
         if self.opt['two_hops']:
           glorot(self.gnl_W_U_tilde)
+      elif self.opt['gnl_W_style'] == 'loss_W_orthog':
+        glorot(self.gnl_W_U)
+        uniform(self.gnl_W_D, a=-1, b=1)
       elif self.opt['gnl_W_style'] == 'feature':
         glorot(self.Om_phi)
         glorot(self.W_psi)
@@ -446,19 +452,30 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       return Ws
     elif self.opt['gnl_W_style'] in ['GS', 'GS_Z_diag']:
       self.V_hat = gram_schmidt(self.gnl_W_U)
-      # W_D = torch.tanh(self.gnl_W_D) #      # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1)
-      # W_hat = V_hat @ torch.diag(W_D) @ V_hat.t()
+      # W_D = torch.tanh(self.gnl_W_D) #
+      # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1)
       W_hat = self.V_hat @ torch.diag(self.gnl_W_D) @ self.V_hat.t()
       return W_hat
+
     elif self.opt['gnl_W_style'] in ['cgnn', 'cgnn_Z_diag']: # https://github.com/JRowbottomGit/ContinuousGNN/blob/85d47b0748a19e06e305c21e99e1dd03d36ad314/src/trainer.py
       beta = self.opt['W_beta']
-      with torch.no_grad(): #todo need to check and undertand how/why this learns again
+
+      # https://github.com/DeepGraphLearning/ContinuousGNN/blob/a82332eb5d85e80fd233ab35e4d155f34eb1275d/src/trainer.py#L108
+      with torch.no_grad(): #no grad required to update weights inplace
+        # https://stackoverflow.com/questions/62198351/why-doesnt-pytorch-allow-inplace-operations-on-leaf-variables
         W_U = self.gnl_W_U.clone()
         W_U = self.gnl_W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
+      self.V_hat = W_U
+
+      #choose not to restrict spectrum
       # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1) #self.gnl_W_D
-      W_D = torch.tanh(self.gnl_W_D) #self.gnl_W_D
-      W_hat = W_U @ torch.diag(W_D) @ W_U.t()
+      # self.gnl_W_D = torch.tanh(self.gnl_W_D) #self.gnl_W_D
+      W_hat = self.V_hat @ torch.diag(self.gnl_W_D) @ self.V_hat.t()
       return W_hat
+    elif self.opt['gnl_W_style'] == 'loss_W_orthog':
+      W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
+      return W_hat
+
     elif self.opt['gnl_W_style'] == 'identity':
       return torch.eye(self.in_features, device=self.device)
     # elif self.opt['W_type'] == 'residual_prod':
@@ -519,10 +536,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       src_meas, dst_meas = self.get_src_dst(measure)
       measures_src_dst = 1 / (src_meas * dst_meas)
     elif self.opt['gnl_measure'] == 'ones':
-      measure = 1 #torch.ones(self.n_nodes, device=self.device) #torch.tensor([1.]) #torch.ones(x.shape[0], device=self.device)
-      src_meas = 1
-      dst_meas = 1
-      measures_src_dst = 1
+      measure = torch.tensor([1], device=self.device) #1. #torch.ones(self.n_nodes, device=self.device) #torch.tensor([1.]) #torch.ones(x.shape[0], device=self.device)
+      src_meas = torch.tensor([1], device=self.device) #1
+      dst_meas = torch.tensor([1], device=self.device) #1
+      measures_src_dst = torch.tensor([1], device=self.device) #1
     return measure, src_meas, dst_meas, measures_src_dst
 
   def do_diffusion(self, t):
@@ -638,9 +655,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         attention = fOmf
 
     elif self.opt['gnl_style'] in ['general_graph', 'att_rep_laps']:#== 'general_graph':
-      del src_x
-      del dst_x
-      torch.cuda.empty_cache()
+      # del src_x #trying to streamline for ogbn-arxiv
+      # del dst_x
+      # torch.cuda.empty_cache()
       # get degrees
       src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)
 
@@ -672,7 +689,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
                               dst_x * dst_deginvsqrt.unsqueeze(dim=1))  # calc'd just for stats
         else:
           fOmf = torch.ones(src_deginvsqrt.shape, device=self.device)
-        attention = 1#torch.ones(src_deginvsqrt.shape, device=self.device)
+        attention = torch.tensor([1], device=self.device) #1#torch.ones(src_deginvsqrt.shape, device=self.device)
     return fOmf, attention
 
   def set_M0(self):

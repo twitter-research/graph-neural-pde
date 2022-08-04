@@ -73,8 +73,10 @@ class GNN(BaseGNN):
       elif self.opt['gnl_style'] == 'general_graph':
         W = self.odeblock.odefunc.set_gnlWS()
 
-        if self.opt['gnl_W_style'] == 'GS_Z_diag':
+        if self.opt['gnl_W_style'] in ['GS_Z_diag', 'cgnn_Z_diag']:
           self.W_eval, self.W_evec = self.odeblock.odefunc.gnl_W_D, self.odeblock.odefunc.V_hat
+        elif self.opt['gnl_W_style'] in ['loss_W_orthog']:
+          self.W_eval, self.W_evec = self.odeblock.odefunc.gnl_W_D, self.odeblock.odefunc.gnl_W_U
         else:
           self.W_eval, self.W_evec = torch.linalg.eigh(W) #confirmed unit norm output vectors
 
@@ -84,9 +86,10 @@ class GNN(BaseGNN):
           # W_eval, W_evec = torch.linalg.eigh(W)
           W = W / torch.abs(self.W_eval).max()
 
+        #set progation matrix
         if self.opt['gnl_W_style'] == 'Z_diag':
           self.odeblock.odefunc.gnl_W = torch.diag(self.W_eval)
-        elif self.opt['gnl_W_style'] == 'GS_Z_diag':
+        elif self.opt['gnl_W_style'] in ['GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog']:
           self.odeblock.odefunc.gnl_W = torch.diag(self.W_eval)
         else:
           self.odeblock.odefunc.gnl_W = W
@@ -183,6 +186,7 @@ class GNN(BaseGNN):
     if self.opt['path_dep_norm'] == 'nodewise':
       paths = [F.normalize(z_t, dim=1) for z_t in paths]
     elif self.opt['path_dep_norm'] == 'rayleigh':
+      # paths = [z_t / rayleigh_quotient(self.odeblock.odefunc.edge_index, self.num_nodes, z_t) for z_t in paths]
       paths = [z_t / rayleigh_quotient(self.odeblock.odefunc.edge_index, self.num_nodes, z_t) for z_t in paths]
     elif self.opt['path_dep_norm'] == 'z_cat_normed_z':
       paths = [torch.cat((z_t, F.normalize(z_t, dim=1)),dim=1) for z_t in paths]
