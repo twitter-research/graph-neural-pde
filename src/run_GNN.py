@@ -663,7 +663,7 @@ def main(cmd_opt):
 
         if opt['num_splits'] > 1:
             if opt['function'] in ['greed_non_linear', 'gcn_dgl', 'gcn_res_dgl']:
-                results.append([test_acc*100, val_acc*100, train_acc*100, loss, loss_orthog,
+                results.append([test_acc*100, val_acc*100, train_acc*100, loss.cpu().detach().numpy(), loss_orthog.cpu().detach().numpy(),
                                 T0_DE.cpu().detach().numpy(), T0r_DE.cpu().detach().numpy(),
                                 TN_DE.cpu().detach().numpy(), TNr_DE.cpu().detach().numpy(),
                                 T0_WDE.cpu().detach().numpy(), TN_WDE.cpu().detach().numpy(),
