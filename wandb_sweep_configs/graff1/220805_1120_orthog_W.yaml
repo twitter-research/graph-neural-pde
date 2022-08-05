@@ -69,4 +69,4 @@ command:
   - --wandb
   - --wandb_sweep
 entity: graph_neural_diffusion
-project: pathdep_normed
+project: orthog_W
