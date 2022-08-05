@@ -466,7 +466,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         W_U = self.gnl_W_U.clone()
         W_U = self.gnl_W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
       self.V_hat = W_U
-
       #choose not to restrict spectrum
       # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1) #self.gnl_W_D
       # self.gnl_W_D = torch.tanh(self.gnl_W_D) #self.gnl_W_D

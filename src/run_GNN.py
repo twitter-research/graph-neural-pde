@@ -185,10 +185,11 @@ def train(model, optimizer, data, pos_encoding=None):
         # loss = loss + gl_flag * gl_loss / model.num_nodes
         loss = loss + opt['loss_reg_weight'] * gl_flag * gl_loss
 
-    if model.opt['gnl_W_style'] == 'loss_W_orthog':
-        W = model.odeblock.odefunc.W_evec
-        loss_orthog = torch.pow(torch.norm(W.T @ W - torch.eye(model.hidden_dim, device=model.device), "fro"), 2)
-        loss = loss + loss_orthog
+    # if model.opt['gnl_W_style'] == 'loss_W_orthog':
+    if model.opt['loss_orthog_a'] is not None:
+        W_evec = model.odeblock.odefunc.W_evec
+        loss_orthog = torch.pow(torch.norm(W_evec.T @ W_evec - torch.eye(model.hidden_dim, device=model.device), "fro"), 2)
+        loss = loss + opt['loss_orthog_a'] * loss_orthog
 
     model.fm.update(model.getNFE())
     model.resetNFE()
@@ -199,6 +200,30 @@ def train(model, optimizer, data, pos_encoding=None):
     model.resetNFE()
 
     return loss.item()
+
+
+@torch.no_grad()
+def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
+    model.eval()
+    feat = data.x
+    if model.opt['use_labels']:
+        feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
+    logits, accs = model(feat, pos_encoding), []
+    for _, mask in data('train_mask', 'val_mask', 'test_mask'):
+        pred = logits[mask].max(1)[1]
+        acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
+        accs.append(acc)
+    epoch = model.odeblock.odefunc.epoch
+    if opt['wandb']:
+        lf = torch.nn.CrossEntropyLoss()
+        loss = lf(logits[data.train_mask], data.y.squeeze()[data.train_mask])
+        wandb_log(data, model, opt, loss, accs[0], accs[1], accs[2], epoch)
+        model.odeblock.odefunc.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
+
+    if opt['run_track_reports'] and epoch in opt['wandb_epoch_list']:
+        reports_manager(model, data)
+
+    return accs
 
 
 def train_OGB(model, mp, optimizer, data, pos_encoding=None):
@@ -287,30 +312,6 @@ def test_OGB(model, data, pos_encoding, opt):
 
 
 @torch.no_grad()
-def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
-    model.eval()
-    feat = data.x
-    if model.opt['use_labels']:
-        feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
-    logits, accs = model(feat, pos_encoding), []
-    for _, mask in data('train_mask', 'val_mask', 'test_mask'):
-        pred = logits[mask].max(1)[1]
-        acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
-        accs.append(acc)
-    epoch = model.odeblock.odefunc.epoch
-    if opt['wandb']:
-        lf = torch.nn.CrossEntropyLoss()
-        loss = lf(logits[data.train_mask], data.y.squeeze()[data.train_mask])
-        wandb_log(data, model, opt, loss, accs[0], accs[1], accs[2], epoch)
-        model.odeblock.odefunc.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
-
-    if opt['run_track_reports'] and epoch in opt['wandb_epoch_list']:
-        reports_manager(model, data)
-
-    return accs
-
-
-@torch.no_grad()
 def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
     model.eval()
 
@@ -377,7 +378,11 @@ def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
     elif opt['function'] == "greed_non_linear":
         print(f"epoch {epoch}, delta: {model.odeblock.odefunc.delta.detach()}, mu: {model.odeblock.odefunc.mu}, epsilon: {model.odeblock.odefunc.om_W_eps}")  # , nu: {model.odeblock.odefunc.om_W_nu}")
 
-        wandb.log({"loss": loss,
+        # if model.opt['gnl_W_style'] == 'loss_W_orthog':
+        W_evec = model.odeblock.odefunc.W_evec
+        loss_orthog = torch.pow(torch.norm(W_evec.T @ W_evec - torch.eye(model.hidden_dim, device=model.device), "fro"), 2)
+
+        wandb.log({"loss": loss, "loss_orthog": loss_orthog,
                    # "tmp_train_acc": tmp_train_acc, "tmp_val_acc": tmp_val_acc, "tmp_test_acc": tmp_test_acc,
                    "forward_nfe": model.fm.sum, "backward_nfe": model.bm.sum,
                    "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
@@ -608,8 +613,6 @@ def main(cmd_opt):
             patience_count = 0
         for epoch in range(1, opt['epoch']):
             start_time = time.time()
-            # if opt['function'] in ['greed', 'greed_linear', 'greed_linear_homo', 'greed_linear_hetero',
-            #                        'greed_non_linear', 'greed_lie_trotter']:
             model.odeblock.odefunc.epoch = epoch
 
             if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
@@ -654,44 +657,49 @@ def main(cmd_opt):
             f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
         if opt['function'] in ['greed_non_linear', 'gcn_dgl', 'gcn_res_dgl']:
             T0_DE, T0r_DE, TN_DE, TNr_DE, T0_WDE, TN_WDE, enc_pred_homophil, pred_homophil, label_homophil = calc_energy_homoph(data, model, opt)
+            # if model.opt['gnl_W_style'] == 'loss_W_orthog':
+            W_evec = model.odeblock.odefunc.W_evec
+            loss_orthog = torch.pow(torch.norm(W_evec.T @ W_evec - torch.eye(model.hidden_dim, device=model.device), "fro"), 2)
+
         if opt['num_splits'] > 1:
             if opt['function'] in ['greed_non_linear', 'gcn_dgl', 'gcn_res_dgl']:
-                results.append([test_acc, val_acc, train_acc,
+                results.append([test_acc*100, val_acc*100, train_acc*100, loss, loss_orthog,
                                 T0_DE.cpu().detach().numpy(), T0r_DE.cpu().detach().numpy(),
                                 TN_DE.cpu().detach().numpy(), TNr_DE.cpu().detach().numpy(),
                                 T0_WDE.cpu().detach().numpy(), TN_WDE.cpu().detach().numpy(),
-                                enc_pred_homophil, pred_homophil, label_homophil])
+                                enc_pred_homophil*100, pred_homophil*100, label_homophil*100])
             else:
-                results.append([test_acc, val_acc, train_acc])
+                results.append([test_acc*100, val_acc*100, train_acc*100, loss])
 
     if opt['num_splits'] > 1:
         if opt['function']  in ['greed_non_linear', 'gcn_dgl', 'gcn_res_dgl']:
-            test_acc_mean, val_acc_mean, train_acc_mean, \
+            test_acc_mean, val_acc_mean, train_acc_mean, loss_mean, loss_orthog_mean,\
             T0_DE_mean, T0r_DE_mean, TN_DE_mean, TNr_DE_mean, T0_WDE_mean, TN_WDE_mean,\
             enc_pred_homophil_mean, pred_homophil_mean, label_homophil_mean \
-                = np.mean(results, axis=0) * 100
-            test_acc_std = np.sqrt(np.var(results, axis=0)[0]) * 100
+                = np.mean(results, axis=0)
+            test_acc_std = np.sqrt(np.var(results, axis=0)[0])
 
             wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
-                             'test_acc_std': test_acc_std,
+                             'test_acc_std': test_acc_std, 'loss_mean': loss_mean, "loss_orthog_mean": loss_orthog_mean,
                              'T0_DE_mean': T0_DE_mean, 'T0r_DE_mean': T0r_DE_mean,
                              'TN_DE_mean': TN_DE_mean, 'TNr_DE_mean': TNr_DE_mean,
                              'T0_WDE_mean': T0_WDE_mean, 'TN_WDE_mean': TN_WDE_mean,
                              'enc_pred_homophil_mean': enc_pred_homophil_mean, 'pred_homophil_mean': pred_homophil_mean, 'label_homophil_mean': label_homophil_mean}
         else:
-            test_acc_mean, val_acc_mean, train_acc_mean = np.mean(results, axis=0) * 100
-            test_acc_std = np.sqrt(np.var(results, axis=0)[0]) * 100
+            test_acc_mean, val_acc_mean, train_acc_mean, loss_mean = np.mean(results, axis=0)
+            test_acc_std = np.sqrt(np.var(results, axis=0)[0])
             wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
                              'test_acc_std': test_acc_std}
     else:
         if opt['function'] in ['greed_non_linear', 'gcn_dgl', 'gcn_res_dgl']:
-            wandb_results = {'test_mean': test_acc, 'val_mean': val_acc, 'train_mean': train_acc,
+            wandb_results = {'test_mean': test_acc*100, 'val_mean': val_acc*100, 'train_mean': train_acc*100,
+                             'loss_mean': loss, 'loss_orthog_mean': loss_orthog,
                              'T0_DE_mean': T0_DE, 'T0r_DE_mean': T0r_DE,
                              'TN_DE_mean': TN_DE, 'TNr_DE_mean': TNr_DE,
                              'T0_WDE_mean': T0_WDE, 'TN_WDE_mean': TN_WDE,
                              'enc_pred_homophil_mean': enc_pred_homophil, 'pred_homophil_mean': pred_homophil, 'label_homophil_mean': label_homophil}
         else:
-            wandb_results = {'test_mean': test_acc, 'val_mean': val_acc, 'train_mean': train_acc}
+            wandb_results = {'test_mean': test_acc*100, 'val_mean': val_acc*100, 'train_mean': train_acc*100, 'loss_mean': loss}
 
     wandb.log(wandb_results)
     print(wandb_results)
@@ -1008,6 +1016,7 @@ if __name__ == '__main__':
     parser.add_argument('--drift_grad', type=str, default='True', help='collect gradient off drift term')
     parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
     parser.add_argument('--pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
+    parser.add_argument('--loss_orthog_a', type=float, default=None, help='loss orthog term')
 
     args = parser.parse_args()
     opt = vars(args)

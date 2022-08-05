@@ -1,0 +1,72 @@
+program: run_GNN.py
+method: grid
+parameters:
+  dataset:
+    values: [chameleon]
+  function:
+    values: [greed_non_linear]
+  epoch:
+    values: [257]
+  num_splits:
+    values: [4]
+  self_loop_weight:
+    values: [0.0]
+  no_early:
+    values: [True]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_W_style:
+    values: [diag_dom, loss_W_orthog, cgnn_Z_diag, GS_Z_diag]
+  loss_orthog_a:
+    values: [0.01, 0.1, 1.0]
+  m1_W_eig:
+    values: [False]
+  m2_W_eig:
+    values: ['z2x']
+  gnl_W_norm:
+    values: [False]
+  m3_path_dep:
+    values: [None, feature_jk, label_jk, label_att, train_centers]
+  path_dep_norm:
+    values: [None, nodewise, rayleigh, z_cat_normed_z]
+  gnl_activation:
+    values: [identity]
+  gnl_measure:
+    values: [ones]
+  drift:
+    values: [False]
+  test_mu_0:
+    values: [True]
+  add_source:
+    values: [False]
+  gnl_omega:
+    values: [zero]
+  hidden_dim:
+    values: [64]
+  time:
+    values: [1.0, 2.0, 3.0, 5.0, 10.0]
+  step_size:
+    values: [0.25, 0.5, 1.0]
+  max_nfe:
+    values: [10000]
+  input_dropout:
+    values: [0.5]
+  dropout:
+    values: [0.35]
+  optimizer:
+    values: [adam]
+  lr:
+    values: [0.001]
+  decay:
+    values: [0.0005]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+entity: graph_neural_diffusion
+project: pathdep_normed
