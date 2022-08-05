@@ -18,7 +18,7 @@ parameters:
   gnl_style:
     values: [general_graph]
   gnl_W_style:
-    values: [diag_dom, loss_W_orthog, cgnn_Z_diag, GS_Z_diag]
+    values: [loss_W_orthog, cgnn_Z_diag, GS_Z_diag]
   loss_orthog_a:
     values: [0.01, 0.1, 1.0]
   m1_W_eig:
