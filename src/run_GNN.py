@@ -186,6 +186,7 @@ def train(model, optimizer, data, pos_encoding=None):
         loss = loss + opt['loss_reg_weight'] * gl_flag * gl_loss
 
     # if model.opt['gnl_W_style'] == 'loss_W_orthog':
+    # W_orthog_init
     if model.opt['loss_orthog_a'] is not None:
         W_evec = model.odeblock.odefunc.W_evec
         loss_orthog = torch.pow(torch.norm(W_evec.T @ W_evec - torch.eye(model.hidden_dim, device=model.device), "fro"), 2)

@@ -136,7 +136,7 @@ def greed_hyper_params(opt):
         opt['gnl_omega_activation'] = 'identity' #identity
         opt['gnl_omega_params'] = ["diag","free","None","identity"] #[opt['gnl_omega'], opt['gnl_omega_diag'], opt['gnl_omega_diag_val'], opt['gnl_omega_activation']]
         #W
-        opt['gnl_W_style'] = 'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_W_style'] = 'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         if opt['gnl_W_style'] == 'k_block':
         # assert in_features % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
@@ -233,9 +233,9 @@ def not_sweep_args(opt, project_name, group_name):
     # opt['wandb_group'] = group_name #"testing"  # "tuning" eval
 
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = True #True #False #True
-    opt['wandb_track_grad_flow'] = True #False  #collect stats for reports
-    opt['run_track_reports'] = True #False#True ##run the evolution reports
+    opt['wandb'] = False#True #True #False #True
+    opt['wandb_track_grad_flow'] = False#True #False  #collect stats for reports
+    opt['run_track_reports'] = False#True #False#True ##run the evolution reports
     opt['save_local_reports'] = True#True
     opt['save_wandb_reports'] = True#False#True
     opt['wandb_watch_grad'] = False

@@ -172,6 +172,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'loss_W_orthog':
         self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
         self.gnl_W_D = Parameter(torch.ones(in_features))
+        # self.gnl_W_D = Parameter(2*torch.rand(in_features)-1)
+      elif self.opt['gnl_W_style'] == 'W_orthog_init':
+        W_U = torch.rand((in_features, in_features), device=self.device)
+        W_GS = self.V_hat = gram_schmidt(W_U)
+        self.gnl_W_U = Parameter(W_GS)
+        self.gnl_W_D = Parameter(torch.ones(in_features))
+        # self.gnl_W_D = Parameter(2*torch.rand(in_features)-1)
       elif self.opt['gnl_W_style'] == 'feature':
         self.Om_phi = Parameter(torch.Tensor(in_features))
         self.W_psi = Parameter(torch.Tensor(in_features))
@@ -309,6 +316,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           glorot(self.gnl_W_U_tilde)
       elif self.opt['gnl_W_style'] == 'loss_W_orthog':
         glorot(self.gnl_W_U)
+        uniform(self.gnl_W_D, a=-1, b=1)
+      elif self.opt['gnl_W_style'] == 'W_orthog_init':
         uniform(self.gnl_W_D, a=-1, b=1)
       elif self.opt['gnl_W_style'] == 'feature':
         glorot(self.Om_phi)
@@ -472,6 +481,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W_hat = self.V_hat @ torch.diag(self.gnl_W_D) @ self.V_hat.t()
       return W_hat
     elif self.opt['gnl_W_style'] == 'loss_W_orthog':
+      W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
+      return W_hat
+
+    elif self.opt['gnl_W_style'] == 'W_orthog_init':
       W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
       return W_hat
 

@@ -75,7 +75,7 @@ class GNN(BaseGNN):
 
         if self.opt['gnl_W_style'] in ['GS', 'GS_Z_diag', 'cgnn', 'cgnn_Z_diag']:
           self.W_eval, self.W_evec = self.odeblock.odefunc.gnl_W_D, self.odeblock.odefunc.V_hat
-        elif self.opt['gnl_W_style'] in ['loss_W_orthog']:
+        elif self.opt['gnl_W_style'] in ['loss_W_orthog', 'W_orthog_init']:
           self.W_eval, self.W_evec = self.odeblock.odefunc.gnl_W_D, self.odeblock.odefunc.gnl_W_U
         else:
           self.W_eval, self.W_evec = torch.linalg.eigh(W) #confirmed unit norm output vectors
@@ -89,7 +89,7 @@ class GNN(BaseGNN):
         #set progation matrix
         if self.opt['gnl_W_style'] == 'Z_diag':
           self.odeblock.odefunc.gnl_W = torch.diag(self.W_eval)
-        elif self.opt['gnl_W_style'] in ['GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog']:
+        elif self.opt['gnl_W_style'] in ['GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init']:
           self.odeblock.odefunc.gnl_W = torch.diag(self.W_eval)
         else:
           self.odeblock.odefunc.gnl_W = W

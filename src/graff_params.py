@@ -28,12 +28,16 @@ def shared_graff_params(opt):
 def hetero_params(opt):
     # adding self loops and make undirected for chameleon & squirrel
     if opt['dataset'] in ['chameleon', 'squirrel']:
-        if opt['wandb']:
-            wandb.config.update({'hetero_SL': True}, allow_val_change=True)
-            wandb.config.update({'hetero_undir': True}, allow_val_change=True)
-            wandb.config.update({'geom_gcn_splits': True}, allow_val_change=True)
-        else:
-                opt['hetero_SL'] = True
-                opt['hetero_undir'] = True
-                opt['geom_gcn_splits'] = True
+        wandb.config.update({'hetero_SL': True}, allow_val_change=True)
+        wandb.config.update({'hetero_undir': True}, allow_val_change=True)
+        wandb.config.update({'geom_gcn_splits': True}, allow_val_change=True)
+
+        # if opt['wandb']:
+        #     wandb.config.update({'hetero_SL': True}, allow_val_change=True)
+        #     wandb.config.update({'hetero_undir': True}, allow_val_change=True)
+        #     wandb.config.update({'geom_gcn_splits': True}, allow_val_change=True)
+        # else:
+        #     opt['hetero_SL'] = True
+        #     opt['hetero_undir'] = True
+        #     opt['geom_gcn_splits'] = True
     return opt
