@@ -184,6 +184,8 @@ class GNN(BaseGNN):
     elif self.opt['path_dep_norm'] == 'rayleigh':
       # paths = [rayleigh_quotient(self.odeblock.odefunc.edge_index, self.num_nodes, z_t) for z_t in paths]
       paths = [z_t / torch.pow(torch.norm(z_t, p="fro"), 2) for z_t in paths]
+    elif self.opt['path_dep_norm'] == 'rayleigh1':
+      paths = [z_t / torch.norm(z_t, p="fro") for z_t in paths]
     elif self.opt['path_dep_norm'] == 'z_cat_normed_z':
       paths = [torch.cat((z_t, F.normalize(z_t, dim=1)),dim=1) for z_t in paths]
 
