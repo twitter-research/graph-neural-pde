@@ -87,9 +87,7 @@ class GNN(BaseGNN):
           W = W / torch.abs(self.W_eval).max()
 
         #set progation matrix
-        if self.opt['gnl_W_style'] == 'Z_diag':
-          self.odeblock.odefunc.gnl_W = torch.diag(self.W_eval)
-        elif self.opt['gnl_W_style'] in ['GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init']:
+        if self.opt['gnl_W_style'] in ['Z_diag', 'GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
           self.odeblock.odefunc.gnl_W = torch.diag(self.W_eval)
         else:
           self.odeblock.odefunc.gnl_W = W
