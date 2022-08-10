@@ -172,13 +172,21 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] == 'loss_W_orthog':
         self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
         self.gnl_W_D = Parameter(torch.ones(in_features))
-        # self.gnl_W_D = Parameter(2*torch.rand(in_features)-1)
       elif self.opt['gnl_W_style'] == 'W_orthog_init':
         W_U = torch.rand((in_features, in_features), device=self.device)
         W_GS = self.V_hat = gram_schmidt(W_U)
         self.gnl_W_U = Parameter(W_GS)
         self.gnl_W_D = Parameter(torch.ones(in_features))
-        # self.gnl_W_D = Parameter(2*torch.rand(in_features)-1)
+
+      elif self.opt['gnl_W_style'] == 'householder':
+        #init L=d-1 x d-dim random vectors
+        self.gnl_W_hh = Parameter(torch.Tensor(in_features, self.opt['householder_L']))
+        self.gnl_W_D = Parameter(torch.ones(in_features))
+      elif self.opt['gnl_W_style'] == 'skew_sym':
+        #init an upper triangular and a diagonal vector
+        self.gnl_W_ss = Parameter(torch.ones(int((in_features**2-in_features)/2)))
+        self.gnl_W_D = Parameter(torch.ones(in_features))
+
       elif self.opt['gnl_W_style'] == 'feature':
         self.Om_phi = Parameter(torch.Tensor(in_features))
         self.W_psi = Parameter(torch.Tensor(in_features))
@@ -319,6 +327,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         uniform(self.gnl_W_D, a=-1, b=1)
       elif self.opt['gnl_W_style'] == 'W_orthog_init':
         uniform(self.gnl_W_D, a=-1, b=1)
+      elif self.opt['gnl_W_style'] == 'householder':
+        # glorot(self.gnl_W_hh)
+        # uniform(self.gnl_W_hh, a=-1, b=1)
+        xavier_uniform_(self.gnl_W_hh)
+        uniform(self.gnl_W_D, a=-1, b=1)
+      elif self.opt['gnl_W_style'] == 'skew_sym':
+        # glorot(self.gnl_W_ss)
+        uniform(self.gnl_W_ss, a=-1, b=1)
+        # xavier_uniform_(self.gnl_W_ss)
+        uniform(self.gnl_W_D, a=-1, b=1)
+
       elif self.opt['gnl_W_style'] == 'feature':
         glorot(self.Om_phi)
         glorot(self.W_psi)
@@ -327,6 +346,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           glorot(self.W_psi_tilde)
       elif self.opt['gnl_W_style'] == 'positional':
         pass #linear layer
+
     elif self.opt['gnl_style'] == 'att_rep_laps':
       if self.opt['gnl_W_style'] == 'att_rep_lap_block':
         glorot(self.L_W)
@@ -485,6 +505,31 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       return W_hat
 
     elif self.opt['gnl_W_style'] == 'W_orthog_init':
+      W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
+      return W_hat
+
+    elif self.opt['gnl_W_style'] == 'householder':
+      #init L=d-1 x d-dim random vectors #https://github.com/riannevdberg/sylvester-flows/blob/32dde9b7d696fee94f946a338182e542779eecfe/models/VAE.py#L502
+      # W_D_list = []
+      H_prod = torch.eye(self.in_features, device=self.device)
+      for l in range(self.opt['householder_L']):
+        v = self.gnl_W_hh[:,l]
+        H = torch.eye(self.in_features, device=self.device) - 2 * torch.outer(v,v) / torch.pow(torch.norm(v, p=2), 2)
+        H_prod = H_prod @ H
+      self.gnl_W_U = H_prod
+      W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
+      return W_hat
+
+    elif self.opt['gnl_W_style'] == 'skew_sym':
+      #init an upper triangular and a diagonal vector
+      SS = []
+      start = 0
+      for i in range(self.in_features):
+        SS.append(torch.cat((torch.zeros(1+i), self.gnl_W_ss[start: start + self.in_features - (1+i)])))
+        start += self.in_features - (1+i)
+      S = torch.stack(SS, dim=0)
+      S = (S - S.T) / 2
+      self.gnl_W_U = torch.linalg.inv(torch.eye(self.in_features, device=self.device) - 0.5 * self.opt['step_size'] * S) @ (torch.eye(self.in_features, device=self.device) + 0.5 * self.opt['step_size'] * S)
       W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
       return W_hat
 

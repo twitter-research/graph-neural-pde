@@ -702,10 +702,10 @@ def main(cmd_opt):
         else:
             wandb_results = {'test_mean': test_acc*100, 'val_mean': val_acc*100, 'train_mean': train_acc*100, 'loss_mean': loss}
 
-    wandb.log(wandb_results)
+    if opt['wandb']:
+        wandb.log(wandb_results)
+        wandb_run.finish()
     print(wandb_results)
-
-    wandb_run.finish()
     return train_acc, val_acc, test_acc
 
 

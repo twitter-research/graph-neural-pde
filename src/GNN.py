@@ -75,7 +75,7 @@ class GNN(BaseGNN):
 
         if self.opt['gnl_W_style'] in ['GS', 'GS_Z_diag', 'cgnn', 'cgnn_Z_diag']:
           self.W_eval, self.W_evec = self.odeblock.odefunc.gnl_W_D, self.odeblock.odefunc.V_hat
-        elif self.opt['gnl_W_style'] in ['loss_W_orthog', 'W_orthog_init']:
+        elif self.opt['gnl_W_style'] in ['loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
           self.W_eval, self.W_evec = self.odeblock.odefunc.gnl_W_D, self.odeblock.odefunc.gnl_W_U
         else:
           self.W_eval, self.W_evec = torch.linalg.eigh(W) #confirmed unit norm output vectors
