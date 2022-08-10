@@ -1018,6 +1018,7 @@ if __name__ == '__main__':
     parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
     parser.add_argument('--pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
     parser.add_argument('--loss_orthog_a', type=float, default=None, help='loss orthog term')
+    parser.add_argument('--householder_L', type=int, default=8, help='num iterations of householder reflection for W_orthog')
 
     args = parser.parse_args()
     opt = vars(args)

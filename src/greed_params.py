@@ -236,7 +236,7 @@ def not_sweep_args(opt, project_name, group_name):
     # opt['wandb_group'] = group_name #"testing"  # "tuning" eval
 
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = False#True #True #False #True
+    opt['wandb'] = True #True #False #True
     opt['wandb_track_grad_flow'] = False#True #False  #collect stats for reports
     opt['run_track_reports'] = False#True #False#True ##run the evolution reports
     opt['save_local_reports'] = True#True
@@ -266,7 +266,7 @@ def tf_ablation_args(opt):
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
                 'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
                 'two_hops', 'time_dep_w', 'time_dep_struct_w',
-                'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'm2_W_eig', 'gnl_W_norm', 'drift_grad', 'pointwise_nonlin',
+                'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'gnl_W_norm', 'drift_grad', 'pointwise_nonlin',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout',
                 'wandb', 'wandb_sweep', 'adjoint']
     arg_intersect = list(set(opt.keys()) & set(tf_args))
@@ -579,7 +579,7 @@ def default_params():
 
     parser.add_argument('--m2_aug', type=str, default='False', help='whether to augment m2 for drift readout')
     parser.add_argument('--m1_W_eig', type=str, default='False', help='project encoding onto W eigen basis')
-    parser.add_argument('--m2_W_eig', type=str, default='False', help='project onto W eigen basis before decode')
+    parser.add_argument('--m2_W_eig', type=str, default='', help='either z2x or x2z, project onto W eigen basis before decode')
     parser.add_argument('--m3_path_dep', type=str, default='False', help='whether to use path dependent for m3 decoder')
     parser.add_argument('--path_dep_norm', type=str, default='False', help='whether to norm the path dependent solution for m3 decoder')
     # parser.add_argument('--m3_space', type=str, default='', help='label / feature')
@@ -588,6 +588,7 @@ def default_params():
     parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
     parser.add_argument('--pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
     parser.add_argument('--loss_orthog_a', type=float, default=None, help='loss orthog term')
+    parser.add_argument('--householder_L', type=int, default=8, help='num iterations of householder reflection for W_orthog')
 
 
     args = parser.parse_args()
