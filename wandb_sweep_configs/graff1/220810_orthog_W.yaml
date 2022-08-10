@@ -20,7 +20,7 @@ parameters:
   gnl_W_style:
     values: [loss_W_orthog, cgnn_Z_diag, GS_Z_diag, W_orthog_init, householder, skew_sym]
   loss_orthog_a:
-    values: [0.01, 1.0]
+    values: [None, 0.1]
   m1_W_eig:
     values: [False]
   m2_W_eig:
