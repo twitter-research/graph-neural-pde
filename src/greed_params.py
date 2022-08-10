@@ -174,7 +174,7 @@ def greed_hyper_params(opt):
     opt['dampen_gamma'] = 1.0#0.6    #assuming spec rad=4, dampen gamma=0.6, step=0.1
     opt['gnl_W_norm'] = False#True#False  # True #divide by spectral radius
     opt['pointwise_nonlin'] = False#True#False#True #todo add to args
-    opt['loss_orthog_a'] = None#1.0
+    opt['loss_orthog_a'] = 0#1.0
 
     # att_rep_laplacians
     opt['diffusion'] = True#True

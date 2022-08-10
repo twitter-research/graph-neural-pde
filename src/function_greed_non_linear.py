@@ -426,8 +426,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
 
   def set_gnlWS(self):
-    if T is None:
-      T = 0
     "note every W is made symetric before returning"
     if self.opt['gnl_W_style'] in ['prod']:
       return self.W_W @ self.W_W.t()
@@ -438,31 +436,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_W_style'] in ['Z_diag']:
       return (self.W_W + self.W_W.t()) / 2
     elif self.opt['gnl_W_style'] == 'diag':
-      if self.time_dep_w:
-        if T is None:
-          T = 0
-        return torch.diag(self.gnl_W_D[T])
-      elif self.time_dep_struct_w:
-        if T is None:
-          T = 0
-        W = self.gnl_W_D[T]
-        alpha = torch.diag(torch.exp(self.brt[T] * T + self.brt[T]))
-        beta = torch.diag(torch.exp(-self.brt[T] * T - self.crt[T]) + self.drt[T])
-        Wplus = torch.diag(F.relu(W))
-        Wneg = torch.diag(-1. * F.relu(-W))
-        return alpha @ Wplus - beta @ Wneg
-      else:
-        return torch.diag(self.gnl_W_D)
+      return torch.diag(self.gnl_W_D)
     elif self.opt['gnl_W_style'] == 'diag_dom':
       W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
       W = (W+W.T) / 2
-      if self.time_dep_w:
-        W_sum = self.t_a[T] * torch.abs(W).sum(dim=1) + self.r_a[T]
-      elif self.time_dep_struct_w:
-        W_sum = W + self.at[T] * F.tanh(self.bt[T] * T + self.gt[T]) * torch.eye(n=W.shape[0], m=W.shape[1], device=self.device)
-      else:
-         W_sum = self.t_a * torch.abs(W).sum(dim=1) + self.r_a
+      W_sum = self.t_a * torch.abs(W).sum(dim=1) + self.r_a
       Ws = W + torch.diag(W_sum)
       return Ws
     elif self.opt['gnl_W_style'] == 'k_block':
@@ -489,13 +468,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1)
       W_hat = self.V_hat @ torch.diag(self.gnl_W_D) @ self.V_hat.t()
       return W_hat
-
-    elif self.opt['gnl_W_style'] in ['cgnn', 'cgnn_Z_diag']: # https://github.com/JRowbottomGit/ContinuousGNN/blob/85d47b0748a19e06e305c21e99e1dd03d36ad314/src/trainer.py
+    elif self.opt['gnl_W_style'] in ['cgnn', 'cgnn_Z_diag']: # https://github.com/DeepGraphLearning/ContinuousGNN/blob/a82332eb5d85e80fd233ab35e4d155f34eb1275d/src/trainer.py#L108
       beta = self.opt['W_beta']
-
-      # https://github.com/DeepGraphLearning/ContinuousGNN/blob/a82332eb5d85e80fd233ab35e4d155f34eb1275d/src/trainer.py#L108
-      with torch.no_grad(): #no grad required to update weights inplace
-        # https://stackoverflow.com/questions/62198351/why-doesnt-pytorch-allow-inplace-operations-on-leaf-variables
+      with torch.no_grad():         # https://stackoverflow.com/questions/62198351/why-doesnt-pytorch-allow-inplace-operations-on-leaf-variables
         W_U = self.gnl_W_U.clone()
         W_U = self.gnl_W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
       self.V_hat = W_U
@@ -507,14 +482,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_W_style'] == 'loss_W_orthog':
       W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
       return W_hat
-
     elif self.opt['gnl_W_style'] == 'W_orthog_init':
       W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
       return W_hat
-
     elif self.opt['gnl_W_style'] == 'householder':
       #init L=d-1 x d-dim random vectors #https://github.com/riannevdberg/sylvester-flows/blob/32dde9b7d696fee94f946a338182e542779eecfe/models/VAE.py#L502
-      # W_D_list = []
       H_prod = torch.eye(self.in_features, device=self.device)
       for l in range(self.opt['householder_L']):
         v = self.gnl_W_hh[:,l]
@@ -523,7 +495,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.gnl_W_U = H_prod
       W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
       return W_hat
-
     elif self.opt['gnl_W_style'] == 'skew_sym':
       #init an upper triangular and a diagonal vector
       SS = []
@@ -536,11 +507,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.gnl_W_U = torch.linalg.inv(torch.eye(self.in_features, device=self.device) - 0.5 * self.opt['step_size'] * S) @ (torch.eye(self.in_features, device=self.device) + 0.5 * self.opt['step_size'] * S)
       W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
       return W_hat
-
     elif self.opt['gnl_W_style'] == 'identity':
       return torch.eye(self.in_features, device=self.device)
-    # elif self.opt['W_type'] == 'residual_prod':
-    #   return torch.eye(self.W.shape[0], device=x.device) + self.W @ self.W.t()  # output a [d,d] tensor
     elif self.opt['gnl_W_style'] == 'feature':
       pass
     elif self.opt['gnl_W_style'] == 'positional':
@@ -551,7 +519,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       L_temp = torch.cat([self.L_W, torch.zeros((half_in_features, 1), device=self.device)], dim=1)
       L = torch.stack([torch.roll(L_temp[i], shifts=i+1, dims=-1) for i in range(half_in_features)])
       L = (L+L.T) / 2
-      # L_sum = (torch.exp(self.L_t_a) + 1) * torch.abs(L).sum(dim=1) + torch.exp(self.L_r_a)
       L_sum = (self.L_t_a**2 + 1) * torch.abs(L).sum(dim=1) + self.L_r_a**2
       L_block = L + torch.diag(L_sum)
       Ws = torch.zeros((self.in_features, self.in_features), device=self.device)
@@ -560,7 +527,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       R_temp = torch.cat([self.R_W, torch.zeros((half_in_features, 1), device=self.device)], dim=1)
       R = torch.stack([torch.roll(R_temp[i], shifts=i+1, dims=-1) for i in range(half_in_features)])
       R = (R+R.T) / 2
-      # R_sum = (torch.exp(self.R_t_a) + 1) * torch.abs(R).sum(dim=1) + torch.exp(self.R_r_a)
+
       R_sum = (self.R_t_a**2 + 1) * torch.abs(R).sum(dim=1) + self.R_r_a**2
       R_block = R + torch.diag(R_sum)
       R_Ws = torch.zeros((self.in_features, self.in_features), device=self.device)
@@ -926,12 +893,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       raise MaxNFEException
     self.nfe += 1
 
-    if self.time_dep_w:
+    if self.time_dep_w or self.time_dep_struct_w:
       T = int(t / self.opt['step_size'])
-      self.gnl_W = self.set_gnlWS(T)
-      #todo reset eigen values not eigen vectors - question do we also need to set the eigen vectors at the GNN level?
-
-      self.Omega = self.set_gnlOmega(T)
+      self.gnl_W = self.set_gnlWS_timedep(T)
+      #todo reset, eigen vectors and propagation matrix
+      self.Omega = self.set_gnlOmega_timedep(T)
 
     if self.opt['beltrami']:
       pass
