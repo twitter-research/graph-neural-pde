@@ -451,7 +451,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       Omega = torch.diag(self.om_W[T])
       if self.opt['gnl_omega_activation'] == 'exponential':
         Omega = -torch.exp(Omega)
-
+    else:
+      Omega = self.set_gnlOmega()
     return Omega
 
 
