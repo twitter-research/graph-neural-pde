@@ -5,7 +5,7 @@ from torch_geometric.datasets import Planetoid
 from torch_sparse import spspmm, coalesce
 
 
-data_dir = '../data'
+data_dir = '../../data'
 ds = 'Cora'
 path = os.path.join(data_dir, ds)
 dataset = Planetoid(path, ds)

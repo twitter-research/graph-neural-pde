@@ -110,8 +110,9 @@ def greed_hyper_params(opt):
 
     #greed_non_linear params
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
-    opt['time_dep_w'] = False
-    opt['time_dep_struct_w'] = False#True
+    opt['time_dep_unstruct_w'] = False#True
+    opt['time_dep_struct_w'] = True#True
+    assert not(opt['time_dep_unstruct_w'] and opt['time_dep_struct_w']), "can't do both"
     opt['gnl_style'] = 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
 
@@ -134,15 +135,23 @@ def greed_hyper_params(opt):
         opt['gnl_omega_diag'] = 'free' #'free 'const'
         opt['gnl_omega_diag_val'] = None #1 #-1 # 1
         opt['gnl_omega_activation'] = 'identity' #identity
-        opt['gnl_omega_params'] = ["diag","free","None","identity"] #[opt['gnl_omega'], opt['gnl_omega_diag'], opt['gnl_omega_diag_val'], opt['gnl_omega_activation']]
+        # opt['gnl_omega_params'] = ["diag","free","None","identity"] #[opt['gnl_omega'], opt['gnl_omega_diag'], opt['gnl_omega_diag_val'], opt['gnl_omega_activation']]
         #W
-        opt['gnl_W_style'] = 'skew_sym'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        #explanations of z2x W methods:
+        # 'Z_diag' - initialise as 'sum' but then set W as eval and use z2x
+        # 'GS_Z_diag' - do gram schmidt for evec set W as eval and use z2x
+        # 'cgnn_Z_diag' - do cgnn update on evec
+        # 'loss_W_orthog', - free sum tensor set W as eval and use z2x
+        # 'W_orthog_init', - use GS to init param W_U as orthog - then set W=ULU.T - set W as eval and use z2x
+        # 'householder' - use householder reflections to enforce orthog W_U
+        # 'skew_sym' - use skew-symetric and bilinear approximation to enforce orthog W_U
+        opt['gnl_W_style'] = 'sum'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         if opt['gnl_W_style'] == 'k_block':
-        # assert in_features % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= in_features, 'must have odd number of k diags'
+            assert opt['hidden_dim'] % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= opt['hidden_dim']#in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
             opt['block_size'] = 5
         elif opt['gnl_W_style'] == 'k_diag':
-            # assert opt['k_diags'] % 2 == 1 and opt['k_diags'] <= in_features, 'must have odd number of k diags'
+            assert opt['k_diags'] % 2 == 1 and opt['k_diags'] <= opt['hidden_dim']#, 'must have odd number of k diags'
             opt['k_diags'] = 13
         elif opt['gnl_W_style'] in ['diag', 'diag_dom']:
             opt['gnl_W_diag_init'] = 'uniform'#'identity'
@@ -161,8 +170,8 @@ def greed_hyper_params(opt):
     opt['m2_aug'] = False #True #False #reads out (no weights) prediction from bottom C dimensions
     opt['m1_W_eig'] = False#True
     opt['m2_W_eig'] = 'z2x' #False #'x2z'#'z2x' #True #True
-    if opt['m2_W_eig'] == 'z2x':
-        assert opt['gnl_W_style'] in ['Z_diag', 'GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym'], 'z2x must have diag style matrix'
+    # if opt['m2_W_eig'] == 'z2x': #not true as can just do eigen decomp for sum for example
+    #     assert opt['gnl_W_style'] in ['Z_diag', 'GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym'], 'z2x must have diag style matrix'
     opt['m3_path_dep'] = None#'label_att'#'feature_jk'#None#'label_jk'#'train_centers'#'feature_jk'#'label_jk'#'feature_jk' #'label_jk' 'label_att'
     opt['path_dep_norm'] = None#'rayleigh1' #'z_cat_normed_z'#'rayleigh'#'nodewise' #'rayleigh'
     # opt['m3_best_path_dep'] = False #todo add to params - makes prediction using path of train set evolution/performance
@@ -178,7 +187,7 @@ def greed_hyper_params(opt):
 
     # att_rep_laplacians
     opt['diffusion'] = True#True
-    opt['repulsion'] = True#False#True #True
+    opt['repulsion'] = True#False
 
     #definitions of lie trotter
     #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
@@ -199,7 +208,7 @@ def greed_hyper_params(opt):
             opt['time'] = 6.0
             opt['step_size'] = 1.0
             opt['method'] = 'euler'
-    elif opt['lie_trotter'] == 'gen_2':
+    elif opt['lie_trotter'] == 'gen_2': #todo test if time dep W works with gen 2 - and then implement the W block end transform (maybe rewiring also) idea
         opt['block'] = 'greed_lie_trotter'
         #gen2 args
         #todo we only ever want one decoder, do this by setting 'share_block'=0 (to the number of the first block for any drift blocks)
@@ -208,7 +217,7 @@ def greed_hyper_params(opt):
         #                     {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0,'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1]},
         #                     {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': 0, 'reports_list': []},
         #                     {'lt_block_type': 'label', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1,2,3,4,5,6,7]}]
-        #double diffusion
+        #double diffusion config
         # opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []},
         #                        {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []},
         #                        {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': [1,2,4,7,8,9,10]}]#,
@@ -217,6 +226,7 @@ def greed_hyper_params(opt):
         #for "restart" diffusion
         opt['time2'] = 2.0
         opt['time3'] = 1.0
+
     #gcn params
     # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
     # opt['gcn_enc_dec'] = False #False #True
@@ -267,7 +277,7 @@ def tf_ablation_args(opt):
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
                 'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
-                'two_hops', 'time_dep_w', 'time_dep_struct_w',
+                'two_hops', 'time_dep_unstruct_w', 'time_dep_struct_w',
                 'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'gnl_W_norm', 'drift_grad', 'pointwise_nonlin',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout',
                 'wandb', 'wandb_sweep', 'adjoint']
@@ -564,7 +574,8 @@ def default_params():
     parser.add_argument('--gnl_W_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
     parser.add_argument('--gnl_W_norm', type=str, default='False', help='divide W matrix by its spectral radius')
     parser.add_argument('--two_hops', type=str, default='False', help='flag for 2-hop energy')
-    parser.add_argument('--time_dep_w', type=str, default='False', help='Learn a time dependent potentials')
+    parser.add_argument('--time_dep_unstruct_w', type=str, default='False', help='Learn a time dependent potentials')
+    parser.add_argument('--time_dep_struct_w', type=str, default='False', help='Learn a structured time dependent potentials')
     parser.add_argument('--target_homoph', type=str, default='0.80', help='target_homoph for syn_cora [0.00,0.10,..,1.00]')
     parser.add_argument('--hetero_SL', type=str, default='True', help='control self loops for Chameleon/Squirrel')
     parser.add_argument('--hetero_undir', type=str, default='True', help='control undirected for Chameleon/Squirrel')
@@ -582,9 +593,8 @@ def default_params():
     parser.add_argument('--m2_aug', type=str, default='False', help='whether to augment m2 for drift readout')
     parser.add_argument('--m1_W_eig', type=str, default='False', help='project encoding onto W eigen basis')
     parser.add_argument('--m2_W_eig', type=str, default='', help='either z2x or x2z, project onto W eigen basis before decode')
-    parser.add_argument('--m3_path_dep', type=str, default='False', help='whether to use path dependent for m3 decoder')
-    parser.add_argument('--path_dep_norm', type=str, default='False', help='whether to norm the path dependent solution for m3 decoder')
-    # parser.add_argument('--m3_space', type=str, default='', help='label / feature')
+    parser.add_argument('--m3_path_dep', type=str, default='', help='whether to use path dependent for m3 decoder')
+    parser.add_argument('--path_dep_norm', type=str, default='', help='whether to norm the path dependent solution for m3 decoder')
     parser.add_argument('--drift_space', type=str, default=None, help='feature, label')
     parser.add_argument('--drift_grad', type=str, default='True', help='collect gradient off drift term')
     parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')

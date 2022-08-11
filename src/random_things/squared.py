@@ -4,8 +4,9 @@ from torch_geometric.utils import add_self_loops, to_undirected
 from data import get_dataset
 from torch_sparse import spspmm, coalesce
 import time
+
 opt = {'dataset': 'Cora', 'device': 'cpu', 'not_lcc': True, 'rewiring': None, 'geom_gcn_splits': False}
-dataset = get_dataset(opt, '../data', opt['not_lcc'])
+dataset = get_dataset(opt, '../../data', opt['not_lcc'])
 
 edge_index = dataset.data.edge_index
 edge_index = add_self_loops(edge_index)[0]
