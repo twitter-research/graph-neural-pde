@@ -579,9 +579,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     elif self.opt['gnl_W_style'] == 'diag':
       if self.time_dep_unstruct_w:
-        return torch.diag(self.gnl_W_D[T])
-      elif self.time_dep_struct_w:
-        W = self.gnl_W_D[T]
+        return torch.diag(self.gnl_W_D_T[T])
+      elif self.time_dep_unstruct_w or self.time_dep_struct_w:
+        if self.time_dep_unstruct_w:
+          W = self.gnl_W_D_T[T]
+        elif self.time_dep_struct_w:
+          W = self.gnl_W_D
         alpha = torch.diag(torch.exp(self.brt[T] * T + self.brt[T]))
         beta = torch.diag(torch.exp(-self.brt[T] * T - self.crt[T]) + self.drt[T])
         Wplus = torch.diag(F.relu(W))
