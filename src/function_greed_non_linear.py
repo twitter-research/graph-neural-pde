@@ -861,7 +861,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.R_0 = R
 
   def reset_gnl_W_eigs(self, t):
-    T = int(t / self.opt['step_size'])
     if self.time_dep_unstruct_w or self.time_dep_struct_w:
       t = 0
       W = self.set_gnlWS_timedep(t)
@@ -888,7 +887,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.gnl_W = W
 
     if (self.time_dep_struct_w or self.time_dep_unstruct_w):
-      self.Omega = self.set_gnlOmega_timedep(T)
+      self.Omega = self.set_gnlOmega_timedep(t)
     else:
       self.Omega = self.set_gnlOmega()
 

@@ -98,7 +98,7 @@ def greed_hyper_params(opt):
     opt['use_best_params'] = False #True #False #True
     opt['method'] = 'euler'
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
-    opt['step_size'] = 1.0#1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
+    opt['step_size'] = 0.5 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 3 #4 #18.295 #10
     opt['epoch'] = 129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1 #10#4#1
@@ -110,8 +110,8 @@ def greed_hyper_params(opt):
 
     #greed_non_linear params
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
-    opt['time_dep_unstruct_w'] = False#True
-    opt['time_dep_struct_w'] = True#True
+    opt['time_dep_unstruct_w'] = True#False#True
+    opt['time_dep_struct_w'] = False#True#True
     assert not(opt['time_dep_unstruct_w'] and opt['time_dep_struct_w']), "can't do both"
     opt['gnl_style'] = 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
