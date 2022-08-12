@@ -607,7 +607,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     # idea for these options time dependent just always add the leading time dimension but if it's structured like abovecan just set T=0
     # then just set in the sertW_t function
-    elif self.opt['gnl_W_style'] in ['Z_diag', 'GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
+    elif self.opt['gnl_W_style'] in ['Z_diag']:
+      return (self.W_W_T[T, ...] + self.W_W_T[T, ...].t()) / 2
+
+    elif self.opt['gnl_W_style'] in ['GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
       #update diagonals
       if self.time_dep_unstruct_w:
         self.gnl_W_D = self.gnl_W_D_T[T]
@@ -615,8 +618,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.gnl_W_D = self.lamb_scale * torch.exp(-(T - self.lamb_start)**2 * self.lamb_width)
 
       #update orthogonals and return W
-      if self.opt['gnl_W_style'] in ['Z_diag']:
-        return (self.W_W_T[T, ...] + self.W_W_T[T, ...].t()) / 2
       elif self.opt['gnl_W_style'] in ['GS_Z_diag']:
         self.gnl_W_U = gram_schmidt(self.W_U)
         W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
@@ -869,7 +870,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     else:
       W = self.set_gnlWS()
 
-    if self.opt['gnl_W_style'] in ['Z_diag', 'GS', 'GS_Z_diag', 'cgnn', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init',
+    if self.opt['gnl_W_style'] in ['GS', 'GS_Z_diag', 'cgnn', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init',
                                    'householder', 'skew_sym']:
       self.W_eval, self.W_evec = self.gnl_W_D, self.gnl_W_U
     else:
