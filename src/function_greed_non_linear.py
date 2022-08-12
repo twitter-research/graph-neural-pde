@@ -618,18 +618,19 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.gnl_W_D = self.lamb_scale * torch.exp(-(T - self.lamb_start)**2 * self.lamb_width)
 
       #update orthogonals and return W
-      elif self.opt['gnl_W_style'] in ['GS_Z_diag']:
+      if self.opt['gnl_W_style'] in ['GS_Z_diag']:
         self.gnl_W_U = gram_schmidt(self.W_U)
         W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
         return W_hat
       elif self.opt['gnl_W_style'] in ['cgnn_Z_diag']:  # https://github.com/DeepGraphLearning/ContinuousGNN/blob/a82332eb5d85e80fd233ab35e4d155f34eb1275d/src/trainer.py#L108
-        beta = self.opt['W_beta']
-        with torch.no_grad(): # https://stackoverflow.com/questions/62198351/why-doesnt-pytorch-allow-inplace-operations-on-leaf-variables
-          W_U = self.W_U.clone()
-          W_U = self.W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
-        self.gnl_W_U = W_U
-        W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
-        return W_hat
+        pass #can't do cgnn time dep because changing leafs in the integration
+        # beta = self.opt['W_beta']
+        # with torch.no_grad(): # https://stackoverflow.com/questions/62198351/why-doesnt-pytorch-allow-inplace-operations-on-leaf-variables
+        #   W_U = self.W_U.clone()
+        #   W_U = self.W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
+        # self.gnl_W_U = W_U
+        # W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
+        # return W_hat
       elif self.opt['gnl_W_style'] == 'loss_W_orthog':
         W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
         return W_hat

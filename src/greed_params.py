@@ -110,7 +110,7 @@ def greed_hyper_params(opt):
 
     #greed_non_linear params
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
-    opt['time_dep_unstruct_w'] = True#False#True
+    opt['time_dep_unstruct_w'] = False#False#True
     opt['time_dep_struct_w'] = False#True#True
     assert not(opt['time_dep_unstruct_w'] and opt['time_dep_struct_w']), "can't do both"
     opt['gnl_style'] = 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
@@ -145,7 +145,7 @@ def greed_hyper_params(opt):
         # 'W_orthog_init', - use GS to init param W_U as orthog - then set W=ULU.T - set W as eval and use z2x
         # 'householder' - use householder reflections to enforce orthog W_U
         # 'skew_sym' - use skew-symetric and bilinear approximation to enforce orthog W_U
-        opt['gnl_W_style'] = 'householder'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_W_style'] = 'cgnn_Z_diag'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         if opt['gnl_W_style'] == 'k_block':
             assert opt['hidden_dim'] % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= opt['hidden_dim']#in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
@@ -196,7 +196,7 @@ def greed_hyper_params(opt):
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
     opt['reports_list'] = []#[1,2,4,7,8,9,10]#,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
-    opt['lie_trotter'] = 'gen_2' #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    opt['lie_trotter'] = None#'gen_2' #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         if opt['lie_trotter'] in [None, 'gen_0']:
             opt['threshold_times'] = [2,4] #takes an euler step that would have been taken in drift diffusion and also thresholds between t->t+1
