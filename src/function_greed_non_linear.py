@@ -148,17 +148,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.opt['gnl_W_style'] in ['Z_diag']:
         self.W_W = Parameter(torch.Tensor(in_features, in_features))
       elif self.opt['gnl_W_style'] in ['GS', 'GS_Z_diag']:
-        self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
+        self.W_U = Parameter(torch.Tensor(in_features, in_features))
         self.gnl_W_D = Parameter(torch.ones(in_features))
       elif self.opt['gnl_W_style'] in ['cgnn', 'cgnn_Z_diag']:
-        self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
+        self.W_U = Parameter(torch.Tensor(in_features, in_features))
         self.gnl_W_D = Parameter(torch.ones(in_features))
       elif self.opt['gnl_W_style'] == 'loss_W_orthog':
         self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
         self.gnl_W_D = Parameter(torch.ones(in_features))
       elif self.opt['gnl_W_style'] == 'W_orthog_init':
         W_U = torch.rand((in_features, in_features), device=self.device)
-        W_GS = self.V_hat = gram_schmidt(W_U)
+        W_GS = gram_schmidt(W_U)
         self.gnl_W_U = Parameter(W_GS)
         self.gnl_W_D = Parameter(torch.ones(in_features))
       elif self.opt['gnl_W_style'] == 'householder':
@@ -238,12 +238,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.W_W_T = Parameter(torch.Tensor(nts, in_features, in_features))
         else:
           self.gnl_W_D_T = Parameter(torch.ones(nts, in_features))
-          if self.opt['gnl_W_style'] in ['GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog']:
+          if self.opt['gnl_W_style'] in ['GS_Z_diag', 'cgnn_Z_diag']:
+            self.W_U = Parameter(torch.Tensor(in_features, in_features))
+          elif self.opt['gnl_W_style'] in ['loss_W_orthog']:
             self.gnl_W_U = Parameter(torch.Tensor(in_features, in_features))
           elif self.opt['gnl_W_style'] == 'W_orthog_init':
             W_U = torch.rand((in_features, in_features), device=self.device)
-            W_GS = self.V_hat = gram_schmidt(W_U)
-            self.gnl_W_U = Parameter(W_GS)
+            W_GS = gram_schmidt(W_U)
+            self.W_U = Parameter(W_GS)
           elif self.opt['gnl_W_style'] == 'householder':
             # init L=d-1 x d-dim random vectors
             self.gnl_W_hh = Parameter(torch.Tensor(in_features, self.opt['householder_L']))
@@ -310,11 +312,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           uniform(self.gnl_W_diags, a=-1, b=1)
         elif self.opt['gnl_W_diag_init'] == 'identity':
           ones(self.gnl_W_diags)
-      elif self.opt['gnl_W_style'] in ['GS', 'GS_Z_diag', 'loss_W_orthog']:
+      elif self.opt['gnl_W_style'] in ['loss_W_orthog']:
         glorot(self.gnl_W_U)
         uniform(self.gnl_W_D, a=-1, b=1)
+      elif self.opt['gnl_W_style'] in ['GS', 'GS_Z_diag']:
+        glorot(self.W_U)
+        uniform(self.gnl_W_D, a=-1, b=1)
       elif self.opt['gnl_W_style'] in ['cgnn', 'cgnn_Z_diag']:
-        glorot(self.gnl_W_U)
+        glorot(self.W_U)
       elif self.opt['gnl_W_style'] == 'W_orthog_init':
         uniform(self.gnl_W_D, a=-1, b=1)
       elif self.opt['gnl_W_style'] == 'householder':
@@ -392,10 +397,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           glorot(self.W_W_T)
         else:
           uniform(self.gnl_W_D_T, a=-1, b=1)
-          if self.opt['gnl_W_style'] in ['GS_Z_diag', 'loss_W_orthog']:
+          if self.opt['gnl_W_style'] in ['loss_W_orthog']:
             glorot(self.gnl_W_U)
-          elif self.opt['gnl_W_style'] in ['cgnn_Z_diag']:
-            glorot(self.gnl_W_U)
+          elif self.opt['gnl_W_style'] in ['GS_Z_diag', 'cgnn_Z_diag']:
+            glorot(self.W_U)
           elif self.opt['gnl_W_style'] == 'W_orthog_init':
             pass
           elif self.opt['gnl_W_style'] == 'householder':
@@ -494,21 +499,21 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       Ws = (W + W.T) / 2
       return Ws
     elif self.opt['gnl_W_style'] in ['GS', 'GS_Z_diag']:
-      self.V_hat = gram_schmidt(self.gnl_W_U)
+      self.gnl_W_U = gram_schmidt(self.W_U)
       # W_D = torch.tanh(self.gnl_W_D) #
       # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1)
-      W_hat = self.V_hat @ torch.diag(self.gnl_W_D) @ self.V_hat.t()
+      W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
       return W_hat
     elif self.opt['gnl_W_style'] in ['cgnn', 'cgnn_Z_diag']: # https://github.com/DeepGraphLearning/ContinuousGNN/blob/a82332eb5d85e80fd233ab35e4d155f34eb1275d/src/trainer.py#L108
       beta = self.opt['W_beta']
       with torch.no_grad():         # https://stackoverflow.com/questions/62198351/why-doesnt-pytorch-allow-inplace-operations-on-leaf-variables
-        W_U = self.gnl_W_U.clone()
-        W_U = self.gnl_W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
-      self.V_hat = W_U
+        W_U = self.W_U.clone()
+        W_U = self.W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
+      self.gnl_W_U = W_U
       #choose not to restrict spectrum
       # W_D = torch.clamp(self.gnl_W_D, min=-1, max=1) #self.gnl_W_D
       # self.gnl_W_D = torch.tanh(self.gnl_W_D) #self.gnl_W_D
-      W_hat = self.V_hat @ torch.diag(self.gnl_W_D) @ self.V_hat.t()
+      W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
       return W_hat
     elif self.opt['gnl_W_style'] == 'loss_W_orthog':
       W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
@@ -531,7 +536,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       SS = []
       start = 0
       for i in range(self.in_features):
-        SS.append(torch.cat((torch.zeros(1+i), self.gnl_W_ss[start: start + self.in_features - (1+i)])))
+        SS.append(torch.cat((torch.zeros(1+i, device=self.device), self.gnl_W_ss[start: start + self.in_features - (1+i)])))
         start += self.in_features - (1+i)
       S = torch.stack(SS, dim=0)
       S = (S - S.T) / 2
@@ -581,6 +586,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_W_style'] == 'diag':
       if self.time_dep_unstruct_w:
         return torch.diag(self.gnl_W_D_T[T])
+      #todo chcek this
       elif self.time_dep_unstruct_w or self.time_dep_struct_w:
         if self.time_dep_unstruct_w:
           W = self.gnl_W_D_T[T]
@@ -616,16 +622,16 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       if self.opt['gnl_W_style'] in ['Z_diag']:
         return (self.W_W_T[T, ...] + self.W_W_T[T, ...].t()) / 2
       elif self.opt['gnl_W_style'] in ['GS_Z_diag']:
-        self.V_hat = gram_schmidt(self.gnl_W_U)
-        W_hat = self.V_hat @ torch.diag(self.gnl_W_D) @ self.V_hat.t()
+        self.gnl_W_U = gram_schmidt(self.W_U)
+        W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
         return W_hat
       elif self.opt['gnl_W_style'] in ['cgnn_Z_diag']:  # https://github.com/DeepGraphLearning/ContinuousGNN/blob/a82332eb5d85e80fd233ab35e4d155f34eb1275d/src/trainer.py#L108
         beta = self.opt['W_beta']
         with torch.no_grad(): # https://stackoverflow.com/questions/62198351/why-doesnt-pytorch-allow-inplace-operations-on-leaf-variables
-          W_U = self.gnl_W_U.clone()
-          W_U = self.gnl_W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
-        self.V_hat = W_U
-        W_hat = self.V_hat @ torch.diag(self.gnl_W_D) @ self.V_hat.t()
+          W_U = self.W_U.clone()
+          W_U = self.W_U.copy_((1 + beta) * W_U - beta * W_U @ W_U.t() @ W_U)
+        self.gnl_W_U = W_U
+        W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
         return W_hat
       elif self.opt['gnl_W_style'] == 'loss_W_orthog':
         W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
@@ -869,8 +875,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     if self.opt['gnl_W_style'] in ['Z_diag', 'GS', 'GS_Z_diag', 'cgnn', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init',
                                    'householder', 'skew_sym']:
-      self.W_eval, self.W_evec = self.gnl_W_D, self.V_hat
-    elif self.opt['gnl_W_style'] in ['loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
       self.W_eval, self.W_evec = self.gnl_W_D, self.gnl_W_U
     else:
       self.W_eval, self.W_evec = torch.linalg.eigh(W)  # confirmed unit norm output vectors

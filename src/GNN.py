@@ -80,7 +80,7 @@ class GNN(BaseGNN):
 
         #todo do all this at the function level s can reset if time dep
         # if self.opt['gnl_W_style'] in ['Z_diag', 'GS', 'GS_Z_diag', 'cgnn', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
-        #   self.W_eval, self.W_evec = self.odeblock.odefunc.gnl_W_D, self.odeblock.odefunc.V_hat
+        #   self.W_eval, self.W_evec = self.odeblock.odefunc.gnl_W_D, self.odeblock.odefunc.W_U
         # elif self.opt['gnl_W_style'] in ['loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
         #   self.W_eval, self.W_evec = self.odeblock.odefunc.gnl_W_D, self.odeblock.odefunc.gnl_W_U
         # else:
