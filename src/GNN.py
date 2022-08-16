@@ -1,10 +1,12 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+from torch_geometric.utils import contains_self_loops
+from torch_geometric.nn import global_mean_pool, global_add_pool
+
 from base_classes import BaseGNN
 from model_configurations import set_block, set_function
 from utils import rayleigh_quotient #project_paths_label_space#, project_paths_logit_space
-from torch_geometric.utils import contains_self_loops
 from greed_reporting_fcts import test
 
 # Define the GNN model.
@@ -250,5 +252,7 @@ class GNN(BaseGNN):
     else:
       z = self.m2(z)
 
-    #todo think about making a conccated normalised predict like in the path dependent case
+    if self.opt['dataset']in ["ZINC"]:
+      z  = global_add_pool(z, self.odeblock.odefunc.data.batch).squeeze(-1)
+
     return z

@@ -936,7 +936,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         #general graph (GCN/GraphSage) method
         elif self.opt['gnl_style'] == 'general_graph':
           fOmf, attention = self.calc_dot_prod_attention(src_x, dst_x)
-          src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)
+          src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt) #todo is it efficient to calc this every time step
           P = attention * src_deginvsqrt * dst_deginvsqrt
 
           del fOmf

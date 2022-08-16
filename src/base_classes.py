@@ -104,7 +104,7 @@ class BaseGNN(MessagePassing):
     super(BaseGNN, self).__init__()
     self.opt = opt
     self.T = opt['time']
-    self.num_classes = dataset.num_classes
+    self.num_classes = dataset.num_classes if opt['dataset'] not in ["ZINC"] else 1
     self.num_features = dataset.data.num_features
     self.num_nodes = dataset.data.num_nodes
     self.device = device
@@ -129,22 +129,22 @@ class BaseGNN(MessagePassing):
       # todo - fastest way to propagate this everywhere, but error prone - refactor later
       #note not using labels in this branch but need to verify if labels are being added to raw features as per run_GNN or hidden dimension
       if opt['wandb']:
-        wandb.config.update({'hidden_dim': opt['feat_hidden_dim'] + dataset.num_classes}, allow_val_change=True)  # required when update hidden_dim in beltrami
+        wandb.config.update({'hidden_dim': opt['feat_hidden_dim'] + self.num_classes}, allow_val_change=True)  # required when update hidden_dim in beltrami
       else:
         # opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
-        opt['hidden_dim'] = opt['hidden_dim'] + dataset.num_classes
+        opt['hidden_dim'] = opt['hidden_dim'] + self.num_classes
     else:
       self.hidden_dim = opt['hidden_dim']
     if opt['fc_out']:
       self.fc = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
 
     if opt['m2_mlp']:
-      self.m2 = M2_MLP(opt['hidden_dim'], dataset.num_classes, opt)
+      self.m2 = M2_MLP(opt['hidden_dim'], self.num_classes, opt)
     else:
-      self.m2 = nn.Linear(opt['hidden_dim'], dataset.num_classes)
+      self.m2 = nn.Linear(opt['hidden_dim'], self.num_classes)
 
     if self.opt['path_dep_norm'] == 'z_cat_normed_z':
-      self.m2_concat = nn.Linear(opt['hidden_dim'], dataset.num_classes)
+      self.m2_concat = nn.Linear(opt['hidden_dim'], self.num_classes)
       self.alpha_z = nn.Parameter(torch.ones(1)/2) #todo are these even used
 
     time_points = math.ceil(opt['time']/opt['step_size'])
