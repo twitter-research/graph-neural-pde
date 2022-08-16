@@ -75,4 +75,4 @@ command:
   - --wandb
   - --wandb_sweep
 entity: graph_neural_diffusion
-project: test_time_dep
+project: test_time_dep2

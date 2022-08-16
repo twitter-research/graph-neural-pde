@@ -233,7 +233,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.lamb_start = Parameter(torch.Tensor(in_features), requires_grad=True)
           self.lamb_width = Parameter(torch.Tensor(in_features), requires_grad=True)
 
-        nts = self.num_timesteps if self.time_dep_unstruct_w else 0
+        nts = self.num_timesteps if self.time_dep_unstruct_w else 1
         if self.opt['gnl_W_style'] in ['Z_diag']:
           self.W_W_T = Parameter(torch.Tensor(nts, in_features, in_features))
         else:
@@ -245,7 +245,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           elif self.opt['gnl_W_style'] == 'W_orthog_init':
             W_U = torch.rand((in_features, in_features), device=self.device)
             W_GS = gram_schmidt(W_U)
-            self.W_U = Parameter(W_GS)
+            self.gnl_W_U = Parameter(W_GS)
           elif self.opt['gnl_W_style'] == 'householder':
             # init L=d-1 x d-dim random vectors
             self.gnl_W_hh = Parameter(torch.Tensor(in_features, self.opt['householder_L']))

@@ -111,7 +111,7 @@ def greed_hyper_params(opt):
     #greed_non_linear params
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
     opt['time_dep_unstruct_w'] = False#False#True
-    opt['time_dep_struct_w'] = False#True#True
+    opt['time_dep_struct_w'] = True#False#True
     assert not(opt['time_dep_unstruct_w'] and opt['time_dep_struct_w']), "can't do both"
     opt['gnl_style'] = 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
