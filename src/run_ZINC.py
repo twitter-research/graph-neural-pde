@@ -127,7 +127,7 @@ def test(model, loader):
                     break
 
             # things need to reset because number of nodes in each batch is different
-            data = data.to(args.device)
+            data = data.to(model.device)
             zinc_batch_reset(model, data)
 
             out = model(data.x)
@@ -370,9 +370,9 @@ def main(cmd_opt):
     test_dataset = get_zinc_data('test')
     val_dataset = get_zinc_data('val')
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=args.batch, shuffle=False)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=opt['batch'], shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=opt['batch'], shuffle=False)
+    val_loader = DataLoader(val_dataset, batch_size=opt['batch'], shuffle=False)
 
     if opt['beltrami']:
         pos_encoding = apply_beltrami(dataset.data, opt).to(device)
@@ -420,6 +420,7 @@ def main(cmd_opt):
 
             #sample data (first batch) to run all reports
             data = train_dataset.data
+            data = data.to(model.device)
             if opt['wandb']:
                 wandb_log(data, model, opt, loss, tmp_train_acc, tmp_val_acc, tmp_test_acc, epoch)
                 model.odeblock.odefunc.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
