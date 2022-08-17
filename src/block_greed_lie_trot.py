@@ -20,7 +20,8 @@ class GREEDLTODEblock(ODEblock):
     # needed for torchdiffeq
     times = []
     steps = []
-    self.unpack_blocks(opt)
+    if opt['time2'] is not None:
+      self.unpack_blocks(opt)
     # needed for stats and TSNE plots
     self.cum_steps_list, self.cum_time_points, self.cum_time_ticks, self.block_type_list = create_time_lists(self.opt) #self.create_time_lists()
 

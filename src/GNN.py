@@ -252,8 +252,10 @@ class GNN(BaseGNN):
     else:
       z = self.m2(z)
 
-    if self.opt['dataset']in ["ZINC"]:
+    if self.opt['graph_pool'] == "add":
       z  = global_add_pool(z, self.odeblock.odefunc.data.batch).squeeze(-1)
+    elif self.opt['graph_pool'] == "mean":
+      z  = global_mean_pool(z, self.odeblock.odefunc.data.batch).squeeze(-1)
 
     #make sure nodewise decoder has non-linearity if not sumation from pooling layers commutes with decoders
     #there is one in GNN_postXN function

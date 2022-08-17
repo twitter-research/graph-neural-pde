@@ -71,6 +71,7 @@ def train(model, optimizer, train_loader, pos_encoding=None):
 
     model.train()
     train_error = 0
+    cum_loss = 0
     for i, data in enumerate(train_loader):
         if model.opt['test_batches'] is not None:
             if i >= model.opt['test_batches']:
@@ -103,15 +104,22 @@ def train(model, optimizer, train_loader, pos_encoding=None):
         model.bm.update(model.getNFE())
         model.resetNFE()
 
+        cum_loss += loss * (data.batch.max() + 1)
     train_acc = train_error / len(train_loader.dataset)
+    av_loss = cum_loss / len(train_loader.dataset)
 
-    return loss.item(), train_acc
+    # return loss.item(), train_acc
+    # return cum_loss.item(), train_acc
+    return av_loss.item(), train_acc
 
 
 @torch.no_grad()
 def test(model, loader):
+    lf = torch.nn.L1Loss()
+
     model.eval()
     error = 0
+    loss = 0
     with torch.no_grad():
         for i, data in enumerate(loader):
             if model.opt['test_batches'] is not None:
@@ -122,10 +130,11 @@ def test(model, loader):
             zinc_batch_reset(model, data)
 
             data = data.to(args.device)
-            output = model(data.x)
-            error += (output - data.y).abs().sum().item()
+            out = model(data.x)
+            error += (out - data.y).abs().sum().item()
+            loss += lf(out, data.y)
 
-    return error / len(loader.dataset)
+    return error / len(loader.dataset), loss
 
 
 
@@ -389,6 +398,10 @@ def main(cmd_opt):
         print(opt)
         print_model_params(model)
         optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=opt['lr_reduce_factor'],
+                                                               threshold=opt['lr_schedule_threshold'], patience=opt['lr_schedule_patience'])
+
+
         best_time = best_epoch = 0
         train_acc = val_acc = test_acc = np.inf
         if opt['patience'] is not None:
@@ -398,8 +411,12 @@ def main(cmd_opt):
             model.odeblock.odefunc.epoch = epoch
 
             loss, tmp_train_acc = train(model, optimizer, train_loader, pos_encoding)
-            tmp_val_acc = test(model, val_loader)
-            tmp_test_acc = test(model, test_loader)
+
+            tmp_val_acc, val_loss = test(model, val_loader)
+            tmp_test_acc, test_loss = test(model, test_loader)
+
+            scheduler.step(val_loss)
+
 
             #sample data (first batch) to run all reports
             data = train_dataset.data
@@ -433,7 +450,7 @@ def main(cmd_opt):
             print(f"Epoch: {epoch}, Runtime: {time.time() - start_time:.3f}, Loss: {loss:.3f}, "
                   f"forward nfe {model.fm.sum}, backward nfe {model.bm.sum}, "
                   f"tmp_train: {tmp_train_acc:.4f}, tmp_val: {tmp_val_acc:.4f}, tmp_test: {tmp_test_acc:.4f}, "
-                  f"Train: {train_acc:.4f}, Val: {val_acc:.4f}, Test: {test_acc:.4f}, Best time: {best_time:.4f}")
+                  f"Train: {train_acc:.4f}, Val: {val_acc:.4f}, Test: {test_acc:.4f}, Best time: {best_time:.4f}, LR: {optimizer.param_groups[0]['lr']}")
 
             if np.isnan(loss):
                 wandb_run.finish()
@@ -442,8 +459,11 @@ def main(cmd_opt):
                 if patience_count >= opt['patience']:
                     # wandb_run.finish()
                     break
-        print(
-            f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
+            if optimizer.param_groups[0]['lr'] < opt['min_lr']:
+                print("\n!! LR EQUAL TO MIN LR SET.")
+                break
+
+        print(f"best val accuracy {val_acc:.3f} with test accuracy {test_acc:.3f} at epoch {best_epoch} and best time {best_time:2f}")
         if opt['function'] in ['greed_non_linear', 'gcn_dgl', 'gcn_res_dgl']:
             T0_DE, T0r_DE, TN_DE, TNr_DE, T0_WDE, TN_WDE, enc_pred_homophil, pred_homophil, label_homophil = calc_energy_homoph(data, model, opt)
             # if model.opt['gnl_W_style'] == 'loss_W_orthog':
@@ -804,12 +824,19 @@ if __name__ == '__main__':
     parser.add_argument('--drift_grad', type=str, default='True', help='collect gradient off drift term')
     parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
     parser.add_argument('--pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
-    parser.add_argument('--loss_orthog_a', type=float, default=0, help='loss orthog term')
+    parser.add_argument('--loss_orthog_a', type=float, default=0, help='loss orthog multiplier term')
     parser.add_argument('--householder_L', type=int, default=8, help='num iterations of householder reflection for W_orthog')
 
     #zinc params
     parser.add_argument('--batch', type=int, default=128, help='batch size')
     parser.add_argument('--test_batches', type=int, default=None, help='reduce data size to batch num when developing')
+    parser.add_argument('--graph_pool', type=str, default='add', help='type of graph pool operation - {add, mean}')
+
+    parser.add_argument('--lr_reduce_factor', type=float, default=0.5, help='lr_reduce_factor')
+    parser.add_argument('--lr_schedule_patience', type=int, default=20, help='lr_schedule_patience')
+    parser.add_argument('--lr_schedule_threshold', type=int, default=0.001, help='lr_schedule_patience')
+    parser.add_argument('--min_lr', type=float, default=1e-5, help='loss orthog term')
+
 
     args = parser.parse_args()
     opt = vars(args)

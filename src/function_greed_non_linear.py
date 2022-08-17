@@ -652,7 +652,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         SS = []
         start = 0
         for i in range(self.in_features):
-          SS.append(torch.cat((torch.zeros(1+i), self.gnl_W_ss[start: start + self.in_features - (1+i)])))
+          SS.append(torch.cat((torch.zeros(1+i, device=self.device), self.gnl_W_ss[start: start + self.in_features - (1+i)])))
           start += self.in_features - (1+i)
         S = torch.stack(SS, dim=0)
         S = (S - S.T) / 2
@@ -750,7 +750,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     # new style drift term
     elif self.opt['drift_space'] == 'feature':
-      #todo system is stiff. product and sum of squared distances in R^d
       z_stack = torch.stack([z for z in self.attractors.values()], dim=1)
       dist_centers = x.unsqueeze(-1) - z_stack.unsqueeze(0)  # [num_nodes, d, 1] - [1, d, c]
       eta_hat = torch.sum(dist_centers**2, dim=1)  # sum abs distances for each node over features
@@ -761,10 +760,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         z = self.attractors[l]
         f -= 0.5 * (torch.outer(eta_l, torch.ones(self.in_features, device=self.device)) *
                     (x - torch.outer(torch.ones(self.n_nodes, device=self.device), z))) / (torch.exp(self.drift_eps))
-        #todo might need some feature regularisation or batch norm
     return f
-  #todo augment potential to flatten extrema
-  #todo argmin of distances to discrete threshold
 
   def predict(self, z):
     z = self.GNN_postXN(z)
