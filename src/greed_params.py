@@ -81,7 +81,7 @@ def greed_hyper_params(opt):
     opt['tau_residual'] = True
 
     opt['test_mu_0'] = True # False #True
-    opt['add_source'] = True #False #True
+    opt['add_source'] = False#True #False #True
     opt['XN_no_activation'] = True #True #False
     opt['use_mlp'] = False #True #encoder mlp
     opt['m2_mlp'] = False #False #decoder mlp
@@ -111,7 +111,7 @@ def greed_hyper_params(opt):
 
     #greed_non_linear params
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
-    opt['time_dep_unstruct_w'] = False#False#True
+    opt['time_dep_unstruct_w'] = True#False#True
     opt['time_dep_struct_w'] = False#False#True
     assert not(opt['time_dep_unstruct_w'] and opt['time_dep_struct_w']), "can't do both"
     opt['gnl_style'] = 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
@@ -164,6 +164,10 @@ def greed_hyper_params(opt):
 
     elif opt['gnl_style'] == 'att_rep_laps':
         opt['gnl_W_style'] = 'att_rep_lap_block'#'sum'#'att_rep_lap_block'
+        # att_rep_laplacians
+        opt['diffusion'] = True#True
+        opt['repulsion'] = True#False
+
     opt['drift'] = False  # False#True
     opt['gnl_thresholding'] = False
     opt['drift_space'] = 'label' #feature' #'label'
@@ -183,12 +187,11 @@ def greed_hyper_params(opt):
     opt['loss_reg_certainty'] = None #0.85 #0.95 #1.00 #0.95
     opt['dampen_gamma'] = 1.0#0.6    #assuming spec rad=4, dampen gamma=0.6, step=0.1
     opt['gnl_W_norm'] = False#True#False  # True #divide by spectral radius
-    opt['pointwise_nonlin'] = False#True#False#True #todo add to args
     opt['loss_orthog_a'] = 0#1.0
 
-    # att_rep_laplacians
-    opt['diffusion'] = True#True
-    opt['repulsion'] = True#False
+    opt['pointwise_nonlin'] = True#False#True #todo add to args
+    opt['graph_pool'] = "mean"
+
 
     #definitions of lie trotter
     #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
@@ -196,7 +199,7 @@ def greed_hyper_params(opt):
     #gen_1 - alternates ranges of diffusion and drift (ie eq 43-44)
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
-    opt['reports_list'] = []#[1,2,4,7,8,9,10]#,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
+    opt['reports_list'] = [1,2,4,7,8,9,10]#,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
     opt['lie_trotter'] = None #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         if opt['lie_trotter'] in [None, 'gen_0']:
@@ -249,9 +252,9 @@ def not_sweep_args(opt, project_name, group_name):
     # opt['wandb_group'] = group_name #"testing"  # "tuning" eval
 
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = False #True #False #True
-    opt['wandb_track_grad_flow'] = False#True #False  #collect stats for reports
-    opt['run_track_reports'] = False#True #False#True ##run the evolution reports
+    opt['wandb'] = True #False #True
+    opt['wandb_track_grad_flow'] = False #False  #collect stats for reports
+    opt['run_track_reports'] = False #False#True ##run the evolution reports
     opt['save_local_reports'] = True#True
     opt['save_wandb_reports'] = True#False#True
     opt['wandb_watch_grad'] = False

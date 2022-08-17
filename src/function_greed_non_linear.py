@@ -15,6 +15,7 @@ from torch_geometric.utils.loop import add_remaining_self_loops
 from torch_geometric.utils import degree, softmax, homophily, contains_self_loops, to_dense_adj
 from torch_sparse import coalesce, transpose
 from torch_geometric.nn.inits import glorot, zeros, ones, constant
+from torch_geometric.nn import global_mean_pool, global_add_pool
 from torch_scatter import scatter_mean
 from torch.nn import Parameter, Softmax, Softplus
 from torch.distributions import Categorical
@@ -768,6 +769,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     pred = logits.max(1)[1]
     return logits, pred
 
+  def predict_graph(self, z):
+    z = self.GNN_postXN(z)
+    z = self.GNN_m2(z)
+    if self.opt['graph_pool'] == "add":
+      pred = global_add_pool(z, self.odeblock.odefunc.data.batch).squeeze(-1)
+    elif self.opt['graph_pool'] == "mean":
+      pred = global_mean_pool(z, self.odeblock.odefunc.data.batch).squeeze(-1)
+    return pred
+
   def threshold(self, z, pred, step_size):
     #todo consider the interaction between decoder dropout, activation, augmentation and the inverse formula below
     # threshold in label space, pseudo inverse back to feature space
@@ -1058,7 +1068,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
                          train_cm, val_cm, test_cm,
                          eval_means_feat, eval_sds_feat, eval_means_label, eval_sds_label, entropies)
             if not(self.opt['lie_trotter'] == 'gen_2' and self.block_num + 1 != len(self.opt['lt_gen2_args'])):
-              stack_stats(self) #todo move this to gnn level to make sure at the end
+              stack_stats(self) #todo move this to gnn level to make sure at the end??
 
           self.wandb_step += 1
 
@@ -1068,7 +1078,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     if self.opt['pointwise_nonlin']:
       damp_f = f - (1-self.opt['dampen_gamma']) * x /self.opt['step_size']
-      return torch.tanh(damp_f)
+      # return torch.tanh(damp_f)
+      return torch.relu(damp_f)
     else:
       return f - (1-self.opt['dampen_gamma']) * x /self.opt['step_size']
 
