@@ -829,10 +829,10 @@ if __name__ == '__main__':
     parser.add_argument('--householder_L', type=int, default=8, help='num iterations of householder reflection for W_orthog')
 
     #zinc params
-    parser.add_argument('--batch', type=int, default=128, help='batch size')
-    parser.add_argument('--test_batches', type=int, default=None, help='reduce data size to batch num when developing')
     parser.add_argument('--graph_pool', type=str, default='', help='type of graph pool operation - {add, mean}')
 
+    parser.add_argument('--batch', type=int, default=128, help='batch size')
+    parser.add_argument('--test_batches', type=int, default=None, help='reduce data size to batch num when developing')
     parser.add_argument('--lr_reduce_factor', type=float, default=0.5, help='lr_reduce_factor')
     parser.add_argument('--lr_schedule_patience', type=int, default=20, help='lr_schedule_patience')
     parser.add_argument('--lr_schedule_threshold', type=int, default=0.01, help='lr_schedule_patience')

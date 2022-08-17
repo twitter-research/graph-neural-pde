@@ -1019,6 +1019,9 @@ if __name__ == '__main__':
     parser.add_argument('--loss_orthog_a', type=float, default=0, help='loss orthog multiplier term')
     parser.add_argument('--householder_L', type=int, default=8, help='num iterations of householder reflection for W_orthog')
 
+    #zinc params
+    parser.add_argument('--graph_pool', type=str, default='', help='type of graph pool operation - {add, mean}')
+
     args = parser.parse_args()
     opt = vars(args)
 
