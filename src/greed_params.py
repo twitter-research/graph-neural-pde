@@ -90,16 +90,17 @@ def greed_hyper_params(opt):
 
     #hyper-params
     opt['optimizer'] = 'adam'
-    opt['lr'] = 0.001#0.001
-    opt['dropout'] = 0.35
-    opt['input_dropout'] = 0.5
-    opt['decay'] = 0.0005#005 #Cora 0.05 chameleon 0.0005
-    opt['hidden_dim'] = 64#64 #512
+    opt['lr'] = 0.00001# 0.001#0.001
+    # opt['lr2'] = 0.00001
+    opt['dropout'] = 0.0#0.35
+    opt['input_dropout'] = 0.0#0.5
+    opt['decay'] =0.0# 0.0005#005 #Cora 0.05 chameleon 0.0005
+    opt['hidden_dim'] = 128#64#64 #512
     opt['use_best_params'] = False #True #False #True
     opt['method'] = 'euler'
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
-    opt['step_size'] = 0.5 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
-    opt['time'] = 3 #4 #18.295 #10
+    opt['step_size'] = 1.0#0.5 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
+    opt['time'] = 4#3 #4 #18.295 #10
     opt['epoch'] = 129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1 #10#4#1
     opt['use_labels'] = False #True
@@ -111,7 +112,7 @@ def greed_hyper_params(opt):
     #greed_non_linear params
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
     opt['time_dep_unstruct_w'] = False#False#True
-    opt['time_dep_struct_w'] = True#False#True
+    opt['time_dep_struct_w'] = False#False#True
     assert not(opt['time_dep_unstruct_w'] and opt['time_dep_struct_w']), "can't do both"
     opt['gnl_style'] = 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
@@ -141,11 +142,11 @@ def greed_hyper_params(opt):
         # 'Z_diag' - initialise as 'sum' but then set W as eval and use z2x
         # 'GS_Z_diag' - do gram schmidt for evec set W as eval and use z2x
         # 'cgnn_Z_diag' - do cgnn update on evec
-        # 'loss_W_orthog', - free sum tensor set W as eval and use z2x
+        # 'loss_W_orthog', - free sum tensor set W diag as eval and use z2x
         # 'W_orthog_init', - use GS to init param W_U as orthog - then set W=ULU.T - set W as eval and use z2x
         # 'householder' - use householder reflections to enforce orthog W_U
         # 'skew_sym' - use skew-symetric and bilinear approximation to enforce orthog W_U
-        opt['gnl_W_style'] = 'sum'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_W_style'] = 'sum'#'loss_W_orthog'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         if opt['gnl_W_style'] == 'k_block':
             assert opt['hidden_dim'] % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= opt['hidden_dim']#in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
@@ -169,7 +170,7 @@ def greed_hyper_params(opt):
     opt['drift_grad'] = False#True #True
     opt['m2_aug'] = False #True #False #reads out (no weights) prediction from bottom C dimensions
     opt['m1_W_eig'] = False#True
-    opt['m2_W_eig'] = 'z2x' #False #'x2z'#'z2x' #True #True
+    opt['m2_W_eig'] = 'None'#'z2x' #False #'x2z'#'z2x' #True #True
     # if opt['m2_W_eig'] == 'z2x': #not true as can just do eigen decomp for sum for example
     #     assert opt['gnl_W_style'] in ['Z_diag', 'GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym'], 'z2x must have diag style matrix'
     opt['m3_path_dep'] = None#'label_att'#'feature_jk'#None#'label_jk'#'train_centers'#'feature_jk'#'label_jk'#'feature_jk' #'label_jk' 'label_att'

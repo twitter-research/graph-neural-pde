@@ -389,7 +389,8 @@ def main(cmd_opt):
         print(opt)
         print_model_params(model)
         optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-        best_time = best_epoch = train_acc = val_acc = test_acc = 0
+        best_time = best_epoch = 0
+        train_acc = val_acc = test_acc = np.inf
         if opt['patience'] is not None:
             patience_count = 0
         for epoch in range(1, opt['epoch']):
@@ -410,7 +411,8 @@ def main(cmd_opt):
                 reports_manager(model, data)
 
             best_time = opt['time']
-            if tmp_val_acc > val_acc:
+            # if tmp_val_acc > val_acc:
+            if tmp_val_acc < val_acc:
                 best_epoch = epoch
                 train_acc = tmp_train_acc
                 val_acc = tmp_val_acc
@@ -807,7 +809,7 @@ if __name__ == '__main__':
 
     #zinc params
     parser.add_argument('--batch', type=int, default=128, help='batch size')
-    parser.add_argument('--test_batches', type=int, default=4)#128, help='batch size')
+    parser.add_argument('--test_batches', type=int, default=None, help='reduce data size to batch num when developing')
 
     args = parser.parse_args()
     opt = vars(args)
