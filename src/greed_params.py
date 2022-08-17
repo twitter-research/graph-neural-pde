@@ -248,7 +248,7 @@ def not_sweep_args(opt, project_name, group_name):
     # opt['wandb_group'] = group_name #"testing"  # "tuning" eval
 
     # args for running locally - specified in YAML for tunes
-    opt['wandb'] = True #True #False #True
+    opt['wandb'] = False #True #False #True
     opt['wandb_track_grad_flow'] = False#True #False  #collect stats for reports
     opt['run_track_reports'] = False#True #False#True ##run the evolution reports
     opt['save_local_reports'] = True#True

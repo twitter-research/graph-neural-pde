@@ -70,21 +70,21 @@ def train(model, optimizer, train_loader, pos_encoding=None):
         wandb.watch(model, lf, log="all", log_freq=10)
 
     model.train()
+    train_error = 0
     for i, data in enumerate(train_loader):
-        if i >= model.opt['test_batches']:
-            break
+        if model.opt['test_batches'] is not None:
+            if i >= model.opt['test_batches']:
+                break
+
         #things need to reset because number of nodes in each batch is different
-        # model.num_nodes = data.num_nodes
-        # model.odeblock.odefunc.deg_inv_sqrt = model.odeblock.odefunc.get_deg_inv_sqrt(data).to(model.device)
-        # model.odeblock.odefunc.deg_inv = model.odeblock.odefunc.deg_inv_sqrt * model.odeblock.odefunc.deg_inv_sqrt
-        # model.odeblock.odefunc.data = data
-        # model.odeblock.odefunc.edge_index = data.edge_index
         zinc_batch_reset(model, data)
 
         data = data.to(model.device)
         optimizer.zero_grad()
         feat = data.x
         out = model(feat, pos_encoding)
+
+        train_error += (out - data.y).abs().sum().item()
         loss = lf(out, data.y)
 
         if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
@@ -103,7 +103,9 @@ def train(model, optimizer, train_loader, pos_encoding=None):
         model.bm.update(model.getNFE())
         model.resetNFE()
 
-    return loss.item()
+    train_acc = train_error / len(train_loader.dataset)
+
+    return loss.item(), train_acc
 
 
 @torch.no_grad()
@@ -112,14 +114,19 @@ def test(model, loader):
     error = 0
     with torch.no_grad():
         for i, data in enumerate(loader):
-            if i >= model.opt['test_batches']:
-                break
+            if model.opt['test_batches'] is not None:
+                if i >= model.opt['test_batches']:
+                    break
+
+            # things need to reset because number of nodes in each batch is different
             zinc_batch_reset(model, data)
 
             data = data.to(args.device)
             output = model(data.x)
             error += (output - data.y).abs().sum().item()
+
     return error / len(loader.dataset)
+
 
 
 # def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
@@ -367,8 +374,6 @@ def main(cmd_opt):
     results = []
     for rep in range(opt['num_splits']):
         print(f"rep {rep}")
-        dataset = train_dataset
-        # data = train_dataset.data.to(device)
         #todo check the structure of the edge index - max value is 36, implies is reindexed per molecule
         #todo it's because you need to iterate through the data loader to increment the training index???
         # as per __inc__ from https://pytorch-geometric.readthedocs.io/en/latest/notes/batching.html
@@ -378,7 +383,7 @@ def main(cmd_opt):
         #         break
             # dataset.data = data
 
-        model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
+        model = GNN(opt, train_dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, train_dataset, device).to(device)
 
         parameters = [p for p in model.parameters() if p.requires_grad]
         print(opt)
@@ -391,12 +396,18 @@ def main(cmd_opt):
             start_time = time.time()
             model.odeblock.odefunc.epoch = epoch
 
-            if opt['rewire_KNN'] and epoch % opt['rewire_KNN_epoch'] == 0 and epoch != 0:
-                ei = apply_KNN(data, pos_encoding, model, opt)
-                model.odeblock.odefunc.edge_index = ei
+            loss, tmp_train_acc = train(model, optimizer, train_loader, pos_encoding)
+            tmp_val_acc = test(model, val_loader)
+            tmp_test_acc = test(model, test_loader)
 
-            loss = train(model, optimizer, train_loader, pos_encoding)
-            tmp_train_acc, tmp_val_acc, tmp_test_acc = test(model, test_loader)
+            #sample data (first batch) to run all reports
+            data = train_dataset.data
+            if opt['wandb']:
+                wandb_log(data, model, opt, loss, tmp_train_acc, tmp_val_acc, tmp_test_acc, epoch)
+                model.odeblock.odefunc.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
+
+            if opt['run_track_reports'] and epoch in opt['wandb_epoch_list']:
+                reports_manager(model, data)
 
             best_time = opt['time']
             if tmp_val_acc > val_acc:
@@ -795,7 +806,7 @@ if __name__ == '__main__':
     parser.add_argument('--householder_L', type=int, default=8, help='num iterations of householder reflection for W_orthog')
 
     #zinc params
-    parser.add_argument('--batch', type=int, default=128)#128, help='batch size')
+    parser.add_argument('--batch', type=int, default=128, help='batch size')
     parser.add_argument('--test_batches', type=int, default=4)#128, help='batch size')
 
     args = parser.parse_args()

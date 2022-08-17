@@ -179,7 +179,7 @@ class GNN(BaseGNN):
     z = self.forward_XN(x)
     self.odeblock.odefunc.paths.append(z)
 
-    z = self.GNN_postXN(z)
+    z = self.GNN_postXN(z) #non-linearity / drop-out / augmentation
 
     ##todo: need to implement if self.opt['m2_mlp']: from base GNN class for GNN_early also
     # Decode each node embedding to get node label.
@@ -187,9 +187,9 @@ class GNN(BaseGNN):
       return z[:, self.hidden_dim - self.num_classes:]
 
     if self.opt['m2_W_eig'] =='x2z':
-      z = z @ self.odeblock.odefunc.W_evec # X(t) = Z(t)U_{W}.T  iff X(t)U_{W} = Z(t)  # sorry switching notion between math and code
+      z = z @ self.odeblock.odefunc.W_evec # X(t) = Z(t)U_{W}.T  iff X(t)U_{W} = Z(t)  # sorry switching z/x notion between math and code
     elif self.opt['m2_W_eig'] == 'z2x':
-      z = z @ self.odeblock.odefunc.W_evec.T # X(t) = Z(t)U_{W}.T  iff X(t)U_{W} = Z(t)  # sorry switching notion between math and code
+      z = z @ self.odeblock.odefunc.W_evec.T # X(t) = Z(t)U_{W}.T  iff X(t)U_{W} = Z(t)  # sorry switching z/x notion between math and code
 
     paths = self.odeblock.odefunc.paths
 
@@ -254,5 +254,9 @@ class GNN(BaseGNN):
 
     if self.opt['dataset']in ["ZINC"]:
       z  = global_add_pool(z, self.odeblock.odefunc.data.batch).squeeze(-1)
+
+    #make sure nodewise decoder has non-linearity if not sumation from pooling layers commutes with decoders
+    #there is one in GNN_postXN function
+    #todo add edwise potential term
 
     return z
