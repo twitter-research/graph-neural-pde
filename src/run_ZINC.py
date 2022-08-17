@@ -78,9 +78,9 @@ def train(model, optimizer, train_loader, pos_encoding=None):
                 break
 
         #things need to reset because number of nodes in each batch is different
+        data = data.to(model.device)
         zinc_batch_reset(model, data)
 
-        data = data.to(model.device)
         optimizer.zero_grad()
         feat = data.x
         out = model(feat, pos_encoding)
@@ -127,9 +127,9 @@ def test(model, loader):
                     break
 
             # things need to reset because number of nodes in each batch is different
+            data = data.to(args.device)
             zinc_batch_reset(model, data)
 
-            data = data.to(args.device)
             out = model(data.x)
             error += (out - data.y).abs().sum().item()
             loss += lf(out, data.y)
