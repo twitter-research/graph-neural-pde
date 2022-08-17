@@ -967,7 +967,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             #   f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x * self.gnl_W)
             # else:
             # print(f"devices {self.edge_index.device}, {P.device}, {x.device}, {self.gnl_W.device}")
-            f = torch_sparse.spmm(selfp.edge_index, P, x.shape[0], x.shape[0], x @ self.gnl_W)
+            f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x @ self.gnl_W)
 
             f = f - x @ self.Omega
 
