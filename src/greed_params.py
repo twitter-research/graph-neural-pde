@@ -102,7 +102,7 @@ def greed_hyper_params(opt):
     opt['step_size'] = 1.0#0.5 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 3.194 #4 #18.295 #10
     opt['epoch'] = 200#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
-    opt['num_splits'] = 4 #10#4#1
+    opt['num_splits'] = 10#4#1
     opt['use_labels'] = False #True
     # opt['planetoid_split'] = True
     # opt['geom_gcn_splits'] = False #True#True #False#True
