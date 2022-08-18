@@ -90,17 +90,17 @@ def greed_hyper_params(opt):
 
     #hyper-params
     opt['optimizer'] = 'adam'
-    opt['lr'] = 0.001 #0.00001# 0.001#0.001
+    opt['lr'] = 0.0014#0.001 #0.00001# 0.001#0.001
     # opt['lr2'] = 0.00001
-    opt['dropout'] = 0.0#0.35
-    opt['input_dropout'] = 0.0#0.5
-    opt['decay'] = 0.0# 0.0005#005 #Cora 0.05 chameleon 0.0005
-    opt['hidden_dim'] = 128#64#64 #512
-    opt['use_best_params'] = False #True #False #True
+    opt['dropout'] = 0.3674#0.35#0.0#0.35
+    opt['input_dropout'] = 0.4327#0.5#0.0#0.5
+    opt['decay'] = 0.0004295#0.0005#0.0# 0.0005#005 #Cora 0.05 chameleon 0.0005
+    opt['hidden_dim'] = 64#64 #512
+    opt['use_best_params'] = True #True #False #True
     opt['method'] = 'euler'
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
     opt['step_size'] = 1.0#0.5 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
-    opt['time'] = 4#3 #4 #18.295 #10
+    opt['time'] = 3.194 #4 #18.295 #10
     opt['epoch'] = 129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1 #10#4#1
     opt['use_labels'] = False #True
@@ -111,7 +111,7 @@ def greed_hyper_params(opt):
 
     #greed_non_linear params
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
-    opt['time_dep_unstruct_w'] = True#False#True
+    opt['time_dep_unstruct_w'] = False#False#True
     opt['time_dep_struct_w'] = False#False#True
     assert not(opt['time_dep_unstruct_w'] and opt['time_dep_struct_w']), "can't do both"
     opt['gnl_style'] = 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
@@ -146,7 +146,7 @@ def greed_hyper_params(opt):
         # 'W_orthog_init', - use GS to init param W_U as orthog - then set W=ULU.T - set W as eval and use z2x
         # 'householder' - use householder reflections to enforce orthog W_U
         # 'skew_sym' - use skew-symetric and bilinear approximation to enforce orthog W_U
-        opt['gnl_W_style'] = 'sum'#'loss_W_orthog'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_W_style'] = 'diag_dom'#'loss_W_orthog'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         if opt['gnl_W_style'] == 'k_block':
             assert opt['hidden_dim'] % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= opt['hidden_dim']#in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
@@ -189,8 +189,8 @@ def greed_hyper_params(opt):
     opt['gnl_W_norm'] = False#True#False  # True #divide by spectral radius
     opt['loss_orthog_a'] = 0#1.0
 
-    opt['pointwise_nonlin'] = True#False#True #todo add to args
-    opt['graph_pool'] = "mean"
+    opt['pointwise_nonlin'] = False#True#False#True #todo add to args
+    opt['graph_pool'] = ""#"mean"
 
 
     #definitions of lie trotter
