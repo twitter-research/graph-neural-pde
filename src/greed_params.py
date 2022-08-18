@@ -81,7 +81,7 @@ def greed_hyper_params(opt):
     opt['tau_residual'] = True
 
     opt['test_mu_0'] = True # False #True
-    opt['add_source'] = False#True #False #True
+    opt['add_source'] = True #False #True
     opt['XN_no_activation'] = True #True #False
     opt['use_mlp'] = False #True #encoder mlp
     opt['m2_mlp'] = False #False #decoder mlp
@@ -101,8 +101,8 @@ def greed_hyper_params(opt):
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
     opt['step_size'] = 1.0#0.5 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 3.194 #4 #18.295 #10
-    opt['epoch'] = 129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
-    opt['num_splits'] = 1 #10#4#1
+    opt['epoch'] = 200#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
+    opt['num_splits'] = 4 #10#4#1
     opt['use_labels'] = False #True
     # opt['planetoid_split'] = True
     # opt['geom_gcn_splits'] = False #True#True #False#True
@@ -132,7 +132,7 @@ def greed_hyper_params(opt):
         opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
         opt['gnl_attention'] = False #use L0 attention coefficients
         #Omega
-        opt['gnl_omega'] = 'diag'#'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
+        opt['gnl_omega'] = 'zero'#'diag'#'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
         opt['gnl_omega_diag'] = 'free' #'free 'const'
         opt['gnl_omega_diag_val'] = None #1 #-1 # 1
         opt['gnl_omega_activation'] = 'identity' #identity
