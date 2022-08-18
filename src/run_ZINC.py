@@ -823,10 +823,13 @@ if __name__ == '__main__':
     parser.add_argument('--path_dep_norm', type=str, default='False', help='whether to norm the path dependent solution for m3 decoder')
     parser.add_argument('--drift_space', type=str, default=None, help='feature, label')
     parser.add_argument('--drift_grad', type=str, default='True', help='collect gradient off drift term')
-    parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
-    parser.add_argument('--pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
     parser.add_argument('--loss_orthog_a', type=float, default=0, help='loss orthog multiplier term')
     parser.add_argument('--householder_L', type=int, default=8, help='num iterations of householder reflection for W_orthog')
+
+    parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
+    parser.add_argument('--pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
+    parser.add_argument('--conv_batch_norm', type=str, default='False', help='conv_batch_norm')
+    #(f - f.mean(dim=0).unsqueeze(0)) / f.std(dim=0).unsqueeze(0)
 
     #zinc params
     parser.add_argument('--graph_pool', type=str, default='', help='type of graph pool operation - {add, mean}')

@@ -109,6 +109,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         z[i] = 1.
         self.attractors[i] = Parameter(z)
 
+    self.batchnorm_h = nn.BatchNorm1d(in_features) #https://github.com/graphdeeplearning/benchmarking-gnns/blob/master/layers/gcn_layer.py
+
     self.reset_nonlinG_parameters()
     if self.time_dep_unstruct_w or self.time_dep_struct_w:
       self.reset_W_timedep_parameters()
@@ -1076,6 +1078,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       # if self.opt['greed_momentum'] and self.prev_grad:
       #   f = self.opt['momentum_alpha'] * f + (1 - self.opt['momentum_alpha']) * self.prev_grad
       #   self.prev_grad = f
+
+    if self.opt['conv_batch_norm']:
+      f = self.batchnorm_h(f)
 
     if self.opt['pointwise_nonlin']:
       damp_f = f - (1-self.opt['dampen_gamma']) * x /self.opt['step_size']

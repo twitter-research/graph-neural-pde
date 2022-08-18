@@ -282,7 +282,8 @@ def tf_ablation_args(opt):
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
                 'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
                 'two_hops', 'time_dep_unstruct_w', 'time_dep_struct_w',
-                'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'gnl_W_norm', 'drift_grad', 'pointwise_nonlin',
+                'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'gnl_W_norm', 'drift_grad',
+                'pointwise_nonlin', 'conv_batch_norm',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout',
                 'wandb', 'wandb_sweep', 'adjoint']
     arg_intersect = list(set(opt.keys()) & set(tf_args))
@@ -601,10 +602,12 @@ def default_params():
     parser.add_argument('--path_dep_norm', type=str, default='', help='whether to norm the path dependent solution for m3 decoder')
     parser.add_argument('--drift_space', type=str, default=None, help='feature, label')
     parser.add_argument('--drift_grad', type=str, default='True', help='collect gradient off drift term')
-    parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
-    parser.add_argument('--pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
     parser.add_argument('--loss_orthog_a', type=float, default=0, help='loss orthog multiplier term')
     parser.add_argument('--householder_L', type=int, default=8, help='num iterations of householder reflection for W_orthog')
+
+    parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
+    parser.add_argument('--pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
+    parser.add_argument('--conv_batch_norm', type=str, default='False', help='conv_batch_norm')
 
     #zinc params
     parser.add_argument('--graph_pool', type=str, default='', help='type of graph pool operation - {add, mean}')
