@@ -894,7 +894,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     # set progation matrix
     if self.opt['m2_W_eig'] == 'z2x': #if it's z2x then set W as the diag of evals
-      self.odeblock.odefunc.gnl_W = torch.diag(self.W_eval)
+      self.gnl_W = torch.diag(self.W_eval)
     #   self.gnl_W = self.W_eval  # gofasterhadamard vector diag - possible but a faff for reporting functions
     else:
       self.gnl_W = W
