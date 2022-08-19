@@ -44,7 +44,7 @@ parameters:
   test_mu_0:
     values: [True]
   add_source:
-    values: [True]
+    values: [True, False]
   hidden_dim:
     values: [64]
   householder_L:
@@ -54,7 +54,7 @@ parameters:
     min: 2.5
     max: 4.5
   step_size:
-    values: [0.25, 0.5, 1.0]
+    values: [0.5, 1.0]
   input_dropout:
     distribution: uniform
     min: 0.45
