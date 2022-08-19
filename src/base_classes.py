@@ -54,8 +54,8 @@ class ODEblock(nn.Module):
     self.set_tol()
 
   def set_x0(self, x0):
-    self.odefunc.x0 = x0.clone().detach()
-    self.reg_odefunc.odefunc.x0 = x0.clone().detach()
+    self.odefunc.x0 = x0#.clone().detach()
+    self.reg_odefunc.odefunc.x0 = x0#.clone().detach()
 
   def set_tol(self):
     self.atol = self.opt['tol_scale'] * 1e-7

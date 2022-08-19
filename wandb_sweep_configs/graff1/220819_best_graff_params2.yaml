@@ -17,16 +17,16 @@ parameters:
     values: [euler]
   gnl_style:
     values: [general_graph]
-  gnl_W_style:
-    values: [diag_dom]
+  greed_params:
+    values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag_dom, uniform, True, zero, None, False, True, True]]
+  use_mlp:
+    values: [False]
+  greed_SL:
+    values: [True, False]
   time_dep_unstruct_w:
     values: [False]
   time_dep_struct_w:
     values: [False]
-  gnl_W_diag_init:
-    values: [uniform]
-  gnl_omega:
-    values: [zero, diag]
   m1_W_eig:
     values: [False]
   m2_W_eig:
@@ -34,9 +34,9 @@ parameters:
   gnl_W_norm:
     values: [False]
   m3_path_dep:
-    values: [None]
+    values: [False]
   path_dep_norm:
-    values: [None]
+    values: [False]
   gnl_activation:
     values: [identity]
   gnl_measure:
@@ -85,4 +85,4 @@ command:
   - --wandb
   - --wandb_sweep
 entity: graph_neural_diffusion
-project: best_graff_params
+project: best_graff_params2

@@ -874,7 +874,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def reset_gnl_W_eigs(self, t):
     if self.time_dep_unstruct_w or self.time_dep_struct_w:
-      t = 0
+      # t = 0 #todo why was this here? i think from GNN level setting
       W = self.set_gnlWS_timedep(t)
     else:
       W = self.set_gnlWS()

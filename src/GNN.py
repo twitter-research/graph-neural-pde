@@ -34,7 +34,7 @@ class GNN(BaseGNN):
       x = torch.cat([x, p], dim=1)
     else:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-      x = self.m1(  x)
+      x = self.m1(x)
 
     if self.opt['use_mlp']:
       x = F.dropout(x, self.opt['dropout'], training=self.training)
@@ -107,6 +107,7 @@ class GNN(BaseGNN):
         # else:
         #   self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_gnlOmega()
 
+        #todo is this the ca
         self.odeblock.odefunc.reset_gnl_W_eigs(t=0)
 
         # if self.opt['two_hops']:
