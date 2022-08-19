@@ -26,7 +26,7 @@ parameters:
   gnl_W_diag_init:
     values: [uniform]
   gnl_omega:
-    values: [diag]
+    values: [zero]
   m1_W_eig:
     values: [False]
   m2_W_eig:
