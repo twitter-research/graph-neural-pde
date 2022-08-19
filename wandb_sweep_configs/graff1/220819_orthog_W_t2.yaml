@@ -18,9 +18,9 @@ parameters:
   gnl_style:
     values: [general_graph]
   gnl_W_style:
-    values: [sum, Z_diag, W_orthog_init, householder, skew_sym, loss_W_orthog]
+    values: [Z_diag, W_orthog_init, householder, skew_sym, loss_W_orthog]
   loss_orthog_a:
-    values: [ 0.01, 0.1, 1.0 ]
+    values: [0.0, 0.1, 1.0]
   time_dep_unstruct_w:
     values: [True, False]
   time_dep_struct_w:
@@ -68,7 +68,7 @@ parameters:
   lr:
     values: [0.001]
   decay:
-    values: [0.0005, 0.001]
+    values: [0.0005]
 command:
   - ${env}
   - python3
