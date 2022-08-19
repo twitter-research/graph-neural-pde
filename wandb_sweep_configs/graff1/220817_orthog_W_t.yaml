@@ -6,7 +6,7 @@ parameters:
   function:
     values: [greed_non_linear]
   epoch:
-    values: [129]
+    values: [200]
   num_splits:
     values: [2]
   self_loop_weight:
@@ -26,7 +26,7 @@ parameters:
   gnl_W_diag_init:
     values: [uniform]
   gnl_omega:
-    values: [zero, diag]
+    values: [diag]
   m1_W_eig:
     values: [False]
   m2_W_eig:
@@ -46,7 +46,7 @@ parameters:
   test_mu_0:
     values: [True]
   add_source:
-    values: [False]
+    values: [True]
   hidden_dim:
     values: [64]
   householder_L:
