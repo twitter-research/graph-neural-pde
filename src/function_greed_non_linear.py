@@ -873,28 +873,31 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.R_0 = R
 
   def reset_gnl_W_eigs(self, t):
+    #call dense W propagation matrix
     if self.time_dep_unstruct_w or self.time_dep_struct_w:
       # t = 0 #todo why was this here? i think from GNN level setting
       W = self.set_gnlWS_timedep(t)
     else:
       W = self.set_gnlWS()
 
+    #set eigen values and vectors of W
     if self.opt['gnl_W_style'] in ['GS', 'GS_Z_diag', 'cgnn', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init',
                                    'householder', 'skew_sym']:
       self.W_eval, self.W_evec = self.gnl_W_D, self.gnl_W_U
     else:
       self.W_eval, self.W_evec = torch.linalg.eigh(W)  # confirmed unit norm output vectors
 
-    if self.opt['gnl_W_norm']:  # need to do this at the GNN level as called once in the forward call
+    if self.opt['gnl_W_norm']:
       W = W / torch.abs(self.W_eval).max()
 
+    #penalty / skew sim / HH / orthog init
+
     # set progation matrix
-    # if self.opt['gnl_W_style'] in ['Z_diag', 'GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
-    # if self.opt['m2_W_eig'] == 'z2x':
-    #   # self.odeblock.odefunc.gnl_W = torch.diag(self.W_eval)
-    #   self.gnl_W = self.W_eval  # gofasterhadamard - possible but a faff for reporting functions
-    # else:
-    self.gnl_W = W
+    if self.opt['m2_W_eig'] == 'z2x': #if it's z2x then set W as the diag of evals
+      self.odeblock.odefunc.gnl_W = torch.diag(self.W_eval)
+    #   self.gnl_W = self.W_eval  # gofasterhadamard vector diag - possible but a faff for reporting functions
+    else:
+      self.gnl_W = W
 
     if (self.time_dep_struct_w or self.time_dep_unstruct_w):
       self.Omega = self.set_gnlOmega_timedep(t)
