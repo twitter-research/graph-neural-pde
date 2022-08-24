@@ -69,6 +69,7 @@ def zinc_params(opt):
     #     "batch_norm": true,
     #     "self_loop": false
 
+    opt['use_best_params'] = False
     #GNN hyper-params
     opt['dropout'] = 0.0
     opt['input_dropout'] = 0.0
@@ -179,7 +180,7 @@ def greed_hyper_params(opt):
     opt['input_dropout'] = 0.4327#0.5#0.0#0.5
     opt['decay'] = 0.0004295#0.0005#0.0# 0.0005#005 #Cora 0.05 chameleon 0.0005
     opt['hidden_dim'] = 64#64 #512
-    opt['use_best_params'] = True #True #False #True
+    opt['use_best_params'] = False #True #False #True
     opt['method'] = 'euler'
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
     opt['step_size'] = 1.0#0.5 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
