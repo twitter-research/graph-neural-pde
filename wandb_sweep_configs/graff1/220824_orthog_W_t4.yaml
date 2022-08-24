@@ -79,12 +79,12 @@ parameters:
     max: 16.0
   lr:
     distribution: log_uniform
-    min: 0.0005
-    max: 0.01
+    min: -11.5129
+    max: -2.3026
   decay:
     distribution: log_uniform
-    min: 0.000
-    max: 0.01
+    min: -11.5129
+    max: -2.3026
   optimizer:
     values: [adam]
 command:
