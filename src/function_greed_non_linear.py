@@ -1083,15 +1083,18 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       #   f = self.opt['momentum_alpha'] * f + (1 - self.opt['momentum_alpha']) * self.prev_grad
       #   self.prev_grad = f
 
+    # batch norm in each feature channel - # #benchmarking GNN "https://arxiv.org/pdf/2003.00982.pdf" sections: Normalization and Residual Connect" and "C.1 Graph Regression with ZINC dataset"
     if self.opt['conv_batch_norm']:
       f = self.batchnorm_h(f)
 
+    #dampening
+    f = f - (1 - self.opt['dampen_gamma']) * x / self.opt['step_size']
+
+    #non-linearity
     if self.opt['pointwise_nonlin']:
-      damp_f = f - (1-self.opt['dampen_gamma']) * x /self.opt['step_size']
-      # return torch.tanh(damp_f)
-      return torch.relu(damp_f)
+      return torch.relu(f)
     else:
-      return f - (1-self.opt['dampen_gamma']) * x /self.opt['step_size']
+      return f
 
 def __repr__(self):
   return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'

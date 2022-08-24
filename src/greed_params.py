@@ -44,6 +44,88 @@ def greed_run_params(opt):
     opt['no_early'] = True #False #- this works as an override of best param as only pubmed has this key
     return opt
 
+def zinc_params(opt):
+    #https://github.com/graphdeeplearning/benchmarking-gnns/blob/master/configs/molecules_graph_regression_GCN_ZINC_100k.json
+    #https://github.com/graphdeeplearning/benchmarking-gnns/blob/master/configs/molecules_graph_regression_GCN_ZINC_500k.json
+    # "params": {
+    #     "seed": 41,
+    #     "epochs": 1000,
+    #     "batch_size": 128,
+    #     "init_lr": 0.001,
+    #     "lr_reduce_factor": 0.5,
+    #     "lr_schedule_patience": 10,
+    #     "min_lr": 1e-5,
+    #     "weight_decay": 0.0,
+    #     "print_epoch_interval": 5,
+    #     "max_time": 12
+    # "net_params": {
+    #     "L": 4,
+    #     "hidden_dim": 145,
+    #     "out_dim": 145,
+    #     "residual": true,
+    #     "readout": "mean",
+    #     "in_feat_dropout": 0.0,
+    #     "dropout": 0.0,
+    #     "batch_norm": true,
+    #     "self_loop": false
+
+    #GNN hyper-params
+    opt['dropout'] = 0.0
+    opt['input_dropout'] = 0.0
+    opt['hidden_dim'] = 145
+    opt['method'] = 'euler'
+    opt['step_size'] = 1.0
+    opt['time'] = 4
+    opt['time_dep_unstruct_w'] = True
+    opt['pointwise_nonlin'] = True  #ReLU
+    opt['conv_batch_norm'] = True
+    opt['graph_pool'] = 'mean'
+
+    #optimisation
+    opt['optimizer'] = 'adam'       #check optimiser used?
+    opt['epoch'] = 1000
+    opt['batch'] = 128#, type=int, default=128, help='batch size')
+    opt['test_batches'] = None#, type=int, default=None, help='reduce data size to batch num when developing')
+
+    opt['lr'] = 1e-3
+    opt['lr2'] = 1e-5
+    opt['lr_reduce_factor'] = 0.5#, type=float, default=0.5, help='lr_reduce_factor')
+    opt['lr_schedule_patience'] = 10#, type=int, default=20, help='lr_schedule_patience')
+    opt['lr_schedule_threshold'] = 0.0001#, type=int, default=0.01, help='lr_schedule_patience') torch default value
+    opt['min_lr'] = 1e-5#, type=float, default=1e-5, help='loss orthog term')
+    opt['decay'] = 0.0
+
+    #alternative hyper-params
+    #https://github.com/Saro00/DGN/blob/master/realworld_benchmark/configs/molecules_graph_regression_DGN_ZINC.json
+    # "params": {
+    #     "epochs": 1000,
+    #     "batch_size": 128,
+    #     "init_lr": 0.001,
+    #     "lr_reduce_factor": 0.5,
+    #     "lr_schedule_patience": 20,
+    #     "min_lr": 1e-5,
+    #     "weight_decay": 3e-6,
+    #     "max_time": 48
+    # "net_params": {
+    #     "L": 4,
+    #     "hidden_dim": 45,
+    #     "out_dim": 45,
+    #     "type_net": "complex",
+    #     "residual": true,
+    #     "readout": "mean",
+    #     "in_feat_dropout": 0.0,
+    #     "dropout": 0.0,
+    #     "graph_norm": true,       #<--- what's this?
+    #     "batch_norm": true,
+    #     "aggregators": "mean dir1-dx dir1-av",       #<--- what's this?
+    #     "scalers": "identity amplification attenuation",       #<--- what's this?
+    #     "towers": 5,       #<--- what's this?
+    #     "divide_input_first": false,
+    #     "divide_input_last": true,       #<--- what's this?
+    #     "edge_dim": 0,
+    #     "pretrans_layers": 1,       #<--- what's this?
+    #     "posttrans_layers": 1       #<--- what's this?
+
 def greed_hyper_params(opt):
     #ablation flags
     opt['test_no_chanel_mix'] = True #True
@@ -102,7 +184,7 @@ def greed_hyper_params(opt):
     opt['step_size'] = 1.0#0.5 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 3.194 #4 #18.295 #10
     opt['epoch'] = 200#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
-    opt['num_splits'] = 10#4#1
+    opt['num_splits'] = 4#1
     opt['use_labels'] = False #True
     # opt['planetoid_split'] = True
     # opt['geom_gcn_splits'] = False #True#True #False#True
@@ -243,13 +325,13 @@ def greed_hyper_params(opt):
 
     return opt
 
-def not_sweep_args(opt, project_name, group_name):
+def not_sweep_args(opt, project_name=None, group_name=None):
     opt['gnl_savefolder'] = "animation_runs"#'tsne_evol'#'chameleon_general_drift'#'chameleon_testing'
     opt['wandb_entity'] = "graph_neural_diffusion"
-    opt['wandb_project'] = "animation_runs"#"reporting_runs_drift"
-    opt['wandb_group'] = "reporting_group" #"ablation_group"#"reporting_group"
-    # opt['wandb_project'] = project_name #"greed_runs"
-    # opt['wandb_group'] = group_name #"testing"  # "tuning" eval
+    if not project_name:
+        opt['wandb_project'] = "animation_runs"#"reporting_runs_drift"
+    if not group_name:
+        opt['wandb_group'] = "reporting_group" #"ablation_group"#"reporting_group"
 
     # args for running locally - specified in YAML for tunes
     opt['wandb'] = True #False #True

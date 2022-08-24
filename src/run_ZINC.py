@@ -22,7 +22,7 @@ from data import get_dataset, set_train_val_test_split
 from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling
 from utils import dirichlet_energy
 from best_params import best_params_dict
-from greed_params import greed_test_params, greed_run_params, greed_hyper_params, tf_ablation_args, not_sweep_args
+from greed_params import greed_test_params, greed_run_params, greed_hyper_params, tf_ablation_args, not_sweep_args, zinc_params
 from greed_reporting_fcts import calc_energy_homoph
 from graff_params import hetero_params
 from reports import reports_manager #run_reports, run_reports_lie_trotter, reports_manager
@@ -384,7 +384,7 @@ def main(cmd_opt):
     for rep in range(opt['num_splits']):
         print(f"rep {rep}")
         #todo check the structure of the edge index - max value is 36, implies is reindexed per molecule
-        #todo it's because you need to iterate through the data loader to increment the training index???
+        #it's because you need to iterate through the data loader to increment the training index???
         # as per __inc__ from https://pytorch-geometric.readthedocs.io/en/latest/notes/batching.html
         #don't actually need any of the below to instantiate a version of the model
         # for i, data in enumerate(train_loader):
@@ -399,8 +399,8 @@ def main(cmd_opt):
         print_model_params(model)
         optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=opt['lr_reduce_factor'],
-                                                               threshold=opt['lr_schedule_threshold'], patience=opt['lr_schedule_patience'])
-
+                                                               threshold=opt['lr_schedule_threshold'], patience=opt['lr_schedule_patience'],
+                                                               verbose=True)
 
         best_time = best_epoch = 0
         train_acc = val_acc = test_acc = np.inf
@@ -416,7 +416,6 @@ def main(cmd_opt):
             tmp_test_acc, test_loss = test(model, test_loader)
 
             scheduler.step(val_loss)
-
 
             #sample data (first batch) to run all reports
             data = train_dataset.data
@@ -853,8 +852,9 @@ if __name__ == '__main__':
 
     if not opt['wandb_sweep']:  # sweeps are run from YAML config so don't need these
         # this includes args for running locally - specified in YAML for tunes
-        opt = not_sweep_args(opt, project_name='greed_runs', group_name='testing')
+        opt = not_sweep_args(opt, project_name='zinc_runs', group_name='testing')
         opt = greed_hyper_params(opt)
+        opt = zinc_params(opt)
 
     # applied to both sweeps and not sweeps
     opt = tf_ablation_args(opt)
