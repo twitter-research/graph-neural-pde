@@ -95,4 +95,4 @@ command:
   - --wandb
   - --wandb_sweep
 entity: graph_neural_diffusion
-project: orthog_W_t3
+project: orthog_W_t4
