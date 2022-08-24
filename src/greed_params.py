@@ -69,6 +69,7 @@ def zinc_params(opt):
     #     "batch_norm": true,
     #     "self_loop": false
 
+
     opt['use_best_params'] = False
     #GNN hyper-params
     opt['dropout'] = 0.0
@@ -77,7 +78,7 @@ def zinc_params(opt):
     opt['method'] = 'euler'
     opt['step_size'] = 1.0
     opt['time'] = 4
-    opt['time_dep_unstruct_w'] = True
+    opt['time_dep_w'] = "unstruct"
     opt['pointwise_nonlin'] = True  #ReLU
     opt['conv_batch_norm'] = True
     opt['graph_pool'] = 'mean'
@@ -96,6 +97,8 @@ def zinc_params(opt):
     opt['min_lr'] = 1e-5#, type=float, default=1e-5, help='loss orthog term')
     opt['decay'] = 0.0
 
+    opt['m2_W_eig'] = None
+    opt['loss_orthog_a'] = 0.0
     return opt
     #alternative hyper-params
     #https://github.com/Saro00/DGN/blob/master/realworld_benchmark/configs/molecules_graph_regression_DGN_ZINC.json
@@ -183,10 +186,10 @@ def greed_hyper_params(opt):
     opt['use_best_params'] = False #True #False #True
     opt['method'] = 'euler'
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
-    opt['step_size'] = 1.0#0.5 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
-    opt['time'] = 3.194 #4 #18.295 #10
-    opt['epoch'] = 200#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
-    opt['num_splits'] = 4#1
+    opt['step_size'] = 0.5 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
+    opt['time'] = 10#3.194 #4 #18.295 #10
+    opt['epoch'] = 300#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
+    opt['num_splits'] = 1#4#1
     opt['use_labels'] = False #True
     # opt['planetoid_split'] = True
     # opt['geom_gcn_splits'] = False #True#True #False#True
@@ -195,9 +198,14 @@ def greed_hyper_params(opt):
 
     #greed_non_linear params
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
-    opt['time_dep_unstruct_w'] = False#False#True
-    opt['time_dep_struct_w'] = False#False#True
-    assert not(opt['time_dep_unstruct_w'] and opt['time_dep_struct_w']), "can't do both"
+    opt['time_dep_w'] = "struct"
+    opt['time_dep_omega'] = "struct"
+    opt['time_dep_q'] = "struct"
+    num_lamb = 4
+    opt['num_lamb_w'] = num_lamb
+    opt['num_lamb_omega'] = num_lamb
+    opt['num_lamb_q'] = num_lamb
+
     opt['gnl_style'] = 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
 
@@ -216,21 +224,21 @@ def greed_hyper_params(opt):
         opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
         opt['gnl_attention'] = False #use L0 attention coefficients
         #Omega
-        opt['gnl_omega'] = 'zero'#'diag'#'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
+        opt['gnl_omega'] = 'diag'#'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
         opt['gnl_omega_diag'] = 'free' #'free 'const'
         opt['gnl_omega_diag_val'] = None #1 #-1 # 1
         opt['gnl_omega_activation'] = 'identity' #identity
         # opt['gnl_omega_params'] = ["diag","free","None","identity"] #[opt['gnl_omega'], opt['gnl_omega_diag'], opt['gnl_omega_diag_val'], opt['gnl_omega_activation']]
         #W
         #explanations of z2x W methods:
-        # 'Z_diag' - initialise as 'sum' but then set W as eval and use z2x
-        # 'GS_Z_diag' - do gram schmidt for evec set W as eval and use z2x
-        # 'cgnn_Z_diag' - do cgnn update on evec
-        # 'loss_W_orthog', - free sum tensor set W diag as eval and use z2x
-        # 'W_orthog_init', - use GS to init param W_U as orthog - then set W=ULU.T - set W as eval and use z2x
+        # 'Z_diag' - initialise as W 'sum' but then eigh on W_U and set W_D as eval and use z2x
+        # 'GS_Z_diag' - init W_U/W_D do gram schmidt on W_U for evec, set W=eval=W_D and use z2x
+        # 'cgnn_Z_diag' - init W_U/W_D do cgnn update on evec
+        # 'loss_W_orthog', - init W_U/W_D set W=W_D diag as eval, penalise W_U and use z2x
+        # 'W_orthog_init', - init W_U/W_D, use GS to init param W_U as orthog -set W as eval and use z2x
         # 'householder' - use householder reflections to enforce orthog W_U
         # 'skew_sym' - use skew-symetric and bilinear approximation to enforce orthog W_U
-        opt['gnl_W_style'] = 'diag_dom'#'loss_W_orthog'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_W_style'] = 'householder'#'loss_W_orthog'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         if opt['gnl_W_style'] == 'k_block':
             assert opt['hidden_dim'] % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= opt['hidden_dim']#in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
@@ -258,7 +266,7 @@ def greed_hyper_params(opt):
     opt['drift_grad'] = False#True #True
     opt['m2_aug'] = False #True #False #reads out (no weights) prediction from bottom C dimensions
     opt['m1_W_eig'] = False#True
-    opt['m2_W_eig'] = 'None'#'z2x' #False #'x2z'#'z2x' #True #True
+    opt['m2_W_eig'] = 'z2x' #False #'x2z'#'z2x' #True #True
     # if opt['m2_W_eig'] == 'z2x': #not true as can just do eigen decomp for sum for example
     #     assert opt['gnl_W_style'] in ['Z_diag', 'GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym'], 'z2x must have diag style matrix'
     opt['m3_path_dep'] = None#'label_att'#'feature_jk'#None#'label_jk'#'train_centers'#'feature_jk'#'label_jk'#'feature_jk' #'label_jk' 'label_att'
@@ -271,7 +279,7 @@ def greed_hyper_params(opt):
     opt['loss_reg_certainty'] = None #0.85 #0.95 #1.00 #0.95
     opt['dampen_gamma'] = 1.0#0.6    #assuming spec rad=4, dampen gamma=0.6, step=0.1
     opt['gnl_W_norm'] = False#True#False  # True #divide by spectral radius
-    opt['loss_orthog_a'] = 0#1.0
+    opt['loss_orthog_a'] = 0.1#1.0
 
     opt['pointwise_nonlin'] = False#True#False#True #todo add to args
     opt['graph_pool'] = ""#"mean"
@@ -365,7 +373,7 @@ def tf_ablation_args(opt):
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
                 'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
-                'two_hops', 'time_dep_unstruct_w', 'time_dep_struct_w',
+                'two_hops',
                 'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'gnl_W_norm', 'drift_grad',
                 'pointwise_nonlin', 'conv_batch_norm',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout',
@@ -663,8 +671,9 @@ def default_params():
     parser.add_argument('--gnl_W_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
     parser.add_argument('--gnl_W_norm', type=str, default='False', help='divide W matrix by its spectral radius')
     parser.add_argument('--two_hops', type=str, default='False', help='flag for 2-hop energy')
-    parser.add_argument('--time_dep_unstruct_w', type=str, default='False', help='Learn a time dependent potentials')
-    parser.add_argument('--time_dep_struct_w', type=str, default='False', help='Learn a structured time dependent potentials')
+    parser.add_argument('--time_dep_w', type=str, default=None, help='Learn a time dependent potentials for w')
+    parser.add_argument('--time_dep_omega', type=str, default=None, help='Learn a time dependent potentials for omega')
+    parser.add_argument('--time_dep_q', type=str, default=None, help='Learn a time dependent potentials for q')
     parser.add_argument('--target_homoph', type=str, default='0.80', help='target_homoph for syn_cora [0.00,0.10,..,1.00]')
     parser.add_argument('--hetero_SL', type=str, default='True', help='control self loops for Chameleon/Squirrel')
     parser.add_argument('--hetero_undir', type=str, default='True', help='control undirected for Chameleon/Squirrel')

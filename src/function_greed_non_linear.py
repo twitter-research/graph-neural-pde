@@ -40,11 +40,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       set_reporting_attributes(self, data, opt)
       set_folders_pdfs(self, opt)
 
-    self.num_timesteps = 1
-    self.time_dep_unstruct_w = self.opt['time_dep_unstruct_w']
-    self.time_dep_struct_w = self.opt['time_dep_struct_w']
-    if self.time_dep_unstruct_w or self.time_dep_struct_w:
+    self.time_dep_w = opt['time_dep_w']
+    self.time_dep_omega = opt['time_dep_omega']
+    self.time_dep_q = opt['time_dep_q']
+    if self.time_dep_w in ["unstruct"]:#"struct", "unstruct"]:
       self.num_timesteps = math.ceil(self.opt['time']/self.opt['step_size'])
+    else:
+      self.num_timesteps = 1
 
     self.paths = []
     self.epoch = 0
@@ -63,8 +65,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.om_W_eps = Parameter(torch.Tensor([0.85]))
       self.om_W_nu = torch.Tensor([0.1], device=self.device)
     elif self.opt['gnl_omega'] == 'diag':
-      if self.time_dep_unstruct_w or self.time_dep_struct_w:
+      if self.time_dep_omega in ["unstruct","struct"]:
         self.om_W = Parameter(torch.Tensor(self.num_timesteps, in_features))
+        if self.time_dep_omega in ["struct"]:
+          self.lamb_scales_Omega = Parameter(torch.Tensor(in_features, opt['num_lamb_omega']), requires_grad=True)
+          self.lamb_starts_Omega = Parameter(torch.Tensor(in_features, opt['num_lamb_omega']), requires_grad=True)
+          self.lamb_widths_Omega = Parameter(torch.Tensor(in_features, opt['num_lamb_omega']), requires_grad=True)
       else:
         self.om_W = Parameter(torch.Tensor(in_features))
       self.om_W_eps = 0
@@ -76,6 +82,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.om_W_eps = 0
     elif self.opt['gnl_omega'] == 'Omega_eq_W':
       self.om_W_eps = 0
+
+    if self.time_dep_q in ["struct"]:
+      self.lamb_scales_Q = Parameter(torch.Tensor(in_features, opt['num_lamb_q']), requires_grad=True)
+      self.lamb_starts_Q = Parameter(torch.Tensor(in_features, opt['num_lamb_q']), requires_grad=True)
+      self.lamb_widths_Q = Parameter(torch.Tensor(in_features, opt['num_lamb_q']), requires_grad=True)
+
 
     if opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
       self.m_alpha = Parameter(torch.Tensor([1.]))
@@ -90,7 +102,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if self.opt['gnl_style'] == 'softmax_attention' or self.opt['gnl_attention']:
       self.multihead_att_layer = SpGraphTransAttentionLayer_greed(in_features, out_features, opt, device, edge_weights=self.edge_weight).to(device)
 
-    if self.time_dep_unstruct_w or self.time_dep_struct_w:
+    if self.time_dep_w in ["unstruct", "struct"]:
       self.init_W_timedep(in_features, opt)
     else:
       self.init_W(in_features, opt)
@@ -109,13 +121,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         z[i] = 1.
         self.attractors[i] = Parameter(z)
 
-    self.batchnorm_h = nn.BatchNorm1d(in_features) #https://github.com/graphdeeplearning/benchmarking-gnns/blob/master/layers/gcn_layer.py
+    self.batchnorm_h = nn.BatchNorm1d(in_features) #for zinc https://github.com/graphdeeplearning/benchmarking-gnns/blob/master/layers/gcn_layer.py
 
-    self.reset_nonlinG_parameters()
-    if self.time_dep_unstruct_w or self.time_dep_struct_w:
+    if self.time_dep_w in ["unstruct", "struct"]:
       self.reset_W_timedep_parameters()
     else:
       self.reset_W_parameters()
+    self.reset_Omega_parameters()
+    self.reset_nonlinG_parameters()
 
 
   def init_W(self, in_features, opt):
@@ -197,18 +210,18 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if self.opt['gnl_style'] == 'general_graph':
       # gnl_omega -> "gnl_W"
       if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod']:
-        if self.time_dep_struct_w or self.time_dep_unstruct_w:
+        if self.time_dep_w in ["unstruct", "struct"]:
           self.W_W_T = Parameter(torch.Tensor(self.num_timesteps, in_features, in_features))
 
       elif self.opt['gnl_W_style'] == 'diag':
-        if self.time_dep_unstruct_w: #todo replace time_dep_unstruct_w with time_dep_unstruct_w
+        if self.time_dep_w in ["unstruct"]:
           if self.opt['gnl_W_diag_init'] == 'linear':
             d_range = torch.tensor([list(range(in_features)) for _ in range(self.num_timesteps)], device=self.device)
             self.gnl_W_D_T = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (in_features - 1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
           else:
             self.gnl_W_D_T = Parameter(torch.ones(self.num_timesteps, in_features), requires_grad=opt['gnl_W_param_free'])
 
-        elif self.time_dep_struct_w:
+        elif self.time_dep_w in ["struct"]:
           self.brt = Parameter(-2. * torch.rand((self.num_timesteps, in_features), device=self.device) + 1, requires_grad=True)
           self.crt = Parameter(-2. * torch.rand((self.num_timesteps, in_features), device=self.device) + 1, requires_grad=True)
           self.drt = Parameter(-2. * torch.rand((self.num_timesteps, in_features), device=self.device) + 1, requires_grad=True)
@@ -222,21 +235,24 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
       elif self.opt['gnl_W_style'] == 'diag_dom':
         self.W_W = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
-        if self.time_dep_unstruct_w:
+        if self.time_dep_w in ["unstruct"]:
           self.t_a = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=True)
           self.r_a = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=True)
-        if self.time_dep_struct_w:
+        elif self.time_dep_w in ["struct"]:
           self.at = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=True)
           self.bt = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=True)
           self.gt = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=True)
 
       elif self.opt['gnl_W_style'] in ['Z_diag', 'GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
-        if self.time_dep_struct_w:  # we'll call this structured time dependence
-          self.lamb_scale = Parameter(torch.Tensor(in_features), requires_grad=True)
-          self.lamb_start = Parameter(torch.Tensor(in_features), requires_grad=True)
-          self.lamb_width = Parameter(torch.Tensor(in_features), requires_grad=True)
+        if self.time_dep_w in ["struct"]:
+          # self.lamb_scale = Parameter(torch.Tensor(in_features), requires_grad=True)
+          # self.lamb_start = Parameter(torch.Tensor(in_features), requires_grad=True)
+          # self.lamb_width = Parameter(torch.Tensor(in_features), requires_grad=True)
+          self.lamb_scales_W = Parameter(torch.Tensor(in_features, opt['num_lamb_w']), requires_grad=True)
+          self.lamb_starts_W = Parameter(torch.Tensor(in_features, opt['num_lamb_w']), requires_grad=True)
+          self.lamb_widths_W = Parameter(torch.Tensor(in_features, opt['num_lamb_w']), requires_grad=True)
 
-        nts = self.num_timesteps if self.time_dep_unstruct_w else 1
+        nts = self.num_timesteps if self.time_dep_w == "unstruct" else 1
         if self.opt['gnl_W_style'] in ['Z_diag']:
           self.W_W_T = Parameter(torch.Tensor(nts, in_features, in_features))
         else:
@@ -256,8 +272,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             # init an upper triangular and a diagonal vector
             self.gnl_W_ss = Parameter(torch.ones(int((in_features ** 2 - in_features) / 2)))
 
-
-  def reset_nonlinG_parameters(self):
+  def reset_Omega_parameters(self):
     # Omega
     if self.opt['gnl_omega'] == 'sum':
       glorot(self.om_W)
@@ -268,9 +283,18 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       glorot(self.om_W_rep)
     elif self.opt['gnl_omega'] == 'diag':
       uniform(self.om_W, a=-1, b=1)
+      if self.time_dep_omega in ["struct"]:
+        # glorot(self.lamb_scales_Omega)
+        # glorot(self.lamb_starts_Omega)
+        # glorot(self.lamb_widths_Omega)
+        uniform(self.lamb_scales_Omega, a=-0.1, b=0.1) #Omega can be smaller than W and Q
+        # uniform(self.lamb_starts_Omega, a=-1, b=1)
+        uniform(self.lamb_starts_Omega, a=0, b=np.sqrt(self.opt['time']))
+        uniform(self.lamb_widths_Omega, a=-1, b=1)
     elif self.opt['gnl_omega'] == 'Omega_W_eig':
       uniform(self.om_W, a=-1, b=1)
 
+  def reset_nonlinG_parameters(self):
     if self.opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
       ones(self.m_alpha)
       ones(self.m_beta)
@@ -279,6 +303,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       ones(self.measure)
     elif self.opt['gnl_measure'] in ['nodewise_exp']:
       zeros(self.measure)
+
+    if self.time_dep_q in ["struct"]:
+      uniform(self.lamb_scales_Q, a=-1, b=1)
+      # uniform(self.lamb_starts_Q, a=-1, b=1)
+      uniform(self.lamb_starts_Q, a=0, b=np.sqrt(self.opt['time']))
+      uniform(self.lamb_widths_Q, a=-1, b=1)
 
   def reset_W_parameters(self):
     # W's
@@ -355,12 +385,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         glorot(self.W_W_T)
 
       elif self.opt['gnl_W_style'] == 'diag':
-        if self.time_dep_unstruct_w: #todo replace time_dep_unstruct_w with time_dep_unstruct_w
+        if self.time_dep_w == "unstruct":
           if self.opt['gnl_W_diag_init'] == 'uniform':
             uniform(self.gnl_W_D_T, a=-1, b=1)
           elif self.opt['gnl_W_diag_init'] == 'identity':
             ones(self.gnl_W_D_T)
-        elif self.time_dep_struct_w:
+        elif self.time_dep_w == "struct":
           uniform(self.brt, a=-1, b=1)
           uniform(self.crt, a=-1, b=1)
           uniform(self.drt, a=-1, b=1)
@@ -372,11 +402,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             pass  # done in init
 
       elif self.opt['gnl_W_style'] == 'diag_dom':
-        if self.time_dep_struct_w:
+        if self.time_dep_w == "struct":
           uniform(self.at, a=-1, b=1)
           uniform(self.bt, a=-1, b=1)
           uniform(self.gt, a=-1, b=1)
-        if self.time_dep_unstruct_w:
+        if self.time_dep_w == "struct":
           if self.opt['gnl_W_diag_init'] == 'uniform':
             glorot(self.W_W)
             uniform(self.t_a, a=-1, b=1)
@@ -391,11 +421,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             constant(self.r_a, fill_value=self.opt['gnl_W_diag_init_r'])
 
       elif self.opt['gnl_W_style'] in ['Z_diag', 'GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
-        if self.time_dep_struct_w:  # we'll call this structured time dependence
-          uniform(self.lamb_scale, a=-1, b=1)
-          uniform(self.lamb_start, a=-1, b=1)
-          uniform(self.lamb_width, a=-1, b=1)
-
+        if self.time_dep_w == "struct":
+          uniform(self.lamb_scales_W, a=-1, b=1)
+          # uniform(self.lamb_starts_W, a=-1, b=1)
+          uniform(self.lamb_starts_W, a=0, b=np.sqrt(self.opt['time']))
+          uniform(self.lamb_widths_W, a=-1, b=1)
         if self.opt['gnl_W_style'] in ['Z_diag']:
           glorot(self.W_W_T)
         else:
@@ -422,7 +452,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       Omega = (1 - 2 * self.om_W_eps) * torch.eye(self.in_features, device=self.device) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (
                              1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
     elif self.opt['gnl_omega'] == 'diag':
-      if self.time_dep_unstruct_w or self.time_dep_struct_w:
+      if self.time_dep_w in ["unstruct", "struct"]:
         Omega = torch.diag(self.om_W[T])
       else:
         Omega = torch.diag(self.om_W)
@@ -435,34 +465,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     else:
       pass
     return Omega
-
-  def set_gnlOmega(self):
-    if self.opt['gnl_omega'] == 'diag':
-      if self.opt['gnl_omega_diag'] == 'free':
-        Omega = torch.diag(self.om_W)
-        if self.opt['gnl_omega_activation'] == 'exponential':
-          Omega = -torch.exp(Omega)
-      elif self.opt['gnl_omega_diag'] == 'const':
-        Omega = torch.diag(self.opt['gnl_omega_diag_val'] * torch.ones(self.in_features, device=self.device))
-    elif self.opt['gnl_omega'] == 'zero':
-      Omega = torch.zeros((self.in_features,self.in_features), device=self.device)
-    elif self.opt['gnl_omega'] == 'Omega_eq_W':
-      # broke
-      Omega = -self.gnl_W
-    elif self.opt['gnl_omega'] == 'Omega_W_eig':
-      Omega = self.W_evec @ torch.diag(self.om_W) @ self.W_evec.T
-    return Omega
-
-  def set_gnlOmega_timedep(self, t):
-    T = int(t / self.opt['step_size'])
-    if self.opt['gnl_omega'] == 'diag':
-      Omega = torch.diag(self.om_W[T])
-      if self.opt['gnl_omega_activation'] == 'exponential':
-        Omega = -torch.exp(Omega)
-    else:
-      Omega = self.set_gnlOmega()
-    return Omega
-
 
   def set_gnlWS(self):
     "note every W is made symetric before returning"
@@ -575,6 +577,23 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
       return Ws, R_Ws
 
+  def set_gnlOmega(self):
+    if self.opt['gnl_omega'] == 'diag':
+      if self.opt['gnl_omega_diag'] == 'free':
+        Omega = torch.diag(self.om_W)
+        # todo check if this activation is still needed
+        if self.opt['gnl_omega_activation'] == 'exponential':
+          Omega = -torch.exp(Omega)
+      elif self.opt['gnl_omega_diag'] == 'const':
+        Omega = torch.diag(self.opt['gnl_omega_diag_val'] * torch.ones(self.in_features, device=self.device))
+    elif self.opt['gnl_omega'] == 'zero':
+      Omega = torch.zeros((self.in_features,self.in_features), device=self.device)
+    elif self.opt['gnl_omega'] == 'Omega_eq_W':
+      # broke
+      Omega = -self.gnl_W
+    elif self.opt['gnl_omega'] == 'Omega_W_eig':
+      Omega = self.W_evec @ torch.diag(self.om_W) @ self.W_evec.T
+    return Omega
 
   def set_gnlWS_timedep(self, t):
     T = int(t / self.opt['step_size'])
@@ -587,9 +606,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       return -self.W_W_T[T] @ self.W_W_T[T].t()
 
     elif self.opt['gnl_W_style'] == 'diag':
-      if self.time_dep_unstruct_w:
+      if self.time_dep_w == "unstruct":
         return torch.diag(self.gnl_W_D_T[T])
-      elif self.time_dep_struct_w:
+      elif self.time_dep_w == "struct":
         W = self.gnl_W_D
         alpha = torch.diag(torch.exp(self.brt[T] * T + self.brt[T]))
         beta = torch.diag(torch.exp(-self.brt[T] * T - self.crt[T]) + self.drt[T])
@@ -601,28 +620,30 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       W_temp = torch.cat([self.W_W, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
       W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
       W = (W+W.T) / 2
-      if self.time_dep_unstruct_w:
+      if self.time_dep_w == "unstruct":
         W_sum = self.t_a[T] * torch.abs(W).sum(dim=1) + self.r_a[T]
-      elif self.time_dep_struct_w:
+      elif self.time_dep_w == "struct":
         W_sum = W + self.at[T] * F.tanh(self.bt[T] * T + self.gt[T]) * torch.eye(n=W.shape[0], m=W.shape[1], device=self.device)
       Ws = W + torch.diag(W_sum)
       return Ws
 
     # idea for these options time dependent just always add the leading time dimension but if it's structured like abovecan just set T=0
     # then just set in the sertW_t function
-    elif self.opt['gnl_W_style'] in ['Z_diag']:
+    elif self.opt['gnl_W_style'] in ['Z_diag']: #todo check if ever set self.gnl_W_D(T) = eval(W(T))
       return (self.W_W_T[T, ...] + self.W_W_T[T, ...].t()) / 2
 
     elif self.opt['gnl_W_style'] in ['GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
-      #update diagonals
-      if self.time_dep_unstruct_w:
+      #update diagonals with eigen values
+      if self.time_dep_w == "unstruct":
         self.gnl_W_D = self.gnl_W_D_T[T]
-      elif self.time_dep_struct_w:  # we'll call this structured time dependence
-        self.gnl_W_D = self.lamb_scale * torch.exp(-(T - self.lamb_start)**2 * self.lamb_width)
+      elif self.time_dep_w == "struct":
+        # self.gnl_W_D = self.lamb_scale * torch.exp(-(T - self.lamb_start)**2 * self.lamb_width**2)
+        self.gnl_W_D = self.gaussian_lin_comb(T, self.lamb_scales_W, self.lamb_starts_W, self.lamb_widths_W)
 
-      #update orthogonals and return W
+      #calc orthogonals (for T-=0) and return W
       if self.opt['gnl_W_style'] in ['GS_Z_diag']:
-        self.gnl_W_U = gram_schmidt(self.W_U)
+        if T == 0:
+          self.gnl_W_U = gram_schmidt(self.W_U)
         W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
         return W_hat
       elif self.opt['gnl_W_style'] in ['cgnn_Z_diag']:  # https://github.com/DeepGraphLearning/ContinuousGNN/blob/a82332eb5d85e80fd233ab35e4d155f34eb1275d/src/trainer.py#L108
@@ -642,26 +663,59 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         return W_hat
       elif self.opt['gnl_W_style'] == 'householder':
         #init L=d-1 x d-dim random vectors #https://github.com/riannevdberg/sylvester-flows/blob/32dde9b7d696fee94f946a338182e542779eecfe/models/VAE.py#L502
-        H_prod = torch.eye(self.in_features, device=self.device)
-        for l in range(self.opt['householder_L']):
-          v = self.gnl_W_hh[:,l]
-          H = torch.eye(self.in_features, device=self.device) - 2 * torch.outer(v,v) / torch.pow(torch.norm(v, p=2), 2)
-          H_prod = H_prod @ H
-        self.gnl_W_U = H_prod
+        if T == 0:
+          H_prod = torch.eye(self.in_features, device=self.device)
+          for l in range(self.opt['householder_L']):
+            v = self.gnl_W_hh[:,l]
+            H = torch.eye(self.in_features, device=self.device) - 2 * torch.outer(v,v) / torch.pow(torch.norm(v, p=2), 2)
+            H_prod = H_prod @ H
+          self.gnl_W_U = H_prod
         W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
         return W_hat
       elif self.opt['gnl_W_style'] == 'skew_sym':
         #init an upper triangular and a diagonal vector
-        SS = []
-        start = 0
-        for i in range(self.in_features):
-          SS.append(torch.cat((torch.zeros(1+i, device=self.device), self.gnl_W_ss[start: start + self.in_features - (1+i)])))
-          start += self.in_features - (1+i)
-        S = torch.stack(SS, dim=0)
-        S = (S - S.T) / 2
-        self.gnl_W_U = torch.linalg.inv(torch.eye(self.in_features, device=self.device) - 0.5 * self.opt['step_size'] * S) @ (torch.eye(self.in_features, device=self.device) + 0.5 * self.opt['step_size'] * S)
+        if T == 0:
+          SS = []
+          start = 0
+          for i in range(self.in_features):
+            SS.append(torch.cat((torch.zeros(1+i, device=self.device), self.gnl_W_ss[start: start + self.in_features - (1+i)])))
+            start += self.in_features - (1+i)
+          S = torch.stack(SS, dim=0)
+          S = (S - S.T) / 2
+          self.gnl_W_U = torch.linalg.inv(torch.eye(self.in_features, device=self.device) - 0.5 * self.opt['step_size'] * S) @ (torch.eye(self.in_features, device=self.device) + 0.5 * self.opt['step_size'] * S)
         W_hat = self.gnl_W_U @ torch.diag(self.gnl_W_D) @ self.gnl_W_U.t()
         return W_hat
+
+
+  def set_gnlOmega_timedep(self, t):
+    T = int(t / self.opt['step_size'])
+    if self.opt['gnl_omega'] == 'diag':
+      if self.time_dep_omega == "unstruct":
+        Omega = torch.diag(self.om_W[T])
+      elif self.time_dep_omega == "struct":
+        Omega = self.gaussian_lin_comb(T, self.lamb_scales_Omega, self.lamb_starts_Omega, self.lamb_widths_Omega)
+      #todo check if this activation is still needed given learned sign of gaussians
+      if self.opt['gnl_omega_activation'] == 'exponential':
+        Omega = -torch.exp(Omega)
+    else:
+      Omega = self.set_gnlOmega()
+    return Omega
+
+  def set_gnlQ_timedep(self, t):
+    T = int(t / self.opt['step_size'])
+    if self.time_dep_q == "unstruct":
+      pass      # self.gnl_W_D = self.gnl_Q_D_T[T]
+    elif self.time_dep_q == "struct":
+      self.gnl_Q = self.gaussian_lin_comb(T, self.lamb_scales_Q, self.lamb_starts_Q, self.lamb_widths_Q)
+
+  def gaussian_lin_comb(self, T, lamb_scales, lamb_starts, lamb_widths):
+    lambs_D = lamb_scales * torch.exp(-(T - lamb_starts**2) ** 2 * lamb_widths ** 2)
+    return lambs_D.sum(-1)
+
+  def skew_gaussian_lin_comb(self):
+    pass
+    #https://math.stackexchange.com/questions/1128781/whats-the-formula-for-the-probability-density-function-of-skewed-normal-distribu
+
 
   def get_energy_gradient(self, x, tau, tau_transpose, attentions, edge_index, n):
     row_sum = scatter_add(attentions, edge_index[0], dim=0, dim_size=n)
@@ -873,18 +927,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     self.R_0 = R
 
   def reset_gnl_W_eigs(self, t):
-    #call dense W propagation matrix
-    if self.time_dep_unstruct_w or self.time_dep_struct_w:
-      # t = 0 #todo why was this here? i think from GNN level setting
+    #call dense W propagation matrix and set W_diag, W_U as required in the function call
+    if self.time_dep_w in ["struct", "unstruct"]:
       W = self.set_gnlWS_timedep(t)
     else:
       W = self.set_gnlWS()
 
-    #set eigen values and vectors of W
+    #set eigen_values and vectors of W
     if self.opt['gnl_W_style'] in ['GS', 'GS_Z_diag', 'cgnn', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init',
                                    'householder', 'skew_sym']:
       self.W_eval, self.W_evec = self.gnl_W_D, self.gnl_W_U
-    else:
+    else: #ie 'Z_diag'
       self.W_eval, self.W_evec = torch.linalg.eigh(W)  # confirmed unit norm output vectors
 
     if self.opt['gnl_W_norm']:
@@ -899,10 +952,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     else:
       self.gnl_W = W
 
-    if (self.time_dep_struct_w or self.time_dep_unstruct_w):
-      self.Omega = self.set_gnlOmega_timedep(t)
+    if self.time_dep_omega in ["struct", "unstruct"]:
+      self.Omega = torch.diag(self.set_gnlOmega_timedep(t)) #
     else:
       self.Omega = self.set_gnlOmega()
+
+    if self.time_dep_q in ["struct"]:#, "unstruct"]:
+      self.Q = self.set_gnlQ_timedep(t)
+
 
   def forward(self, t, x):  # t is needed when called by the integrator
     self.paths.append(x) #append initial condition of the block
@@ -911,7 +968,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       raise MaxNFEException
     self.nfe += 1
 
-    if self.time_dep_unstruct_w or self.time_dep_struct_w:
+    if (self.time_dep_w or self.time_dep_omega or self.time_dep_q) and t!=0:
       self.reset_gnl_W_eigs(t)
 
     if self.opt['beltrami']:
@@ -1026,7 +1083,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             else:
               f = f - 0.5 * self.mu * (x - self.x0)
         else:
-          if self.opt['test_mu_0']:
+          if self.opt['time_dep_q']:
+            f = f + self.gnl_Q * self.x0
+          elif self.opt['test_mu_0']:
             if self.opt['add_source']:
               f = f + self.beta_train * self.x0
           else:
@@ -1088,7 +1147,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       f = self.batchnorm_h(f)
 
     #dampening
-    f = f - (1 - self.opt['dampen_gamma']) * x / self.opt['step_size']
+    # f = f - (1 - self.opt['dampen_gamma']) * x / self.opt['step_size']
 
     #non-linearity
     if self.opt['pointwise_nonlin']:
