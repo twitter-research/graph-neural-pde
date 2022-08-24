@@ -1,5 +1,5 @@
 program: run_GNN.py
-method: grid
+method: random
 parameters:
   dataset:
     values: [chameleon]
