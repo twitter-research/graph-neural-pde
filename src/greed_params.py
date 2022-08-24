@@ -95,6 +95,7 @@ def zinc_params(opt):
     opt['min_lr'] = 1e-5#, type=float, default=1e-5, help='loss orthog term')
     opt['decay'] = 0.0
 
+    return opt
     #alternative hyper-params
     #https://github.com/Saro00/DGN/blob/master/realworld_benchmark/configs/molecules_graph_regression_DGN_ZINC.json
     # "params": {
