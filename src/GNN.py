@@ -113,6 +113,7 @@ class GNN(BaseGNN):
         # if self.opt['two_hops']:
         #   self.odeblock.odefunc.gnl_W_tilde = self.odeblock.odefunc.set_gnlWS()
         if self.opt['gnl_attention']:
+        if self.opt['gnl_attention']:
           self.odeblock.odefunc.set_M0()
 
       elif self.opt['gnl_style'] == 'att_rep_laps': #contains_self_loops(self.odeblock.odefunc.edge_index)
@@ -191,6 +192,8 @@ class GNN(BaseGNN):
       z = z @ self.odeblock.odefunc.W_evec # X(t) = Z(t)U_{W}.T  iff X(t)U_{W} = Z(t)  # sorry switching z/x notion between math and code
     elif self.opt['m2_W_eig'] == 'z2x':
       z = z @ self.odeblock.odefunc.W_evec.T # X(t) = Z(t)U_{W}.T  iff X(t)U_{W} = Z(t)  # sorry switching z/x notion between math and code
+    elif self.opt['m2_W_eig'] == 'eye':
+      pass
 
     paths = self.odeblock.odefunc.paths
 

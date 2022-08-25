@@ -1,0 +1,98 @@
+program: run_GNN.py
+method: random
+parameters:
+  dataset:
+    values: [chameleon, squirrel]
+  function:
+    values: [greed_non_linear]
+  epoch:
+    values: [250]
+  num_splits:
+    values: [3]
+  self_loop_weight:
+    values: [0.0]
+  no_early:
+    values: [True]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_W_style:
+    values: [W_orthog_init, householder]
+  loss_orthog_a:
+    values: [0.0, 0.1]
+  time_dep_w:
+    values: [struct]
+  time_dep_omega:
+    values: [struct]
+  time_dep_q:
+    values: [struct]
+  num_lamb_w:
+    values: [1, 2, 4]
+  num_lamb_omega:
+    values: [1, 2, 4]
+  num_lamb_q:
+    values: [1, 2, 4]
+  gnl_W_diag_init:
+    values: [uniform]
+  gnl_omega:
+    values: [diag, zero]
+  m1_W_eig:
+    values: [False]
+  m2_W_eig:
+    values: [z2x, eye]
+  gnl_W_norm:
+    values: [False]
+  m3_path_dep:
+    values: [None]
+  path_dep_norm:
+    values: [None]
+  gnl_activation:
+    values: [identity]
+  gnl_measure:
+    values: [ones]
+  drift:
+    values: [False]
+  test_mu_0:
+    values: [True]
+  add_source:
+    values: [False]
+  hidden_dim:
+    values: [64]
+  householder_L:
+    values: [64]
+  max_nfe:
+    values: [10000]
+  input_dropout:
+    distribution: uniform
+    min: 0.3
+    max: 0.7
+  dropout:
+    distribution: uniform
+    min: 0.15
+    max: 0.6
+  step_size:
+    values: [0.25, 0.5, 1.0]
+  time:
+    distribution: uniform
+    min: 3.0
+    max: 16.0
+  lr:
+    distribution: log_uniform
+    min: -9.2103
+    max: -3.9120
+  decay:
+    distribution: log_uniform
+    min: -11.5129
+    max: -6.2146
+  optimizer:
+    values: [adam]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+entity: graph_neural_diffusion
+project: orthog_W_t4b

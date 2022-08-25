@@ -946,7 +946,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     #penalty / skew sim / HH / orthog init
 
     # set progation matrix
-    if self.opt['m2_W_eig'] == 'z2x': #if it's z2x then set W as the diag of evals
+    if self.opt['m2_W_eig'] in ['z2x', 'eye']: #if it's z2x then set W as the diag of evals
       self.gnl_W = torch.diag(self.W_eval)
     #   self.gnl_W = self.W_eval  # gofasterhadamard vector diag - possible but a faff for reporting functions
     else:
