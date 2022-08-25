@@ -113,7 +113,6 @@ class GNN(BaseGNN):
         # if self.opt['two_hops']:
         #   self.odeblock.odefunc.gnl_W_tilde = self.odeblock.odefunc.set_gnlWS()
         if self.opt['gnl_attention']:
-        if self.opt['gnl_attention']:
           self.odeblock.odefunc.set_M0()
 
       elif self.opt['gnl_style'] == 'att_rep_laps': #contains_self_loops(self.odeblock.odefunc.edge_index)
