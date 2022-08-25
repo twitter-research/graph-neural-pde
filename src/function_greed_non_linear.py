@@ -697,6 +697,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       #todo check if this activation is still needed given learned sign of gaussians
       if self.opt['gnl_omega_activation'] == 'exponential':
         Omega = -torch.exp(Omega)
+      Omega = torch.diag(Omega)
     else:
       Omega = self.set_gnlOmega()
     return Omega
@@ -953,7 +954,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       self.gnl_W = W
 
     if self.time_dep_omega in ["struct", "unstruct"]:
-      self.Omega = torch.diag(self.set_gnlOmega_timedep(t)) #
+      self.Omega = self.set_gnlOmega_timedep(t)
     else:
       self.Omega = self.set_gnlOmega()
 

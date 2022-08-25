@@ -242,10 +242,11 @@ def report_5(ax, fig, odefunc, row, epoch):
 
     # node measure against degree or homophily, colour is class
     measures = odefunc.node_measures
-    ax[row, 1].scatter(x=measures[-1, :].cpu().numpy(), y=node_homophils.cpu().numpy(), c=labels.cpu().numpy())  # , cmap='Set1')
-    ax[row, 1].xaxis.set_tick_params(labelsize=16)
-    ax[row, 1].yaxis.set_tick_params(labelsize=16)
-    ax[row, 1].set_title(f"Node measures v node homophils, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
+    # ax[row, 1].scatter(x=measures[-1, :].cpu().numpy(), y=node_homophils.cpu().numpy(), c=labels.cpu().numpy())  # , cmap='Set1')
+    # ax[row, 1].xaxis.set_tick_params(labelsize=16)
+    # ax[row, 1].yaxis.set_tick_params(labelsize=16)
+    # ax[row, 1].set_title(f"Node measures v node homophils, epoch {epoch}, block {odefunc.block_num}", fontdict={'fontsize': 24})
+
     if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
 

@@ -100,36 +100,7 @@ def zinc_params(opt):
     opt['m2_W_eig'] = None
     opt['loss_orthog_a'] = 0.0
     return opt
-    #alternative hyper-params
-    #https://github.com/Saro00/DGN/blob/master/realworld_benchmark/configs/molecules_graph_regression_DGN_ZINC.json
-    # "params": {
-    #     "epochs": 1000,
-    #     "batch_size": 128,
-    #     "init_lr": 0.001,
-    #     "lr_reduce_factor": 0.5,
-    #     "lr_schedule_patience": 20,
-    #     "min_lr": 1e-5,
-    #     "weight_decay": 3e-6,
-    #     "max_time": 48
-    # "net_params": {
-    #     "L": 4,
-    #     "hidden_dim": 45,
-    #     "out_dim": 45,
-    #     "type_net": "complex",
-    #     "residual": true,
-    #     "readout": "mean",
-    #     "in_feat_dropout": 0.0,
-    #     "dropout": 0.0,
-    #     "graph_norm": true,       #<--- what's this?
-    #     "batch_norm": true,
-    #     "aggregators": "mean dir1-dx dir1-av",       #<--- what's this?
-    #     "scalers": "identity amplification attenuation",       #<--- what's this?
-    #     "towers": 5,       #<--- what's this?
-    #     "divide_input_first": false,
-    #     "divide_input_last": true,       #<--- what's this?
-    #     "edge_dim": 0,
-    #     "pretrans_layers": 1,       #<--- what's this?
-    #     "posttrans_layers": 1       #<--- what's this?
+
 
 def greed_hyper_params(opt):
     #ablation flags
@@ -168,7 +139,7 @@ def greed_hyper_params(opt):
     opt['tau_residual'] = True
 
     opt['test_mu_0'] = True # False #True
-    opt['add_source'] = True #False #True
+    opt['add_source'] = False #True
     opt['XN_no_activation'] = True #True #False
     opt['use_mlp'] = False #True #encoder mlp
     opt['m2_mlp'] = False #False #decoder mlp
@@ -188,7 +159,7 @@ def greed_hyper_params(opt):
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
     opt['step_size'] = 0.5 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 10#3.194 #4 #18.295 #10
-    opt['epoch'] = 300#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
+    opt['epoch'] = 129#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1#4#1
     opt['use_labels'] = False #True
     # opt['planetoid_split'] = True
@@ -201,7 +172,7 @@ def greed_hyper_params(opt):
     opt['time_dep_w'] = "struct"
     opt['time_dep_omega'] = "struct"
     opt['time_dep_q'] = "struct"
-    num_lamb = 4
+    num_lamb = 2
     opt['num_lamb_w'] = num_lamb
     opt['num_lamb_omega'] = num_lamb
     opt['num_lamb_q'] = num_lamb
@@ -224,7 +195,7 @@ def greed_hyper_params(opt):
         opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
         opt['gnl_attention'] = False #use L0 attention coefficients
         #Omega
-        opt['gnl_omega'] = 'diag'#'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
+        opt['gnl_omega'] = 'zero'#'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
         opt['gnl_omega_diag'] = 'free' #'free 'const'
         opt['gnl_omega_diag_val'] = None #1 #-1 # 1
         opt['gnl_omega_activation'] = 'identity' #identity
@@ -279,7 +250,7 @@ def greed_hyper_params(opt):
     opt['loss_reg_certainty'] = None #0.85 #0.95 #1.00 #0.95
     opt['dampen_gamma'] = 1.0#0.6    #assuming spec rad=4, dampen gamma=0.6, step=0.1
     opt['gnl_W_norm'] = False#True#False  # True #divide by spectral radius
-    opt['loss_orthog_a'] = 0.1#1.0
+    opt['loss_orthog_a'] = 0.0#0.1#1.0
 
     opt['pointwise_nonlin'] = False#True#False#True #todo add to args
     opt['graph_pool'] = ""#"mean"
@@ -291,7 +262,7 @@ def greed_hyper_params(opt):
     #gen_1 - alternates ranges of diffusion and drift (ie eq 43-44)
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
-    opt['reports_list'] = [1,2,4,7,8,9,10]#,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
+    opt['reports_list'] = []#[1,2,3,4,5,6,7,8,9,10]#,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
     opt['lie_trotter'] = None #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         if opt['lie_trotter'] in [None, 'gen_0']:
@@ -345,8 +316,8 @@ def not_sweep_args(opt, project_name=None, group_name=None):
 
     # args for running locally - specified in YAML for tunes
     opt['wandb'] = True #False #True
-    opt['wandb_track_grad_flow'] = False #False  #collect stats for reports
-    opt['run_track_reports'] = False #False#True ##run the evolution reports
+    opt['wandb_track_grad_flow'] = True #False  #collect stats for reports
+    opt['run_track_reports'] = True #False#True ##run the evolution reports
     opt['save_local_reports'] = True#True
     opt['save_wandb_reports'] = True#False#True
     opt['wandb_watch_grad'] = False
