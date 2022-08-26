@@ -102,7 +102,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if self.opt['gnl_style'] == 'softmax_attention' or self.opt['gnl_attention']:
       self.multihead_att_layer = SpGraphTransAttentionLayer_greed(in_features, out_features, opt, device, edge_weights=self.edge_weight).to(device)
 
-    if self.time_dep_w in ["unstruct", "struct"]:
+    if self.time_dep_w in ["unstruct", "struct_gaus", "struct_decay"]:
       self.init_W_timedep(in_features, opt)
     else:
       self.init_W(in_features, opt)
@@ -123,7 +123,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     self.batchnorm_h = nn.BatchNorm1d(in_features) #for zinc https://github.com/graphdeeplearning/benchmarking-gnns/blob/master/layers/gcn_layer.py
 
-    if self.time_dep_w in ["unstruct", "struct"]:
+    if self.time_dep_w in ["unstruct", "struct_gaus", "struct_decay"]:
       self.reset_W_timedep_parameters()
     else:
       self.reset_W_parameters()
@@ -210,7 +210,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if self.opt['gnl_style'] == 'general_graph':
       # gnl_omega -> "gnl_W"
       if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod']:
-        if self.time_dep_w in ["unstruct", "struct"]:
+        if self.time_dep_w in ["struct"]:
           self.W_W_T = Parameter(torch.Tensor(self.num_timesteps, in_features, in_features))
 
       elif self.opt['gnl_W_style'] == 'diag':
@@ -244,13 +244,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           self.gt = Parameter(torch.Tensor(self.num_timesteps, in_features), requires_grad=True)
 
       elif self.opt['gnl_W_style'] in ['Z_diag', 'GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
-        if self.time_dep_w in ["struct"]:
-          # self.lamb_scale = Parameter(torch.Tensor(in_features), requires_grad=True)
-          # self.lamb_start = Parameter(torch.Tensor(in_features), requires_grad=True)
-          # self.lamb_width = Parameter(torch.Tensor(in_features), requires_grad=True)
+        if self.time_dep_w in ["struct_gaus"]:
           self.lamb_scales_W = Parameter(torch.Tensor(in_features, opt['num_lamb_w']), requires_grad=True)
           self.lamb_starts_W = Parameter(torch.Tensor(in_features, opt['num_lamb_w']), requires_grad=True)
           self.lamb_widths_W = Parameter(torch.Tensor(in_features, opt['num_lamb_w']), requires_grad=True)
+        elif self.time_dep_w in ["struct_decay"]:
+          self.lambs_W = Parameter(torch.Tensor(in_features), requires_grad=True)
+          self.lamb_decays_W = Parameter(torch.Tensor(in_features), requires_grad=True)
 
         nts = self.num_timesteps if self.time_dep_w == "unstruct" else 1
         if self.opt['gnl_W_style'] in ['Z_diag']:
@@ -421,11 +421,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             constant(self.r_a, fill_value=self.opt['gnl_W_diag_init_r'])
 
       elif self.opt['gnl_W_style'] in ['Z_diag', 'GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
-        if self.time_dep_w == "struct":
+        if self.time_dep_w == "struct_gaus":
           uniform(self.lamb_scales_W, a=-1, b=1)
           # uniform(self.lamb_starts_W, a=-1, b=1)
           uniform(self.lamb_starts_W, a=0, b=np.sqrt(self.opt['time']))
           uniform(self.lamb_widths_W, a=-1, b=1)
+        elif self.time_dep_w in ["struct_decay"]:
+          uniform(self.lambs_W, a=-1, b=1)
+          uniform(self.lamb_decays_W, a=-1, b=1)
+
         if self.opt['gnl_W_style'] in ['Z_diag']:
           glorot(self.W_W_T)
         else:
@@ -452,7 +456,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       Omega = (1 - 2 * self.om_W_eps) * torch.eye(self.in_features, device=self.device) - self.om_W_eps * self.om_W_attr @ self.om_W_attr.T + (
                              1 - self.om_W_eps) * self.om_W_rep @ self.om_W_rep.T
     elif self.opt['gnl_omega'] == 'diag':
-      if self.time_dep_w in ["unstruct", "struct"]:
+      if self.time_dep_omega in ["unstruct", "struct"]:
         Omega = torch.diag(self.om_W[T])
       else:
         Omega = torch.diag(self.om_W)
@@ -636,9 +640,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       #update diagonals with eigen values
       if self.time_dep_w == "unstruct":
         self.gnl_W_D = self.gnl_W_D_T[T]
-      elif self.time_dep_w == "struct":
+      elif self.time_dep_w == "struct_gaus":
         # self.gnl_W_D = self.lamb_scale * torch.exp(-(T - self.lamb_start)**2 * self.lamb_width**2)
         self.gnl_W_D = self.gaussian_lin_comb(T, self.lamb_scales_W, self.lamb_starts_W, self.lamb_widths_W)
+      elif self.time_dep_w == "struct_decay":
+        self.gnl_W_D = self.lambs_W * torch.exp(-self.lamb_decays_W**2 * T)
 
       #calc orthogonals (for T-=0) and return W
       if self.opt['gnl_W_style'] in ['GS_Z_diag']:
@@ -929,7 +935,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def reset_gnl_W_eigs(self, t):
     #call dense W propagation matrix and set W_diag, W_U as required in the function call
-    if self.time_dep_w in ["struct", "unstruct"]:
+    if self.time_dep_w in ["struct", "struct_gaus", "struct_decay"]:
       W = self.set_gnlWS_timedep(t)
     else:
       W = self.set_gnlWS()
@@ -969,7 +975,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       raise MaxNFEException
     self.nfe += 1
 
-    if (self.time_dep_w or self.time_dep_omega or self.time_dep_q) and t!=0:
+    if (self.time_dep_w=="*strucut*" or self.time_dep_omega=="*strucut*" or self.time_dep_q=="*strucut*") and t!=0:
       self.reset_gnl_W_eigs(t)
 
     if self.opt['beltrami']:

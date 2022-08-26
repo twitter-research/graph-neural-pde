@@ -169,7 +169,7 @@ def greed_hyper_params(opt):
 
     #greed_non_linear params
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
-    opt['time_dep_w'] = "struct"
+    opt['time_dep_w'] = "struct_decay" #""struct"
     opt['time_dep_omega'] = "struct"
     opt['time_dep_q'] = "struct"
     num_lamb = 2

@@ -22,7 +22,7 @@ parameters:
   loss_orthog_a:
     values: [0.0, 0.1]
   time_dep_w:
-    values: [struct]
+    values: [struct_gaus, struct_decay]
   time_dep_omega:
     values: [struct]
   time_dep_q:
@@ -36,7 +36,7 @@ parameters:
   gnl_W_diag_init:
     values: [uniform]
   gnl_omega:
-    values: [zero]
+    values: [zero, diag]
   m1_W_eig:
     values: [False]
   m2_W_eig:
@@ -95,4 +95,4 @@ command:
   - --wandb
   - --wandb_sweep
 entity: graph_neural_diffusion
-project: orthog_W_t4b
+project: orthog_W_t4c

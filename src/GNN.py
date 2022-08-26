@@ -73,41 +73,6 @@ class GNN(BaseGNN):
       if self.opt['gnl_style'] == 'scaled_dot':
         self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_scaled_dot_omega()
       elif self.opt['gnl_style'] == 'general_graph':
-
-        # if self.odeblock.odefunc.time_dep_unstruct_w or self.odeblock.odefunc.time_dep_struct_w:
-        #   t = 0
-        #   W = self.odeblock.odefunc.set_gnlWS_timedep(t)
-        # else:
-        #   W = self.odeblock.odefunc.set_gnlWS()
-
-        #todo do all this at the function level s can reset if time dep
-        # if self.opt['gnl_W_style'] in ['Z_diag', 'GS', 'GS_Z_diag', 'cgnn', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
-        #   self.W_eval, self.W_evec = self.odeblock.odefunc.gnl_W_D, self.odeblock.odefunc.W_U
-        # elif self.opt['gnl_W_style'] in ['loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
-        #   self.W_eval, self.W_evec = self.odeblock.odefunc.gnl_W_D, self.odeblock.odefunc.gnl_W_U
-        # else:
-        #   self.W_eval, self.W_evec = torch.linalg.eigh(W) #confirmed unit norm output vectors
-        #
-        # self.odeblock.odefunc.W_eval, self.odeblock.odefunc.W_evec = self.W_eval, self.W_evec
-        #
-        # if self.opt['gnl_W_norm']: #need to do this at the GNN level as called once in the forward call
-        #   W = W / torch.abs(self.W_eval).max()
-        #
-        # #set progation matrix
-        # # if self.opt['gnl_W_style'] in ['Z_diag', 'GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym']:
-        # if self.opt['m2_W_eig'] == 'z2x':
-        #   # self.odeblock.odefunc.gnl_W = torch.diag(self.W_eval)
-        #   self.odeblock.odefunc.gnl_W = self.W_eval #gofasterhadamard
-        # else:
-        #   self.odeblock.odefunc.gnl_W = W
-        #
-        # if (self.odeblock.odefunc.time_dep_struct_w or self.odeblock.odefunc.time_dep_unstruct_w) and self.opt['gnl_W_style'] == 'diag':
-        #   T = 0
-        #   self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_gnlOmega_timedep(T)
-        # else:
-        #   self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_gnlOmega()
-
-        #todo is this the ca
         self.odeblock.odefunc.reset_gnl_W_eigs(t=0)
 
         # if self.opt['two_hops']:
