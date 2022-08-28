@@ -167,16 +167,6 @@ def greed_hyper_params(opt):
     # opt['patience'] = 3
     # opt['target_homoph'] = '0.70' #for synthetic cora
 
-    #greed_non_linear params
-    opt['two_hops'] = False # This turns on the functionality to get equation 28 working
-    opt['time_dep_w'] = "struct_decay" #""struct"
-    opt['time_dep_omega'] = "struct"
-    opt['time_dep_q'] = "struct"
-    num_lamb = 2
-    opt['num_lamb_w'] = num_lamb
-    opt['num_lamb_omega'] = num_lamb
-    opt['num_lamb_q'] = num_lamb
-
     opt['gnl_style'] = 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
 
@@ -251,10 +241,19 @@ def greed_hyper_params(opt):
     opt['dampen_gamma'] = 1.0#0.6    #assuming spec rad=4, dampen gamma=0.6, step=0.1
     opt['gnl_W_norm'] = False#True#False  # True #divide by spectral radius
     opt['loss_orthog_a'] = 0.0#0.1#1.0
+    opt['source_term'] = 'time_dep_q'#'scalar' #'fidelity''diag' 'time_dep_q:
+
+    opt['two_hops'] = False # This turns on the functionality to get equation 28 working
+    opt['time_dep_w'] = "struct_decay" #""struct"
+    opt['time_dep_omega'] = "struct"
+    opt['time_dep_q'] = "struct"
+    num_lamb = 2
+    opt['num_lamb_w'] = num_lamb
+    opt['num_lamb_omega'] = num_lamb
+    opt['num_lamb_q'] = num_lamb
 
     opt['pointwise_nonlin'] = False#True#False#True #todo add to args
     opt['graph_pool'] = ""#"mean"
-
 
     #definitions of lie trotter
     #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold

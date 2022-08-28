@@ -40,10 +40,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       set_reporting_attributes(self, data, opt)
       set_folders_pdfs(self, opt)
 
-    self.time_dep_w = opt['time_dep_w']
-    self.time_dep_omega = opt['time_dep_omega']
-    self.time_dep_q = opt['time_dep_q']
-    if self.time_dep_w in ["unstruct"]:#"struct", "unstruct"]:
+    self.time_dep_w = opt['time_dep_w'] #["struct_gaus", "struct_decay", "unstruct"]
+    self.time_dep_omega = opt['time_dep_omega'] #["struct", "unstruct"]
+    self.time_dep_q = opt['time_dep_q'] #["struct", "unstruct"]
+    if self.time_dep_w in ["unstruct"]:
       self.num_timesteps = math.ceil(self.opt['time']/self.opt['step_size'])
     else:
       self.num_timesteps = 1
@@ -83,10 +83,18 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_omega'] == 'Omega_eq_W':
       self.om_W_eps = 0
 
-    if self.time_dep_q in ["struct"]:
-      self.lamb_scales_Q = Parameter(torch.Tensor(in_features, opt['num_lamb_q']), requires_grad=True)
-      self.lamb_starts_Q = Parameter(torch.Tensor(in_features, opt['num_lamb_q']), requires_grad=True)
-      self.lamb_widths_Q = Parameter(torch.Tensor(in_features, opt['num_lamb_q']), requires_grad=True)
+    #init source term params
+    if self.opt['source_term'] == 'scalar':
+      self.q_scalar = nn.Parameter(torch.Tensor([1.]))
+    elif self.opt['source_term'] == 'fidelity':
+      self.q_fidelity = nn.Parameter(torch.Tensor([1.]))
+    elif self.opt['source_term'] == 'diag':
+      self.q_diag = nn.Parameter(torch.Tensor(in_features))
+    elif self.opt['source_term'] == 'time_dep_q':
+      if self.time_dep_q in ["struct"]:
+        self.lamb_scales_Q = Parameter(torch.Tensor(in_features, opt['num_lamb_q']), requires_grad=True)
+        self.lamb_starts_Q = Parameter(torch.Tensor(in_features, opt['num_lamb_q']), requires_grad=True)
+        self.lamb_widths_Q = Parameter(torch.Tensor(in_features, opt['num_lamb_q']), requires_grad=True)
 
 
     if opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
@@ -304,11 +312,18 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     elif self.opt['gnl_measure'] in ['nodewise_exp']:
       zeros(self.measure)
 
-    if self.time_dep_q in ["struct"]:
-      uniform(self.lamb_scales_Q, a=-1, b=1)
-      # uniform(self.lamb_starts_Q, a=-1, b=1)
-      uniform(self.lamb_starts_Q, a=0, b=np.sqrt(self.opt['time']))
-      uniform(self.lamb_widths_Q, a=-1, b=1)
+    if self.opt['source_term'] == 'scalar':
+      ones(self.q_scalar)
+    elif self.opt['source_term'] == 'fidelity':
+      ones(self.q_fidelity)
+    elif self.opt['source_term'] == 'diag':
+      ones(self.q_diag)
+    elif self.opt['source_term'] == 'time_dep_q':
+      if self.time_dep_q in ["struct"]:
+        uniform(self.lamb_scales_Q, a=-1, b=1)
+        # uniform(self.lamb_starts_Q, a=-1, b=1)
+        uniform(self.lamb_starts_Q, a=0, b=np.sqrt(self.opt['time']))
+        uniform(self.lamb_widths_Q, a=-1, b=1)
 
   def reset_W_parameters(self):
     # W's
@@ -641,7 +656,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       if self.time_dep_w == "unstruct":
         self.gnl_W_D = self.gnl_W_D_T[T]
       elif self.time_dep_w == "struct_gaus":
-        # self.gnl_W_D = self.lamb_scale * torch.exp(-(T - self.lamb_start)**2 * self.lamb_width**2)
         self.gnl_W_D = self.gaussian_lin_comb(T, self.lamb_scales_W, self.lamb_starts_W, self.lamb_widths_W)
       elif self.time_dep_w == "struct_decay":
         self.gnl_W_D = self.lambs_W * torch.exp(-self.lamb_decays_W**2 * T)
@@ -964,9 +978,22 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     else:
       self.Omega = self.set_gnlOmega()
 
-    if self.time_dep_q in ["struct"]:#, "unstruct"]:
-      self.Q = self.set_gnlQ_timedep(t)
+    if self.opt['source_term'] == 'time_dep_q':
+      if self.time_dep_q in ["struct"]:#, "unstruct"]:
+        self.Q = self.set_gnlQ_timedep(t)
 
+
+  def add_source(self, f, x):
+    if self.opt['source_term'] == 'scalar':
+      f = f + self.q_scalar * self.x0
+    elif self.opt['source_term'] == 'fidelity':
+      f = f - 0.5 * self.q_fidelity * (x - self.x0)
+    elif self.opt['source_term'] == 'diag':
+      f = f + self.q_diag * self.x0
+    elif self.opt['source_term'] == 'time_dep_q':
+      f = f + self.gnl_Q * self.x0
+
+    return f
 
   def forward(self, t, x):  # t is needed when called by the integrator
     self.paths.append(x) #append initial condition of the block
@@ -975,7 +1002,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       raise MaxNFEException
     self.nfe += 1
 
-    if (self.time_dep_w=="*strucut*" or self.time_dep_omega=="*strucut*" or self.time_dep_q=="*strucut*") and t!=0:
+    if (self.time_dep_w in ["struct_gaus", "struct_decay"] or self.time_dep_omega in ["struct"] or self.time_dep_q in ["struct"]) and t!=0:
       self.reset_gnl_W_eigs(t)
 
     if self.opt['beltrami']:
@@ -1082,22 +1109,28 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             f = self.alpha * LfW + (1 - self.alpha) * RfW
             #torch.sparse_coo_tensor(edges, self.L_0, (self.n_nodes, self.n_nodes)).to_dense().detach().numpy()
 
+
+        # if self.opt['lie_trotter'] == 'gen_2':
+        #   if self.opt['lt_block_type'] != 'label':
+        #     if self.opt['test_mu_0']:
+        #       if self.opt['add_source']:
+        #         f = f + self.beta_train * self.x0
+        #     else:
+        #       f = f - 0.5 * self.mu * (x - self.x0)
+        # else:
+        #   if self.opt['time_dep_q']:
+        #     f = f + self.gnl_Q * self.x0
+        #   elif self.opt['test_mu_0']:
+        #     if self.opt['add_source']:
+        #       f = f + self.beta_train * self.x0
+        #   else:
+        #     f = f - 0.5 * self.mu * (x - self.x0)
+
         if self.opt['lie_trotter'] == 'gen_2':
           if self.opt['lt_block_type'] != 'label':
-            if self.opt['test_mu_0']:
-              if self.opt['add_source']:
-                f = f + self.beta_train * self.x0
-            else:
-              f = f - 0.5 * self.mu * (x - self.x0)
+            f = self.add_source(f, x)
         else:
-          if self.opt['time_dep_q']:
-            f = f + self.gnl_Q * self.x0
-          elif self.opt['test_mu_0']:
-            if self.opt['add_source']:
-              f = f + self.beta_train * self.x0
-          else:
-            f = f - 0.5 * self.mu * (x - self.x0)
-            # f = f - 0.5 * self.beta_train * (x - self.x0) #replacing beta with mu
+          f = self.add_source(f, x)
 
       if self.do_drift(t):
         if not self.do_diffusion(t):
