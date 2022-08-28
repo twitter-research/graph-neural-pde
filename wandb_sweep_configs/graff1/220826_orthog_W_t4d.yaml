@@ -55,10 +55,6 @@ parameters:
     values: [ones]
   drift:
     values: [False]
-  test_mu_0:
-    values: [True]
-  add_source:
-    values: [False]
   hidden_dim:
     values: [64]
   householder_L:
