@@ -38,7 +38,7 @@ parameters:
   m2_W_eig:
     values: [z2x, eye]
   pointwise_nonlin:
-    value: [True, False]
+    values: [True, False]
   gnl_W_norm:
     values: [False]
   m3_path_dep:
