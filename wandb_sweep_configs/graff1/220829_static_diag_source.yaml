@@ -69,8 +69,8 @@ parameters:
     values: [0.25, 0.5, 1.0]
   time:
     distribution: uniform
-    min: 3.0
-    max: 16.0
+    min: 2.5
+    max: 5.0
   lr:
     distribution: log_uniform
     min: -9.2103
