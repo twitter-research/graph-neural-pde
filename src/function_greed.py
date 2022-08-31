@@ -96,7 +96,9 @@ class ODEFuncGreed(ODEFunc):
     index_tensor = data.edge_index[0]
     deg = degree(index_tensor, self.n_nodes)
 
-    deg_inv_sqrt = deg.pow_(-0.5)
+    # deg_inv_sqrt = deg.pow_(-0.5)
+    deg_inv_sqrt = deg.pow(-0.5)
+
     deg_inv_sqrt = deg_inv_sqrt.masked_fill_(deg_inv_sqrt == float('inf'), 0.)
 
     return deg_inv_sqrt

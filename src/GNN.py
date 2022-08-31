@@ -34,7 +34,8 @@ class GNN(BaseGNN):
       x = torch.cat([x, p], dim=1)
     else:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-      x = self.m1(x)
+      # x = self.m1(x)
+      x = self.m1(x.type(torch.LongTensor)).squeeze()
 
     if self.opt['use_mlp']:
       x = F.dropout(x, self.opt['dropout'], training=self.training)
@@ -213,6 +214,10 @@ class GNN(BaseGNN):
       label_dist_paths = torch.cat(label_dist_list, axis=-1)
       return self.m3(label_dist_paths)
 
+    if self.opt['graph_pool'] == "add":
+      z  = global_add_pool(z, self.odeblock.odefunc.data.batch).squeeze(-1)
+    elif self.opt['graph_pool'] == "mean":
+      z  = global_mean_pool(z, self.odeblock.odefunc.data.batch).squeeze(-1)
 
     if self.opt['lie_trotter'] == 'gen_2': #if we end in label diffusion block don't need to decode to logits
       if self.opt['lt_gen2_args'][-1]['lt_block_type'] != 'label':
@@ -220,10 +225,10 @@ class GNN(BaseGNN):
     else:
       z = self.m2(z)
 
-    if self.opt['graph_pool'] == "add":
-      z  = global_add_pool(z, self.odeblock.odefunc.data.batch).squeeze(-1)
-    elif self.opt['graph_pool'] == "mean":
-      z  = global_mean_pool(z, self.odeblock.odefunc.data.batch).squeeze(-1)
+    # if self.opt['graph_pool'] == "add":
+    #   z  = global_add_pool(z, self.odeblock.odefunc.data.batch).squeeze(-1)
+    # elif self.opt['graph_pool'] == "mean":
+    #   z  = global_mean_pool(z, self.odeblock.odefunc.data.batch).squeeze(-1)
 
     #make sure nodewise decoder has non-linearity if not sumation from pooling layers commutes with decoders
     #there is one in GNN_postXN function

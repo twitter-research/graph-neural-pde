@@ -218,7 +218,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if self.opt['gnl_style'] == 'general_graph':
       # gnl_omega -> "gnl_W"
       if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod']:
-        if self.time_dep_w in ["struct"]:
+        if self.time_dep_w in ["unstruct"]:
           self.W_W_T = Parameter(torch.Tensor(self.num_timesteps, in_features, in_features))
 
       elif self.opt['gnl_W_style'] == 'diag':
@@ -949,7 +949,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def reset_gnl_W_eigs(self, t):
     #call dense W propagation matrix and set W_diag, W_U as required in the function call
-    if self.time_dep_w in ["struct", "struct_gaus", "struct_decay"]:
+    if self.time_dep_w in ["unstruct", "struct", "struct_gaus", "struct_decay"]:
       W = self.set_gnlWS_timedep(t)
     else:
       W = self.set_gnlWS()
@@ -992,7 +992,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       f = f + self.q_diag * self.x0
     elif self.opt['source_term'] == 'time_dep_q':
       f = f + self.gnl_Q * self.x0
-
+    else:
+      pass
     return f
 
   def forward(self, t, x):  # t is needed when called by the integrator
@@ -1002,7 +1003,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       raise MaxNFEException
     self.nfe += 1
 
-    if (self.time_dep_w in ["struct_gaus", "struct_decay"] or self.time_dep_omega in ["struct"] or self.time_dep_q in ["struct"]) and t!=0:
+    if (self.time_dep_w in ["struct_gaus", "struct_decay", "unstruct"] or self.time_dep_omega in ["struct", "unstruct"] or self.time_dep_q in ["struct", "unstruct"-]) and t!=0:
       self.reset_gnl_W_eigs(t)
 
     if self.opt['beltrami']:

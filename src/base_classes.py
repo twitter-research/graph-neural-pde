@@ -119,8 +119,13 @@ class BaseGNN(MessagePassing):
         wandb.config.update({'hidden_dim': opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']}, allow_val_change=True)  # required when update hidden_dim in beltrami
       else:
         opt['hidden_dim'] = opt['feat_hidden_dim'] + opt['pos_enc_hidden_dim']
+
+    elif opt['dataset'] == "ZINC":
+      num_atom_type = 28  # https://github.com/graphdeeplearning/benchmarking-gnns/issues/16
+      self.m1 = nn.Embedding(num_atom_type, opt['hidden_dim'])
     else:
       self.m1 = nn.Linear(self.num_features, opt['hidden_dim'])
+
 
     if self.opt['use_mlp']:
       self.m11 = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
@@ -138,7 +143,9 @@ class BaseGNN(MessagePassing):
     if opt['fc_out']:
       self.fc = nn.Linear(opt['hidden_dim'], opt['hidden_dim'])
 
-    if opt['m2_mlp']:
+    if opt['dataset'] == "ZINC":
+      self.m2 = MLPReadout(opt['hidden_dim'], 1, L=2)
+    elif opt['m2_mlp']:
       self.m2 = M2_MLP(opt['hidden_dim'], self.num_classes, opt)
     else:
       self.m2 = nn.Linear(opt['hidden_dim'], self.num_classes)
@@ -194,8 +201,30 @@ class M2_MLP(nn.Module):
     self.m22 = nn.Linear(out_dim, num_classes)
 
   def forward(self, x):
-    x = F.dropout(x, self.opt['dropout'], training=self.training)
-    x = F.dropout(x + self.m21(torch.tanh(x)), self.opt['dropout'], training=self.training)  # tanh not relu to keep sign, with skip connection
-    x = F.dropout(self.m22(torch.tanh(x)), self.opt['dropout'], training=self.training)
+    # x = F.dropout(x, self.opt['dropout'], training=self.training)
+    # x = F.dropout(x + self.m21(torch.tanh(x)), self.opt['dropout'], training=self.training)  # tanh not relu to keep sign, with skip connection
+    # x = F.dropout(self.m22(torch.tanh(x)), self.opt['dropout'], training=self.training)
+    # return x
 
+    x = F.dropout(x, self.opt['dropout'], training=self.training)
+    x = F.dropout(self.m21(torch.relu(x)), self.opt['dropout'], training=self.training)
+    x = F.dropout(self.m22(torch.relu(x)), self.opt['dropout'], training=self.training)
     return x
+
+
+#https://github.com/graphdeeplearning/benchmarking-gnns/blob/b6c407712fa576e9699555e1e035d1e327ccae6c/layers/mlp_readout_layer.py#L9
+class MLPReadout(nn.Module):
+  def __init__(self, input_dim, output_dim, L=2):  # L=nb_hidden_layers
+    super().__init__()
+    list_FC_layers = [nn.Linear(input_dim // 2 ** l, input_dim // 2 ** (l + 1), bias=True) for l in range(L)]
+    list_FC_layers.append(nn.Linear(input_dim // 2 ** L, output_dim, bias=True))
+    self.FC_layers = nn.ModuleList(list_FC_layers)
+    self.L = L
+
+  def forward(self, x):
+    y = x
+    for l in range(self.L):
+      y = self.FC_layers[l](y)
+      y = F.relu(y)
+    y = self.FC_layers[self.L](y)
+    return y

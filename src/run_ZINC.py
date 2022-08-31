@@ -7,7 +7,7 @@ import torch
 from torch_geometric.data import DataLoader
 from torch_geometric.datasets import ZINC
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
-from torch_geometric.utils import homophily, add_remaining_self_loops, to_undirected, is_undirected
+from torch_geometric.utils import homophily, add_remaining_self_loops, to_undirected, is_undirected, contains_self_loops, degree
 from torch_scatter import scatter_add
 import torch.nn.functional as F
 import wandb
@@ -55,12 +55,19 @@ def get_optimizer(name, parameters, lr, weight_decay=0):
 
 
 def zinc_batch_reset(model, data):
-    # things need to reset because number of nodes in each batch is different
-    model.num_nodes = data.num_nodes
-    model.odeblock.odefunc.deg_inv_sqrt = model.odeblock.odefunc.get_deg_inv_sqrt(data).to(model.device)
-    model.odeblock.odefunc.deg_inv = model.odeblock.odefunc.deg_inv_sqrt * model.odeblock.odefunc.deg_inv_sqrt
+    # things need to reset because number of nodes in each graph/batch is different
+
+    data.edge_index, _ = add_remaining_self_loops(data.edge_index) #add self loops to replicate naive GCN
+
     model.odeblock.odefunc.data = data
     model.odeblock.odefunc.edge_index = data.edge_index
+    model.num_nodes = data.num_nodes
+    model.odeblock.odefunc.n_nodes = data.num_nodes
+    model.odeblock.odefunc.degree = degree(data.edge_index[0], data.num_nodes).to(model.device)
+    model.odeblock.odefunc.self_loops = model.odeblock.odefunc.get_self_loops().to(model.device)
+    model.odeblock.odefunc.deg_inv_sqrt = model.odeblock.odefunc.get_deg_inv_sqrt(data).to(model.device)
+    model.odeblock.odefunc.deg_inv = model.odeblock.odefunc.deg_inv_sqrt * model.odeblock.odefunc.deg_inv_sqrt
+
 
 
 def train(model, optimizer, train_loader, pos_encoding=None):
@@ -83,7 +90,7 @@ def train(model, optimizer, train_loader, pos_encoding=None):
 
         optimizer.zero_grad()
         feat = data.x
-        out = model(feat, pos_encoding)
+        out = model(feat, pos_encoding).squeeze()
 
         train_error += (out - data.y).abs().sum().item()
         loss = lf(out, data.y)
@@ -91,10 +98,7 @@ def train(model, optimizer, train_loader, pos_encoding=None):
         if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
             reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
             regularization_coeffs = model.regularization_coeffs
-
-            reg_loss = sum(
-                reg_state * coeff for reg_state, coeff in zip(reg_states, regularization_coeffs) if coeff != 0
-            )
+            reg_loss = sum(reg_state * coeff for reg_state, coeff in zip(reg_states, regularization_coeffs) if coeff != 0)
             loss = loss + reg_loss
 
         model.fm.update(model.getNFE())
@@ -108,8 +112,6 @@ def train(model, optimizer, train_loader, pos_encoding=None):
     train_acc = train_error / len(train_loader.dataset)
     av_loss = cum_loss / len(train_loader.dataset)
 
-    # return loss.item(), train_acc
-    # return cum_loss.item(), train_acc
     return av_loss.item(), train_acc
 
 
@@ -130,34 +132,11 @@ def test(model, loader):
             data = data.to(model.device)
             zinc_batch_reset(model, data)
 
-            out = model(data.x)
+            out = model(data.x).squeeze()
             error += (out - data.y).abs().sum().item()
             loss += lf(out, data.y)
 
-    return error / len(loader.dataset), loss
-
-
-
-# def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
-#     model.eval()
-#     feat = data.x
-#     if model.opt['use_labels']:
-#         feat = add_labels(feat, data.y, data.train_mask, model.num_classes, model.device)
-#     logits, accs = model(feat, pos_encoding), []
-#     for _, mask in data('train_mask', 'val_mask', 'test_mask'):
-#         pred = logits[mask].max(1)[1]
-#         acc = pred.eq(data.y[mask]).sum().item() / mask.sum().item()
-#         accs.append(acc)
-#     epoch = model.odeblock.odefunc.epoch
-#     if opt['wandb']:
-#         lf = torch.nn.CrossEntropyLoss()
-#         loss = lf(logits[data.train_mask], data.y.squeeze()[data.train_mask])
-#         wandb_log(data, model, opt, loss, accs[0], accs[1], accs[2], epoch)
-#         model.odeblock.odefunc.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
-#
-#     if opt['run_track_reports'] and epoch in opt['wandb_epoch_list']:
-#         reports_manager(model, data)
-#     return accs
+    return loss, error / len(loader.dataset)
 
 
 @torch.no_grad()
@@ -313,12 +292,12 @@ def unpack_omega_params(self):
 
 
 def main(cmd_opt):
-    if cmd_opt['use_best_params']:
-        best_opt = best_params_dict[cmd_opt['dataset']]
-        opt = {**cmd_opt, **best_opt}
-        merge_cmd_args(cmd_opt, opt)
-    else:
-        opt = cmd_opt
+    # if cmd_opt['use_best_params']:
+    #     best_opt = best_params_dict[cmd_opt['dataset']]
+    #     opt = {**cmd_opt, **best_opt}
+    #     merge_cmd_args(cmd_opt, opt)
+    # else:
+    opt = cmd_opt
 
     opt['dataset'] = "ZINC" #set by deafult
 
@@ -412,8 +391,8 @@ def main(cmd_opt):
 
             loss, tmp_train_acc = train(model, optimizer, train_loader, pos_encoding)
 
-            tmp_val_acc, val_loss = test(model, val_loader)
-            tmp_test_acc, test_loss = test(model, test_loader)
+            val_loss, tmp_val_acc = test(model, val_loader)
+            test_loss, tmp_test_acc = test(model, test_loader)
 
             scheduler.step(val_loss)
 

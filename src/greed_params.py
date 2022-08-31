@@ -69,6 +69,13 @@ def zinc_params(opt):
     #     "batch_norm": true,
     #     "self_loop": false
 
+    opt['gnl_style'] = 'general_graph'
+    opt['gnl_measure'] = 'ones'
+    opt['gnl_activation'] = 'identity'  # 'sigmoid' #'identity'
+    opt['gnl_attention'] = False  # use L0 attention coefficients
+    # Omega
+    opt['gnl_omega'] = 'zero'  # 'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
+    opt['gnl_W_style'] = 'sum'#'householder'  #
 
     opt['use_best_params'] = False
     #GNN hyper-params
@@ -79,6 +86,9 @@ def zinc_params(opt):
     opt['step_size'] = 1.0
     opt['time'] = 4
     opt['time_dep_w'] = "unstruct"
+    opt['time_dep_omega'] = None
+    opt['time_dep_q'] = None
+
     opt['pointwise_nonlin'] = True  #ReLU
     opt['conv_batch_norm'] = True
     opt['graph_pool'] = 'mean'
@@ -99,6 +109,14 @@ def zinc_params(opt):
 
     opt['m2_W_eig'] = None
     opt['loss_orthog_a'] = 0.0
+
+    # added self loops
+    # removed adding source
+    opt['source_term'] = ""
+    # MLP decoder
+    opt['m2_mlp'] = True
+    #decoder readout order versus pooling. Relu and tanh.
+
     return opt
 
 
@@ -315,8 +333,8 @@ def not_sweep_args(opt, project_name=None, group_name=None):
 
     # args for running locally - specified in YAML for tunes
     opt['wandb'] = True #False #True
-    opt['wandb_track_grad_flow'] = True #False  #collect stats for reports
-    opt['run_track_reports'] = True #False#True ##run the evolution reports
+    opt['wandb_track_grad_flow'] = False  #collect stats for reports
+    opt['run_track_reports'] = False#True ##run the evolution reports
     opt['save_local_reports'] = True#True
     opt['save_wandb_reports'] = True#False#True
     opt['wandb_watch_grad'] = False
@@ -670,7 +688,7 @@ def default_params():
     parser.add_argument('--drift_grad', type=str, default='True', help='collect gradient off drift term')
     parser.add_argument('--loss_orthog_a', type=float, default=0, help='loss orthog multiplier term')
     parser.add_argument('--householder_L', type=int, default=8, help='num iterations of householder reflection for W_orthog')
-    parser.add_argument('--source_term', type=str, default='scalar', help='describes type of source term to add')
+    parser.add_argument('--source_term', type=str, default='', help='describes type of source term to add')
 
 
     parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
