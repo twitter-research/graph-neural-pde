@@ -76,11 +76,11 @@ parameters:
     min: 2.5
     max: 10.0
   input_dropout:
-    value: [0.]
+    value: [0]
   dropout:
-    value: [0.]
+    value: [0]
   decay:
-    value: [0.]
+    value: [0]
   optimizer:
     values: [adam]
 command:
