@@ -76,7 +76,7 @@ class GNN(BaseGNN):
       if self.opt['gnl_style'] == 'scaled_dot':
         self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_scaled_dot_omega()
       elif self.opt['gnl_style'] == 'general_graph':
-        self.odeblock.odefunc.reset_gnl_W_eigs(t=0)
+        self.odeblock.odefunc.reset_gnl_W_eigs(T=0)
 
         # if self.opt['two_hops']:
         #   self.odeblock.odefunc.gnl_W_tilde = self.odeblock.odefunc.set_gnlWS()

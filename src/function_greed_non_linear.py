@@ -131,7 +131,11 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         z[i] = 1.
         self.attractors[i] = Parameter(z)
 
-    self.batchnorm_h = nn.BatchNorm1d(in_features) #for zinc https://github.com/graphdeeplearning/benchmarking-gnns/blob/master/layers/gcn_layer.py
+    if self.opt['conv_batch_norm'] == "shared":
+      self.batchnorm_h = nn.BatchNorm1d(in_features)  # for zinc https://github.com/graphdeeplearning/benchmarking-gnns/blob/master/layers/gcn_layer.py
+    elif self.opt['conv_batch_norm'] == "layerwise":
+      self.batchnorms = [nn.BatchNorm1d(in_features) for _ in range(self.num_timesteps)]
+
 
     if self.time_dep_w in ["unstruct", "struct_gaus", "struct_decay"]:
       self.reset_W_timedep_parameters()
@@ -954,8 +958,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     R = torch.cat([-A, -diags], dim=-1)
     self.R_0 = R
 
-  def reset_gnl_W_eigs(self, t):
-    T = int(t / self.opt['step_size'])
+  def reset_gnl_W_eigs(self, T):
+    # T = int(t / self.opt['step_size'])
     #call dense W propagation matrix and set W_diag, W_U as required in the function call
     if self.time_dep_w in ["unstruct", "struct", "struct_gaus", "struct_decay"]:
       W = self.set_gnlWS_timedep(T)
@@ -1017,8 +1021,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       raise MaxNFEException
     self.nfe += 1
 
+    T = int(t / self.opt['step_size'])
     if (self.time_dep_w in ["struct_gaus", "struct_decay", "unstruct"] or self.time_dep_omega in ["struct", "unstruct"] or self.time_dep_q in ["struct", "unstruct"]) and t!=0:
-      self.reset_gnl_W_eigs(t)
+      self.reset_gnl_W_eigs(T)
 
     if self.opt['beltrami']:
       pass
@@ -1198,8 +1203,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       #   self.prev_grad = f
 
     # batch norm in each feature channel - # #benchmarking GNN "https://arxiv.org/pdf/2003.00982.pdf" sections: Normalization and Residual Connect" and "C.1 Graph Regression with ZINC dataset"
-    if self.opt['conv_batch_norm']:
+    if self.opt['conv_batch_norm'] == "shared":
       f = self.batchnorm_h(f)
+    elif self.opt['conv_batch_norm'] == "layerwise":
+      f = self.batchnorms[T](f)
 
     #dampening
     # f = f - (1 - self.opt['dampen_gamma']) * x / self.opt['step_size']

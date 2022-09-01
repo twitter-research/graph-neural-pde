@@ -93,7 +93,7 @@ def zinc_params(opt):
     # W choice (sum / z2x)/ non-lin / share weights / heterogeniety
 
     opt['pointwise_nonlin'] = True  #ReLU
-    opt['conv_batch_norm'] = False#True
+    opt['conv_batch_norm'] = "layerwise" #"shared" False#True
     opt['graph_pool'] = 'mean'
 
     #optimisation
@@ -365,7 +365,7 @@ def tf_ablation_args(opt):
                 'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
                 'two_hops',
                 'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'gnl_W_norm', 'drift_grad',
-                'pointwise_nonlin', 'conv_batch_norm',
+                'pointwise_nonlin',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout',
                 'wandb', 'wandb_sweep', 'adjoint']
     arg_intersect = list(set(opt.keys()) & set(tf_args))
