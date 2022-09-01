@@ -699,7 +699,10 @@ def default_params():
     parser.add_argument('--batch', type=int, default=128, help='batch_size')
     #zinc params
     parser.add_argument('--graph_pool', type=str, default='', help='type of graph pool operation - {add, mean}')
-
+    parser.add_argument('--lr_reduce_factor', type=float, default=0.5, help='lr_reduce_factor')
+    parser.add_argument('--lr_schedule_patience', type=int, default=10, help='lr_schedule_patience')
+    parser.add_argument('--lr_schedule_threshold', type=float, default=0.0001, help='lr_schedule_threshold')
+    parser.add_argument('--min_lr', type=float, default=0.00001, help='min_lr')
 
     args = parser.parse_args()
     opt = vars(args)

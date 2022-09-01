@@ -823,9 +823,9 @@ if __name__ == '__main__':
     parser.add_argument('--batch', type=int, default=128, help='batch size')
     parser.add_argument('--test_batches', type=int, default=None, help='reduce data size to batch num when developing')
     parser.add_argument('--lr_reduce_factor', type=float, default=0.5, help='lr_reduce_factor')
-    parser.add_argument('--lr_schedule_patience', type=int, default=20, help='lr_schedule_patience')
-    parser.add_argument('--lr_schedule_threshold', type=int, default=0.01, help='lr_schedule_patience')
-    parser.add_argument('--min_lr', type=float, default=1e-5, help='loss orthog term')
+    parser.add_argument('--lr_schedule_patience', type=int, default=10, help='lr_schedule_patience')
+    parser.add_argument('--lr_schedule_threshold', type=float, default=0.0001, help='lr_schedule_threshold')
+    parser.add_argument('--min_lr', type=float, default=0.00001, help='min_lr')
 
 
     args = parser.parse_args()
