@@ -815,7 +815,7 @@ if __name__ == '__main__':
     parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
     parser.add_argument('--pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
     parser.add_argument('--conv_batch_norm', type=str, default='False', help='conv_batch_norm')
-    #(f - f.mean(dim=0).unsqueeze(0)) / f.std(dim=0).unsqueeze(0)
+    parser.add_argument('--batch', type=int, default=128, help='batch_size')
 
     #zinc params
     parser.add_argument('--graph_pool', type=str, default='', help='type of graph pool operation - {add, mean}')
