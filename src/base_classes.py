@@ -203,12 +203,12 @@ class M2_MLP(nn.Module):
   def forward(self, x):
     # x = F.dropout(x, self.opt['dropout'], training=self.training)
     # x = F.dropout(x + self.m21(torch.tanh(x)), self.opt['dropout'], training=self.training)  # tanh not relu to keep sign, with skip connection
-    # x = F.dropout(self.m22(torch.tanh(x)), self.opt['dropout'], training=self.training)
+    # x = F.dropout(self.m22(x), self.opt['dropout'], training=self.training)
     # return x
 
     x = F.dropout(x, self.opt['dropout'], training=self.training)
     x = F.dropout(self.m21(torch.relu(x)), self.opt['dropout'], training=self.training)
-    x = F.dropout(self.m22(torch.relu(x)), self.opt['dropout'], training=self.training)
+    x = F.dropout(self.m22(x), self.opt['dropout'], training=self.training)
     return x
 
 

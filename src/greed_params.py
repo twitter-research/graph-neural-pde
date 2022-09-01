@@ -75,7 +75,7 @@ def zinc_params(opt):
     opt['gnl_attention'] = False  # use L0 attention coefficients
     # Omega
     opt['gnl_omega'] = 'zero'  # 'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
-    opt['gnl_W_style'] = 'sum'#'householder'  #
+    opt['gnl_W_style'] = 'sum'#'asym'#'sum'#'householder'  #
 
     opt['use_best_params'] = False
     #GNN hyper-params
@@ -86,11 +86,14 @@ def zinc_params(opt):
     opt['step_size'] = 1.0
     opt['time'] = 4
     opt['time_dep_w'] = "unstruct"
+    opt['source_term'] = "time_dep_bias"
     opt['time_dep_omega'] = None
     opt['time_dep_q'] = None
 
+    # W choice (sum / z2x)/ non-lin / share weights / heterogeniety
+
     opt['pointwise_nonlin'] = True  #ReLU
-    opt['conv_batch_norm'] = True
+    opt['conv_batch_norm'] = False#True
     opt['graph_pool'] = 'mean'
 
     #optimisation
@@ -100,7 +103,7 @@ def zinc_params(opt):
     opt['test_batches'] = None#, type=int, default=None, help='reduce data size to batch num when developing')
 
     opt['lr'] = 1e-3
-    opt['lr2'] = 1e-5
+    # opt['lr2'] = 1e-5
     opt['lr_reduce_factor'] = 0.5#, type=float, default=0.5, help='lr_reduce_factor')
     opt['lr_schedule_patience'] = 10#, type=int, default=20, help='lr_schedule_patience')
     opt['lr_schedule_threshold'] = 0.0001#, type=int, default=0.01, help='lr_schedule_patience') torch default value
@@ -110,12 +113,11 @@ def zinc_params(opt):
     opt['m2_W_eig'] = None
     opt['loss_orthog_a'] = 0.0
 
-    # added self loops
+    # check if dgl uses self loops? Yes as per standard GCN implementation
     # removed adding source
-    opt['source_term'] = ""
     # MLP decoder
     opt['m2_mlp'] = True
-    #decoder readout order versus pooling. Relu and tanh.
+    #decoder readout order versus pooling.
 
     return opt
 

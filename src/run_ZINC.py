@@ -32,7 +32,7 @@ from data_synth_hetero import get_pyg_syn_cora
 
 def get_zinc_data(split):
   path = '../data/ZINC'
-  dataset = ZINC(path,subset=True,split=split)
+  dataset = ZINC(path, subset=True, split=split)
   # dataset.num_classes = 1    #can't override existing value which is unique float values
   dataset.num_nodes = dataset.data.x.shape[0]
   dataset.data.edge_attr = None #not using edge features
@@ -57,7 +57,7 @@ def get_optimizer(name, parameters, lr, weight_decay=0):
 def zinc_batch_reset(model, data):
     # things need to reset because number of nodes in each graph/batch is different
 
-    data.edge_index, _ = add_remaining_self_loops(data.edge_index) #add self loops to replicate naive GCN
+    # data.edge_index, _ = add_remaining_self_loops(data.edge_index) #add self loops to replicate naive GCN
 
     model.odeblock.odefunc.data = data
     model.odeblock.odefunc.edge_index = data.edge_index
@@ -94,7 +94,6 @@ def train(model, optimizer, train_loader, pos_encoding=None):
 
         train_error += (out - data.y).abs().sum().item()
         loss = lf(out, data.y)
-
         if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
             reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
             regularization_coeffs = model.regularization_coeffs
@@ -104,11 +103,14 @@ def train(model, optimizer, train_loader, pos_encoding=None):
         model.fm.update(model.getNFE())
         model.resetNFE()
         loss.backward()  # retain_graph=True)
-        optimizer.step()
+        # #sum([1 if param.grad.sum() > 0 else 0 for param in optimizer.param_groups[0]['params']])
+        # optimizer.param_groups[0]['params'][0].grad.sum()
+        # sum([0 if param.grad is None else param.grad.sum() > 0 for param in optimizer.param_groups[0]['params']])
+        optimizer.step() #[0 if param.grad is None else param.grad.sum() for param in optimizer.param_groups[0]['params']]
         model.bm.update(model.getNFE())
         model.resetNFE()
 
-        cum_loss += loss * (data.batch.max() + 1)
+        cum_loss += loss.detach().item() * (data.batch.max() + 1)
     train_acc = train_error / len(train_loader.dataset)
     av_loss = cum_loss / len(train_loader.dataset)
 
@@ -121,22 +123,21 @@ def test(model, loader):
 
     model.eval()
     error = 0
-    loss = 0
-    with torch.no_grad():
-        for i, data in enumerate(loader):
-            if model.opt['test_batches'] is not None:
-                if i >= model.opt['test_batches']:
-                    break
+    cum_loss = 0
+    for i, data in enumerate(loader):
+        if model.opt['test_batches'] is not None:
+            if i >= model.opt['test_batches']:
+                break
 
-            # things need to reset because number of nodes in each batch is different
-            data = data.to(model.device)
-            zinc_batch_reset(model, data)
+        # things need to reset because number of nodes in each batch is different
+        data = data.to(model.device)
+        zinc_batch_reset(model, data)
 
-            out = model(data.x).squeeze()
-            error += (out - data.y).abs().sum().item()
-            loss += lf(out, data.y)
+        out = model(data.x).squeeze()
+        error += (out - data.y).abs().sum().item()
+        cum_loss += lf(out, data.y) * (data.batch.max() + 1)
 
-    return loss, error / len(loader.dataset)
+    return cum_loss / len(loader.dataset), error / len(loader.dataset)
 
 
 @torch.no_grad()
@@ -346,12 +347,12 @@ def main(cmd_opt):
 
     # dataset = get_dataset(opt, '../data', opt['not_lcc'])
     train_dataset = get_zinc_data('train')
-    test_dataset = get_zinc_data('test')
     val_dataset = get_zinc_data('val')
+    test_dataset = get_zinc_data('test')
 
     train_loader = DataLoader(train_dataset, batch_size=opt['batch'], shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=opt['batch'], shuffle=False)
     val_loader = DataLoader(val_dataset, batch_size=opt['batch'], shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=opt['batch'], shuffle=False)
 
     if opt['beltrami']:
         pos_encoding = apply_beltrami(dataset.data, opt).to(device)
@@ -370,7 +371,9 @@ def main(cmd_opt):
         #     if i > 0:
         #         break
             # dataset.data = data
-
+        # if opt['function'] in ['gcn']:
+        #     model = GCN(opt, train_dataset, hidden=[opt['hidden_dim']], dropout=opt['dropout'], device=device).to(device)
+        # else: #greed_non_linear
         model = GNN(opt, train_dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, train_dataset, device).to(device)
 
         parameters = [p for p in model.parameters() if p.requires_grad]
