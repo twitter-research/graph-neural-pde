@@ -35,7 +35,7 @@ class GNN(BaseGNN):
     else:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
       # x = self.m1(x)
-      x = self.m1(x.type(torch.LongTensor)).squeeze()
+      x = self.m1(x.type(torch.LongTensor, device=self.device)).squeeze()
 
     if self.opt['use_mlp']:
       x = F.dropout(x, self.opt['dropout'], training=self.training)
