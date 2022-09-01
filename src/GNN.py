@@ -34,10 +34,10 @@ class GNN(BaseGNN):
       x = torch.cat([x, p], dim=1)
     else:
       x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-      # x = self.m1(x)
-      print(x.device)
-      print(self.device)
-      x = self.m1(x.type(torch.LongTensor).to(self.device)).squeeze()
+      if self.opt['dataset'] == "ZINC":
+        x = self.m1(x.type(torch.LongTensor).to(self.device)).squeeze()
+      else:
+        x = self.m1(x)
 
     if self.opt['use_mlp']:
       x = F.dropout(x, self.opt['dropout'], training=self.training)
