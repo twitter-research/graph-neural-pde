@@ -1,4 +1,4 @@
-program: run_GNN.py
+program: run_ZINC.py
 method: random
 parameters:
   dataset:
