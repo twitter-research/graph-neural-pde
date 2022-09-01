@@ -134,8 +134,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if self.opt['conv_batch_norm'] == "shared":
       self.batchnorm_h = nn.BatchNorm1d(in_features)  # for zinc https://github.com/graphdeeplearning/benchmarking-gnns/blob/master/layers/gcn_layer.py
     elif self.opt['conv_batch_norm'] == "layerwise":
-      self.batchnorms = [nn.BatchNorm1d(in_features) for _ in range(self.num_timesteps)]
-
+      nts = math.ceil(self.opt['time'] / self.opt['step_size'])
+      self.batchnorms = [nn.BatchNorm1d(in_features) for _ in range(nts)]
 
     if self.time_dep_w in ["unstruct", "struct_gaus", "struct_decay"]:
       self.reset_W_timedep_parameters()
