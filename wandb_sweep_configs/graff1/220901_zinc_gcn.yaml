@@ -70,7 +70,7 @@ parameters:
   max_nfe:
     values: [10000]
   step_size:
-    values: [1.0]
+    values: [0.25, 1.0]
   time:
     values: [4.0, 8.0]
   input_dropout:
