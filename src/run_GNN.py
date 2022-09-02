@@ -1048,17 +1048,18 @@ if __name__ == '__main__':
     opt = tf_ablation_args(opt)
     main(opt)
 
-
 # terminal commands for sweeps
 # wandb sweep ../wandb_sweep_configs/greed_sweep_grid.yaml
 # ./run_sweeps.sh XXX
 # nohup ./run_sweeps.sh XXX &
 
-
-# wandb sync --include-synced --include-offline --sync-all
-# wandb sync --include-offline /wandb/offline-*
-
-
+#https://docs.wandb.ai/ref/cli/wandb-offline
+    #needs to be done via .yaml arg given main setup
+    #opt['use_wandb_offline'] = True
+#https://docs.wandb.ai/ref/cli/wandb-sync
+    # wandb sync --include-synced --include-offline --sync-all
+    # wandb sync --include-offline /wandb/offline-*
+    # wandb sync --sync-all
 
 # --dataset texas --geom_gcn_splits --num_splits 10 --epoch 2 --function greed --use_best_params --method euler --step_size 0.25
 # --dataset texas --geom_gcn_splits --num_splits 10 --epoch 2 --function greed_lin_homo --beltrami --pos_enc_type GDC --method euler --step_size 0.25 --self_loop_weight 0
