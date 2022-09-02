@@ -50,7 +50,7 @@ parameters:
   source_term:
     values: [None, scalar, time_dep_bias, diag]
   conv_batch_norm:
-    values: [layerwise, shared, False]
+    values: [layerwise, False]
   graph_pool:
     values: [mean]
   batch:
@@ -66,11 +66,11 @@ parameters:
   min_lr:
     values: [0.00001]
   hidden_dim:
-    values: [64, 128, 256]
+    values: [64, 256]
   max_nfe:
     values: [10000]
   step_size:
-    values: [0.25, 1.0]
+    values: [1.0]
   time:
     values: [4.0, 8.0]
   input_dropout:
