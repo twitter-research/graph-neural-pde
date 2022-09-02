@@ -536,8 +536,7 @@ def default_params():
 
     # wandb logging and tuning
     parser.add_argument('--wandb', action='store_true', help="flag if logging to wandb")
-    parser.add_argument('-wandb_offline', dest='use_wandb_offline',
-                        action='store_true')  # https://docs.wandb.ai/guides/technical-faq
+    parser.add_argument('-wandb_offline', action='store_true')  # https://docs.wandb.ai/guides/technical-faq
 
     parser.add_argument('--wandb_sweep', action='store_true',
                         help="flag if sweeping")  # if not it picks up params in greed_params
