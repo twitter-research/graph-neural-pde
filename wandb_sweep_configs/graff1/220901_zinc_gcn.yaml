@@ -1,5 +1,5 @@
 program: run_ZINC.py
-method: random
+method: grid
 parameters:
   dataset:
     values: [ZINC]
@@ -70,11 +70,9 @@ parameters:
   max_nfe:
     values: [10000]
   step_size:
-    values: [0.25, 1.0]
+    values: [1.0]
   time:
-    distribution: uniform
-    min: 2.5
-    max: 10.0
+    values: [4.0, 8.0]
   input_dropout:
     values: [0.0]
   dropout:
@@ -91,4 +89,4 @@ command:
   - --wandb
   - --wandb_sweep
 entity: graph_neural_diffusion
-project: zinc_gcn
+project: zinc_gcn_grid
