@@ -499,7 +499,7 @@ def main(cmd_opt):
         opt = cmd_opt
 
     if opt['wandb']:
-        if opt['use_wandb_offline']:
+        if opt['wandb_offline']:
             os.environ["WANDB_MODE"] = "offline"
         else:
             os.environ["WANDB_MODE"] = "run"

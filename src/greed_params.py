@@ -367,7 +367,7 @@ def tf_ablation_args(opt):
                 'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'gnl_W_norm', 'drift_grad',
                 'pointwise_nonlin',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout',
-                'wandb', 'wandb_sweep', 'adjoint']
+                'wandb', 'wandb_sweep', 'wandb_offline', 'adjoint']
     arg_intersect = list(set(opt.keys()) & set(tf_args))
     for arg in arg_intersect:
         str_tf = opt[arg]

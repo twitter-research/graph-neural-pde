@@ -303,7 +303,7 @@ def main(cmd_opt):
     opt['dataset'] = "ZINC" #set by deafult
 
     if opt['wandb']:
-        if opt['use_wandb_offline']:
+        if opt['wandb_offline']:
             os.environ["WANDB_MODE"] = "offline"
         else:
             os.environ["WANDB_MODE"] = "run"
