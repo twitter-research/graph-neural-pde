@@ -88,6 +88,6 @@ command:
   - ${args}
   - --wandb
   - --wandb_sweep
-  - --use_wandb_offline
+  - --wandb_offline
 entity: graph_neural_diffusion
 project: zinc_gcn_grid
