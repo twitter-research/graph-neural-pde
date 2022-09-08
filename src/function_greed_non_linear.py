@@ -97,7 +97,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.lamb_scales_Q = Parameter(torch.Tensor(in_features, opt['num_lamb_q']), requires_grad=True)
         self.lamb_starts_Q = Parameter(torch.Tensor(in_features, opt['num_lamb_q']), requires_grad=True)
         self.lamb_widths_Q = Parameter(torch.Tensor(in_features, opt['num_lamb_q']), requires_grad=True)
-
+      elif self.time_dep_q in ["unstruct"]:
+        self.gnl_Q_D_T = nn.Parameter(torch.Tensor(self.num_timesteps, in_features))
 
     if opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
       self.m_alpha = Parameter(torch.Tensor([1.]))
@@ -332,6 +333,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         # uniform(self.lamb_starts_Q, a=-1, b=1)
         uniform(self.lamb_starts_Q, a=0, b=np.sqrt(self.opt['time']))
         uniform(self.lamb_widths_Q, a=-1, b=1)
+      elif self.time_dep_q in ["unstruct"]:
+        xavier_uniform_(self.gnl_Q_D_T)
 
   def reset_W_parameters(self):
     # W's
@@ -736,9 +739,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
   def set_gnlQ_timedep(self, T):
     if self.time_dep_q == "unstruct":
-      pass      # self.gnl_W_D = self.gnl_Q_D_T[T]
+      return self.gnl_Q_D_T[T]
     elif self.time_dep_q == "struct":
-      self.gnl_Q = self.gaussian_lin_comb(T, self.lamb_scales_Q, self.lamb_starts_Q, self.lamb_widths_Q)
+      return self.gaussian_lin_comb(T, self.lamb_scales_Q, self.lamb_starts_Q, self.lamb_widths_Q)
 
   def gaussian_lin_comb(self, T, lamb_scales, lamb_starts, lamb_widths):
     lambs_D = lamb_scales * torch.exp(-(T - lamb_starts**2) ** 2 * lamb_widths ** 2)
@@ -993,8 +996,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if self.opt['source_term'] == 'time_dep_bias':
       self.q_diag = self.q_diag_T[T]
     elif self.opt['source_term'] == 'time_dep_q':
-      if self.time_dep_q in ["struct"]:#, "unstruct"]:
-        self.Q = self.set_gnlQ_timedep(T)
+      if self.time_dep_q in ["struct"]:
+        self.gnl_Q = self.set_gnlQ_timedep(T)
+      elif self.time_dep_q in ["unstruct"]:
+        self.gnl_Q = self.set_gnlQ_timedep(T)
 
 
   def add_source(self, f, x):

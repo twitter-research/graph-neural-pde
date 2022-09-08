@@ -34,7 +34,7 @@ parameters:
   time_dep_omega:
     values: [None]
   time_dep_q:
-    values: [None]
+    values: [unstruct]
   gnl_W_diag_init:
     values: [uniform]
   gnl_omega:
