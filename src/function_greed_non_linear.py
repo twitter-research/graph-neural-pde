@@ -98,7 +98,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.lamb_starts_Q = Parameter(torch.Tensor(in_features, opt['num_lamb_q']), requires_grad=True)
         self.lamb_widths_Q = Parameter(torch.Tensor(in_features, opt['num_lamb_q']), requires_grad=True)
       elif self.time_dep_q in ["unstruct"]:
-        self.gnl_Q_D_T = nn.Parameter(torch.Tensor(self.num_timesteps, in_features))
+        nts = math.ceil(self.opt['time'] / self.opt['step_size'])
+        self.gnl_Q_D_T = nn.Parameter(torch.Tensor(nts, in_features))
 
     if opt['gnl_measure'] in ['deg_poly', 'deg_poly_exp']:
       self.m_alpha = Parameter(torch.Tensor([1.]))

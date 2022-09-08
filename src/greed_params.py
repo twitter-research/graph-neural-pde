@@ -86,9 +86,9 @@ def zinc_params(opt):
     opt['step_size'] = 1.0
     opt['time'] = 4
     opt['time_dep_w'] = "unstruct"
-    opt['source_term'] = "time_dep_bias"
+    opt['source_term'] = "time_dep_q" # "time_dep_bias"
     opt['time_dep_omega'] = None
-    opt['time_dep_q'] = None
+    opt['time_dep_q'] = "unstruct" #None
 
     # W choice (sum / z2x)/ non-lin / share weights / heterogeniety
 
