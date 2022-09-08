@@ -1,0 +1,92 @@
+program: run_ZINC.py
+method: grid
+parameters:
+  dataset:
+    values: [ZINC]
+  function:
+    values: [greed_non_linear]
+  gnl_W_norm:
+    values: [False]
+  m3_path_dep:
+    values: [None]
+  path_dep_norm:
+    values: [None]
+  gnl_activation:
+    values: [identity]
+  gnl_measure:
+    values: [ones]
+  drift:
+    values: [False]
+  epoch:
+    values: [250]
+  num_splits:
+    values: [1]
+  self_loop_weight:
+    values: [0.0]
+  no_early:
+    values: [True]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_W_style:
+    values: [diag_dom]
+  time_dep_omega:
+    values: [None]
+  time_dep_q:
+    values: [None]
+  gnl_W_diag_init:
+    values: [uniform]
+  gnl_omega:
+    values: [zero]
+  m1_W_eig:
+    values: [False]
+  m2_W_eig:
+    values: [False]
+  pointwise_nonlin:
+    values: [True]
+  time_dep_w:
+    values: [unstruct, False]
+  source_term:
+    values: [None, time_dep_q]
+  conv_batch_norm:
+    values: [layerwise, None]
+  graph_pool:
+    values: [mean]
+  batch:
+    values: [128]
+  lr:
+    values: [0.001]
+  lr_reduce_factor:
+    values: [0.5]
+  lr_schedule_patience:
+    values: [10]
+  lr_schedule_threshold:
+    values: [0.0001]
+  min_lr:
+    values: [0.00001]
+  hidden_dim:
+    values: [64, 128]
+  max_nfe:
+    values: [10000]
+  step_size:
+    values: [1.0]
+  time:
+    values: [4.0, 8.0]
+  input_dropout:
+    values: [0.0]
+  dropout:
+    values: [0.0]
+  decay:
+    values: [0.0]
+  optimizer:
+    values: [adam]
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+entity: graph_neural_diffusion
+project: zinc_gcn_grid3
