@@ -1,3 +1,6 @@
+# Copyright 2022 Twitter, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 from base_classes import ODEblock
 import torch
 from utils import get_rw_adj, gcn_norm_fill_val

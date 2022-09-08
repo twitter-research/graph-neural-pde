@@ -1,3 +1,6 @@
+# Copyright 2022 Twitter, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 """
 Code partially copied from 'Diffusion Improves Graph Learning' repo https://github.com/klicperajo/gdc/blob/master/data.py
 """

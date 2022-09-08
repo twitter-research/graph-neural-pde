@@ -1,3 +1,6 @@
+# Copyright 2022 Twitter, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 """
 Code taken from https://github.com/jianhao2016/GPRGNN/blob/master/src/dataset_utils.py
 """

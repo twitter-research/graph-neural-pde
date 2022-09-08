@@ -1,3 +1,6 @@
+# Copyright 2022 Twitter, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 from function_laplacian_diffusion import LaplacianODEFunc
 from block_constant import ConstantODEblock
 from function_graff import ODEFuncGraff

@@ -1,6 +1,6 @@
-"""
-Implementation of the functions proposed in Graph embedding energies and diffusion
-"""
+# Copyright 2022 Twitter, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 import math
 import os
 import shutil
@@ -20,18 +20,12 @@ from torch.distributions import Categorical
 from utils import MaxNFEException, sigmoid_deriv, tanh_deriv, squareplus_deriv
 from base_classes import ODEFunc
 
-
 class ODEFuncGraff(ODEFunc):
 
   def __init__(self, in_features, out_features, opt, data, device):
     super(ODEFuncGraff, self).__init__(opt, data, device)
     self.in_features = in_features
     self.out_features = out_features
-    # if opt['self_loop_weight'] > 0:
-    #   self.edge_index, self.edge_weight = add_remaining_self_loops(data.edge_index, data.edge_attr,
-    #                                                                fill_value=opt['self_loop_weight'])
-    # else:
-
     self.edge_index, self.edge_weight = data.edge_index, data.edge_attr
 
     self.n_nodes = data.x.shape[0]

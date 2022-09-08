@@ -1,3 +1,6 @@
+# Copyright 2022 Twitter, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 import torch
 from torch import nn
 from torch_geometric.nn.conv import MessagePassing

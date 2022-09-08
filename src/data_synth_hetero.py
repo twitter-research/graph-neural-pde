@@ -1,3 +1,6 @@
+# Copyright 2022 Twitter, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
 from deeprobust.graph.data import Dataset, Dpr2Pyg, Pyg2Dpr
 import os.path as osp
 import numpy as np

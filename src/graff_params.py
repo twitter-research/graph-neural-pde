@@ -1,4 +1,5 @@
-import argparse
+# Copyright 2022 Twitter, Inc.
+# SPDX-License-Identifier: Apache-2.0
 
 best_params_dict = {
 'chameleon': { 'w_style': 'diag_dom' ,'lr': 0.001411 ,'decay': 0.0004295 ,'dropout': 0.3674 ,'input_dropout': 0.4327 ,'hidden_dim': 64 ,'time': 3.194 ,'step_size': 1 },

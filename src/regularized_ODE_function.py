@@ -1,4 +1,8 @@
-## This code has been adapted from https://github.com/cfinlay/ffjord-rnode/ 
+# Copyright 2022 Twitter, Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+
+## This code has been adapted from https://github.com/cfinlay/ffjord-rnode/
 ## MIT License
 
 import torch
