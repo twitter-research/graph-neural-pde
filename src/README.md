@@ -43,3 +43,21 @@ Examples of our Gradient Flow Framework (GRAFF) achieve the following performanc
 | GRAFF(DD) | 88.38±4.53 | 87.45±2.94 | 83.24±6.49 | 36.09±0.81 | 54.52±1.37 | 71.08±1.75 | 76.92±1.7 | 88.95±0.52 | 87.61±0.97 |
 | GRAFF(D) | 88.11±5.57 | 88.83±3.29 | 84.05±6.1 | 37.11±1.08 | 47.36±1.89 | 66.78±1.28 | 77.3±1.85 | 90.04±0.41 | 88.01±1.03 |
 | GRAFF-timedep(DD) | 87.03±4.49 | 87.06±4.04 | 82.16±7.07 | 35.93±1.23 | 53.97±1.45 | 69.56±1.2 | 76.59±1.53 | 88.26±0.41 | 87.38±1.05 |
+
+## Cite us
+If you found this work useful, please consider citing our paper
+```
+@article{di2022graff,
+  title = {Graph Neural Networks as Gradient Flows},
+  author = {Di Giovanni, Francesco and Rowbottom, James and Chamberlain, Benjamin P. and Markovich, Thomas and Bronstein, Michael M.},
+  year = {2022},  
+  publisher = {arXiv},
+  url = {https://arxiv.org/abs/2206.10991},
+  copyright = {arXiv.org perpetual, non-exclusive license}}
+```
+
+
+## Security Issues?
+Please report sensitive security issues via Twitter's bug-bounty program (https://hackerone.com/twitter) rather than GitHub.
+
+
