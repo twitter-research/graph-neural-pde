@@ -24,3 +24,7 @@ def test_num_workers():
                 pass
         end = time()
         print("Finish with:{} second, num_workers={}".format(end - start, num_workers))
+
+
+if __name__ == "__main__":
+    test_num_workers()
