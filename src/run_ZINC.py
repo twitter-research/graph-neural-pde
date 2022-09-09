@@ -1,4 +1,6 @@
 import time, datetime
+from time import time
+import multiprocessing as mp
 import os
 import argparse
 import json
@@ -290,6 +292,18 @@ def unpack_omega_params(self):
     wandb.config.update({'gnl_omega_diag': self.opt['gnl_omega_params'][1]}, allow_val_change=True)
     wandb.config.update({'gnl_omega_diag_val': self.opt['gnl_omega_params'][2]}, allow_val_change=True)
     wandb.config.update({'gnl_omega_activation': self.opt['gnl_omega_params'][3]}, allow_val_change=True)
+
+
+def test_num_workers():
+    train_dataset = get_zinc_data('train')
+    for num_workers in range(2, mp.cpu_count(), 2):
+        train_loader = DataLoader(train_dataset, shuffle=True, num_workers=num_workers, batch_size=128, pin_memory=True)
+        start = time()
+        for epoch in range(1, 3):
+            for i, data in enumerate(train_loader, 0):
+                pass
+        end = time()
+        print("Finish with:{} second, num_workers={}".format(end - start, num_workers))
 
 
 def main(cmd_opt):

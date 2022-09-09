@@ -81,14 +81,14 @@ def zinc_params(opt):
     #GNN hyper-params
     opt['dropout'] = 0.0
     opt['input_dropout'] = 0.0
-    opt['hidden_dim'] = 145
+    opt['hidden_dim'] = 64
     opt['method'] = 'euler'
     opt['step_size'] = 1.0
     opt['time'] = 4
-    opt['time_dep_w'] = "unstruct"
-    opt['source_term'] = "time_dep_q" # "time_dep_bias"
+    opt['time_dep_w'] = None#"unstruct"
     opt['time_dep_omega'] = None
-    opt['time_dep_q'] = "unstruct" #None
+    opt['time_dep_q'] = None#"unstruct" #None
+    opt['source_term'] = "diag" # "time_dep_bias"
 
     # W choice (sum / z2x)/ non-lin / share weights / heterogeniety
 
@@ -282,7 +282,7 @@ def greed_hyper_params(opt):
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
     opt['reports_list'] = []#[1,2,3,4,5,6,7,8,9,10]#,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
-    opt['lie_trotter'] = None #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    opt['lie_trotter'] = 'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         if opt['lie_trotter'] in [None, 'gen_0']:
             opt['threshold_times'] = [2,4] #takes an euler step that would have been taken in drift diffusion and also thresholds between t->t+1
@@ -304,9 +304,9 @@ def greed_hyper_params(opt):
         #                     {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': 0, 'reports_list': []},
         #                     {'lt_block_type': 'label', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1,2,3,4,5,6,7]}]
         #double diffusion config
-        # opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []},
-        #                        {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []},
-        #                        {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []}]#1,2,4,7,8,9,10]}]#,
+        opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []},
+                               {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []},
+                               {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []}]#1,2,4,7,8,9,10]}]#,
                                # {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': 0, 'reports_list': [1,2,4,7,8,9,10]}]#,
                                # {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []}]#[1,2,3,4,5,6,7]}]#[]}]
         #for "restart" diffusion  <--these are used in def unpack_blocks(self, opt) when sweeping over double/triple diffusion times
