@@ -44,7 +44,7 @@ parameters:
   m2_W_eig:
     values: [False]
   pointwise_nonlin:
-    values: [True]
+    values: [True, False]
   time_dep_w:
     values: [False]
   source_term:
