@@ -28,7 +28,7 @@ class GREEDLTODEblock(ODEblock):
 
     for block_num, lt2_args in enumerate(self.opt['lt_gen2_args']):
       opt2 = self.opt.as_dict().copy()
-      print(f"lt_block_type {opt2['lt_block_type']}")
+      # print(f"lt_block_type {opt2['lt_block_type']}")
       opt2['lt_block_type'] = lt2_args['lt_block_type']
       opt2['time'] = lt2_args['lt_block_time']
       opt2['step_size'] = lt2_args['lt_block_step']

@@ -3,6 +3,8 @@ method: grid
 parameters:
   dataset:
     values: [ZINC]
+  block:
+    values: [greed_lie_trotter]
   function:
     values: [greed_non_linear]
   gnl_W_norm:
