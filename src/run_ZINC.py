@@ -830,6 +830,11 @@ if __name__ == '__main__':
 
     parser.add_argument('--lt_pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
     parser.add_argument('--lt_block_times', nargs='+', default=None, help='list of times for blocks')
+    parser.add_argument('--lt_block_type', type=str, default='', help='lt_block_type')
+    parser.add_argument('--lt_block_time', type=float, default=None, help='lt_block_time')
+    parser.add_argument('--lt_block_step', type=float, default=None, help='lt_block_step')
+    parser.add_argument('--lt_block_dimension', type=int, default=64, help='lt_block_dimension')
+    parser.add_argument('--share_block', type=str, default='', help='share_block')
 
     args = parser.parse_args()
     opt = vars(args)
