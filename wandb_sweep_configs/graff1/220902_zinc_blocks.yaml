@@ -74,7 +74,7 @@ parameters:
   lie_trotter:
     values: [gen_2]
   lt_block_times:
-    values: [[8], [2, 2], [4, 4], [2,2,2,2], [4,4,4,4]]
+    values: [[4], [8], [16], [2, 2], [4, 4], [2,2,2,2], [4,4,4,4]]
   lt_pointwise_nonlin:
     values: [True, False]
   input_dropout:
