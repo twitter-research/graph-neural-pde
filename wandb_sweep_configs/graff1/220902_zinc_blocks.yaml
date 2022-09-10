@@ -91,4 +91,4 @@ command:
   - --wandb
   - --wandb_sweep
 entity: graph_neural_diffusion
-project: zinc_gcn_grid3
+project: zinc_blocks
