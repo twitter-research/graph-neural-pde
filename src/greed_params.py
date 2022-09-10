@@ -312,7 +312,7 @@ def greed_hyper_params(opt):
         #for "restart" diffusion  <--these are used in def unpack_blocks(self, opt) when sweeping over double/triple diffusion times
         # opt['time2'] = 2.0
         # opt['time3'] = 1.0
-        opt['lt_block_times'] = [2, 2]
+        opt['lt_block_times'] = [8]#2, 2]
         opt['lt_pointwise_nonlin'] = True
     #gcn params
     # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
@@ -716,8 +716,6 @@ def default_params():
 
     args = parser.parse_args()
     opt = vars(args)
-
-
 
     args = parser.parse_args()
     opt = vars(args)
