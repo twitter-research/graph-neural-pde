@@ -1,5 +1,4 @@
 import time, datetime
-from time import time
 import multiprocessing as mp
 import os
 import argparse
@@ -69,7 +68,6 @@ def zinc_batch_reset(model, data):
     model.odeblock.odefunc.self_loops = model.odeblock.odefunc.get_self_loops().to(model.device)
     model.odeblock.odefunc.deg_inv_sqrt = model.odeblock.odefunc.get_deg_inv_sqrt(data).to(model.device)
     model.odeblock.odefunc.deg_inv = model.odeblock.odefunc.deg_inv_sqrt * model.odeblock.odefunc.deg_inv_sqrt
-
 
 
 def train(model, optimizer, train_loader, pos_encoding=None):
@@ -317,10 +315,12 @@ def main(cmd_opt):
 
     if 'wandb_run_name' in opt.keys():
         wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
-                               name=opt['wandb_run_name'], reinit=True, config=opt, allow_val_change=True)
+                               name=opt['wandb_run_name'], reinit=True, config=opt, allow_val_change=True,
+                               settings=wandb.Settings(start_method="fork"))
     else:
         wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
-                               reinit=True, config=opt, allow_val_change=True)  # required when update config
+                               reinit=True, config=opt, allow_val_change=True,
+                               settings=wandb.Settings(start_method="fork"))
 
     opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
 
@@ -352,9 +352,11 @@ def main(cmd_opt):
     val_dataset = get_zinc_data('val')
     test_dataset = get_zinc_data('test')
 
-    train_loader = DataLoader(train_dataset, batch_size=opt['batch'], shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=opt['batch'], shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=opt['batch'], shuffle=False)
+    num_workers = 4 if torch.cuda.is_available() else 0
+
+    train_loader = DataLoader(train_dataset, batch_size=opt['batch'], shuffle=True, num_workers=num_workers, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=opt['batch'], shuffle=False, num_workers=num_workers, pin_memory=True)
+    test_loader = DataLoader(test_dataset, batch_size=opt['batch'], shuffle=False, num_workers=num_workers, pin_memory=True)
 
     if opt['beltrami']:
         pos_encoding = apply_beltrami(dataset.data, opt).to(device)
@@ -826,6 +828,8 @@ if __name__ == '__main__':
     parser.add_argument('--lr_schedule_threshold', type=float, default=0.0001, help='lr_schedule_threshold')
     parser.add_argument('--min_lr', type=float, default=0.00001, help='min_lr')
 
+    parser.add_argument('--lt_pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
+    parser.add_argument('--lt_block_times', nargs='+', default=None, help='list of times for blocks')
 
     args = parser.parse_args()
     opt = vars(args)

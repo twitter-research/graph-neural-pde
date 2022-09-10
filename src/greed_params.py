@@ -75,7 +75,7 @@ def zinc_params(opt):
     opt['gnl_attention'] = False  # use L0 attention coefficients
     # Omega
     opt['gnl_omega'] = 'zero'  # 'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
-    opt['gnl_W_style'] = 'sum'#'asym'#'sum'#'householder'  #
+    opt['gnl_W_style'] = 'tri'#'asym'#'sum'#'householder'  #
 
     opt['use_best_params'] = False
     #GNN hyper-params
@@ -219,7 +219,7 @@ def greed_hyper_params(opt):
         # 'W_orthog_init', - init W_U/W_D, use GS to init param W_U as orthog -set W as eval and use z2x
         # 'householder' - use householder reflections to enforce orthog W_U
         # 'skew_sym' - use skew-symetric and bilinear approximation to enforce orthog W_U
-        opt['gnl_W_style'] = 'householder'#'loss_W_orthog'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_W_style'] = 'tri'#'loss_W_orthog'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         if opt['gnl_W_style'] == 'k_block':
             assert opt['hidden_dim'] % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= opt['hidden_dim']#in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
@@ -282,7 +282,7 @@ def greed_hyper_params(opt):
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
     opt['reports_list'] = []#[1,2,3,4,5,6,7,8,9,10]#,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
-    opt['lie_trotter'] = 'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    opt['lie_trotter'] = 'gen_2' #None #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         if opt['lie_trotter'] in [None, 'gen_0']:
             opt['threshold_times'] = [2,4] #takes an euler step that would have been taken in drift diffusion and also thresholds between t->t+1
@@ -304,15 +304,16 @@ def greed_hyper_params(opt):
         #                     {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': 0, 'reports_list': []},
         #                     {'lt_block_type': 'label', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': 256, 'share_block': None, 'reports_list': [1,2,3,4,5,6,7]}]
         #double diffusion config
-        opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []},
-                               {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []},
-                               {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []}]#1,2,4,7,8,9,10]}]#,
+        # opt['lt_gen2_args'] = [{'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []},
+        #                        {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []},
+        #                        {'lt_block_type': 'diffusion', 'lt_block_time': 2, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []}]#1,2,4,7,8,9,10]}]#,
                                # {'lt_block_type': 'drift', 'lt_block_time': 1, 'lt_block_step': 0.5, 'lt_block_dimension': opt['hidden_dim'], 'share_block': 0, 'reports_list': [1,2,4,7,8,9,10]}]#,
                                # {'lt_block_type': 'diffusion', 'lt_block_time': 3, 'lt_block_step': 1.0, 'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []}]#[1,2,3,4,5,6,7]}]#[]}]
         #for "restart" diffusion  <--these are used in def unpack_blocks(self, opt) when sweeping over double/triple diffusion times
         # opt['time2'] = 2.0
         # opt['time3'] = 1.0
-
+        opt['lt_block_times'] = [2, 2]
+        opt['lt_pointwise_nonlin'] = True
     #gcn params
     # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
     # opt['gcn_enc_dec'] = False #False #True
@@ -365,7 +366,7 @@ def tf_ablation_args(opt):
                 'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
                 'two_hops',
                 'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'gnl_W_norm', 'drift_grad',
-                'pointwise_nonlin',
+                'pointwise_nonlin', 'lt_pointwise_nonlin',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout',
                 'wandb', 'wandb_sweep', 'wandb_offline', 'adjoint']
     arg_intersect = list(set(opt.keys()) & set(tf_args))
@@ -704,6 +705,9 @@ def default_params():
     parser.add_argument('--lr_schedule_patience', type=int, default=10, help='lr_schedule_patience')
     parser.add_argument('--lr_schedule_threshold', type=float, default=0.0001, help='lr_schedule_threshold')
     parser.add_argument('--min_lr', type=float, default=0.00001, help='min_lr')
+
+    parser.add_argument('--lt_pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
+    parser.add_argument('--lt_block_times', nargs='+', default=None, help='list of times for blocks')
 
     args = parser.parse_args()
     opt = vars(args)

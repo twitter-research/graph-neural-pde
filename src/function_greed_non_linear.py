@@ -150,8 +150,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
   def init_W(self, in_features, opt):
     if self.opt['gnl_style'] == 'general_graph':
       # gnl_omega -> "gnl_W"
-      if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod', 'asym']:
+      if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod', 'free']:
         self.W_W = Parameter(torch.Tensor(in_features, in_features))
+
+      elif self.opt['gnl_W_style'] == 'tri':
+        # init an upper triangular and a diagonal vector
+        self.W_W = Parameter(torch.Tensor(int((in_features + 1) * in_features / 2)))
+        self.W_D = Parameter(torch.Tensor(in_features))
 
       elif self.opt['gnl_W_style'] == 'diag':
         if self.opt['gnl_W_diag_init'] == 'linear':
@@ -163,6 +168,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.W_W = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
         self.t_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
         self.r_a = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
+
       elif self.opt['gnl_W_style'] == 'k_diag_pc':
         k_num = int(self.opt['k_diag_pc'] * in_features)
         if k_num % 2 == 0:
@@ -225,9 +231,14 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
   def init_W_timedep(self, in_features, opt):
     if self.opt['gnl_style'] == 'general_graph':
       # gnl_omega -> "gnl_W"
-      if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod', 'asym']:
+      if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod', 'free']:
         if self.time_dep_w in ["unstruct"]:
           self.W_W_T = Parameter(torch.Tensor(self.num_timesteps, in_features, in_features))
+
+      elif self.opt['gnl_W_style'] == 'tri':
+        # init an upper triangular and a diagonal vector
+        self.W_W_T = Parameter(torch.Tensor(self.num_timesteps, int((in_features + 1) * in_features / 2)))
+        self.W_D_T = Parameter(torch.Tensor(self.num_timesteps, in_features))
 
       elif self.opt['gnl_W_style'] == 'diag':
         if self.time_dep_w in ["unstruct"]:
@@ -340,9 +351,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
   def reset_W_parameters(self):
     # W's
     if self.opt['gnl_style'] == 'general_graph':
-      if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod', 'asym', 'Z_diag']:
+      if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod', 'free', 'Z_diag']:
         # glorot(self.W_W)
         xavier_uniform_(self.W_W)
+      elif self.opt['gnl_W_style'] == 'tri':
+        uniform(self.W_W, a=-1, b=1)
+        uniform(self.W_D, a=-1, b=1)
+
       elif self.opt['gnl_W_style'] == 'diag':
         if self.opt['gnl_W_diag_init'] == 'uniform':
           uniform(self.gnl_W_D, a=-1, b=1)
@@ -409,9 +424,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
   def reset_W_timedep_parameters(self): #todo question do all these init's work for 3d tensors?
     # W's
     if self.opt['gnl_style'] == 'general_graph':
-      if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod', 'asym']:
+      if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod', 'free']:
         # glorot(self.W_W_T)
         xavier_uniform_(self.W_W_T)
+
+      elif self.opt['gnl_W_style'] == 'tri':
+        uniform(self.W_W_T, a=-1, b=1)
+        uniform(self.W_D_T, a=-1, b=1)
 
       elif self.opt['gnl_W_style'] == 'diag':
         if self.time_dep_w == "unstruct":
@@ -507,8 +526,19 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       return -self.W_W @ self.W_W.t()
     elif self.opt['gnl_W_style'] in ['sum']:
       return (self.W_W + self.W_W.t()) / 2
-    elif self.opt['gnl_W_style'] in ['asym']:
+    elif self.opt['gnl_W_style'] in ['free']:
       return self.W_W
+    elif self.opt['gnl_W_style'] in ['tri']:
+      #init an upper triangular and a diagonal vector
+      tri = []
+      start = 0
+      for i in range(self.in_features):
+        tri.append(torch.cat((torch.zeros(1+i, device=self.device), self.W_W[start: start + self.in_features - (1+i)])))
+        start += self.in_features - (1+i)
+      tri = torch.stack(tri, dim=0)
+      W_hat = (tri + tri.T) / 2 + torch.diag(self.W_D)
+      return W_hat
+
     elif self.opt['gnl_W_style'] in ['Z_diag']:
       return (self.W_W + self.W_W.t()) / 2
     elif self.opt['gnl_W_style'] == 'diag':
@@ -638,8 +668,19 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       return self.W_W_T[T] @ self.W_W_T[T].t()
     elif self.opt['gnl_W_style'] in ['neg_prod']:
       return -self.W_W_T[T] @ self.W_W_T[T].t()
-    elif self.opt['gnl_W_style'] in ['asym']:
+    elif self.opt['gnl_W_style'] in ['free']:
       return self.W_W_T[T]
+
+    elif self.opt['gnl_W_style'] in ['tri']:
+      #init an upper triangular and a diagonal vector
+      tri = []
+      start = 0
+      for i in range(self.in_features):
+        tri.append(torch.cat((torch.zeros(1+i, device=self.device), self.W_W_T[T][start: start + self.in_features - (1+i)])))
+        start += self.in_features - (1+i)
+      tri = torch.stack(tri, dim=0)
+      W_hat = (tri + tri.T) / 2 + torch.diag(self.W_D_T[T])
+      return W_hat
 
     elif self.opt['gnl_W_style'] == 'diag':
       if self.time_dep_w == "unstruct":
@@ -1219,7 +1260,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     #non-linearity
     if self.opt['pointwise_nonlin']:
-      return torch.relu(f)
+      # return torch.relu(f)
+      return torch.tanh(f)
     else:
       return f
 

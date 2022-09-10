@@ -20,8 +20,9 @@ class GREEDLTODEblock(ODEblock):
     # needed for torchdiffeq
     times = []
     steps = []
-    if opt['time2'] is not None:
-      self.unpack_blocks(opt)
+    # if opt['time2'] is not None:
+    if opt['lt_block_times'] is not None:
+        self.unpack_blocks(opt)
     # needed for stats and TSNE plots
     self.cum_steps_list, self.cum_time_points, self.cum_time_ticks, self.block_type_list = create_time_lists(self.opt) #self.create_time_lists()
 
@@ -86,16 +87,23 @@ class GREEDLTODEblock(ODEblock):
     '''function for "double diffusion sweeps'''
     gen2_args = []
 
-    gen2_args.append({'lt_block_type': 'diffusion', 'lt_block_time': opt['time'], 'lt_block_step': opt['step_size'],
-     'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []})
-    if opt['time2'] > 0:
-      gen2_args.append({'lt_block_type': 'diffusion', 'lt_block_time': opt['time2'], 'lt_block_step': opt['step_size'],
+    # gen2_args.append({'lt_block_type': 'diffusion', 'lt_block_time': opt['time'], 'lt_block_step': opt['step_size'],
+    #  'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []})
+    # if opt['time2'] > 0:
+    #   gen2_args.append({'lt_block_type': 'diffusion', 'lt_block_time': opt['time2'], 'lt_block_step': opt['step_size'],
+    #                     'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []})
+    # if opt['time3'] > 0:
+    #   gen2_args.append({'lt_block_type': 'diffusion', 'lt_block_time': opt['time3'], 'lt_block_step': opt['step_size'],
+    #                     'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': [1,2,4,7,8,9,10]})
+
+
+    for time in opt['lt_block_times']:
+      gen2_args.append({'lt_block_type': 'diffusion', 'lt_block_time': time, 'lt_block_step': opt['step_size'],
                         'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': []})
-    if opt['time3'] > 0:
-      gen2_args.append({'lt_block_type': 'diffusion', 'lt_block_time': opt['time3'], 'lt_block_step': opt['step_size'],
-                        'lt_block_dimension': opt['hidden_dim'], 'share_block': None, 'reports_list': [1,2,4,7,8,9,10]})
 
     opt['lt_gen2_args'] = gen2_args
+
+
 
   def set_attributes(self, func, x):
     # if self.opt['function'] in ['greed_linear', 'greed_linear_homo', 'greed_linear_hetero']:
@@ -166,6 +174,7 @@ class GREEDLTODEblock(ODEblock):
     for block_num, (func, t, step) in enumerate(zip(self.funcs, self.times, self.steps)):
       self.set_x0(func, x)
       self.set_attributes(func, x)
+      self.odefunc.reset_gnl_W_eigs(T=0)
 
       if func.opt['lt_block_type'] == 'label':
         logits, pred = func.predict(x)
@@ -206,6 +215,11 @@ class GREEDLTODEblock(ODEblock):
         reg_states = tuple(st[1] for st in state_dt[1:])
       else:
         x = state_dt[1]
+
+      # non-linearity
+      if self.opt['lt_pointwise_nonlin']:
+        # x = torch.relu(x)
+        x = torch.tanh(x)
 
     if self.training and self.nreg > 0:
       z = state_dt[0][1]

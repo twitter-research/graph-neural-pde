@@ -1029,6 +1029,9 @@ if __name__ == '__main__':
     #zinc params
     parser.add_argument('--graph_pool', type=str, default='', help='type of graph pool operation - {add, mean}')
 
+    parser.add_argument('--lt_pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
+    parser.add_argument('--lt_block_times', nargs='+', default=None, help='list of times for blocks')
+
     args = parser.parse_args()
     opt = vars(args)
 
