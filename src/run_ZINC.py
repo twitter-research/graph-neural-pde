@@ -352,11 +352,12 @@ def main(cmd_opt):
     val_dataset = get_zinc_data('val')
     test_dataset = get_zinc_data('test')
 
-    num_workers = 4 if torch.cuda.is_available() else 0
+    #todo this cause errors in collate when on GPU
+    # num_workers = 4 if torch.cuda.is_available() else 0
 
-    train_loader = DataLoader(train_dataset, batch_size=opt['batch'], shuffle=True, num_workers=num_workers, pin_memory=True)
-    val_loader = DataLoader(val_dataset, batch_size=opt['batch'], shuffle=False, num_workers=num_workers, pin_memory=True)
-    test_loader = DataLoader(test_dataset, batch_size=opt['batch'], shuffle=False, num_workers=num_workers, pin_memory=True)
+    train_loader = DataLoader(train_dataset, batch_size=opt['batch'], shuffle=True)#, num_workers=num_workers, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=opt['batch'], shuffle=False)#, num_workers=num_workers, pin_memory=True)
+    test_loader = DataLoader(test_dataset, batch_size=opt['batch'], shuffle=False)#, num_workers=num_workers, pin_memory=True)
 
     if opt['beltrami']:
         pos_encoding = apply_beltrami(dataset.data, opt).to(device)
@@ -367,14 +368,6 @@ def main(cmd_opt):
     results = []
     for rep in range(opt['num_splits']):
         print(f"rep {rep}")
-        #todo check the structure of the edge index - max value is 36, implies is reindexed per molecule
-        #it's because you need to iterate through the data loader to increment the training index???
-        # as per __inc__ from https://pytorch-geometric.readthedocs.io/en/latest/notes/batching.html
-        #don't actually need any of the below to instantiate a version of the model
-        # for i, data in enumerate(train_loader):
-        #     if i > 0:
-        #         break
-            # dataset.data = data
         # if opt['function'] in ['gcn']:
         #     model = GCN(opt, train_dataset, hidden=[opt['hidden_dim']], dropout=opt['dropout'], device=device).to(device)
         # else: #greed_non_linear
