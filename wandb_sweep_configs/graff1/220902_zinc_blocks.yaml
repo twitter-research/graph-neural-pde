@@ -54,7 +54,7 @@ parameters:
   graph_pool:
     values: [mean]
   batch:
-    values: [128]
+    values: [64]
   lr:
     values: [0.001]
   lr_reduce_factor:
