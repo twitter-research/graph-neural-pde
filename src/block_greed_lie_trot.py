@@ -25,7 +25,8 @@ class GREEDLTODEblock(ODEblock):
         self.unpack_blocks(opt)
     # needed for stats and TSNE plots
     self.cum_steps_list, self.cum_time_points, self.cum_time_ticks, self.block_type_list = create_time_lists(self.opt) #self.create_time_lists()
-
+    print("times")
+    print(create_time_lists(self.opt))
     for block_num, lt2_args in enumerate(self.opt['lt_gen2_args']):
       opt2 = self.opt.as_dict().copy()
       # print(f"lt_block_type {opt2['lt_block_type']}")
