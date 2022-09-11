@@ -93,7 +93,7 @@ def zinc_params(opt):
     # W choice (sum / z2x)/ non-lin / share weights / heterogeniety
 
     opt['pointwise_nonlin'] = True  #ReLU
-    opt['conv_batch_norm'] = "layerwise" #"shared" False#True
+    opt['conv_batch_norm'] = False#"layerwise" #"shared" False#True
     opt['graph_pool'] = 'mean'
 
     #optimisation
@@ -312,8 +312,9 @@ def greed_hyper_params(opt):
         #for "restart" diffusion  <--these are used in def unpack_blocks(self, opt) when sweeping over double/triple diffusion times
         # opt['time2'] = 2.0
         # opt['time3'] = 1.0
-        opt['lt_block_times'] = [8]#2, 2]
+        opt['lt_block_times'] = [2,2]#2, 2]
         opt['lt_pointwise_nonlin'] = True
+        opt['adjoint'] = True
     #gcn params
     # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
     # opt['gcn_enc_dec'] = False #False #True

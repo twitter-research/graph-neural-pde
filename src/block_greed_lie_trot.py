@@ -67,9 +67,6 @@ class GREEDLTODEblock(ODEblock):
     self.times = times
     self.steps = steps
 
-    print("times")
-    print(create_time_lists(self.opt))
-    print(self.times)
     #adding the first func in module list as block attribute to match signature required in run_GNN.py
     # ie model.odeblock.odefunc.epoch
     self.odefunc = self.funcs[0]
