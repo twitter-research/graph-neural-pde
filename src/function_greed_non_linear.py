@@ -1245,7 +1245,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     #non-linearity
     if self.opt['pointwise_nonlin']:
       # return torch.relu(f)
-      return torch.tanh(f)
+      return torch.relu(f)
     else:
       return f
 

@@ -219,8 +219,8 @@ class GREEDLTODEblock(ODEblock):
 
       # non-linearity
       if self.opt['lt_pointwise_nonlin']:
-        # x = torch.relu(x)
-        x = torch.tanh(x)
+        x = torch.relu(x)
+        # x = torch.tanh(x)
 
     if self.training and self.nreg > 0:
       z = state_dt[0][1]
