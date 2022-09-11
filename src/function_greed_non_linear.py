@@ -155,7 +155,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
       elif self.opt['gnl_W_style'] == 'tri':
         # init an upper triangular and a diagonal vector
-        self.W_W = Parameter(torch.Tensor(int((in_features + 1) * in_features / 2)))
+        self.W_W = Parameter(torch.Tensor(int((in_features - 1) * in_features / 2)))
         self.W_D = Parameter(torch.Tensor(in_features))
 
       elif self.opt['gnl_W_style'] == 'diag':
@@ -237,7 +237,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
       elif self.opt['gnl_W_style'] == 'tri':
         # init an upper triangular and a diagonal vector
-        self.W_W_T = Parameter(torch.Tensor(self.num_timesteps, int((in_features + 1) * in_features / 2)))
+        self.W_W_T = Parameter(torch.Tensor(self.num_timesteps, int((in_features - 1) * in_features / 2)))
         self.W_D_T = Parameter(torch.Tensor(self.num_timesteps, in_features))
 
       elif self.opt['gnl_W_style'] == 'diag':
