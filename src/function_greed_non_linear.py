@@ -1253,6 +1253,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if self.opt['conv_batch_norm'] == "shared":
       f = self.batchnorm_h(f)
     elif self.opt['conv_batch_norm'] == "layerwise":
+      print(len(self.batchnorms), self.num_timesteps, T)
       f = self.batchnorms[T](f)
 
     #dampening
