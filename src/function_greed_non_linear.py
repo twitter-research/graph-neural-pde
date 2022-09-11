@@ -1238,7 +1238,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       f = self.batchnorm_h(f)
     elif self.opt['conv_batch_norm'] == "layerwise":
       print(self.opt['lt_gen2_args'])
-      print(len(self.batchnorms), self.num_timesteps, T)
+      print(len(self.batchnorms), self.num_timesteps, T, t, self.opt['time'])
       f = self.batchnorms[T](f)
 
     #dampening
