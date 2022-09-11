@@ -1176,23 +1176,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             f = self.alpha * LfW + (1 - self.alpha) * RfW
             #torch.sparse_coo_tensor(edges, self.L_0, (self.n_nodes, self.n_nodes)).to_dense().detach().numpy()
 
-
-        # if self.opt['lie_trotter'] == 'gen_2':
-        #   if self.opt['lt_block_type'] != 'label':
-        #     if self.opt['test_mu_0']:
-        #       if self.opt['add_source']:
-        #         f = f + self.beta_train * self.x0
-        #     else:
-        #       f = f - 0.5 * self.mu * (x - self.x0)
-        # else:
-        #   if self.opt['time_dep_q']:
-        #     f = f + self.gnl_Q * self.x0
-        #   elif self.opt['test_mu_0']:
-        #     if self.opt['add_source']:
-        #       f = f + self.beta_train * self.x0
-        #   else:
-        #     f = f - 0.5 * self.mu * (x - self.x0)
-
         if self.opt['lie_trotter'] == 'gen_2':
           if self.opt['lt_block_type'] != 'label':
             f = self.add_source(f, x)
@@ -1229,6 +1212,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
                        eval_means_feat, eval_sds_feat, eval_means_label, eval_sds_label, entropies)
 
           ### extra values for terminal step
+          #todo need to include the batch norm and non-linearities in here too
           # (only final block and it's not lie-trotter gen2 not final block) <- this is delt with in the "pass_stats" funtion in the LT2 block
           if t == self.opt['time'] - self.opt['step_size']:# and not(self.opt['lie_trotter'] == 'gen_2' and self.block_num + 1 != len(self.opt['lt_gen2_args'])):
             z = x + self.opt['step_size'] * f #take an euler step
@@ -1253,6 +1237,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if self.opt['conv_batch_norm'] == "shared":
       f = self.batchnorm_h(f)
     elif self.opt['conv_batch_norm'] == "layerwise":
+      print(self.opt['lt_gen2_args'])
       print(len(self.batchnorms), self.num_timesteps, T)
       f = self.batchnorms[T](f)
 
