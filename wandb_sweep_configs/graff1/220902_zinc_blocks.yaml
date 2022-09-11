@@ -68,7 +68,7 @@ parameters:
   hidden_dim:
     values: [64, 128, 256]
   max_nfe:
-    values: [50000]
+    values: [100000]
   step_size:
     values: [1.0]
   lie_trotter:
