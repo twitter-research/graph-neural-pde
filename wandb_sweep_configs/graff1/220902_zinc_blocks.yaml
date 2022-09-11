@@ -85,8 +85,6 @@ parameters:
     values: [0.0]
   optimizer:
     values: [adam]
-  adjoint:
-    values: [True]
 command:
   - ${env}
   - python3
@@ -94,5 +92,6 @@ command:
   - ${args}
   - --wandb
   - --wandb_sweep
+  - --adjoint
 entity: graph_neural_diffusion
 project: zinc_blocks
