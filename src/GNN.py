@@ -75,7 +75,7 @@ class GNN(BaseGNN):
       # self.odeblock.odefunc.paths = []
       if self.opt['gnl_style'] == 'scaled_dot':
         self.odeblock.odefunc.Omega = self.odeblock.odefunc.set_scaled_dot_omega()
-      elif self.opt['gnl_style'] == 'general_graph':
+      elif self.opt['gnl_style'] in ['general_graph', 'attention_flavour']:
         self.odeblock.odefunc.reset_gnl_W_eigs(T=0)
 
         # if self.opt['two_hops']:

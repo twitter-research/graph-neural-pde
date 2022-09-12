@@ -187,7 +187,7 @@ def greed_hyper_params(opt):
     # opt['patience'] = 3
     # opt['target_homoph'] = '0.70' #for synthetic cora
 
-    opt['gnl_style'] = 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
+    opt['gnl_style'] = 'attention_flavour'# 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
 
     if opt['gnl_style'] == 'scaled_dot':
@@ -201,7 +201,7 @@ def greed_hyper_params(opt):
         opt['symmetric_QK'] = True
         opt['attention_activation'] = 'softmax'#'softmax' #, exponential
         opt['attention_normalisation'] = 'none'
-    elif opt['gnl_style'] == 'general_graph':
+    elif opt['gnl_style'] in ['general_graph', 'attention_flavour']:
         opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
         opt['gnl_attention'] = False #use L0 attention coefficients
         #Omega
@@ -264,15 +264,15 @@ def greed_hyper_params(opt):
     opt['source_term'] = 'time_dep_q'#'scalar' #'fidelity''diag' 'time_dep_q:
 
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
-    opt['time_dep_w'] = "struct_decay" #""struct"
-    opt['time_dep_omega'] = "struct"
-    opt['time_dep_q'] = "struct"
+    opt['time_dep_w'] = "unstruct"#"struct_decay" #""struct"
+    opt['time_dep_omega'] = "unstruct"#"struct"
+    opt['time_dep_q'] = "unstruct"#"struct"
     num_lamb = 2
     opt['num_lamb_w'] = num_lamb
     opt['num_lamb_omega'] = num_lamb
     opt['num_lamb_q'] = num_lamb
 
-    opt['pointwise_nonlin'] = False#True#False#True #todo add to args
+    opt['pointwise_nonlin'] = False#True#False#True
     opt['graph_pool'] = ""#"mean"
 
     #definitions of lie trotter
@@ -282,7 +282,7 @@ def greed_hyper_params(opt):
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
     opt['reports_list'] = []#[1,2,3,4,5,6,7,8,9,10]#,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
-    opt['lie_trotter'] = 'gen_2' #None #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
+    opt['lie_trotter'] = None #'gen_2' #None #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         if opt['lie_trotter'] in [None, 'gen_0']:
             opt['threshold_times'] = [2,4] #takes an euler step that would have been taken in drift diffusion and also thresholds between t->t+1
