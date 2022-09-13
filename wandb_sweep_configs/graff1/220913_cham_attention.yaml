@@ -1,5 +1,5 @@
 program: run_ZINC.py
-method: grid
+method: random
 parameters:
   dataset:
     values: [chameleon]
