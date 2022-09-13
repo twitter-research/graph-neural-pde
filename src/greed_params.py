@@ -187,7 +187,7 @@ def greed_hyper_params(opt):
     # opt['patience'] = 3
     # opt['target_homoph'] = '0.70' #for synthetic cora
 
-    opt['gnl_style'] = 'attention_flavour'# 'attention_flavour'# 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
+    opt['gnl_style'] = 'general_graph'# 'attention_flavour'# 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
 
     if opt['gnl_style'] == 'scaled_dot':
@@ -202,7 +202,7 @@ def greed_hyper_params(opt):
         opt['attention_activation'] = 'softmax'#'softmax' #, exponential
         opt['attention_normalisation'] = 'none'
     elif opt['gnl_style'] in ['general_graph', 'attention_flavour']:
-        opt['gnl_activation'] = 'identity'#'sigmoid' #'identity'
+        opt['gnl_activation'] = 'pm_gaussian'#'perona_malik'#'identity'#'sigmoid' #'identity'
         opt['gnl_attention'] = False #use L0 attention coefficients
         #Omega
         opt['gnl_omega'] = 'zero'#'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
@@ -281,7 +281,7 @@ def greed_hyper_params(opt):
     #gen_1 - alternates ranges of diffusion and drift (ie eq 43-44)
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
-    opt['reports_list'] = [1,2,3,4,5,6,7,8,9,10]#,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
+    opt['reports_list'] = []#[12]#[1,2,3,4,5,6,7,8,9,10]#,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
     opt['lie_trotter'] = None #'gen_2' #None #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         if opt['lie_trotter'] in [None, 'gen_0']:
@@ -337,14 +337,14 @@ def not_sweep_args(opt, project_name=None, group_name=None):
 
     # args for running locally - specified in YAML for tunes
     opt['wandb'] = True #False #True
-    opt['wandb_track_grad_flow'] = False  #collect stats for reports
-    opt['run_track_reports'] = False#True ##run the evolution reports
+    opt['wandb_track_grad_flow'] = True#False  #collect stats for reports
+    opt['run_track_reports'] = True#False#True ##run the evolution reports
     opt['save_local_reports'] = True#True
     opt['save_wandb_reports'] = True#False#True
     opt['wandb_watch_grad'] = False
 
-    opt['wandb_epoch_list'] = [1,4,8,16,32,64,96,128]#[8, 128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8]
-    opt['display_epoch_list'] = [16,128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8] #todo add to params
+    opt['wandb_epoch_list'] = [1,2,3,4] #[1,4,8,16,32,64,96,128]#[8, 128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8]
+    opt['display_epoch_list'] = [1,2,3,4] #[16,128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8] #todo add to params
 
     DT = datetime.datetime.now()
     opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb"#

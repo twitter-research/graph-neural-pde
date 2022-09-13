@@ -466,6 +466,54 @@ def report_11(ax, fig, odefunc, row, epoch):
     if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
 
+from torch_geometric.utils import softmax
+from torch.distributions import Categorical
+from utils import make_symmetric_unordered
+def report_12(ax, fig, odefunc, row, epoch):
+    '''
+    histogram of E attention values of each edge
+    histogram of N entropies of softmax of each node
+    '''
+    opt = odefunc.opt
+    attentions = odefunc.attentions
+    fOmf = odefunc.fOmf
+    # ax[row, 0].hist(attentions[0], bins=10)
+    H, b = np.histogram(attentions[0], bins=10)
+    ax[row, 0].bar((b[1:] + b[:-1]) / 2, H, width=1.0)
+    ax[row, 0].xaxis.set_tick_params(labelsize=16)
+    ax[row, 0].yaxis.set_tick_params(labelsize=16)
+
+    SM_att = softmax(fOmf[0,:] / torch.sqrt(torch.tensor([opt['hidden_dim']], device=odefunc.device)),
+                        odefunc.edge_index[opt['attention_norm_idx']])
+    SM_sym_att = make_symmetric_unordered(odefunc.edge_index, SM_att)
+
+    # att_ent = Categorical(probs=SM_att).entropy()
+    # att_ent = calc_entropy_sparse(SM_att, odefunc.edge_index[opt['attention_norm_idx']], odefunc.n_nodes)
+    # ax[row, 1].hist(att_ent, bins=10)
+    # ax[row, 1].hist(SM_sym_att, bins=10)
+    H, b = np.histogram(SM_sym_att[0], bins=10)
+    ax[row, 1].bar((b[1:] + b[:-1]) / 2, H, width=1.0)
+    ax[row, 1].xaxis.set_tick_params(labelsize=16)
+    ax[row, 1].yaxis.set_tick_params(labelsize=16)
+
+    if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
+        fig.show()
+
+def calc_entropy(input_tensor):
+    lsm = torch.nn.LogSoftmax()
+    log_probs = lsm(input_tensor)
+    probs = torch.exp(log_probs)
+    p_log_p = log_probs * probs
+    entropy = -p_log_p.mean()
+    return entropy
+
+from torch_scatter import scatter_mean
+def calc_entropy_sparse(sm_logits, ei1, n):
+    log_probs = torch.log(sm_logits)
+    probs = torch.exp(log_probs)
+    p_log_p = log_probs * probs
+    entropy = scatter_mean(-p_log_p, ei1, 0, dim_size=n)
+    return entropy
 
 
 def run_reports(odefunc):
@@ -491,7 +539,8 @@ def run_reports(odefunc):
                 8: ['tsne_evol', 4, [1, 1, 1, 1], (32,32)],
                 9: ['v_t_entropies', 2, [1, 1], (24, 32)],
                 10: ['confusions', 2, [1, 1], (24, 32)],
-                11: ['decoder', 2, [1, 1], (24, 32)]}
+                11: ['decoder', 2, [1, 1], (24, 32)],
+                12: ['attention_dist', 2, [1, 1], (24, 32)]}
 
     reports_nums = opt['reports_list']
     for rep_num in reports_nums:

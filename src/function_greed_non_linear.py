@@ -139,6 +139,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       nts = math.ceil(self.opt['time'] / self.opt['step_size'])
       self.batchnorms = [nn.BatchNorm1d(in_features).to(device) for _ in range(nts)]
 
+    if self.opt['gnl_style'] in ['general_graph']:
+      if self.opt['gnl_activation'] == "perona_malik":
+        self.pm_a = Parameter(torch.Tensor([1.]))
+        self.pm_b = Parameter(torch.Tensor([1.]))
+      elif self.opt['gnl_activation'] == "pm_gaussian":
+        self.pm_g = Parameter(torch.Tensor([1.]))
+        self.pm_m = Parameter(torch.Tensor([1.]))
+        self.pm_s = Parameter(torch.Tensor([1.]))
+
     if self.time_dep_w in ["unstruct", "struct_gaus", "struct_decay"]:
       self.reset_W_timedep_parameters()
     else:
@@ -348,6 +357,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         uniform(self.lamb_widths_Q, a=-1, b=1)
       elif self.time_dep_q in ["unstruct"]:
         xavier_uniform_(self.gnl_Q_D_T)
+
+    if self.opt['gnl_style'] in ['general_graph']:
+      if self.opt['gnl_activation'] == "perona_malik":
+        ones(self.pm_a)
+        ones(self.pm_b)
+      elif self.opt['gnl_activation'] == "pm_gaussian":
+        ones(self.pm_g)
+        ones(self.pm_m)
+        ones(self.pm_s)
 
   def reset_W_parameters(self):
     # W's
@@ -972,6 +990,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           attention = squareplus_deriv(fOmf)
         elif self.opt['gnl_activation'] == "exponential":
           attention = torch.exp(fOmf)
+        elif self.opt['gnl_activation'] == "perona_malik":
+          attention = self.pm_a**2 / (self.pm_a**2 + torch.exp(-self.pm_a**2 * fOmf))
+        elif self.opt['gnl_activation'] == "pm_gaussian":
+          attention = (self.pm_g**2 + 1) * torch.exp(-(fOmf-self.pm_m**2)**2/self.pm_s**2)
         else:
           attention = fOmf
       elif self.opt['gnl_activation'] == 'identity':
@@ -982,6 +1004,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         else:
           fOmf = torch.ones(src_deginvsqrt.shape, device=self.device)
         attention = torch.tensor([1], device=self.device) #1#torch.ones(src_deginvsqrt.shape, device=self.device)
+
+    elif self.opt['gnl_style'] in ['attention_flavour']:
+      fOmf = torch.einsum("ij,jk,ik->i", src_x, self.gnl_W, dst_x)
+      attention = softmax(fOmf / torch.sqrt(torch.tensor([self.opt['hidden_dim']], device=self.device)), self.edge_index[self.opt['attention_norm_idx']])
+      attention = make_symmetric_unordered(self.edge_index, attention)
+
     return fOmf, attention
 
   def set_M0(self):
@@ -1104,11 +1132,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           f = f - self.delta * x  # break point np.isnan(f.sum().detach().numpy())
 
         elif self.opt['gnl_style'] == 'attention_flavour':
-          fOmf = torch.einsum("ij,jk,ik->i", src_x, self.gnl_W, dst_x)
-          attention = softmax(fOmf, self.edge_index[self.opt['attention_norm_idx']])
-          attention = make_symmetric_unordered(self.edge_index, attention)
-          src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt) #todo is it efficient to calc this every time step
-          P = attention * src_deginvsqrt * dst_deginvsqrt
+          fOmf, attention = self.calc_dot_prod_attention(src_x, dst_x)
+          # fOmf = torch.einsum("ij,jk,ik->i", src_x, self.gnl_W, dst_x)
+          # attention = softmax(fOmf, self.edge_index[self.opt['attention_norm_idx']])
+          # attention = make_symmetric_unordered(self.edge_index, attention)
+          # src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt) #todo is it efficient to calc this every time step
+          P = attention # * src_deginvsqrt * dst_deginvsqrt
           f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x @ self.gnl_W)
           f = f
 
