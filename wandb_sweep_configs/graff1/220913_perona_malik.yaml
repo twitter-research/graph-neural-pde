@@ -2,7 +2,7 @@ program: run_GNN.py
 method: random
 parameters:
   dataset:
-    values: [chameleon, squirrel_ Cora]
+    values: [chameleon, squirrel, Cora]
   function:
     values: [greed_non_linear]
   gnl_W_norm:
