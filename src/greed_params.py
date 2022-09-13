@@ -177,8 +177,8 @@ def greed_hyper_params(opt):
     opt['use_best_params'] = False #True #False #True
     opt['method'] = 'euler'
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
-    opt['step_size'] = 0.5 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
-    opt['time'] = 10#3.194 #4 #18.295 #10
+    opt['step_size'] = 1.0 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
+    opt['time'] = 3 #3.194 #4 #18.295 #10
     opt['epoch'] = 129#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['num_splits'] = 1#4#1
     opt['use_labels'] = False #True
@@ -187,7 +187,7 @@ def greed_hyper_params(opt):
     # opt['patience'] = 3
     # opt['target_homoph'] = '0.70' #for synthetic cora
 
-    opt['gnl_style'] = 'attention_flavour'# 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
+    opt['gnl_style'] = 'attention_flavour'# 'attention_flavour'# 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
 
     if opt['gnl_style'] == 'scaled_dot':
@@ -261,12 +261,12 @@ def greed_hyper_params(opt):
     opt['dampen_gamma'] = 1.0#0.6    #assuming spec rad=4, dampen gamma=0.6, step=0.1
     opt['gnl_W_norm'] = False#True#False  # True #divide by spectral radius
     opt['loss_orthog_a'] = 0.0#0.1#1.0
-    opt['source_term'] = 'time_dep_q'#'scalar' #'fidelity''diag' 'time_dep_q:
+    opt['source_term'] = 'diag'# 'time_dep_q'#'scalar' #'fidelity''diag' 'time_dep_q:
 
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
-    opt['time_dep_w'] = "unstruct"#"struct_decay" #""struct"
-    opt['time_dep_omega'] = "unstruct"#"struct"
-    opt['time_dep_q'] = "unstruct"#"struct"
+    opt['time_dep_w'] = None#"unstruct"#"struct_decay" #""struct"
+    opt['time_dep_omega'] = None#"unstruct"#"struct"
+    opt['time_dep_q'] = None#"unstruct"#"struct"
     num_lamb = 2
     opt['num_lamb_w'] = num_lamb
     opt['num_lamb_omega'] = num_lamb
@@ -281,7 +281,7 @@ def greed_hyper_params(opt):
     #gen_1 - alternates ranges of diffusion and drift (ie eq 43-44)
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
-    opt['reports_list'] = []#[1,2,3,4,5,6,7,8,9,10]#,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
+    opt['reports_list'] = [1,2,3,4,5,6,7,8,9,10]#,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
     opt['lie_trotter'] = None #'gen_2' #None #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         if opt['lie_trotter'] in [None, 'gen_0']:

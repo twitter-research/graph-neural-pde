@@ -1110,7 +1110,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt) #todo is it efficient to calc this every time step
           P = attention * src_deginvsqrt * dst_deginvsqrt
           f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x @ self.gnl_W)
-          f = f - x @ self.Omega
+          f = f
 
         #general graph (GCN/GraphSage) method
         elif self.opt['gnl_style'] == 'general_graph':
