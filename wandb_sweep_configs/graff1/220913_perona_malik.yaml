@@ -12,7 +12,7 @@ parameters:
   path_dep_norm:
     values: [None]
   gnl_activation:
-    values: [perona_malik, pm_gaussian]
+    values: [pm_invsq]
   gnl_measure:
     values: [ones]
   drift:
@@ -58,7 +58,7 @@ parameters:
   time:
     distribution: uniform
     min: 2.0
-    max: 5.0
+    max: 8.0
   step_size:
     values: [0.5, 1.0]
   input_dropout:

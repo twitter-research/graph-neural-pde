@@ -180,6 +180,7 @@ def greed_hyper_params(opt):
     opt['step_size'] = 1.0 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 3 #3.194 #4 #18.295 #10
     opt['epoch'] = 129#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
+    opt['adjoint'] = False#True
     opt['num_splits'] = 1#4#1
     opt['use_labels'] = False #True
     # opt['planetoid_split'] = True
@@ -202,7 +203,7 @@ def greed_hyper_params(opt):
         opt['attention_activation'] = 'softmax'#'softmax' #, exponential
         opt['attention_normalisation'] = 'none'
     elif opt['gnl_style'] in ['general_graph', 'attention_flavour']:
-        opt['gnl_activation'] = 'pm_gaussian'#'perona_malik'#'identity'#'sigmoid' #'identity'
+        opt['gnl_activation'] = 'pm_gaussian'#'pm_gaussian'#'perona_malik'#'identity'#'sigmoid' #'identity'
         opt['gnl_attention'] = False #use L0 attention coefficients
         #Omega
         opt['gnl_omega'] = 'zero'#'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
@@ -275,6 +276,7 @@ def greed_hyper_params(opt):
     opt['pointwise_nonlin'] = False#True#False#True
     opt['graph_pool'] = ""#"mean"
 
+
     #definitions of lie trotter
     #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
     #gen_0 - alternates one step diffusion and drift in alternating lie-trotter scheme (ie eq 42)
@@ -314,7 +316,6 @@ def greed_hyper_params(opt):
         # opt['time3'] = 1.0
         opt['lt_block_times'] = [2,2]#2, 2]
         opt['lt_pointwise_nonlin'] = True
-        opt['adjoint'] = True
     #gcn params
     # opt['function'] = 'gcn_dgl'#'gcn_res_dgl' #'gcn_dgl'#'greed_non_linear' #'gcn' #'greed_non_linear' #'greed_linear_hetero'
     # opt['gcn_enc_dec'] = False #False #True

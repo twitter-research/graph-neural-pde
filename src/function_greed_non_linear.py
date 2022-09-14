@@ -147,6 +147,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.pm_g = Parameter(torch.Tensor([1.]))
         self.pm_m = Parameter(torch.Tensor([1.]))
         self.pm_s = Parameter(torch.Tensor([1.]))
+      elif self.opt['gnl_activation'] == "pm_invsq":
+        self.pm_g = Parameter(torch.Tensor([1.]))
+        self.pm_m = Parameter(torch.Tensor([1.]))
+        self.pm_s = Parameter(torch.Tensor([1.]))
 
     if self.time_dep_w in ["unstruct", "struct_gaus", "struct_decay"]:
       self.reset_W_timedep_parameters()
@@ -363,6 +367,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         ones(self.pm_a)
         ones(self.pm_b)
       elif self.opt['gnl_activation'] == "pm_gaussian":
+        ones(self.pm_g)
+        ones(self.pm_m)
+        ones(self.pm_s)
+      elif self.opt['gnl_activation'] == "pm_invsq":
         ones(self.pm_g)
         ones(self.pm_m)
         ones(self.pm_s)
@@ -994,6 +1002,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           attention = self.pm_a**2 / (self.pm_a**2 + torch.exp(-self.pm_a**2 * fOmf))
         elif self.opt['gnl_activation'] == "pm_gaussian":
           attention = (self.pm_g**2 + 1) * torch.exp(-(fOmf-self.pm_m**2)**2/self.pm_s**2)
+        elif self.opt['gnl_activation'] == "pm_invsq":
+          attention = self.pm_g**2 / (1 + self.pm_m**2 * (fOmf - self.pm_s**2)**2)
         else:
           attention = fOmf
       elif self.opt['gnl_activation'] == 'identity':
