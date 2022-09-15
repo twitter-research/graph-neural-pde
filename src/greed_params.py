@@ -177,7 +177,7 @@ def greed_hyper_params(opt):
     opt['use_best_params'] = False #True #False #True
     opt['method'] = 'euler'
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
-    opt['step_size'] = 1.0 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
+    opt['step_size'] = 0.25#1.0 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 6 #3.194 #4 #18.295 #10
     opt['epoch'] = 129#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['adjoint'] = False#True
@@ -188,7 +188,7 @@ def greed_hyper_params(opt):
     # opt['patience'] = 3
     # opt['target_homoph'] = '0.70' #for synthetic cora
 
-    opt['gnl_style'] = 'general_graph'# 'attention_flavour'# 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
+    opt['gnl_style'] = 'att_rep_laps'#'general_graph'# 'attention_flavour'# 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
 
     if opt['gnl_style'] == 'scaled_dot':

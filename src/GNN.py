@@ -84,19 +84,21 @@ class GNN(BaseGNN):
           self.odeblock.odefunc.set_M0()
 
       elif self.opt['gnl_style'] == 'att_rep_laps': #contains_self_loops(self.odeblock.odefunc.edge_index)
-        if self.opt['gnl_W_style'] == 'att_rep_lap_block':
-          Ws, R_Ws = self.odeblock.odefunc.set_gnlWS()
-          if self.opt['gnl_W_norm']: #need to do this at the GNN level as called once in the forward call
-            Ws_eval, Ws_evec = torch.linalg.eigh(Ws)
-            Ws = Ws / torch.abs(Ws_eval).max()
-            R_Ws_eval, R_Ws_evec = torch.linalg.eigh(R_Ws)
-            R_Ws= R_Ws / torch.abs(R_Ws_eval).max()
-          self.odeblock.odefunc.Ws = Ws
-          self.odeblock.odefunc.R_Ws = R_Ws
-          self.odeblock.odefunc.gnl_W = Ws - R_Ws
+        self.odeblock.odefunc.reset_gnl_att_rep(T=0)
 
-        elif self.opt['gnl_W_style'] == 'sum':
-          pass #just testing
+        # if self.opt['gnl_W_style'] == 'att_rep_lap_block':
+        #   Ws, R_Ws = self.odeblock.odefunc.set_gnlWS()
+        #   if self.opt['gnl_W_norm']: #need to do this at the GNN level as called once in the forward call
+        #     Ws_eval, Ws_evec = torch.linalg.eigh(Ws)
+        #     Ws = Ws / torch.abs(Ws_eval).max()
+        #     R_Ws_eval, R_Ws_evec = torch.linalg.eigh(R_Ws)
+        #     R_Ws= R_Ws / torch.abs(R_Ws_eval).max()
+        #   self.odeblock.odefunc.Ws = Ws
+        #   self.odeblock.odefunc.R_Ws = R_Ws
+        #   self.odeblock.odefunc.gnl_W = Ws - R_Ws
+
+        # elif self.opt['gnl_W_style'] == 'sum':
+        #   pass #just testing
           # self.odeblock.odefunc.Ws = self.odeblock.odefunc.set_gnlWS()
           # self.odeblock.odefunc.R_Ws = self.odeblock.odefunc.set_gnlWS()
           # self.odeblock.odefunc.gnl_W = self.odeblock.odefunc.set_gnlWS()

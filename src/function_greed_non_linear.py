@@ -1066,6 +1066,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     R = torch.cat([-A, -diags], dim=-1)
     self.R_0 = R
 
+
   def reset_gnl_W_eigs(self, T):
     # T = int(t / self.opt['step_size'])
     #call dense W propagation matrix and set W_diag, W_U as required in the function call
@@ -1084,8 +1085,6 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     if self.opt['gnl_W_norm']:
       W = W / torch.abs(self.W_eval).max()
 
-    #penalty / skew sim / HH / orthog init
-
     # set progation matrix
     if self.opt['m2_W_eig'] in ['z2x', 'eye']: #if it's z2x then set W as the diag of evals
       self.gnl_W = torch.diag(self.W_eval)
@@ -1093,11 +1092,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     else:
       self.gnl_W = W
 
+    # Omega
     if self.time_dep_omega in ["struct", "unstruct"]:
       self.Omega = self.set_gnlOmega_timedep(T)
     else:
       self.Omega = self.set_gnlOmega()
 
+    # Sourceterm
     if self.opt['source_term'] == 'time_dep_bias':
       self.q_diag = self.q_diag_T[T]
     elif self.opt['source_term'] == 'time_dep_q':
@@ -1106,6 +1107,42 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       elif self.time_dep_q in ["unstruct"]:
         self.gnl_Q = self.set_gnlQ_timedep(T)
 
+  def reset_gnl_att_rep(self, T=0):
+    if self.opt['gnl_W_style'] == 'att_rep_lap_block':
+      Ws, R_Ws = self.set_gnlWS()
+
+      if self.opt['gnl_W_norm']:
+        Ws_eval, Ws_evec = torch.linalg.eigh(Ws)
+        Ws = Ws / torch.abs(Ws_eval).max()
+        R_Ws_eval, R_Ws_evec = torch.linalg.eigh(R_Ws)
+        R_Ws = R_Ws / torch.abs(R_Ws_eval).max()
+
+    W = Ws - R_Ws
+    self.W_eval, self.W_evec = torch.linalg.eigh(W)  # confirmed unit norm output vectors
+
+    # set progation matrix
+    if self.opt['m2_W_eig'] in ['z2x', 'eye']:  # if it's z2x then set W as the diag of evals
+      self.gnl_W = torch.diag(self.W_eval)
+    else:
+      self.gnl_W = W
+
+    self.Ws = Ws
+    self.R_Ws = R_Ws
+
+    # Omega
+    if self.time_dep_omega in ["struct", "unstruct"]:
+      self.Omega = self.set_gnlOmega_timedep(T)
+    else:
+      self.Omega = self.set_gnlOmega()
+
+    # Sourceterm
+    if self.opt['source_term'] == 'time_dep_bias':
+      self.q_diag = self.q_diag_T[T]
+    elif self.opt['source_term'] == 'time_dep_q':
+      if self.time_dep_q in ["struct"]:
+        self.gnl_Q = self.set_gnlQ_timedep(T)
+      elif self.time_dep_q in ["unstruct"]:
+        self.gnl_Q = self.set_gnlQ_timedep(T)
 
   def add_source(self, f, x):
     if self.opt['source_term'] == 'scalar':
