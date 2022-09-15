@@ -2,7 +2,7 @@ program: run_GNN.py
 method: random
 parameters:
   dataset:
-    values: [chameleon]
+    values: [squirrel]
   block:
     values: [constant]
   function:

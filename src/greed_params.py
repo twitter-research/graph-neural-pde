@@ -175,10 +175,10 @@ def greed_hyper_params(opt):
     opt['decay'] = 0.0004295#0.0005#0.0# 0.0005#005 #Cora 0.05 chameleon 0.0005
     opt['hidden_dim'] = 64#64 #512
     opt['use_best_params'] = False #True #False #True
-    opt['method'] = 'euler'
+    opt['method'] = 'euler'#'rk4' #'euler'
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
-    opt['step_size'] = 0.25#1.0 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
-    opt['time'] = 6 #3.194 #4 #18.295 #10
+    opt['step_size'] = 1#0.25#1.0 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
+    opt['time'] = 4 #3.194 #4 #18.295 #10
     opt['epoch'] = 129#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['adjoint'] = False#True
     opt['num_splits'] = 1#4#1
@@ -238,6 +238,7 @@ def greed_hyper_params(opt):
 
     elif opt['gnl_style'] == 'att_rep_laps':
         opt['gnl_W_style'] = 'att_rep_lap_block'#'sum'#'att_rep_lap_block'
+        opt['gnl_activation'] = 'pm_invsq'
         # att_rep_laplacians
         opt['diffusion'] = True#True
         opt['repulsion'] = True#False
@@ -339,9 +340,9 @@ def not_sweep_args(opt, project_name=None, group_name=None):
 
     # args for running locally - specified in YAML for tunes
     opt['wandb'] = True #False #True
-    opt['wandb_track_grad_flow'] = True#False  #collect stats for reports
-    opt['run_track_reports'] = True#False#True ##run the evolution reports
-    opt['save_local_reports'] = True#True
+    opt['wandb_track_grad_flow'] = False#True#False  #collect stats for reports
+    opt['run_track_reports'] = False#True#False#True ##run the evolution reports
+    opt['save_local_reports'] = False#True#True
     opt['save_wandb_reports'] = True#False#True
     opt['wandb_watch_grad'] = False
 

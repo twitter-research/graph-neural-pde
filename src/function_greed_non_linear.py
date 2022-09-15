@@ -156,11 +156,30 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         # self.pm_g = Parameter(torch.Tensor(nts))
         # self.pm_m = Parameter(torch.Tensor(nts))
         # self.pm_s = Parameter(torch.Tensor(nts))
-
       elif self.opt['gnl_activation'] == "pm_mlp":
         # self.pm_MLP = MLP(1, 32, 1, self.opt)
         self.layer1 = nn.Linear(1, 64).to(device)
         self.layer2 = nn.Linear(64, 1, bias=False).to(device)  # do not use bias on second layer
+    elif self.opt['gnl_style'] in ['att_rep_laps']:
+      if self.opt['gnl_activation'] == "perona_malik":
+        self.pm_a = Parameter(torch.Tensor([1.]))
+        self.pm_b = Parameter(torch.Tensor([1.]))
+        self.anti_pm_a = Parameter(torch.Tensor([1.]))
+        self.anti_pm_b = Parameter(torch.Tensor([1.]))
+      elif self.opt['gnl_activation'] == "pm_gaussian":
+        self.pm_g = Parameter(torch.Tensor([1.]))
+        self.pm_m = Parameter(torch.Tensor([1.]))
+        self.pm_s = Parameter(torch.Tensor([1.]))
+        self.anti_pm_g = Parameter(torch.Tensor([1.]))
+        self.anti_pm_m = Parameter(torch.Tensor([1.]))
+        self.anti_pm_s = Parameter(torch.Tensor([1.]))
+      elif self.opt['gnl_activation'] == "pm_invsq":
+        self.pm_g = Parameter(torch.Tensor([1.]))
+        self.pm_m = Parameter(torch.Tensor([1.]))
+        self.pm_s = Parameter(torch.Tensor([1.]))
+        self.anti_pm_g = Parameter(torch.Tensor([1.]))
+        self.anti_pm_m = Parameter(torch.Tensor([1.]))
+        self.anti_pm_s = Parameter(torch.Tensor([1.]))
 
     if self.time_dep_w in ["unstruct", "struct_gaus", "struct_decay"]:
       self.reset_W_timedep_parameters()
@@ -983,7 +1002,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       else:
         attention = fOmf
 
-    elif self.opt['gnl_style'] in ['general_graph', 'att_rep_laps']:
+    elif self.opt['gnl_style'] in ['general_graph']:
       # del src_x #trying to streamline for ogbn-arxiv
       # del dst_x
       # torch.cuda.empty_cache()
@@ -1009,7 +1028,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         elif self.opt['gnl_activation'] == "exponential":
           attention = torch.exp(fOmf)
         elif self.opt['gnl_activation'] == "perona_malik":
-          attention = self.pm_a**2 / (self.pm_a**2 + torch.exp(-self.pm_a**2 * fOmf))
+          attention = self.pm_a**2 / (self.pm_a**2 + torch.exp(-self.pm_b**2 * fOmf))
         elif self.opt['gnl_activation'] == "pm_gaussian":
           attention = (self.pm_g**2 + 1) * torch.exp(-(fOmf-self.pm_m**2)**2/self.pm_s**2)
         elif self.opt['gnl_activation'] == "pm_invsq":
@@ -1038,6 +1057,39 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         else:
           fOmf = torch.ones(src_deginvsqrt.shape, device=self.device)
         attention = torch.tensor([1], device=self.device) #1#torch.ones(src_deginvsqrt.shape, device=self.device)
+
+
+    elif self.opt['gnl_style'] in ['att_rep_laps']:
+      # get degrees
+      src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)
+      # calc bilinear form
+      if self.opt['gnl_activation'] != 'identity':
+        grad = src_x * src_deginvsqrt.unsqueeze(dim=1) - dst_x * dst_deginvsqrt.unsqueeze(dim=1)
+        fOmf = torch.einsum("ij,jk,ik->i", grad, self.Ws, grad)
+        anti_grad = src_x * src_deginvsqrt.unsqueeze(dim=1) + dst_x * dst_deginvsqrt.unsqueeze(dim=1)
+        anti_fOmf = torch.einsum("ij,jk,ik->i", anti_grad, self.R_Ws, anti_grad)
+
+        if self.opt['gnl_activation'] == "perona_malik":
+          attention = self.pm_a**2 / (self.pm_a**2 + torch.exp(-self.pm_b**2 * fOmf)) \
+                      + self.anti_pm_a**2 / (self.anti_pm_a**2 + torch.exp(-self.anti_pm_b**2 * anti_fOmf))
+        elif self.opt['gnl_activation'] == "pm_gaussian":
+          attention = (self.pm_g**2 + 1) * torch.exp(-(fOmf-self.pm_m**2)**2/self.pm_s**2) \
+                        + (self.anti_pm_g ** 2 + 1) * torch.exp(-(anti_fOmf - self.anti_pm_m ** 2) ** 2 / self.anti_pm_s ** 2)
+        elif self.opt['gnl_activation'] == "pm_invsq":
+          attention = self.pm_g**2 / (1 + self.pm_m**2 * (fOmf - self.pm_s**2)**2) \
+                        + self.anti_pm_g**2 / (1 + self.anti_pm_m**2 * (anti_fOmf - self.anti_pm_s**2)**2)
+
+      elif self.opt['gnl_activation'] == 'identity':
+        if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt[
+          'wandb_epoch_list'] and self.get_evol_stats:  # not self.training:
+          fOmf = torch.einsum("ij,jk,ik->i", src_x * src_deginvsqrt.unsqueeze(dim=1), self.gnl_W,
+                              dst_x * dst_deginvsqrt.unsqueeze(dim=1))  # calc'd just for stats
+        else:
+          fOmf = torch.ones(src_deginvsqrt.shape, device=self.device)
+        attention = torch.tensor([1], device=self.device) #1#torch.ones(src_deginvsqrt.shape, device=self.device)
+
+
+
 
     elif self.opt['gnl_style'] in ['attention_flavour']:
       fOmf = torch.einsum("ij,jk,ik->i", src_x, self.gnl_W, dst_x)
