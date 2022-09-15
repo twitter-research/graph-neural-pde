@@ -212,6 +212,24 @@ class M2_MLP(nn.Module):
     return x
 
 
+class MLP(nn.Module):
+  def __init__(self, in_dim, mid_dim, out_dim, opt):
+    super().__init__()
+    self.opt = opt
+    self.m21 = nn.Linear(in_dim, mid_dim)
+    self.m22 = nn.Linear(mid_dim, out_dim)
+
+  def forward(self, x):
+    # x = F.dropout(x, self.opt['dropout'], training=self.training)
+    # x = F.dropout(x + self.m21(torch.tanh(x)), self.opt['dropout'], training=self.training)  # tanh not relu to keep sign, with skip connection
+    # x = F.dropout(self.m22(x), self.opt['dropout'], training=self.training)
+    # return x
+
+    x = F.dropout(x, self.opt['dropout'], training=self.training)
+    x = F.dropout(self.m21(torch.relu(x)), self.opt['dropout'], training=self.training)
+    x = F.dropout(self.m22(x), self.opt['dropout'], training=self.training)
+    return x
+
 #https://github.com/graphdeeplearning/benchmarking-gnns/blob/b6c407712fa576e9699555e1e035d1e327ccae6c/layers/mlp_readout_layer.py#L9
 class MLPReadout(nn.Module):
   def __init__(self, input_dim, output_dim, L=2):  # L=nb_hidden_layers

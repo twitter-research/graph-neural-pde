@@ -29,6 +29,7 @@ from base_classes import ODEFunc
 from function_transformer_attention import SpGraphTransAttentionLayer
 from function_transformer_attention_greed import SpGraphTransAttentionLayer_greed
 from greed_reporting_fcts import set_reporting_attributes, set_folders_pdfs, generate_stats, append_stats, stack_stats
+from base_classes import MLP
 
 class ODEFuncGreedNonLin(ODEFuncGreed):
 
@@ -151,6 +152,15 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.pm_g = Parameter(torch.Tensor([1.]))
         self.pm_m = Parameter(torch.Tensor([1.]))
         self.pm_s = Parameter(torch.Tensor([1.]))
+        # nts = math.ceil(self.opt['time'] / self.opt['step_size'])
+        # self.pm_g = Parameter(torch.Tensor(nts))
+        # self.pm_m = Parameter(torch.Tensor(nts))
+        # self.pm_s = Parameter(torch.Tensor(nts))
+
+      elif self.opt['gnl_activation'] == "pm_mlp":
+        # self.pm_MLP = MLP(1, 32, 1, self.opt)
+        self.layer1 = nn.Linear(1, 64).to(device)
+        self.layer2 = nn.Linear(64, 1, bias=False).to(device)  # do not use bias on second layer
 
     if self.time_dep_w in ["unstruct", "struct_gaus", "struct_decay"]:
       self.reset_W_timedep_parameters()
@@ -949,7 +959,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     new_z = (Ek - b.unsqueeze(0)) @ P_dagg + z @ (torch.eye(P.shape[-1], device=self.device) - P_dagg.T @ P).T
     return (new_z - z) / step_size #returning value that will generate the change needed to get new_z (for explicit Euler)
 
-  def calc_dot_prod_attention(self, src_x, dst_x):
+  def calc_dot_prod_attention(self, src_x, dst_x, T=0):
     # scaled-dot method
     if self.opt['gnl_style'] == 'scaled_dot':
       fOmf = torch.einsum("ij,jk,ik->i", src_x, self.Omega, dst_x)
@@ -1004,6 +1014,20 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
           attention = (self.pm_g**2 + 1) * torch.exp(-(fOmf-self.pm_m**2)**2/self.pm_s**2)
         elif self.opt['gnl_activation'] == "pm_invsq":
           attention = self.pm_g**2 / (1 + self.pm_m**2 * (fOmf - self.pm_s**2)**2)
+          # attention = self.pm_g[T]**2 / (1 + self.pm_m[T]**2 * (fOmf - self.pm_s[T]**2)**2)
+          #normalisation
+          # attention = self.pm_g**2 / (1 + self.pm_m**2 * ((fOmf/(torch.abs(fOmf) + 1) - self.pm_s**2)**2))
+          #delay and normalisation
+          # if T > 4:
+          #   mean_fOmf = fOmf.mean()
+          #   attention = self.pm_g**2 / (1 + self.pm_m**2 * (fOmf - self.pm_s**2*mean_fOmf)**2)
+          # else:
+          #   attention = 1.
+        elif self.opt['gnl_activation'] == "pm_mlp":
+          # attention = self.pm_MLP(fOmf.unsqueeze(-1))
+          # self.layer2(torch.relu(self.layer1(fOmf.unsqueeze(-1)))).squeeze()
+          # attention = x = F.dropout(self.layer2(torch.relu(self.layer1(fOmf.unsqueeze(-1)))).squeeze(), self.opt['dropout'], training=self.training)
+          attention = self.layer2(torch.relu(self.layer1(fOmf.unsqueeze(-1)))).squeeze()
         else:
           attention = fOmf
       elif self.opt['gnl_activation'] == 'identity':
@@ -1153,7 +1177,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
         #general graph (GCN/GraphSage) method
         elif self.opt['gnl_style'] == 'general_graph':
-          fOmf, attention = self.calc_dot_prod_attention(src_x, dst_x)
+          fOmf, attention = self.calc_dot_prod_attention(src_x, dst_x, T)
           src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt) #todo is it efficient to calc this every time step
           P = attention * src_deginvsqrt * dst_deginvsqrt
           #warning this seems to drag on performance - can't explain

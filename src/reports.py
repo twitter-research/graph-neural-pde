@@ -478,23 +478,23 @@ def report_12(ax, fig, odefunc, row, epoch):
     attentions = odefunc.attentions
     fOmf = odefunc.fOmf
     # ax[row, 0].hist(attentions[0], bins=10)
-    H, b = np.histogram(attentions[0], bins=10)
-    ax[row, 0].bar((b[1:] + b[:-1]) / 2, H, width=1.0)
-    ax[row, 0].xaxis.set_tick_params(labelsize=16)
-    ax[row, 0].yaxis.set_tick_params(labelsize=16)
+    for i in range(4):
+        H, b = np.histogram(attentions[i], bins=10)
+        ax[row, i].hist(b[:-1], b, weights=H)
+        ax[row, i].xaxis.set_tick_params(labelsize=16)
+        ax[row, i].yaxis.set_tick_params(labelsize=16)
 
-    SM_att = softmax(fOmf[0,:] / torch.sqrt(torch.tensor([opt['hidden_dim']], device=odefunc.device)),
-                        odefunc.edge_index[opt['attention_norm_idx']])
-    SM_sym_att = make_symmetric_unordered(odefunc.edge_index, SM_att)
-
+    # SM_att = softmax(fOmf[0,:] / torch.sqrt(torch.tensor([opt['hidden_dim']], device=odefunc.device)),
+    #                     odefunc.edge_index[opt['attention_norm_idx']])
+    # SM_sym_att = make_symmetric_unordered(odefunc.edge_index, SM_att)
     # att_ent = Categorical(probs=SM_att).entropy()
     # att_ent = calc_entropy_sparse(SM_att, odefunc.edge_index[opt['attention_norm_idx']], odefunc.n_nodes)
     # ax[row, 1].hist(att_ent, bins=10)
     # ax[row, 1].hist(SM_sym_att, bins=10)
-    H, b = np.histogram(SM_sym_att[0], bins=10)
-    ax[row, 1].bar((b[1:] + b[:-1]) / 2, H, width=1.0)
-    ax[row, 1].xaxis.set_tick_params(labelsize=16)
-    ax[row, 1].yaxis.set_tick_params(labelsize=16)
+    # H, b = np.histogram(SM_sym_att[0], bins=10)
+    # ax[row, 1].hist(b[:-1], b, weights=H)
+    # ax[row, 1].xaxis.set_tick_params(labelsize=16)
+    # ax[row, 1].yaxis.set_tick_params(labelsize=16)
 
     if not torch.cuda.is_available() and epoch in odefunc.opt['display_epoch_list']:
         fig.show()
@@ -540,7 +540,7 @@ def run_reports(odefunc):
                 9: ['v_t_entropies', 2, [1, 1], (24, 32)],
                 10: ['confusions', 2, [1, 1], (24, 32)],
                 11: ['decoder', 2, [1, 1], (24, 32)],
-                12: ['attention_dist', 2, [1, 1], (24, 32)]}
+                12: ['attention_dist', 4, [1, 1, 1, 1], (24, 32)]}
 
     reports_nums = opt['reports_list']
     for rep_num in reports_nums:

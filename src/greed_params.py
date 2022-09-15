@@ -178,7 +178,7 @@ def greed_hyper_params(opt):
     opt['method'] = 'euler'
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
     opt['step_size'] = 1.0 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
-    opt['time'] = 3 #3.194 #4 #18.295 #10
+    opt['time'] = 6 #3.194 #4 #18.295 #10
     opt['epoch'] = 129#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['adjoint'] = False#True
     opt['num_splits'] = 1#4#1
@@ -203,7 +203,7 @@ def greed_hyper_params(opt):
         opt['attention_activation'] = 'softmax'#'softmax' #, exponential
         opt['attention_normalisation'] = 'none'
     elif opt['gnl_style'] in ['general_graph', 'attention_flavour']:
-        opt['gnl_activation'] = 'pm_gaussian'#'pm_gaussian'#'perona_malik'#'identity'#'sigmoid' #'identity'
+        opt['gnl_activation'] = 'pm_invsq'#'pm_invsq'#'pm_mlp' #'pm_gaussian'#'pm_gaussian'#'perona_malik'#'identity'#'sigmoid' #'identity'
         opt['gnl_attention'] = False #use L0 attention coefficients
         #Omega
         opt['gnl_omega'] = 'zero'#'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
@@ -220,7 +220,7 @@ def greed_hyper_params(opt):
         # 'W_orthog_init', - init W_U/W_D, use GS to init param W_U as orthog -set W as eval and use z2x
         # 'householder' - use householder reflections to enforce orthog W_U
         # 'skew_sym' - use skew-symetric and bilinear approximation to enforce orthog W_U
-        opt['gnl_W_style'] = 'tri'#'loss_W_orthog'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_W_style'] = 'tri'#'tri'#'loss_W_orthog'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         if opt['gnl_W_style'] == 'k_block':
             assert opt['hidden_dim'] % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= opt['hidden_dim']#in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
@@ -248,7 +248,7 @@ def greed_hyper_params(opt):
     opt['drift_grad'] = False#True #True
     opt['m2_aug'] = False #True #False #reads out (no weights) prediction from bottom C dimensions
     opt['m1_W_eig'] = False#True
-    opt['m2_W_eig'] = 'z2x' #False #'x2z'#'z2x' #True #True
+    opt['m2_W_eig'] = False#'z2x' #False #'x2z'#'z2x' #True #True
     # if opt['m2_W_eig'] == 'z2x': #not true as can just do eigen decomp for sum for example
     #     assert opt['gnl_W_style'] in ['Z_diag', 'GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym'], 'z2x must have diag style matrix'
     opt['m3_path_dep'] = None#'label_att'#'feature_jk'#None#'label_jk'#'train_centers'#'feature_jk'#'label_jk'#'feature_jk' #'label_jk' 'label_att'
@@ -273,6 +273,7 @@ def greed_hyper_params(opt):
     opt['num_lamb_omega'] = num_lamb
     opt['num_lamb_q'] = num_lamb
 
+    opt['conv_batch_norm'] = False#"layerwise" #"shared" False#True
     opt['pointwise_nonlin'] = False#True#False#True
     opt['graph_pool'] = ""#"mean"
 
@@ -283,7 +284,7 @@ def greed_hyper_params(opt):
     #gen_1 - alternates ranges of diffusion and drift (ie eq 43-44)
     #gen_2 - rolls out blocks of diffusion/drift/thresholding/label diffusion - using function_greed_non_linear_lie_trotter.py
     # reports_list = ['spectrum', 'acc_entropy', 'edge_evol', 'node_evol', 'node_scatter', 'edge_scatter', 'class_dist' ,'TSNE', 'val_test_entropy']
-    opt['reports_list'] = []#[12]#[1,2,3,4,5,6,7,8,9,10]#,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
+    opt['reports_list'] = [1, 4, 12]#, 3, 4, 6, 12]#[1,2,3,4,5,6,7,8,9,10]#,11] #[1,2,4,7,8,9,10,11]#[1,2,3,4,5,6,7,8,9]#[1,2,4,7,8,9]#] #[8]#[1,2,4,5,7,8]  # [1]#[1,2,3,4,5,6,7] #
     opt['lie_trotter'] = None #'gen_2' #None #'gen_2' #'gen_2' #'gen_2' #None #'gen_2'#'gen_1' #'gen_0' 'gen_1' 'gen_2'
     if opt['lie_trotter'] in [None, 'gen_0', 'gen_1']:
         if opt['lie_trotter'] in [None, 'gen_0']:
@@ -344,8 +345,8 @@ def not_sweep_args(opt, project_name=None, group_name=None):
     opt['save_wandb_reports'] = True#False#True
     opt['wandb_watch_grad'] = False
 
-    opt['wandb_epoch_list'] = [1,2,3,4] #[1,4,8,16,32,64,96,128]#[8, 128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8]
-    opt['display_epoch_list'] = [1,2,3,4] #[16,128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8] #todo add to params
+    opt['wandb_epoch_list'] = [1,4,8,16,32,64,96,128]# [1,2,3,4] #[8, 128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8]
+    opt['display_epoch_list'] = [16,128]#[1,2,3,4] #[1,2,4,8,16,32,64,128]#[1,2,3,4,5]#,6,7,8] #todo add to params
 
     DT = datetime.datetime.now()
     opt['wandb_run_name'] = DT.strftime("%m%d_%H%M%S_") + "wandb"#

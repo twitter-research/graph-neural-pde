@@ -114,6 +114,8 @@ class GNN(BaseGNN):
   def forward_XN(self, x):
     ###forward XN
     x = self.encoder(x, pos_encoding=None)
+    # x = x / (torch.norm(x, p=2, dim=1).unsqueeze(-1))
+
 
     self.odeblock.odefunc.paths = []
     if not self.opt['lie_trotter'] == 'gen_2': #do for gen2 in the odeblock as copy over initial conditions
