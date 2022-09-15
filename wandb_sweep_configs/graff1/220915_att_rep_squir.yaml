@@ -74,11 +74,11 @@ parameters:
   lr:
     distribution: uniform
     min: 0.0005
-    max: 0.01
+    max: 0.005
   decay:
     distribution: uniform
     min: 0.000
-    max: 0.05
+    max: 0.01
 command:
   - ${env}
   - python3
