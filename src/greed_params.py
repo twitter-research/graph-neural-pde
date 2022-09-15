@@ -168,17 +168,17 @@ def greed_hyper_params(opt):
 
     #hyper-params
     opt['optimizer'] = 'adam'
-    opt['lr'] = 0.0014#0.001 #0.00001# 0.001#0.001
+    opt['lr'] = 0.0009#14#0.001 #0.00001# 0.001#0.001
     # opt['lr2'] = 0.00001
-    opt['dropout'] = 0.3674#0.35#0.0#0.35
-    opt['input_dropout'] = 0.4327#0.5#0.0#0.5
-    opt['decay'] = 0.0004295#0.0005#0.0# 0.0005#005 #Cora 0.05 chameleon 0.0005
+    opt['dropout'] = 0.3#0.3674#0.35#0.0#0.35
+    opt['input_dropout'] = 0.43#0.4327#0.5#0.0#0.5
+    opt['decay'] = 0.009#0.0004295#0.0005#0.0# 0.0005#005 #Cora 0.05 chameleon 0.0005
     opt['hidden_dim'] = 64#64 #512
     opt['use_best_params'] = False #True #False #True
     opt['method'] = 'euler'#'rk4' #'euler'
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
     opt['step_size'] = 1#0.25#1.0 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
-    opt['time'] = 4 #3.194 #4 #18.295 #10
+    opt['time'] = 4.08 #3.194 #4 #18.295 #10
     opt['epoch'] = 129#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['adjoint'] = False#True
     opt['num_splits'] = 1#4#1
@@ -203,7 +203,7 @@ def greed_hyper_params(opt):
         opt['attention_activation'] = 'softmax'#'softmax' #, exponential
         opt['attention_normalisation'] = 'none'
     elif opt['gnl_style'] in ['general_graph', 'attention_flavour']:
-        opt['gnl_activation'] = 'pm_invsq'#'pm_invsq'#'pm_mlp' #'pm_gaussian'#'pm_gaussian'#'perona_malik'#'identity'#'sigmoid' #'identity'
+        opt['gnl_activation'] = 'identity'#'pm_invsq'#'pm_invsq'#'pm_mlp' #'pm_gaussian'#'pm_gaussian'#'perona_malik'#'identity'#'sigmoid' #'identity'
         opt['gnl_attention'] = False #use L0 attention coefficients
         #Omega
         opt['gnl_omega'] = 'zero'#'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
@@ -238,7 +238,7 @@ def greed_hyper_params(opt):
 
     elif opt['gnl_style'] == 'att_rep_laps':
         opt['gnl_W_style'] = 'att_rep_lap_block'#'sum'#'att_rep_lap_block'
-        opt['gnl_activation'] = 'pm_invsq'
+        opt['gnl_activation'] = 'identity'#'pm_invsq'
         # att_rep_laplacians
         opt['diffusion'] = True#True
         opt['repulsion'] = True#False
