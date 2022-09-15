@@ -978,7 +978,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     new_z = (Ek - b.unsqueeze(0)) @ P_dagg + z @ (torch.eye(P.shape[-1], device=self.device) - P_dagg.T @ P).T
     return (new_z - z) / step_size #returning value that will generate the change needed to get new_z (for explicit Euler)
 
-  def calc_dot_prod_attention(self, src_x, dst_x, T=0):
+  def calc_dot_prod_attention(self, src_x, dst_x, x=None, T=0):
     # scaled-dot method
     if self.opt['gnl_style'] == 'scaled_dot':
       fOmf = torch.einsum("ij,jk,ik->i", src_x, self.Omega, dst_x)
@@ -1064,20 +1064,25 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       src_deginvsqrt, dst_deginvsqrt = self.get_src_dst(self.deg_inv_sqrt)
       # calc bilinear form
       if self.opt['gnl_activation'] != 'identity':
-        grad = src_x * src_deginvsqrt.unsqueeze(dim=1) - dst_x * dst_deginvsqrt.unsqueeze(dim=1)
+        #cat to match indexes of sparse graph laplacian
+        grad = torch.cat([src_x * src_deginvsqrt.unsqueeze(dim=1) - dst_x * dst_deginvsqrt.unsqueeze(dim=1), torch.zeros((self.n_nodes, self.in_features), device=self.device)], dim=0)
         fOmf = torch.einsum("ij,jk,ik->i", grad, self.Ws, grad)
-        anti_grad = src_x * src_deginvsqrt.unsqueeze(dim=1) + dst_x * dst_deginvsqrt.unsqueeze(dim=1)
+
+        ag = src_x * src_deginvsqrt.unsqueeze(dim=1) + dst_x * dst_deginvsqrt.unsqueeze(dim=1)
+        loop_anti_grad = 2 * self.deg_inv_sqrt.unsqueeze(dim=1) * x
+        anti_grad = torch.cat([ag, loop_anti_grad], dim=0)
         anti_fOmf = torch.einsum("ij,jk,ik->i", anti_grad, self.R_Ws, anti_grad)
 
-        if self.opt['gnl_activation'] == "perona_malik":
-          attention = self.pm_a**2 / (self.pm_a**2 + torch.exp(-self.pm_b**2 * fOmf)) \
-                      + self.anti_pm_a**2 / (self.anti_pm_a**2 + torch.exp(-self.anti_pm_b**2 * anti_fOmf))
-        elif self.opt['gnl_activation'] == "pm_gaussian":
-          attention = (self.pm_g**2 + 1) * torch.exp(-(fOmf-self.pm_m**2)**2/self.pm_s**2) \
-                        + (self.anti_pm_g ** 2 + 1) * torch.exp(-(anti_fOmf - self.anti_pm_m ** 2) ** 2 / self.anti_pm_s ** 2)
-        elif self.opt['gnl_activation'] == "pm_invsq":
-          attention = self.pm_g**2 / (1 + self.pm_m**2 * (fOmf - self.pm_s**2)**2) \
-                        + self.anti_pm_g**2 / (1 + self.anti_pm_m**2 * (anti_fOmf - self.anti_pm_s**2)**2)
+
+        # if self.opt['gnl_activation'] == "perona_malik":
+        #   attention = self.pm_a**2 / (self.pm_a**2 + torch.exp(-self.pm_b**2 * fOmf))
+        #   anti_attention = self.anti_pm_a**2 / (self.anti_pm_a**2 + torch.exp(-self.anti_pm_b**2 * anti_fOmf))
+        # elif self.opt['gnl_activation'] == "pm_gaussian":
+        #   attention = (self.pm_g**2 + 1) * torch.exp(-(fOmf-self.pm_m**2)**2/self.pm_s**2)
+        #   anti_attention = (self.anti_pm_g ** 2 + 1) * torch.exp(-(anti_fOmf - self.anti_pm_m ** 2) ** 2 / self.anti_pm_s ** 2)
+        if self.opt['gnl_activation'] == "pm_invsq":
+          attention = self.pm_g**2 / (1 + self.pm_m**2 * fOmf**2)
+          anti_attention = self.anti_pm_g**2 / (1 + self.anti_pm_m**2 * anti_fOmf**2)
 
       elif self.opt['gnl_activation'] == 'identity':
         if self.opt['wandb_track_grad_flow'] and self.epoch in self.opt[
@@ -1086,10 +1091,13 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
                               dst_x * dst_deginvsqrt.unsqueeze(dim=1))  # calc'd just for stats
         else:
           fOmf = torch.ones(src_deginvsqrt.shape, device=self.device)
+          anti_fOmf = torch.ones(src_deginvsqrt.shape, device=self.device)
+
         attention = torch.tensor([1], device=self.device) #1#torch.ones(src_deginvsqrt.shape, device=self.device)
+        anti_attention = torch.tensor([1], device=self.device) #1#torch.ones(src_deginvsqrt.shape, device=self.device)
 
-
-
+      fOmf = (fOmf, anti_fOmf)
+      attention = (attention, anti_attention)
 
     elif self.opt['gnl_style'] in ['attention_flavour']:
       fOmf = torch.einsum("ij,jk,ik->i", src_x, self.gnl_W, dst_x)
@@ -1303,18 +1311,22 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
         #as per old_main.tex eq (11)
         elif self.opt['gnl_style'] == 'att_rep_laps':
+          (fOmf, anti_fOmf), (attention, anti_attention) = self.calc_dot_prod_attention(src_x, dst_x, x, T)
+
           edges = torch.cat([self.edge_index, self.self_loops], dim=1)
           LfW = 0
           RfW = 0
           if self.opt['diffusion']:
             Ws = self.Ws
             fWs = torch.matmul(x, Ws)
-            LfW = torch_sparse.spmm(edges, -self.L_0, x.shape[0], x.shape[0], fWs)
+            LfW = torch_sparse.spmm(edges, -self.L_0 * attention, x.shape[0], x.shape[0], fWs)
           if self.opt['repulsion']:
             R_Ws = self.R_Ws
             fRWs = torch.matmul(x, R_Ws)
-            RfW = torch_sparse.spmm(edges, self.R_0, x.shape[0], x.shape[0], fRWs)
+            RfW = torch_sparse.spmm(edges, self.R_0 * anti_attention, x.shape[0], x.shape[0], fRWs)
 
+
+          #set convex combination value alpha
           try:
             self.alpha = float(self.opt['alpha_style'])
           except:
