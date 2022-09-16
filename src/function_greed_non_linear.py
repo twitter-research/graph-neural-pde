@@ -1217,7 +1217,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       f = f + self.q_diag
     elif self.opt['source_term'] == 'time_dep_q':
       f = f + self.gnl_Q * self.x0
-    else:
+    elif self.opt['source_term'] == 'none':
       pass
     return f
 
