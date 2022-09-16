@@ -181,7 +181,7 @@ def greed_hyper_params(opt):
     opt['time'] = 4.08 #3.194 #4 #18.295 #10
     opt['epoch'] = 129#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['adjoint'] = False#True
-    opt['num_splits'] = 1#4#1
+    opt['num_splits'] = 2#4#1
     opt['use_labels'] = False #True
     # opt['planetoid_split'] = True
     # opt['geom_gcn_splits'] = False #True#True #False#True
@@ -246,7 +246,7 @@ def greed_hyper_params(opt):
     opt['drift'] = False  # False#True
     opt['gnl_thresholding'] = False
     opt['drift_space'] = 'label' #feature' #'label'
-    opt['drift_grad'] = False#True #True
+    opt['drift_grad'] = True #True #False #false somehow made better
     opt['m2_aug'] = False #True #False #reads out (no weights) prediction from bottom C dimensions
     opt['m1_W_eig'] = False#True
     opt['m2_W_eig'] = False#'z2x' #False #'x2z'#'z2x' #True #True
