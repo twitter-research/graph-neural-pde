@@ -171,7 +171,7 @@ def greed_hyper_params(opt):
     opt['lr'] = 0.0009#14#0.001 #0.00001# 0.001#0.001
     # opt['lr2'] = 0.00001
     opt['dropout'] = 0.3#0.3674#0.35#0.0#0.35
-    opt['input_dropout'] = 0.43#0.4327#0.5#0.0#0.5
+    opt['input_dropout'] = 0.43#0.4327#0.5#0.0#0.5Ω
     opt['decay'] = 0.009#0.0004295#0.0005#0.0# 0.0005#005 #Cora 0.05 chameleon 0.0005
     opt['hidden_dim'] = 64#64 #512
     opt['use_best_params'] = False #True #False #True

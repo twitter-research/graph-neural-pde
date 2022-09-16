@@ -38,7 +38,7 @@ parameters:
   source_term:
     values: [None]
   gnl_omega:
-    values: [diag]
+    values: [zero]
   gnl_omega_diag:
     values: [free]
   time_dep_w:
@@ -69,6 +69,8 @@ parameters:
     values: [0.0009]
   decay:
     values: [0.009]
+  XN_no_activation:
+    values: [True]
 command:
   - ${env}
   - python3
