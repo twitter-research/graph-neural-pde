@@ -509,6 +509,7 @@ def main(cmd_opt):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     opt['device'] = device
 
+    #wandb.init(settings=wandb.Settings(start_method="fork")) - https://docs.wandb.ai/guides/track/launch#init-start-error
     if 'wandb_run_name' in opt.keys():
         wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
                                name=opt['wandb_run_name'], reinit=True, config=opt, allow_val_change=True)
@@ -1025,6 +1026,8 @@ if __name__ == '__main__':
     parser.add_argument('--pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
     parser.add_argument('--conv_batch_norm', type=str, default='False', help='conv_batch_norm')
     parser.add_argument('--batch', type=int, default=128, help='batch_size')
+
+    parser.add_argument('--post_proc', type=str, default='none', help='post processing [none, neighbour, node]')
 
     #zinc params
     parser.add_argument('--graph_pool', type=str, default='', help='type of graph pool operation - {add, mean}')

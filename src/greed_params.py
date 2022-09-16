@@ -179,9 +179,9 @@ def greed_hyper_params(opt):
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
     opt['step_size'] = 1#0.25#1.0 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
     opt['time'] = 4.08 #3.194 #4 #18.295 #10
-    opt['epoch'] = 129#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
+    opt['epoch'] = 251#129#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['adjoint'] = False#True
-    opt['num_splits'] = 2#4#1
+    opt['num_splits'] = 1#4#1
     opt['use_labels'] = False #True
     # opt['planetoid_split'] = True
     # opt['geom_gcn_splits'] = False #True#True #False#True
@@ -278,6 +278,7 @@ def greed_hyper_params(opt):
     opt['pointwise_nonlin'] = False#True#False#True
     opt['graph_pool'] = ""#"mean"
 
+    opt['post_proc'] = 'neighbour'#'node'
 
     #definitions of lie trotter
     #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
@@ -695,9 +696,9 @@ def default_params():
     parser.add_argument('--loss_orthog_a', type=float, default=0, help='loss orthog multiplier term')
     parser.add_argument('--householder_L', type=int, default=8, help='num iterations of householder reflection for W_orthog')
     parser.add_argument('--source_term', type=str, default='', help='describes type of source term to add')
-
-
     parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
+
+    parser.add_argument('--post_proc', type=str, default='none', help='post processing [none, neighbour, node]')
 
     #zinc params
     parser.add_argument('--pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')

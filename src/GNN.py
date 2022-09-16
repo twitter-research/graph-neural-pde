@@ -1,9 +1,12 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+import torch_sparse
+from torch_scatter import scatter_add
 from torch_geometric.utils import contains_self_loops
 from torch_geometric.nn import global_mean_pool, global_add_pool
-
+from torch.nn import Parameter
+from torch_geometric.nn.inits import glorot, zeros, ones, constant
 from base_classes import BaseGNN
 from model_configurations import set_block, set_function
 from utils import rayleigh_quotient #project_paths_label_space#, project_paths_logit_space
@@ -19,6 +22,16 @@ class GNN(BaseGNN):
     self.odeblock = block(self.f, self.regularization_fns, opt, dataset.data, device, t=time_tensor).to(device)
     self.odeblock.odefunc.GNN_postXN = self.GNN_postXN
     self.odeblock.odefunc.GNN_m2 = self.m2
+
+    if opt['post_proc'] in ['node', 'neighbour']:
+      # self.post_theta = Parameter(torch.Tensor(opt['hidden_dim'], opt['hidden_dim']))
+      self.post_theta = Parameter(torch.eye(opt['hidden_dim']))
+
+    # self.reset_parameters()
+
+  def reset_parameters(self):
+    if self.opt['post_proc'] in ['node', 'neighbour']:
+      glorot(self.post_theta)
 
   def encoder(self, x, pos_encoding=None):
     # Encode each node based on its feature.
@@ -135,6 +148,10 @@ class GNN(BaseGNN):
     return z
 
   def GNN_postXN(self, z):
+
+    if self.opt['post_proc'] in ['node', 'neighbour']:
+      z = self.post_processing(z)
+
     if self.opt['augment']:
       z = torch.split(z, z.shape[1] // 2, dim=1)[0]
     # Activation.
@@ -147,6 +164,22 @@ class GNN(BaseGNN):
     # Dropout.
     z = F.dropout(z, self.opt['dropout'], training=self.training)
     return z
+
+  def square_p(self, x):
+    x = (x + torch.sqrt(x ** 2 + 4)) / 2
+    return x
+
+  def post_processing(self, z):
+    if self.opt['post_proc'] == 'node':
+      # p = (torch.norm(z, p=1, dim=1).unsqueeze(-1) / (0.01 + torch.abs(z))) * torch.exp(z @ self.post_theta) / torch.exp(z @ self.post_theta).sum(dim=1).unsqueeze(-1)
+      p = (torch.norm(z, p=1, dim=1).unsqueeze(-1) / (0.01 + torch.abs(z))) * self.square_p(z @ self.post_theta) / self.square_p(z @ self.post_theta).sum(dim=1).unsqueeze(-1)
+    elif self.opt['post_proc'] == 'neighbour':
+      theta_proj = self.square_p(z @ self.post_theta) / self.square_p(z @ self.post_theta).sum(dim=1).unsqueeze(-1)
+      src_tp, dst_tp = self.odeblock.odefunc.get_src_dst(theta_proj)
+      tp_sum = scatter_add(src_tp, self.odeblock.odefunc.edge_index[0], dim=0, dim_size=self.num_nodes)
+      p = (torch.norm(z, p=1, dim=1).unsqueeze(-1) / (0.01 + torch.abs(z))) * tp_sum
+
+    return p * z
 
   def forward(self, x, pos_encoding=None):
     z = self.forward_XN(x)
