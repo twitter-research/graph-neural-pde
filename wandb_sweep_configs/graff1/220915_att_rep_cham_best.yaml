@@ -75,7 +75,7 @@ parameters:
     distribution: uniform
     min: 0.0005
     max: 0.0015
- decay:
+  decay:
     distribution: uniform
     min: 0.005
     max: 0.015
