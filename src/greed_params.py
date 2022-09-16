@@ -238,7 +238,7 @@ def greed_hyper_params(opt):
 
     elif opt['gnl_style'] == 'att_rep_laps':
         opt['gnl_W_style'] = 'att_rep_lap_block'#'sum'#'att_rep_lap_block'
-        opt['gnl_activation'] = 'pm_invsq'#'identity'#'pm_invsq'
+        opt['gnl_activation'] = 'identity'#'pm_invsq'#'identity'#'pm_invsq'
         # att_rep_laplacians
         opt['diffusion'] = True#True
         opt['repulsion'] = True#False
