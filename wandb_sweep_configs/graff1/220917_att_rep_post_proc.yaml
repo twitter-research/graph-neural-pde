@@ -21,6 +21,12 @@ parameters:
     values: [att_rep_laps]
   gnl_W_style:
     values: [att_rep_lap_block]
+  diffusion:
+    values: [True]
+  repulsion:
+    values: [True]
+  alpha_style:
+    values: [sigmoid, free]
   post_proc:
     values: [node, neighbour]
   gnl_W_norm:
