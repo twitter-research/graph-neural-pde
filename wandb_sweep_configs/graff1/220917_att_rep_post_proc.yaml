@@ -1,0 +1,86 @@
+program: run_GNN.py
+method: random
+parameters:
+  dataset:
+    values: [chameleon, squirrel]
+  block:
+    values: [constant]
+  function:
+    values: [greed_non_linear]
+  epoch:
+    values: [200]
+  num_splits:
+    values: [2]
+  self_loop_weight:
+    values: [0.0]
+  no_early:
+    values: [True]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [att_rep_laps]
+  gnl_W_style:
+    values: [att_rep_lap_block]
+  post_proc:
+    values: [node, neighbour]
+  gnl_W_norm:
+    values: [False]
+  gnl_activation:
+    values: [identity, pm_invsq]
+  gnl_measure:
+    values: [ones]
+  drift:
+    values: [False]
+  source_term:
+    values: [none, scalar]
+  gnl_omega:
+    values: [diag, zero]
+  gnl_omega_diag:
+    values: [free]
+  time_dep_w:
+    values: [none]
+  time_dep_omega:
+    values: [none]
+  time_dep_q:
+    values: [none]
+  m1_W_eig:
+    values: [False]
+  m2_W_eig:
+    values: [z2x, eye]
+  pointwise_nonlin:
+    values: [False]
+  hidden_dim:
+    values: [64, 128]
+  time:
+    distribution: uniform
+    min: 2.0
+    max: 5.0
+  step_size:
+    values: [0.5, 1.0]
+  input_dropout:
+    distribution: uniform
+    min: 0.4
+    max: 0.6
+  dropout:
+    distribution: uniform
+    min: 0.2
+    max: 0.5
+  optimizer:
+    values: [adam]
+  lr:
+    distribution: log_uniform
+    min: -9.2103
+    max: -3.9120
+  decay:
+    distribution: log_uniform
+    min: -11.5129
+    max: -3.9120
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+entity: graph_neural_diffusion
+project: att_rep_post_proc
