@@ -371,7 +371,7 @@ def tf_ablation_args(opt):
                 'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
                 'two_hops',
                 'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'gnl_W_norm', 'drift_grad',
-                'pointwise_nonlin', 'lt_pointwise_nonlin',
+                'pointwise_nonlin', 'lt_pointwise_nonlin', 'data_feat_norm',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout',
                 'wandb', 'wandb_sweep', 'wandb_offline']#, 'adjoint']
     arg_intersect = list(set(opt.keys()) & set(tf_args))
@@ -389,6 +389,8 @@ def default_params():
     # data args
     parser.add_argument('--dataset', type=str, default='Cora',
                         help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS, ogbn-arxiv')
+    parser.add_argument('--data_feat_norm', type=str, default='False',
+                        help='use pre transform NormalizeFeatures')
     parser.add_argument('--data_norm', type=str, default='rw',
                         help='rw for random walk, gcn for symmetric gcn norm')
     parser.add_argument('--self_loop_weight', type=float, help='Weight of self-loops.')

@@ -3,6 +3,8 @@ method: random
 parameters:
   dataset:
     values: [chameleon, squirrel]
+  data_feat_norm:
+    values: [True, False]
   block:
     values: [constant]
   function:

@@ -9,7 +9,7 @@ import numpy as np
 import torch
 from torch_geometric.data import Data, InMemoryDataset
 from torch.utils.data import WeightedRandomSampler
-from torch_geometric.datasets import Planetoid, Amazon, Coauthor, KarateClub#, WikipediaNetwork #todo hacky for AWS download hetero using PyG
+from torch_geometric.datasets import Planetoid, Amazon, Coauthor, KarateClub, LINKXDataset#, WikipediaNetwork #todo for AWS download hetero using PyG
 from graph_rewiring import get_two_hop, apply_gdc
 from ogb.nodeproppred import PygNodePropPredDataset
 import torch_geometric.transforms as T
@@ -41,15 +41,25 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
   elif ds == 'CoauthorCS':
     dataset = Coauthor(path, 'CS')
   elif ds in ['cornell', 'texas', 'wisconsin']:
-    dataset = WebKB(root=path, name=ds, transform=T.NormalizeFeatures())
+    if opt['data_feat_norm']:
+      dataset = WebKB(root=path, name=ds, transform=T.NormalizeFeatures())
+    else:
+      dataset = WebKB(root=path, name=ds)
   elif ds in ['chameleon', 'squirrel']:
-    dataset = WikipediaNetwork(root=path, name=ds, transform=T.NormalizeFeatures())
+    if opt['data_feat_norm']:
+      dataset = WikipediaNetwork(root=path, name=ds, transform=T.NormalizeFeatures())
+    else:
+      dataset = WikipediaNetwork(root=path, name=ds)
   elif ds == 'film':
     dataset = Actor(root=path, transform=T.NormalizeFeatures())
   elif ds == 'ogbn-arxiv':
-    dataset = PygNodePropPredDataset(name=ds, root=path,
-                                     transform=T.ToSparseTensor())
+    dataset = PygNodePropPredDataset(name=ds, root=path, transform=T.ToSparseTensor())
     use_lcc = False  #  never need to calculate the lcc with ogb datasets
+  elif ds in ["penn94", "reed98", "amherst41", "cornell5", "johnshopkins55", "genius"]:
+    if opt['data_feat_norm']:
+      dataset = LINKXDataset(root=path, name=ds, transform=T.NormalizeFeatures())
+    else:
+      dataset = LINKXDataset(root=path, name=ds)
   elif ds == 'Karate':
     dataset = KarateClub()
     dataset.data.val_mask = ~dataset.data.train_mask
