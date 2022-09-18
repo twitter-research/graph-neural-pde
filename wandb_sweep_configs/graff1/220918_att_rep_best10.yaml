@@ -52,7 +52,7 @@ parameters:
   m2_W_eig:
     values: [False]
   pointwise_nonlin:
-    values: [None]
+    values: [True, False]
   hidden_dim:
     values: [32, 64, 128]
   time:
