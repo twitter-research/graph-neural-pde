@@ -23,14 +23,14 @@ class GNN(BaseGNN):
     self.odeblock.odefunc.GNN_postXN = self.GNN_postXN
     self.odeblock.odefunc.GNN_m2 = self.m2
 
-    if opt['post_proc'] in ['node', 'neighbour']:
+    if opt['post_proc'] in ['node', 'neighbour', 'node_tanh', 'neighbour_tanh']:
       # self.post_theta = Parameter(torch.Tensor(opt['hidden_dim'], opt['hidden_dim']))
       self.post_theta = Parameter(torch.eye(opt['hidden_dim']))
 
     # self.reset_parameters()
 
   def reset_parameters(self):
-    if self.opt['post_proc'] in ['node', 'neighbour']:
+    if self.opt['post_proc'] in ['node', 'neighbour', 'node_tanh', 'neighbour_tanh']:
       glorot(self.post_theta)
 
   def encoder(self, x, pos_encoding=None):
@@ -149,7 +149,7 @@ class GNN(BaseGNN):
 
   def GNN_postXN(self, z):
 
-    if self.opt['post_proc'] in ['node', 'neighbour']:
+    if self.opt['post_proc'] in ['node', 'neighbour', 'node_tanh', 'neighbour_tanh']:
       z = self.post_processing(z)
 
     if self.opt['augment']:
@@ -185,7 +185,7 @@ class GNN(BaseGNN):
       theta_proj = torch.abs(torch.tanh(z @ self.post_theta))
       src_tp, dst_tp = self.odeblock.odefunc.get_src_dst(theta_proj)
       tp_sum = scatter_add(src_tp, self.odeblock.odefunc.edge_index[0], dim=0, dim_size=self.num_nodes)
-      p = tp_sum / (1 + self.odeblock.odefunc.degree)
+      p = tp_sum / (1 + self.odeblock.odefunc.degree.unsqueeze(-1))
     return p * z
 
   def forward(self, x, pos_encoding=None):
