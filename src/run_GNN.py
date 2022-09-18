@@ -610,6 +610,10 @@ def main(cmd_opt):
         print(opt)
         print_model_params(model)
         optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
+        # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=opt['lr_reduce_factor'],
+        #                                                        threshold=opt['lr_schedule_threshold'], patience=opt['lr_schedule_patience'],
+        #                                                        verbose=True)
+
         best_time = best_epoch = train_acc = val_acc = test_acc = 0
         if opt['patience'] is not None:
             patience_count = 0
@@ -623,6 +627,8 @@ def main(cmd_opt):
 
             loss = train(model, optimizer, data, pos_encoding)
             tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
+
+            # scheduler.step(tmp_val_acc)
 
             best_time = opt['time']
             if tmp_val_acc > val_acc:
@@ -1023,16 +1029,19 @@ if __name__ == '__main__':
     parser.add_argument('--loss_orthog_a', type=float, default=0, help='loss orthog multiplier term')
     parser.add_argument('--householder_L', type=int, default=8, help='num iterations of householder reflection for W_orthog')
     parser.add_argument('--source_term', type=str, default='scalar', help='describes type of source term to add')
+    parser.add_argument('--post_proc', type=str, default='none', help='post processing [none, neighbour, node]')
 
     parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
     parser.add_argument('--pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
     parser.add_argument('--conv_batch_norm', type=str, default='False', help='conv_batch_norm')
     parser.add_argument('--batch', type=int, default=128, help='batch_size')
 
-    parser.add_argument('--post_proc', type=str, default='none', help='post processing [none, neighbour, node]')
-
     #zinc params
     parser.add_argument('--graph_pool', type=str, default='', help='type of graph pool operation - {add, mean}')
+    parser.add_argument('--lr_reduce_factor', type=float, default=0.5, help='lr_reduce_factor')
+    parser.add_argument('--lr_schedule_patience', type=int, default=10, help='lr_schedule_patience')
+    parser.add_argument('--lr_schedule_threshold', type=float, default=0.0001, help='lr_schedule_threshold')
+    parser.add_argument('--min_lr', type=float, default=0.00001, help='min_lr')
 
     parser.add_argument('--lt_pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
     parser.add_argument('--lt_block_times', nargs='+', default=None, help='list of times for blocks')
