@@ -249,7 +249,7 @@ def greed_hyper_params(opt):
     opt['drift_grad'] = True #True #False #false somehow made better
     opt['m2_aug'] = False #True #False #reads out (no weights) prediction from bottom C dimensions
     opt['m1_W_eig'] = False#True
-    opt['m2_W_eig'] = False#'z2x' #False #'x2z'#'z2x' #True #True
+    opt['m2_W_eig'] = 'z2x'#False#'z2x' #False #'x2z'#'z2x' #True #True
     # if opt['m2_W_eig'] == 'z2x': #not true as can just do eigen decomp for sum for example
     #     assert opt['gnl_W_style'] in ['Z_diag', 'GS_Z_diag', 'cgnn_Z_diag', 'loss_W_orthog', 'W_orthog_init', 'householder', 'skew_sym'], 'z2x must have diag style matrix'
     opt['m3_path_dep'] = None#'label_att'#'feature_jk'#None#'label_jk'#'train_centers'#'feature_jk'#'label_jk'#'feature_jk' #'label_jk' 'label_att'
@@ -278,7 +278,7 @@ def greed_hyper_params(opt):
     opt['pointwise_nonlin'] = False#True#False#True
     opt['graph_pool'] = ""#"mean"
 
-    opt['post_proc'] = 'neighbour'#'node'
+    opt['post_proc'] = 'neighbour_tanh' #'node_tanh'#'node'#'neighbour'#'node'
 
     #definitions of lie trotter
     #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold

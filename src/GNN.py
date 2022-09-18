@@ -178,7 +178,14 @@ class GNN(BaseGNN):
       src_tp, dst_tp = self.odeblock.odefunc.get_src_dst(theta_proj)
       tp_sum = scatter_add(src_tp, self.odeblock.odefunc.edge_index[0], dim=0, dim_size=self.num_nodes)
       p = (torch.norm(z, p=1, dim=1).unsqueeze(-1) / (0.01 + torch.abs(z))) * tp_sum
-
+    elif self.opt['post_proc'] == 'node_tanh':
+      # |tanh (⟨xi(T ), θr ⟩)|
+      p = torch.abs(torch.tanh(z @ self.post_theta))
+    elif self.opt['post_proc'] == 'neighbour_tanh':
+      theta_proj = torch.abs(torch.tanh(z @ self.post_theta))
+      src_tp, dst_tp = self.odeblock.odefunc.get_src_dst(theta_proj)
+      tp_sum = scatter_add(src_tp, self.odeblock.odefunc.edge_index[0], dim=0, dim_size=self.num_nodes)
+      p = tp_sum / (1 + self.odeblock.odefunc.degree)
     return p * z
 
   def forward(self, x, pos_encoding=None):
