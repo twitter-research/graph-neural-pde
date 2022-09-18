@@ -60,7 +60,7 @@ parameters:
     min: 2.0
     max: 5.0
   step_size:
-    values: [0.1, 0.25, 0.5, 1.0]
+    values: [0.5, 1.0]
   input_dropout:
     distribution: uniform
     min: 0.4
