@@ -315,7 +315,7 @@ def test_OGB(model, data, pos_encoding, opt):
 
 @torch.no_grad()
 def test_linkx():
-
+    pass
 
 @torch.no_grad()
 def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
