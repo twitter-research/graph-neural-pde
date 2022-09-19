@@ -75,7 +75,7 @@ parameters:
     max: -3.9120
   decay:
     distribution: log_uniform
-    min: 0
+    min: -100
     max: -5.52
 command:
   - ${env}
