@@ -314,8 +314,30 @@ def test_OGB(model, data, pos_encoding, opt):
     return train_acc, valid_acc, test_acc
 
 @torch.no_grad()
-def test_linkx():
-    pass
+def test_linkx(model, data, rep, pos_encoding, opt):
+    model.eval()
+
+    feat = data.x
+    out = model(feat, pos_encoding).log_softmax(dim=-1)
+    # y_pred = out.argmax(dim=-1, keepdim=True)
+
+    logits, accs = model(feat, pos_encoding), []
+    for _, mask in data('train_mask', 'val_mask', 'test_mask'):
+        pred = logits[mask[:,rep]].max(1)[1]
+        acc = pred.eq(data.y[mask[:,rep]]).sum().item() / mask[:,rep].sum().item()
+        accs.append(acc)
+
+    epoch = model.odeblock.odefunc.epoch
+    if opt['wandb']:
+        lf = torch.nn.functional.nll_loss
+        loss = lf(out.log_softmax(dim=-1)[data.train_mask[:, rep]], data.y[data.train_mask[:, rep]])
+        wandb_log(data, model, opt, loss, accs[0], accs[1], accs[2], epoch)
+        model.odeblock.odefunc.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
+
+    if opt['run_track_reports'] and epoch in opt['wandb_epoch_list']:
+        reports_manager(model, data)
+
+    return accs
 
 @torch.no_grad()
 def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
@@ -562,7 +584,13 @@ def main(cmd_opt):
     else:
         pos_encoding = None
 
-    this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+    # this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+    if opt['dataset'] == 'ogbn-arxiv':
+        this_test = test_OGB
+    elif opt['dataset'] == 'penn94':
+        this_test = test_linkx
+    else:
+        this_test = test
 
     results = []
     for rep in range(opt['num_splits']):
