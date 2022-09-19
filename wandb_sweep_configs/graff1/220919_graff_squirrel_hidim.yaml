@@ -4,7 +4,7 @@ parameters:
   dataset:
     values: [squirrel]
   data_feat_norm:
-    values: [ True, False ]
+    values: [True, False]
   block:
     values: [constant]
   function:
