@@ -60,6 +60,7 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
       dataset = LINKXDataset(root=path, name=ds, transform=T.NormalizeFeatures())
     else:
       dataset = LINKXDataset(root=path, name=ds)
+    use_lcc = False
   elif ds == 'Karate':
     dataset = KarateClub()
     dataset.data.val_mask = ~dataset.data.train_mask

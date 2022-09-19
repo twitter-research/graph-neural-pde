@@ -786,8 +786,8 @@ if __name__ == '__main__':
     parser.add_argument('--num_lamb_omega', type=int, default=1, help='number of time dep gaussians for omega')
     parser.add_argument('--num_lamb_q', type=int, default=1, help='number of time dep gaussians for q')
     parser.add_argument('--target_homoph', type=str, default='0.80', help='target_homoph for syn_cora [0.00,0.10,..,1.00]')
-    parser.add_argument('--hetero_SL', type=str, default='True', help='control self loops for Chameleon/Squirrel')
-    parser.add_argument('--hetero_undir', type=str, default='True', help='control undirected for Chameleon/Squirrel')
+    parser.add_argument('--hetero_SL', type=str, default='', help='control self loops for Chameleon/Squirrel')
+    parser.add_argument('--hetero_undir', type=str, default='', help='control undirected for Chameleon/Squirrel')
     parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
 
     parser.add_argument('--omega_params', nargs='+', default=None, help='list of Omega args for ablation')

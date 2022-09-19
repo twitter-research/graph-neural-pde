@@ -5,7 +5,7 @@ import json
 import numpy as np
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
-from torch_geometric.utils import homophily, add_remaining_self_loops, to_undirected
+from torch_geometric.utils import homophily, add_remaining_self_loops, to_undirected, is_undirected, contains_self_loops
 from torch_scatter import scatter_add
 import torch.nn.functional as F
 from torch.distributions import Categorical
@@ -67,8 +67,8 @@ def get_label_masks(data, mask_rate=0.5):
     return train_label_idx, train_pred_idx
 
 
-def train(model, optimizer, data, pos_encoding=None):
-    lf = torch.nn.functional.nll_loss if model.opt['dataset'] == 'ogbn-arxiv' else torch.nn.CrossEntropyLoss()
+def train(model, optimizer, data, rep=0, pos_encoding=None):
+    lf = torch.nn.functional.nll_loss if model.opt['dataset'] in ['ogbn-arxiv', 'penn94'] else torch.nn.CrossEntropyLoss()
 
     if model.opt['wandb_watch_grad']:  # Tell wandb to watch what the model gets up to: gradients, weights, and more!
         wandb.watch(model, lf, log="all", log_freq=10)
@@ -78,7 +78,6 @@ def train(model, optimizer, data, pos_encoding=None):
     feat = data.x
     if model.opt['use_labels']:
         train_label_idx, train_pred_idx = get_label_masks(data, model.opt['label_rate'])
-
         feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
     else:
         train_pred_idx = data.train_mask
@@ -88,6 +87,9 @@ def train(model, optimizer, data, pos_encoding=None):
     if model.opt['dataset'] == 'ogbn-arxiv':
         # lf = torch.nn.functional.nll_loss
         loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
+    elif model.opt['dataset'] == 'penn94':
+        # lf = torch.nn.functional.nll_loss
+        loss = lf(out.log_softmax(dim=-1)[data.train_mask[:, rep]], data.y[data.train_mask[:, rep]])
     else:
         # lf = torch.nn.CrossEntropyLoss()
         loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
@@ -204,7 +206,7 @@ def train(model, optimizer, data, pos_encoding=None):
 
 
 @torch.no_grad()
-def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
+def test(model, data, rep=0, pos_encoding=None, opt=None):  # opt required for runtime polymorphism
     model.eval()
     feat = data.x
     if model.opt['use_labels']:
@@ -227,47 +229,47 @@ def test(model, data, pos_encoding=None, opt=None):  # opt required for runtime 
     return accs
 
 
-def train_OGB(model, mp, optimizer, data, pos_encoding=None):
-    lf = torch.nn.functional.nll_loss if model.opt['dataset'] == 'ogbn-arxiv' else torch.nn.CrossEntropyLoss()
-
-    if model.opt['wandb_watch_grad']:  # Tell wandb to watch what the model gets up to: gradients, weights, and more!
-        wandb.watch(model, lf, log="all", log_freq=10)
-
-    model.train()
-    optimizer.zero_grad()
-    feat = data.x
-    if model.opt['use_labels']:
-        train_label_idx, train_pred_idx = get_label_masks(data, model.opt['label_rate'])
-
-        feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
-    else:
-        train_pred_idx = data.train_mask
-
-    pos_encoding = mp(pos_encoding).to(model.device)
-    out = model(feat, pos_encoding)
-
-    if model.opt['dataset'] == 'ogbn-arxiv':
-        # lf = torch.nn.functional.nll_loss
-        loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
-    else:
-        # lf = torch.nn.CrossEntropyLoss()
-        loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
-    if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
-        reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
-        regularization_coeffs = model.regularization_coeffs
-
-        reg_loss = sum(
-            reg_state * coeff for reg_state, coeff in zip(reg_states, regularization_coeffs) if coeff != 0
-        )
-        loss = loss + reg_loss
-
-    model.fm.update(model.getNFE())
-    model.resetNFE()
-    loss.backward()
-    optimizer.step()
-    model.bm.update(model.getNFE())
-    model.resetNFE()
-    return loss.item()
+# def train_OGB(model, mp, optimizer, data, pos_encoding=None):
+#     lf = torch.nn.functional.nll_loss if model.opt['dataset'] == 'ogbn-arxiv' else torch.nn.CrossEntropyLoss()
+#
+#     if model.opt['wandb_watch_grad']:  # Tell wandb to watch what the model gets up to: gradients, weights, and more!
+#         wandb.watch(model, lf, log="all", log_freq=10)
+#
+#     model.train()
+#     optimizer.zero_grad()
+#     feat = data.x
+#     if model.opt['use_labels']:
+#         train_label_idx, train_pred_idx = get_label_masks(data, model.opt['label_rate'])
+#
+#         feat = add_labels(feat, data.y, train_label_idx, model.num_classes, model.device)
+#     else:
+#         train_pred_idx = data.train_mask
+#
+#     pos_encoding = mp(pos_encoding).to(model.device)
+#     out = model(feat, pos_encoding)
+#
+#     if model.opt['dataset'] == 'ogbn-arxiv':
+#         # lf = torch.nn.functional.nll_loss
+#         loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
+#     else:
+#         # lf = torch.nn.CrossEntropyLoss()
+#         loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
+#     if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
+#         reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
+#         regularization_coeffs = model.regularization_coeffs
+#
+#         reg_loss = sum(
+#             reg_state * coeff for reg_state, coeff in zip(reg_states, regularization_coeffs) if coeff != 0
+#         )
+#         loss = loss + reg_loss
+#
+#     model.fm.update(model.getNFE())
+#     model.resetNFE()
+#     loss.backward()
+#     optimizer.step()
+#     model.bm.update(model.getNFE())
+#     model.resetNFE()
+#     return loss.item()
 
 
 @torch.no_grad()
@@ -310,6 +312,9 @@ def test_OGB(model, data, pos_encoding, opt):
                "epoch_step": model.odeblock.odefunc.epoch})
 
     return train_acc, valid_acc, test_acc
+
+@torch.no_grad()
+def test_linkx():
 
 
 @torch.no_grad()
@@ -529,7 +534,7 @@ def main(cmd_opt):
         unpack_omega_params(opt)
 
     # opt = shared_graff_params(opt)
-    opt = hetero_params(opt)
+    opt = hetero_params(opt) #adds self loops and undirected for Chameleon and Squirrel
 
     wandb.define_metric("epoch_step")  # Customize axes - https://docs.wandb.ai/guides/track/log
     wandb.define_metric("train_acc", step_metric="epoch_step")
@@ -625,8 +630,8 @@ def main(cmd_opt):
                 ei = apply_KNN(data, pos_encoding, model, opt)
                 model.odeblock.odefunc.edge_index = ei
 
-            loss = train(model, optimizer, data, pos_encoding)
-            tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, pos_encoding, opt)
+            loss = train(model, optimizer, data, rep, pos_encoding)
+            tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, rep, pos_encoding, opt)
 
             # scheduler.step(tmp_val_acc)
 
@@ -1006,8 +1011,8 @@ if __name__ == '__main__':
     parser.add_argument('--num_lamb_omega', type=int, default=1, help='number of time dep gaussians for omega')
     parser.add_argument('--num_lamb_q', type=int, default=1, help='number of time dep gaussians for q')
     parser.add_argument('--target_homoph', type=str, default='0.80', help='target_homoph for syn_cora [0.00,0.10,..,1.00]')
-    parser.add_argument('--hetero_SL', type=str, default='True', help='control self loops for Chameleon/Squirrel')
-    parser.add_argument('--hetero_undir', type=str, default='True', help='control undirected for Chameleon/Squirrel')
+    parser.add_argument('--hetero_SL', type=str, default='', help='control self loops for Chameleon/Squirrel')
+    parser.add_argument('--hetero_undir', type=str, default='', help='control undirected for Chameleon/Squirrel')
     parser.add_argument('--gnl_savefolder', type=str, default='', help='ie ./plots/{chamleon_gnlgraph_nodrift}')
 
     parser.add_argument('--omega_params', nargs='+', default=None, help='list of Omega args for ablation')
