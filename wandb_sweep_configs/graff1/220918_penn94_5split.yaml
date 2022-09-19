@@ -2,7 +2,7 @@ program: run_GNN.py
 method: random
 parameters:
   dataset:
-    values: [squirrel]
+    values: [penn94]
   data_feat_norm:
     values: [True, False]
   block:
@@ -12,7 +12,7 @@ parameters:
   epoch:
     values: [200]
   num_splits:
-    values: [10]
+    values: [5]
   self_loop_weight:
     values: [0.0]
   no_early:
@@ -22,7 +22,9 @@ parameters:
   gnl_style:
     values: [general_graph]
   gnl_W_style:
-    values: [sum, tri, diag_dom, diag, householder]
+    values: [tri, sum]
+  post_proc:
+    values: [node, neighbour]
   gnl_W_norm:
     values: [False]
   gnl_activation:
@@ -48,15 +50,15 @@ parameters:
   m2_W_eig:
     values: [eye]
   pointwise_nonlin:
-    values: [False]
+    values: [True, False]
   hidden_dim:
-    values: [64, 128, 256, 512]
+    values: [16, 32, 64]
   time:
     distribution: uniform
-    min: 2.0
-    max: 5.0
+    min: 1.0
+    max: 4.0
   step_size:
-    values: [0.5, 1.0]
+    values: [0.25, 0.5, 1.0]
   input_dropout:
     distribution: uniform
     min: 0.4
@@ -83,4 +85,4 @@ command:
   - --wandb
   - --wandb_sweep
 entity: graph_neural_diffusion
-project: squirrel_hidim
+project: penn94_5split
