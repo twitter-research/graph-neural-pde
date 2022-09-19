@@ -52,7 +52,7 @@ parameters:
   pointwise_nonlin:
     values: [True, False]
   hidden_dim:
-    values: [32, 64, 128]
+    values: [16, 32, 64]
   time:
     distribution: uniform
     min: 2.0
@@ -75,8 +75,8 @@ parameters:
     max: -3.9120
   decay:
     distribution: log_uniform
-    min: -11.5129
-    max: -3.9120
+    min: 0
+    max: -5.52
 command:
   - ${env}
   - python3

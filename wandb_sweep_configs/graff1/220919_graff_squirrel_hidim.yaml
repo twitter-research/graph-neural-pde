@@ -44,7 +44,7 @@ parameters:
   m1_W_eig:
     values: [False]
   m2_W_eig:
-    values: [z2x, eye]
+    values: [eye]
   pointwise_nonlin:
     values: [False]
   hidden_dim:
@@ -71,8 +71,8 @@ parameters:
     max: -3.9120
   decay:
     distribution: log_uniform
-    min: -11.5129
-    max: -3.9120
+    min: -100
+    max: -5.52
 command:
   - ${env}
   - python3
