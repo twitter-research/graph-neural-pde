@@ -265,7 +265,7 @@ def greed_hyper_params(opt):
     opt['loss_orthog_a'] = 0.0#0.1#1.0
     opt['source_term'] = 'scalar'#'diag'# 'time_dep_q'#'scalar' #'fidelity''diag' 'time_dep_q:
 
-    opt['two_hops'] = False # This turns on the functionality to get equation 28 working
+    opt['two_hops'] = True #False # This turns on the functionality to get equation 28 working
     opt['time_dep_w'] = None#"unstruct"#"struct_decay" #""struct"
     opt['time_dep_omega'] = None#"unstruct"#"struct"
     opt['time_dep_q'] = None#"unstruct"#"struct"

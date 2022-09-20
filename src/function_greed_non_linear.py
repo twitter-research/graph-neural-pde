@@ -86,7 +86,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     #init source term params
     if self.opt['source_term'] == 'scalar':
-      self.q_scalar = nn.Parameter(torch.Tensor([0.]))
+      self.q_scalar = nn.Parameter(torch.Tensor([1.]))
+      # self.q_scalar = nn.Parameter(torch.Tensor([0.]))
     elif self.opt['source_term'] == 'fidelity':
       self.q_fidelity = nn.Parameter(torch.Tensor([1.]))
     elif self.opt['source_term'] in ['diag', 'bias']:
@@ -256,6 +257,25 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         self.phi = nn.Linear(self.opt['pos_enc_hidden_dim'], self.in_features)
         self.psi = nn.Linear(self.opt['pos_enc_hidden_dim'], self.in_features)
 
+      #inits for simple 2hops
+      if self.opt['two_hops']:
+        if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod', 'free']:
+          self.W_W2 = Parameter(torch.Tensor(in_features, in_features))
+        elif self.opt['gnl_W_style'] == 'tri':
+          # init an upper triangular and a diagonal vector
+          self.W_W2 = Parameter(torch.Tensor(int((in_features - 1) * in_features / 2)))
+          self.W_D2 = Parameter(torch.Tensor(in_features))
+        elif self.opt['gnl_W_style'] == 'diag':
+          if self.opt['gnl_W_diag_init'] == 'linear':
+            d_range = torch.tensor(list(range(in_features)), device=self.device)
+            self.gnl_W_D2 = Parameter(self.opt['gnl_W_diag_init_q'] * d_range / (in_features - 1) + self.opt['gnl_W_diag_init_r'], requires_grad=opt['gnl_W_param_free'])
+          else:
+            self.gnl_W_D2 = Parameter(torch.ones(in_features), requires_grad=opt['gnl_W_param_free'])
+        elif self.opt['gnl_W_style'] == 'diag_dom':
+          self.W_W2 = Parameter(torch.Tensor(in_features, in_features - 1), requires_grad=opt['gnl_W_param_free'])
+          self.t_a2 = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
+          self.r_a2 = Parameter(torch.Tensor(in_features), requires_grad=opt['gnl_W_param_free'])
+
     elif self.opt['gnl_style'] == 'att_rep_laps':
       if self.opt['gnl_W_style'] == 'att_rep_lap_block':
         half_in_features = int(in_features / 2)
@@ -372,8 +392,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       zeros(self.measure)
 
     if self.opt['source_term'] == 'scalar':
-      # ones(self.q_scalar)
-      zeros(self.q_scalar)
+      ones(self.q_scalar)
+      # zeros(self.q_scalar)
     elif self.opt['source_term'] == 'fidelity':
       ones(self.q_fidelity)
     elif self.opt['source_term'] == 'diag':
@@ -466,6 +486,34 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
         glorot(self.W_psi)
       elif self.opt['gnl_W_style'] == 'positional':
         pass  # linear layer
+
+      #inits for simple 2hops
+      if self.opt['two_hops']:
+        if self.opt['gnl_W_style'] in ['sum', 'prod', 'neg_prod', 'free', 'Z_diag']:
+          xavier_uniform_(self.W_W2)
+        elif self.opt['gnl_W_style'] == 'tri':
+          uniform(self.W_W2, a=-1, b=1)
+          uniform(self.W_D2, a=-1, b=1)
+        elif self.opt['gnl_W_style'] == 'diag':
+          if self.opt['gnl_W_diag_init'] == 'uniform':
+            uniform(self.gnl_W_D2, a=-1, b=1)
+          elif self.opt['gnl_W_diag_init'] == 'identity':
+            ones(self.gnl_W_D2)
+          elif self.opt['gnl_W_diag_init'] == 'linear':
+            pass  # done in init
+        elif self.opt['gnl_W_style'] == 'diag_dom':
+          if self.opt['gnl_W_diag_init'] == 'uniform':
+            glorot(self.W_W2)
+            uniform(self.t_a2, a=-1, b=1)
+            uniform(self.r_a2, a=-1, b=1)
+          elif self.opt['gnl_W_diag_init'] == 'identity':
+            zeros(self.W_W2)
+            constant(self.t_a2, fill_value=1)
+            constant(self.r_a2, fill_value=1)
+          elif self.opt['gnl_W_diag_init'] == 'linear':
+            glorot(self.W_W2)
+            constant(self.t_a2, fill_value=self.opt['gnl_W_diag_init_q'])
+            constant(self.r_a2, fill_value=self.opt['gnl_W_diag_init_r'])
 
     elif self.opt['gnl_style'] == 'att_rep_laps':
       if self.opt['gnl_W_style'] == 'att_rep_lap_block':
@@ -698,6 +746,38 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       R_Ws[half_in_features:, half_in_features:] = R_block
 
       return Ws, R_Ws
+
+  def set_gnlWS2(self):
+    "note every W is made symetric before returning"
+    if self.opt['gnl_W_style'] in ['prod']:
+      return self.W_W2 @ self.W_W2.t()
+    elif self.opt['gnl_W_style'] in ['neg_prod']:
+      return -self.W_W2 @ self.W_W2.t()
+    elif self.opt['gnl_W_style'] in ['sum']:
+      return (self.W_W2 + self.W_W2.t()) / 2
+    elif self.opt['gnl_W_style'] in ['free']:
+      return self.W_W2
+    elif self.opt['gnl_W_style'] in ['tri']:
+      #init an upper triangular and a diagonal vector
+      tri = []
+      start = 0
+      for i in range(self.in_features):
+        tri.append(torch.cat((torch.zeros(1+i, device=self.device), self.W_W2[start: start + self.in_features - (1+i)])))
+        start += self.in_features - (1+i)
+      tri = torch.stack(tri, dim=0)
+      W_hat = (tri + tri.T) / 2 + torch.diag(self.W_D2)
+      return W_hat
+    elif self.opt['gnl_W_style'] in ['Z_diag']:
+      return (self.W_W2 + self.W_W2.t()) / 2
+    elif self.opt['gnl_W_style'] == 'diag':
+      return torch.diag(self.gnl_W_D2)
+    elif self.opt['gnl_W_style'] == 'diag_dom':
+      W_temp = torch.cat([self.W_W2, torch.zeros((self.in_features, 1), device=self.device)], dim=1)
+      W = torch.stack([torch.roll(W_temp[i], shifts=i+1, dims=-1) for i in range(self.in_features)])
+      W = (W+W.T) / 2
+      W_sum = self.t_a2 * torch.abs(W).sum(dim=1) + self.r_a2
+      Ws = W + torch.diag(W_sum)
+      return Ws
 
   def set_gnlOmega(self):
     if self.opt['gnl_omega'] == 'diag':
@@ -1153,6 +1233,9 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
     else:
       self.gnl_W = W
 
+    if self.opt['two_hops']:
+      self.gnl_W2 = self.set_gnlWS2()
+
     # Omega
     if self.time_dep_omega in ["struct", "unstruct"]:
       self.Omega = self.set_gnlOmega_timedep(T)
@@ -1305,8 +1388,10 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             if self.opt['two_hops']:
               Ax = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x)
               AAx = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], Ax)
-              WW = self.gnl_W @ self.gnl_W
-              f = AAx @ WW
+              # WW = self.gnl_W @ self.gnl_W
+              # f = Ax @ self.gnl_W + AAx @ WW
+              f = Ax @ self.gnl_W + AAx @ self.gnl_W2
+
             else:
               f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x @ self.gnl_W)
 
