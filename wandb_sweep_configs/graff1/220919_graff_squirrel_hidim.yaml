@@ -54,7 +54,7 @@ parameters:
   XN_no_activation:
     values: [False]
   hidden_dim:
-    values: [64, 128, 256, 512]
+    values: [32, 64, 128]
   time:
     distribution: uniform
     min: 2.0
