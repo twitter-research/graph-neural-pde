@@ -17,6 +17,8 @@ parameters:
     values: [0.0]
   no_early:
     values: [True]
+  conv_batch_norm:
+    values: [layerwise]
   method:
     values: [euler]
   gnl_style:

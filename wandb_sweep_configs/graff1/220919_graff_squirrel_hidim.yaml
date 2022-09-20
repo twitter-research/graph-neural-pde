@@ -49,6 +49,8 @@ parameters:
     values: [eye]
   pointwise_nonlin:
     values: [False]
+  conv_batch_norm:
+    values: [False, layerwise]
   hidden_dim:
     values: [64, 128, 256, 512]
   time:
