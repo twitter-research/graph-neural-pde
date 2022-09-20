@@ -12,7 +12,7 @@ parameters:
   epoch:
     values: [200]
   num_splits:
-    values: [10]
+    values: [1]
   self_loop_weight:
     values: [0.0]
   no_early:
@@ -23,6 +23,8 @@ parameters:
     values: [general_graph]
   gnl_W_style:
     values: [diag_dom]
+  gnl_W_diag_init:
+    values: [uniform, identity]
   gnl_W_norm:
     values: [False]
   gnl_activation:

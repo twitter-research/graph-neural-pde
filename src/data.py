@@ -9,7 +9,7 @@ import numpy as np
 import torch
 from torch_geometric.data import Data, InMemoryDataset
 from torch.utils.data import WeightedRandomSampler
-from torch_geometric.datasets import Planetoid, Amazon, Coauthor, KarateClub, LINKXDataset#, WikipediaNetwork #todo for AWS download hetero using PyG
+from torch_geometric.datasets import Planetoid, Amazon, Coauthor, KarateClub, LINKXDataset, Twitch#, WikipediaNetwork #todo for AWS download hetero using PyG
 from graph_rewiring import get_two_hop, apply_gdc
 from ogb.nodeproppred import PygNodePropPredDataset
 import torch_geometric.transforms as T
@@ -61,6 +61,12 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     else:
       dataset = LINKXDataset(root=path, name=ds)
     use_lcc = False
+  # elif ds in ["Twitch"]:
+  #   if opt['data_feat_norm']:
+  #     dataset = Twitch(root=path, name=ds, transform=T.NormalizeFeatures())
+  #   else:
+  #     dataset = Twitch(root=path, name=ds)
+  #   use_lcc = False
   elif ds == 'Karate':
     dataset = KarateClub()
     dataset.data.val_mask = ~dataset.data.train_mask
