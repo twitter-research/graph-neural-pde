@@ -265,7 +265,7 @@ def greed_hyper_params(opt):
     opt['loss_orthog_a'] = 0.0#0.1#1.0
     opt['source_term'] = 'scalar'#'diag'# 'time_dep_q'#'scalar' #'fidelity''diag' 'time_dep_q:
 
-    opt['two_hops'] = True #False # This turns on the functionality to get equation 28 working
+    opt['two_hops'] = False #False # This turns on the functionality to get equation 28 working
     opt['time_dep_w'] = None#"unstruct"#"struct_decay" #""struct"
     opt['time_dep_omega'] = None#"unstruct"#"struct"
     opt['time_dep_q'] = None#"unstruct"#"struct"
@@ -369,8 +369,8 @@ def tf_ablation_args(opt):
                 'use_mlp', 'use_best_params', 'no_early', 'use_labels', 'hetero_SL', 'hetero_undir',
                 'add_source', 'symmetric_attention', 'sym_row_max','symmetric_QK',
                 'diffusion', 'repulsion', 'drift', 'tau_residual',
-                'XN_no_activation','m2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
-                'two_hops',
+                'm2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
+                'XN_no_activation', 'two_hops',
                 'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'gnl_W_norm', 'drift_grad',
                 'pointwise_nonlin', 'lt_pointwise_nonlin', 'data_feat_norm',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout',
