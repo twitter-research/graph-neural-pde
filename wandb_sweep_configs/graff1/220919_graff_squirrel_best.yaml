@@ -59,8 +59,8 @@ parameters:
     values: [32, 64, 128]
   time:
     distribution: uniform
-    min: 2.0
-    max: 4.0
+    min: 1.5
+    max: 3.0
   step_size:
     values: [0.5, 1.0]
   input_dropout:
