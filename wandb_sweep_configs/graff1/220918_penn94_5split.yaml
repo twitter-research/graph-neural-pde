@@ -50,7 +50,7 @@ parameters:
   m2_W_eig:
     values: [eye]
   pointwise_nonlin:
-    values: [True, False]
+    values: [False]
   conv_batch_norm:
     values: [False, layerwise]
   XN_no_activation:
