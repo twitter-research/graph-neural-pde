@@ -160,7 +160,7 @@ def greed_hyper_params(opt):
 
     opt['test_mu_0'] = True # False #True
     opt['add_source'] = False #True
-    opt['XN_no_activation'] = True #True #False
+    opt['XN_no_activation'] = False#True #True #False "False means we do activate"
     opt['use_mlp'] = False #True #encoder mlp
     opt['m2_mlp'] = False #False #decoder mlp
     opt['beltrami'] = False

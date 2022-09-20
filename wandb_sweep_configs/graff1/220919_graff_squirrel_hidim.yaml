@@ -51,6 +51,8 @@ parameters:
     values: [False]
   conv_batch_norm:
     values: [False, layerwise]
+  XN_no_activation:
+    values: [False]
   hidden_dim:
     values: [64, 128, 256, 512]
   time:

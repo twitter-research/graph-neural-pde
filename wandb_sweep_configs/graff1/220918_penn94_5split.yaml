@@ -17,8 +17,6 @@ parameters:
     values: [0.0]
   no_early:
     values: [True]
-  conv_batch_norm:
-    values: [layerwise]
   method:
     values: [euler]
   gnl_style:
@@ -53,6 +51,10 @@ parameters:
     values: [eye]
   pointwise_nonlin:
     values: [True, False]
+  conv_batch_norm:
+    values: [False, layerwise]
+  XN_no_activation:
+    values: [False]
   hidden_dim:
     values: [16, 32, 64]
   time:
