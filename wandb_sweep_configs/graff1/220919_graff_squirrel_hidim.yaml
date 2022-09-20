@@ -50,7 +50,7 @@ parameters:
   pointwise_nonlin:
     values: [False]
   conv_batch_norm:
-    values: [False, layerwise]
+    values: [False]
   XN_no_activation:
     values: [False]
   hidden_dim:
