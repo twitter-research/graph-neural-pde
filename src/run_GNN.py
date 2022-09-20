@@ -21,10 +21,10 @@ from GNN_GCNMLP import GNNMLP
 from data import get_dataset, set_train_val_test_split
 from graph_rewiring import apply_KNN, apply_beltrami, apply_edge_sampling
 from utils import dirichlet_energy
-from best_params import best_params_dict
+# from best_params import best_params_dict
 from greed_params import greed_test_params, greed_run_params, greed_hyper_params, tf_ablation_args, not_sweep_args
 from greed_reporting_fcts import calc_energy_homoph
-from graff_params import hetero_params
+from graff_params import hetero_params, best_params_dict
 from reports import reports_manager #run_reports, run_reports_lie_trotter, reports_manager
 from heterophilic import get_fixed_splits
 from data_synth_hetero import get_pyg_syn_cora
@@ -521,7 +521,7 @@ def main(cmd_opt):
     if cmd_opt['use_best_params']:
         best_opt = best_params_dict[cmd_opt['dataset']]
         opt = {**cmd_opt, **best_opt}
-        merge_cmd_args(cmd_opt, opt)
+        # merge_cmd_args(cmd_opt, opt)
     else:
         opt = cmd_opt
 

@@ -174,7 +174,7 @@ def greed_hyper_params(opt):
     opt['input_dropout'] = 0.43#0.4327#0.5#0.0#0.5Ω
     opt['decay'] = 0.009#0.0004295#0.0005#0.0# 0.0005#005 #Cora 0.05 chameleon 0.0005
     opt['hidden_dim'] = 64#64 #512
-    opt['use_best_params'] = False #True #False #True
+    # opt['use_best_params'] = False #True #False #True
     opt['method'] = 'euler'#'rk4' #'euler'
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
     opt['step_size'] = 1#0.25#1.0 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
@@ -188,7 +188,7 @@ def greed_hyper_params(opt):
     # opt['patience'] = 3
     # opt['target_homoph'] = '0.70' #for synthetic cora
 
-    opt['gnl_style'] = 'att_rep_laps'#'general_graph'# 'attention_flavour'# 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
+    opt['gnl_style'] = 'general_graph'#'att_rep_laps'#'general_graph'# 'attention_flavour'# 'general_graph'#'att_rep_laps'#'att_rep_laps' #'general_graph'#'softmax_attention' #'general_graph'#'scaled_dot' #'softmax_attention' #'scaled_dot'
     opt['gnl_measure'] = 'ones'#'nodewise' #'deg_poly' #'ones' #'deg_poly' # 'nodewise'
 
     if opt['gnl_style'] == 'scaled_dot':
@@ -206,7 +206,7 @@ def greed_hyper_params(opt):
         opt['gnl_activation'] = 'identity'#'pm_invsq'#'pm_invsq'#'pm_mlp' #'pm_gaussian'#'pm_gaussian'#'perona_malik'#'identity'#'sigmoid' #'identity'
         opt['gnl_attention'] = False #use L0 attention coefficients
         #Omega
-        opt['gnl_omega'] = 'zero'#'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
+        opt['gnl_omega'] = 'diag'#'Omega_W_eig'#'diag' #'diag'#'zero' Omega_eq_W
         opt['gnl_omega_diag'] = 'free' #'free 'const'
         opt['gnl_omega_diag_val'] = None #1 #-1 # 1
         opt['gnl_omega_activation'] = 'identity' #identity
@@ -220,7 +220,7 @@ def greed_hyper_params(opt):
         # 'W_orthog_init', - init W_U/W_D, use GS to init param W_U as orthog -set W as eval and use z2x
         # 'householder' - use householder reflections to enforce orthog W_U
         # 'skew_sym' - use skew-symetric and bilinear approximation to enforce orthog W_U
-        opt['gnl_W_style'] = 'tri'#'tri'#'loss_W_orthog'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
+        opt['gnl_W_style'] = 'diag_dom'#'tri'#'loss_W_orthog'#'householder'#'skew_sym'#'cgnn_Z_diag'#'W_orthog_init'#'cgnn_Z_diag'#'loss_W_orthog'#'cgnn_Z_diag'#'diag_dom'#'GS_Z_diag'#'diag_dom'#'Z_diag'#'sum'#'diag_dom'#'diag_dom'#'sum'#'neg_prod'#'sum'#'diag_dom' #'sum' #'diag_dom'#'k_diag_pc'#'diag_dom'  # 'sum' #'k_diag'#'k_block' #'diag_dom' # 'cgnn'#'GS'#sum, prod, GS, cgnn
         if opt['gnl_W_style'] == 'k_block':
             assert opt['hidden_dim'] % opt['k_blocks'] == 1 and opt['k_blocks'] * opt['block_size'] <= opt['hidden_dim']#in_features, 'must have odd number of k diags'
             opt['k_blocks'] = 2#1
@@ -263,7 +263,7 @@ def greed_hyper_params(opt):
     opt['dampen_gamma'] = 1.0#0.6    #assuming spec rad=4, dampen gamma=0.6, step=0.1
     opt['gnl_W_norm'] = False#True#False  # True #divide by spectral radius
     opt['loss_orthog_a'] = 0.0#0.1#1.0
-    opt['source_term'] = 'diag'# 'time_dep_q'#'scalar' #'fidelity''diag' 'time_dep_q:
+    opt['source_term'] = 'scalar'#'diag'# 'time_dep_q'#'scalar' #'fidelity''diag' 'time_dep_q:
 
     opt['two_hops'] = False # This turns on the functionality to get equation 28 working
     opt['time_dep_w'] = None#"unstruct"#"struct_decay" #""struct"
@@ -278,7 +278,7 @@ def greed_hyper_params(opt):
     opt['pointwise_nonlin'] = False#True#False#True
     opt['graph_pool'] = ""#"mean"
 
-    opt['post_proc'] = 'node_tanh'#'node_tanh'# 'neighbour_tanh''#'node'#'neighbour'#'node'
+    opt['post_proc'] = False#'node_tanh'#'node_tanh'# 'neighbour_tanh''#'node'#'neighbour'#'node'
     opt['data_feat_norm'] = True
 
     #definitions of lie trotter

@@ -1300,11 +1300,17 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             #   f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x * self.gnl_W)
             # else:
             # print(f"devices {self.edge_index.device}, {P.device}, {x.device}, {self.gnl_W.device}")
-            f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x @ self.gnl_W)
+
+            if self.opt['two_hops']:
+              Ax = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x)
+              AAx = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], Ax)
+              WW = self.gnl_W @ self.gnl_W
+              f = AAx @ WW
+            else:
+              f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x @ self.gnl_W)
 
             f = f - x @ self.Omega
 
-            # if self.opt['two_hops']:
             #   xWtilde = x @ self.gnl_W_tilde
             #   AA_ei, AA_val = torch_sparse.spspmm(self.edge_index, P, self.edge_index, P, x.shape[0], x.shape[0], x.shape[0])
             #   f = f - torch_sparse.spmm(AA_ei, AA_val, x.shape[0], x.shape[0], xWtilde) / 2
