@@ -55,7 +55,7 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
   elif ds == 'ogbn-arxiv':
     dataset = PygNodePropPredDataset(name=ds, root=path, transform=T.ToSparseTensor())
     use_lcc = False  #  never need to calculate the lcc with ogb datasets
-  elif ds in ["penn94", "reed98", "amherst41", "cornell5", "johnshopkins55"]:#, "genius"]:
+  elif ds in ["penn94", "reed98", "amherst41", "cornell5", "johnshopkins55"]:#, "genius"]: #need to verify settings to match LINKX paper
     if opt['data_feat_norm']:
       dataset = LINKXDataset(root=path, name=ds, transform=T.NormalizeFeatures())
     else:
@@ -67,6 +67,29 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     else:
       dataset = Genius(root=path, name=ds)
     use_lcc = False
+
+  elif ds == 'arxiv-year':
+    dataset = PygNodePropPredDataset(name='ogbn-arxiv', root=path, transform=T.ToSparseTensor())
+    nclass = 5
+    # label = even_quantile_labels(
+    #     dataset.graph['node_year'].flatten(), nclass, verbose=False)
+    label = even_quantile_labels(dataset.data.node_year.flatten().numpy(), nclass, verbose=False)
+    dataset.data.label = torch.as_tensor(label).reshape(-1, 1)
+    train_mask, val_mask, test_mask  = load_fixed_splits(ds)
+    dataset.data.train_mask = train_mask
+    dataset.data.val_mask = val_mask
+    dataset.data.test_mask = test_mask
+    # data = Data(
+    # x=dataset.data.x,
+    # edge_index=ei,
+    # y=dataset.data.y,
+    # train_mask=split_idx['train'],
+    # test_mask=split_idx['test'],
+    # val_mask=split_idx['valid'])
+    # dataset.data = data
+
+    return dataset
+
   # elif ds in ["Twitch"]: #need to verify settings to match LINKX paper
   #   if opt['data_feat_norm']:
   #     dataset = Twitch(root=path, name=ds, transform=T.NormalizeFeatures())
@@ -119,6 +142,7 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     train_mask_exists = False
 
   if ds == 'ogbn-arxiv':
+  # if ds in ['ogbn-arxiv','arxiv-year']:
     split_idx = dataset.get_idx_split()
     ei = to_undirected(dataset.data.edge_index)
     data = Data(
@@ -210,6 +234,67 @@ def set_train_val_test_split(
   data.test_mask = get_mask(test_idx)
 
   return data
+
+
+#this code is taken from https://github.com/CUAI/Non-Homophily-Large-Scale/blob/82f8f05c5c3ec16bd5b505cc7ad62ab5e09051e6/dataset.py#L190
+#used to convert ogbn-arxiv labels into large hetero version
+
+def even_quantile_labels(vals, nclasses, verbose=True):
+  """ partitions vals into nclasses by a quantile based split,
+  where the first class is less than the 1/nclasses quantile,
+  second class is less than the 2/nclasses quantile, and so on
+
+  vals is np array
+  returns an np array of int class labels
+  """
+  label = -1 * np.ones(vals.shape[0], dtype=np.int)
+  interval_lst = []
+  lower = -np.inf
+  for k in range(nclasses - 1):
+    upper = np.nanquantile(vals, (k + 1) / nclasses)
+    interval_lst.append((lower, upper))
+    inds = (vals >= lower) * (vals < upper)
+    label[inds] = k
+    lower = upper
+  label[vals >= lower] = nclasses - 1
+  interval_lst.append((lower, np.inf))
+  if verbose:
+    print('Class Label Intervals:')
+    for class_idx, interval in enumerate(interval_lst):
+      print(f'Class {class_idx}: [{interval[0]}, {interval[1]})]')
+  return label
+
+#https://github.com/CUAI/Non-Homophily-Large-Scale/blob/82f8f05c5c3ec16bd5b505cc7ad62ab5e09051e6/data_utils.py#L221
+#load splits from here https://github.com/CUAI/Non-Homophily-Large-Scale/tree/82f8f05c5c3ec16bd5b505cc7ad62ab5e09051e6/data/splits
+def load_fixed_splits(dataset): #, sub_dataset):
+  """ loads saved fixed splits for dataset
+  """
+  name = dataset
+  # if sub_dataset and sub_dataset != 'None':
+  #   name += f'-{sub_dataset}'
+  # if not os.path.exists(f'./data/splits/{name}-splits.npy'):
+  #   assert dataset in splits_drive_url.keys()
+  #   gdown.download(
+  #     id=splits_drive_url[dataset], \
+  #     output=f'./data/splits/{name}-splits.npy', quiet=False)
+
+  # splits_lst = np.load(f'./data/splits/{name}-splits.npy', allow_pickle=True)
+  splits_lst = np.load(f'../arxiv_year_splits/arxiv-year-splits.npy', allow_pickle=True)
+
+  # for i in range(len(splits_lst)):
+  #   for key in splits_lst[i]:
+  #     if not torch.is_tensor(splits_lst[i][key]):
+  #       splits_lst[i][key] = torch.as_tensor(splits_lst[i][key])
+  train_list, val_list, test_list = [], [], []
+  for i in range(len(splits_lst)):
+    train_list.append(torch.as_tensor(splits_lst[i]['train']).unsqueeze(-1))
+    val_list.append(torch.as_tensor(splits_lst[i]['valid']).unsqueeze(-1))
+    test_list.append(torch.as_tensor(splits_lst[i]['test']).unsqueeze(-1))
+  train = torch.cat(train_list, dim=1)
+  val = torch.cat(train_list, dim=1)
+  test = torch.cat(train_list, dim=1)
+
+  return train, val, test
 
 
 if __name__ == '__main__':

@@ -104,7 +104,14 @@ class BaseGNN(MessagePassing):
     super(BaseGNN, self).__init__()
     self.opt = opt
     self.T = opt['time']
-    self.num_classes = dataset.num_classes if opt['dataset'] not in ["ZINC"] else 1
+    # self.num_classes = dataset.num_classes if opt['dataset'] not in ["ZINC"] else 1
+    if opt['dataset'] in ["ZINC"]:
+      self.num_classes = 1
+    elif opt['dataset'] in ["arxiv-year"]:
+      self.num_classes = 5
+    else:
+      self.num_classes = dataset.num_classes
+
     self.num_features = dataset.data.num_features
     self.num_nodes = dataset.data.num_nodes
     self.device = device

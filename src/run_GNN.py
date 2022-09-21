@@ -68,7 +68,7 @@ def get_label_masks(data, mask_rate=0.5):
 
 
 def train(model, optimizer, data, rep=0, pos_encoding=None):
-    lf = torch.nn.functional.nll_loss if model.opt['dataset'] in ['ogbn-arxiv', 'penn94'] else torch.nn.CrossEntropyLoss()
+    lf = torch.nn.functional.nll_loss if model.opt['dataset'] in ['ogbn-arxiv', 'penn94', 'arxiv-year'] else torch.nn.CrossEntropyLoss()
 
     if model.opt['wandb_watch_grad']:  # Tell wandb to watch what the model gets up to: gradients, weights, and more!
         wandb.watch(model, lf, log="all", log_freq=10)
@@ -87,6 +87,9 @@ def train(model, optimizer, data, rep=0, pos_encoding=None):
     if model.opt['dataset'] == 'ogbn-arxiv':
         # lf = torch.nn.functional.nll_loss
         loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
+    elif model.opt['dataset'] == 'arxiv-year':
+        # lf = torch.nn.functional.nll_loss
+        loss = lf(out.log_softmax(dim=-1)[data.train_mask[:, rep]], data.label.squeeze(1)[data.train_mask[:, rep]])
     elif model.opt['dataset'] == 'penn94':
         # lf = torch.nn.functional.nll_loss
         loss = lf(out.log_softmax(dim=-1)[data.train_mask[:, rep]], data.y[data.train_mask[:, rep]])
@@ -316,21 +319,26 @@ def test_OGB(model, data, pos_encoding, opt):
 @torch.no_grad()
 def test_linkx(model, data, rep, pos_encoding, opt):
     model.eval()
-
     feat = data.x
-    out = model(feat, pos_encoding).log_softmax(dim=-1)
-    # y_pred = out.argmax(dim=-1, keepdim=True)
-
     logits, accs = model(feat, pos_encoding), []
-    for _, mask in data('train_mask', 'val_mask', 'test_mask'):
-        pred = logits[mask[:,rep]].max(1)[1]
-        acc = pred.eq(data.y[mask[:,rep]]).sum().item() / mask[:,rep].sum().item()
-        accs.append(acc)
+    if opt['dataset'] == 'arxiv-year':
+        for _, mask in data('train_mask', 'val_mask', 'test_mask'):
+            pred = logits[mask[:,rep]].max(1)[1]
+            acc = pred.eq(data.label.squeeze(1)[mask[:,rep]]).sum().item() / mask[:,rep].shape[0]
+            accs.append(acc)
+    else:
+        for _, mask in data('train_mask', 'val_mask', 'test_mask'):
+            pred = logits[mask[:,rep]].max(1)[1]
+            acc = pred.eq(data.y[mask[:,rep]]).sum().item() / mask[:,rep].sum().item()
+            accs.append(acc)
 
     epoch = model.odeblock.odefunc.epoch
     if opt['wandb']:
         lf = torch.nn.functional.nll_loss
-        loss = lf(out.log_softmax(dim=-1)[data.train_mask[:, rep]], data.y[data.train_mask[:, rep]])
+        if opt['dataset'] == 'arxiv-year':
+            loss = lf(logits.log_softmax(dim=-1)[data.train_mask[:, rep]], data.label.squeeze(1)[data.train_mask[:, rep]])
+        else:
+            loss = lf(logits.log_softmax(dim=-1)[data.train_mask[:, rep]], data.y[data.train_mask[:, rep]])
         wandb_log(data, model, opt, loss, accs[0], accs[1], accs[2], epoch)
         model.odeblock.odefunc.wandb_step = 0  # resets the wandbstep counter in function after eval forward pass
 
@@ -338,6 +346,31 @@ def test_linkx(model, data, rep, pos_encoding, opt):
         reports_manager(model, data)
 
     return accs
+
+#adapted from:
+#https://github.com/CUAI/Non-Homophily-Large-Scale/blob/82f8f05c5c3ec16bd5b505cc7ad62ab5e09051e6/data_utils.py#L174
+#needed for genius dataset
+# @torch.no_grad()
+# def test_rocauc(model, data, rep, pos_encoding, opt):
+#     rocauc_list = []
+#     y_true = y_true.detach().cpu().numpy()
+#     if y_true.shape[1] == 1:
+#         # use the predicted class for single-class classification
+#         y_pred = F.softmax(y_pred, dim=-1)[:, 1].unsqueeze(1).cpu().numpy()
+#     else:
+#         y_pred = y_pred.detach().cpu().numpy()
+#
+#     for i in range(y_true.shape[1]):
+#         # AUC is only defined when there is at least one positive data.
+#         if np.sum(y_true[:, i] == 1) > 0 and np.sum(y_true[:, i] == 0) > 0:
+#             is_labeled = y_true[:, i] == y_true[:, i]
+#             score = roc_auc_score(y_true[is_labeled, i], y_pred[is_labeled, i])
+#             rocauc_list.append(score)
+#     if len(rocauc_list) == 0:
+#         raise RuntimeError(
+#             'No positively labeled data available. Cannot compute ROC-AUC.')
+#     return sum(rocauc_list) / len(rocauc_list)
+
 
 @torch.no_grad()
 def wandb_log(data, model, opt, loss, train_acc, val_acc, test_acc, epoch):
@@ -588,6 +621,8 @@ def main(cmd_opt):
     if opt['dataset'] == 'ogbn-arxiv':
         this_test = test_OGB
     elif opt['dataset'] == 'penn94':
+        this_test = test_linkx
+    elif opt['dataset'] == 'arxiv-year':
         this_test = test_linkx
     else:
         this_test = test
