@@ -86,8 +86,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
 
     #init source term params
     if self.opt['source_term'] == 'scalar':
-      self.q_scalar = nn.Parameter(torch.Tensor([1.]))
-      # self.q_scalar = nn.Parameter(torch.Tensor([0.]))
+      # self.q_scalar = nn.Parameter(torch.Tensor([1.]))
+      self.q_scalar = nn.Parameter(torch.Tensor([0.]))
     elif self.opt['source_term'] == 'fidelity':
       self.q_fidelity = nn.Parameter(torch.Tensor([1.]))
     elif self.opt['source_term'] in ['diag', 'bias']:
@@ -392,8 +392,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
       zeros(self.measure)
 
     if self.opt['source_term'] == 'scalar':
-      ones(self.q_scalar)
-      # zeros(self.q_scalar)
+      # ones(self.q_scalar)
+      zeros(self.q_scalar)
     elif self.opt['source_term'] == 'fidelity':
       ones(self.q_fidelity)
     elif self.opt['source_term'] == 'diag':
@@ -1388,10 +1388,8 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
             if self.opt['two_hops']:
               Ax = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x)
               AAx = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], Ax)
-              # WW = self.gnl_W @ self.gnl_W
-              # f = Ax @ self.gnl_W + AAx @ WW
+              # f = Ax @ self.gnl_W + AAx @ W
               f = Ax @ self.gnl_W + AAx @ self.gnl_W2
-
             else:
               f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x @ self.gnl_W)
 
