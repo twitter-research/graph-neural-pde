@@ -81,4 +81,4 @@ command:
   - --wandb
   - --wandb_sweep
 entity: graph_neural_diffusion
-project: graff_squirrel_best2
+project: graff_squirrel_best3
