@@ -291,8 +291,8 @@ def load_fixed_splits(dataset): #, sub_dataset):
     val_list.append(torch.as_tensor(splits_lst[i]['valid']).unsqueeze(-1))
     test_list.append(torch.as_tensor(splits_lst[i]['test']).unsqueeze(-1))
   train = torch.cat(train_list, dim=1)
-  val = torch.cat(train_list, dim=1)
-  test = torch.cat(train_list, dim=1)
+  val = torch.cat(val_list, dim=1)
+  test = torch.cat(test_list, dim=1)
 
   return train, val, test
 
