@@ -264,6 +264,7 @@ def greed_hyper_params(opt):
     opt['gnl_W_norm'] = False#True#False  # True #divide by spectral radius
     opt['loss_orthog_a'] = 0.0#0.1#1.0
     opt['source_term'] = 'scalar'#'diag'# 'time_dep_q'#'scalar' #'fidelity''diag' 'time_dep_q:
+    opt['q_scalar_init'] = 1. #0. #init of the learnable source multiplier
 
     opt['two_hops'] = False #False # This turns on the functionality to get equation 28 working
     opt['time_dep_w'] = None#"unstruct"#"struct_decay" #""struct"
@@ -663,7 +664,7 @@ def default_params():
     parser.add_argument('--block_size', type=int, default=5, help='block_size')
     parser.add_argument('--k_diags', type=float, default=11, help='k_diags')
     parser.add_argument('--k_diag_pc', type=float, default=0.1, help='percentage or dims diagonal')
-    parser.add_argument('--gnl_W_diag_init', type=str, default='identity', help='init of diag elements [identity, uniform, linear]')
+    parser.add_argument('--gnl_W_diag_init', type=str, default='uniform', help='init of diag elements [identity, uniform, linear]')
     parser.add_argument('--gnl_W_param_free', type=str, default='True', help='allow parameter to require gradient')
     parser.add_argument('--gnl_W_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
     parser.add_argument('--gnl_W_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
@@ -699,8 +700,8 @@ def default_params():
     parser.add_argument('--loss_orthog_a', type=float, default=0, help='loss orthog multiplier term')
     parser.add_argument('--householder_L', type=int, default=8, help='num iterations of householder reflection for W_orthog')
     parser.add_argument('--source_term', type=str, default='', help='describes type of source term to add')
+    parser.add_argument('--q_scalar_init', type=float, default=1.0, help='[0.,1.] init of the learnable source multiplier')
     parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
-
     parser.add_argument('--post_proc', type=str, default='none', help='post processing [none, neighbour, node]')
 
     #zinc params
