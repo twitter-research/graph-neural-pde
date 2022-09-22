@@ -53,7 +53,7 @@ parameters:
     values: [False]
   conv_batch_norm:
     values: [layerwise, False]
-  XN_no_activation:
+  XN_no_activatio
     values: [True, False]
   post_proc:
     values: [none]

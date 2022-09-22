@@ -10,7 +10,7 @@ parameters:
   function:
     values: [greed_non_linear]
   epoch:
-    values: [200]
+    values: [250]
   num_splits:
     values: [5]
   self_loop_weight:
@@ -50,11 +50,11 @@ parameters:
   m2_W_eig:
     values: [eye]
   pointwise_nonlin:
-    values: [False]
+    values: [True, False]
   conv_batch_norm:
     values: [layerwise]
   XN_no_activation:
-    values: [True, False]
+    values: [False]
   post_proc:
     values: [none]
   hidden_dim:
@@ -68,21 +68,21 @@ parameters:
   input_dropout:
     distribution: uniform
     min: 0.0
-    max: 0.45
+    max: 0.22
   dropout:
     distribution: uniform
     min: 0.0
-    max: 0.45
+    max: 0.25
   optimizer:
     values: [adam]
   lr:
     distribution: log_uniform
     min: -6.22
-    max: -3.9120
+    max: -4.605
   decay:
     distribution: log_uniform
     min: -8
-    max: -5.52
+    max: -6.21
 command:
   - ${env}
   - python3
