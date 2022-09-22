@@ -68,7 +68,7 @@ def get_label_masks(data, mask_rate=0.5):
 
 
 def train(model, optimizer, data, rep=0, pos_encoding=None):
-    lf = torch.nn.functional.nll_loss if model.opt['dataset'] in ['ogbn-arxiv', 'penn94', 'arxiv-year'] else torch.nn.CrossEntropyLoss()
+    lf = torch.nn.functional.nll_loss if model.opt['dataset'] in ['ogbn-arxiv', 'penn94', 'arxiv-year', 'snap-patents'] else torch.nn.CrossEntropyLoss()
 
     if model.opt['wandb_watch_grad']:  # Tell wandb to watch what the model gets up to: gradients, weights, and more!
         wandb.watch(model, lf, log="all", log_freq=10)
@@ -89,8 +89,8 @@ def train(model, optimizer, data, rep=0, pos_encoding=None):
         loss = lf(out.log_softmax(dim=-1)[data.train_mask], data.y.squeeze(1)[data.train_mask])
     elif model.opt['dataset'] == 'arxiv-year':
         # lf = torch.nn.functional.nll_loss
-        loss = lf(out.log_softmax(dim=-1)[data.train_mask[:, rep]], data.label.squeeze(1)[data.train_mask[:, rep]])
-    elif model.opt['dataset'] == 'penn94':
+        loss = lf(out.log_softmax(dim=-1)[data.train_mask[:, rep]], data.y.squeeze(1)[data.train_mask[:, rep]])
+    elif model.opt['dataset'] in ['penn94', 'snap-patents']:
         # lf = torch.nn.functional.nll_loss
         loss = lf(out.log_softmax(dim=-1)[data.train_mask[:, rep]], data.y[data.train_mask[:, rep]])
     else:
@@ -324,7 +324,12 @@ def test_linkx(model, data, rep, pos_encoding, opt):
     if opt['dataset'] == 'arxiv-year':
         for _, mask in data('train_mask', 'val_mask', 'test_mask'):
             pred = logits[mask[:,rep]].max(1)[1]
-            acc = pred.eq(data.label.squeeze(1)[mask[:,rep]]).sum().item() / mask[:,rep].shape[0]
+            acc = pred.eq(data.y.squeeze(1)[mask[:,rep]]).sum().item() / mask[:,rep].shape[0]
+            accs.append(acc)
+    elif opt['dataset'] == 'snap-patents':
+        for _, mask in data('train_mask', 'val_mask', 'test_mask'):
+            pred = logits[mask[:,rep]].max(1)[1]
+            acc = pred.eq(data.y[mask[:,rep]]).sum().item() / mask[:,rep].shape[0]
             accs.append(acc)
     else:
         for _, mask in data('train_mask', 'val_mask', 'test_mask'):
@@ -336,7 +341,7 @@ def test_linkx(model, data, rep, pos_encoding, opt):
     if opt['wandb']:
         lf = torch.nn.functional.nll_loss
         if opt['dataset'] == 'arxiv-year':
-            loss = lf(logits.log_softmax(dim=-1)[data.train_mask[:, rep]], data.label.squeeze(1)[data.train_mask[:, rep]])
+            loss = lf(logits.log_softmax(dim=-1)[data.train_mask[:, rep]], data.y.squeeze(1)[data.train_mask[:, rep]])
         else:
             loss = lf(logits.log_softmax(dim=-1)[data.train_mask[:, rep]], data.y[data.train_mask[:, rep]])
         wandb_log(data, model, opt, loss, accs[0], accs[1], accs[2], epoch)
@@ -620,9 +625,7 @@ def main(cmd_opt):
     # this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
     if opt['dataset'] == 'ogbn-arxiv':
         this_test = test_OGB
-    elif opt['dataset'] == 'penn94':
-        this_test = test_linkx
-    elif opt['dataset'] == 'arxiv-year':
+    elif opt['dataset'] in ['penn94', 'arxiv-year', 'snap-patents']:
         this_test = test_linkx
     else:
         this_test = test

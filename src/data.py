@@ -3,9 +3,10 @@ Code partially copied from 'Diffusion Improves Graph Learning' repo https://gith
 """
 
 import os
-
+from os import path
 import numpy as np
-
+import gdown
+import scipy
 import torch
 from torch_geometric.data import Data, InMemoryDataset
 from torch.utils.data import WeightedRandomSampler
@@ -17,6 +18,7 @@ from torch_geometric.utils import to_undirected, is_undirected
 from graph_rewiring import make_symmetric, apply_pos_dist_rewire
 from heterophilic import WebKB, Actor, WikipediaNetwork, Genius #todo then copy from ds/ds/geom/raw to ds/ds/raw and process using this
 from data_synth_hetero import get_pyg_syn_cora, get_SBM
+from utils import DummyDataset
 
 DATA_PATH = '../data'
 
@@ -67,29 +69,20 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     else:
       dataset = Genius(root=path, name=ds)
     use_lcc = False
-
   elif ds == 'arxiv-year':
     dataset = PygNodePropPredDataset(name='ogbn-arxiv', root=path, transform=T.ToSparseTensor())
     nclass = 5
-    # label = even_quantile_labels(
-    #     dataset.graph['node_year'].flatten(), nclass, verbose=False)
     label = even_quantile_labels(dataset.data.node_year.flatten().numpy(), nclass, verbose=False)
-    dataset.data.label = torch.as_tensor(label).reshape(-1, 1)
-    train_mask, val_mask, test_mask  = load_fixed_splits(ds)
+    dataset.data.y = torch.as_tensor(label).reshape(-1, 1)
+    splits_lst = np.load(f'../linkx_splits/arxiv-year-splits.npy', allow_pickle=True)
+    train_mask, val_mask, test_mask  = process_fixed_splits(splits_lst)
     dataset.data.train_mask = train_mask
     dataset.data.val_mask = val_mask
     dataset.data.test_mask = test_mask
-    # data = Data(
-    # x=dataset.data.x,
-    # edge_index=ei,
-    # y=dataset.data.y,
-    # train_mask=split_idx['train'],
-    # test_mask=split_idx['test'],
-    # val_mask=split_idx['valid'])
-    # dataset.data = data
-
     return dataset
-
+  elif ds == 'snap-patents':
+    dataset = load_snap_patents_mat(nclass=5)
+    return dataset
   # elif ds in ["Twitch"]: #need to verify settings to match LINKX paper
   #   if opt['data_feat_norm']:
   #     dataset = Twitch(root=path, name=ds, transform=T.NormalizeFeatures())
@@ -264,27 +257,10 @@ def even_quantile_labels(vals, nclasses, verbose=True):
       print(f'Class {class_idx}: [{interval[0]}, {interval[1]})]')
   return label
 
+#adapting
 #https://github.com/CUAI/Non-Homophily-Large-Scale/blob/82f8f05c5c3ec16bd5b505cc7ad62ab5e09051e6/data_utils.py#L221
 #load splits from here https://github.com/CUAI/Non-Homophily-Large-Scale/tree/82f8f05c5c3ec16bd5b505cc7ad62ab5e09051e6/data/splits
-def load_fixed_splits(dataset): #, sub_dataset):
-  """ loads saved fixed splits for dataset
-  """
-  name = dataset
-  # if sub_dataset and sub_dataset != 'None':
-  #   name += f'-{sub_dataset}'
-  # if not os.path.exists(f'./data/splits/{name}-splits.npy'):
-  #   assert dataset in splits_drive_url.keys()
-  #   gdown.download(
-  #     id=splits_drive_url[dataset], \
-  #     output=f'./data/splits/{name}-splits.npy', quiet=False)
-
-  # splits_lst = np.load(f'./data/splits/{name}-splits.npy', allow_pickle=True)
-  splits_lst = np.load(f'../arxiv_year_splits/arxiv-year-splits.npy', allow_pickle=True)
-
-  # for i in range(len(splits_lst)):
-  #   for key in splits_lst[i]:
-  #     if not torch.is_tensor(splits_lst[i][key]):
-  #       splits_lst[i][key] = torch.as_tensor(splits_lst[i][key])
+def process_fixed_splits(splits_lst): #, sub_dataset):
   train_list, val_list, test_list = [], [], []
   for i in range(len(splits_lst)):
     train_list.append(torch.as_tensor(splits_lst[i]['train']).unsqueeze(-1))
@@ -293,8 +269,43 @@ def load_fixed_splits(dataset): #, sub_dataset):
   train = torch.cat(train_list, dim=1)
   val = torch.cat(val_list, dim=1)
   test = torch.cat(test_list, dim=1)
-
   return train, val, test
+
+#adapting - https://github.com/CUAI/Non-Homophily-Large-Scale/blob/82f8f05c5c3ec16bd5b505cc7ad62ab5e09051e6/dataset.py#L257
+def load_snap_patents_mat(nclass=5):
+  dataset_drive_url = {'snap-patents': '1ldh23TSY1PwXia6dU0MYcpyEgX-w3Hia'}
+  splits_drive_url = {'snap-patents': '12xbBRqd8mtG_XkNLH8dRRNZJvVM4Pw-N'}
+
+  if not path.exists(f'{DATA_PATH}/snap_patents.mat'):
+    p = dataset_drive_url['snap-patents']
+    print(f"Snap patents url: {p}")
+    gdown.download(id=dataset_drive_url['snap-patents'], \
+                   output=f'{DATA_PATH}/snap_patents.mat', quiet=False)
+
+  fulldata = scipy.io.loadmat(f'{DATA_PATH}/snap_patents.mat')
+  num_classes = 5
+  #get data
+  edge_index = torch.tensor(fulldata['edge_index'], dtype=torch.long)
+  node_feat = torch.tensor(fulldata['node_feat'].todense(), dtype=torch.float)
+  num_nodes = int(fulldata['num_nodes'])
+  years = fulldata['years'].flatten()
+  label = even_quantile_labels(years, nclass, verbose=False)
+  label = torch.tensor(label, dtype=torch.long)
+  #get splits
+  name = 'snap-patents'
+  if not os.path.exists(f'../linkx_splits/snap-patents-splits.npy'):
+    assert name in splits_drive_url.keys()
+    gdown.download(
+      id=splits_drive_url[name], \
+      output=f'../linkx_splits/{name}-splits.npy', quiet=False)
+  splits_lst = np.load(f'../linkx_splits/{name}-splits.npy', allow_pickle=True)
+  train, val, test = process_fixed_splits(splits_lst)
+  data = Data(x=node_feat, edge_index=edge_index, y=label, num_nodes=num_nodes,
+                train_mask=train, val_mask=val, test_mask=test)
+
+  dataset = DummyDataset(data, num_classes)
+
+  return dataset
 
 
 if __name__ == '__main__':

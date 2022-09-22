@@ -36,7 +36,7 @@ parameters:
   q_scalar_init:
     values: [0., 1.]
   gnl_omega:
-    values: [diag, zero]
+    values: [diag]
   gnl_omega_diag:
     values: [free]
   time_dep_w:
@@ -52,13 +52,13 @@ parameters:
   pointwise_nonlin:
     values: [False]
   conv_batch_norm:
-    values: [False, layerwise]
+    values: [layerwise]
   XN_no_activation:
     values: [True, False]
   post_proc:
     values: [none]
   hidden_dim:
-    values: [128, 256]
+    values: [128]
   time:
     distribution: uniform
     min: 1.0
@@ -67,11 +67,11 @@ parameters:
     values: [0.5, 1.0]
   input_dropout:
     distribution: uniform
-    min: 0.1
+    min: 0.0
     max: 0.45
   dropout:
     distribution: uniform
-    min: 0.1
+    min: 0.0
     max: 0.45
   optimizer:
     values: [adam]
