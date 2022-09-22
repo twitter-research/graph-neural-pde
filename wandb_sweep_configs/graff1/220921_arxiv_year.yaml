@@ -12,7 +12,7 @@ parameters:
   epoch:
     values: [200]
   num_splits:
-    values: [1]
+    values: [5]
   self_loop_weight:
     values: [0.0]
   no_early:
@@ -58,7 +58,7 @@ parameters:
   post_proc:
     values: [none]
   hidden_dim:
-    values: [8, 16, 32, 64, 128]
+    values: [128, 256]
   time:
     distribution: uniform
     min: 1.0
@@ -67,17 +67,17 @@ parameters:
     values: [0.5, 1.0]
   input_dropout:
     distribution: uniform
-    min: 0.3
-    max: 0.6
+    min: 0.1
+    max: 0.45
   dropout:
     distribution: uniform
-    min: 0.2
-    max: 0.6
+    min: 0.1
+    max: 0.45
   optimizer:
     values: [adam]
   lr:
     distribution: log_uniform
-    min: -9.2103
+    min: -6.22
     max: -3.9120
   decay:
     distribution: log_uniform
