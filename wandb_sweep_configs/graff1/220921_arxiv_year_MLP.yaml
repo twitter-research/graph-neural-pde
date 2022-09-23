@@ -95,4 +95,4 @@ command:
   - --wandb
   - --wandb_sweep
 entity: graph_neural_diffusion
-project: arxiv_year
+project: arxiv_year_MLP
