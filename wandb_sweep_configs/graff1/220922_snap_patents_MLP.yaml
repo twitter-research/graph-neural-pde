@@ -55,6 +55,10 @@ parameters:
     values: [layerwise, False]
   XN_no_activation:
     values: [True, False]
+  use_mlp:
+    values: [True, False]
+  m2_mlp:
+    values: [True, False]
   post_proc:
     values: [none]
   hidden_dim:
