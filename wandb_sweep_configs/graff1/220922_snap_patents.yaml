@@ -58,7 +58,7 @@ parameters:
   post_proc:
     values: [none]
   hidden_dim:
-    values: [8, 16, 32]
+    values: [8, 16]
   time:
     distribution: uniform
     min: 1.0
