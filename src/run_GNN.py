@@ -276,7 +276,7 @@ def test(model, data, rep=0, pos_encoding=None, opt=None):  # opt required for r
 
 
 @torch.no_grad()
-def test_OGB(model, data, pos_encoding, opt):
+def test_OGB(model, data, rep, pos_encoding, opt):
     if opt['dataset'] == 'ogbn-arxiv':
         name = 'ogbn-arxiv'
 

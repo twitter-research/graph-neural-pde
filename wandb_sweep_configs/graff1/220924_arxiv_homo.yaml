@@ -1,0 +1,100 @@
+program: run_GNN.py
+method: random
+parameters:
+  dataset:
+    values: [ogbn-arxiv]
+  data_feat_norm:
+    values: [False]
+  block:
+    values: [constant]
+  function:
+    values: [greed_non_linear]
+  epoch:
+    values: [250]
+  num_splits:
+    values: [5]
+  self_loop_weight:
+    values: [0.0]
+  no_early:
+    values: [True]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_W_style:
+    values: [sum, tri, diag_dom]
+  gnl_W_diag_init:
+    values: [uniform, identity]
+  gnl_W_norm:
+    values: [False]
+  gnl_activation:
+    values: [identity]
+  gnl_measure:
+    values: [ones]
+  drift:
+    values: [False]
+  source_term:
+    values: [none, scalar]
+  q_scalar_init:
+    values: [0., 1.]
+  gnl_omega:
+    values: [diag, zero]
+  gnl_omega_diag:
+    values: [free]
+  time_dep_w:
+    values: [none]
+  time_dep_omega:
+    values: [none]
+  time_dep_q:
+    values: [none]
+  m1_W_eig:
+    values: [False]
+  m2_W_eig:
+    values: [eye]
+  pointwise_nonlin:
+    values: [True, False]
+  conv_batch_norm:
+    values: [layerwise, False]
+  XN_no_activation:
+    values: [True, False]
+  use_mlp:
+    values: [True, False]
+  m2_mlp:
+    values: [True, False]
+  post_proc:
+    values: [none]
+  hidden_dim:
+    values: [64, 128]
+  time:
+    distribution: uniform
+    min: 1.0
+    max: 5.0
+  step_size:
+    values: [0.5, 1.0]
+  input_dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.4
+  dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.4
+  optimizer:
+    values: [adam]
+  lr:
+    distribution: log_uniform
+    min: -9.21
+    max: -3.91
+  decay:
+    distribution: log_uniform
+    min: -9.21
+    max: -6.21
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+entity: graph_neural_diffusion
+project: arxiv_homo
