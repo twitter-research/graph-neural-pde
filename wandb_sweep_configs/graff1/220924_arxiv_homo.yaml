@@ -3,8 +3,6 @@ method: random
 parameters:
   dataset:
     values: [ogbn-arxiv]
-  use_labels:
-    values: [True, False]
   data_feat_norm:
     values: [False]
   block:
