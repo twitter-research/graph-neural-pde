@@ -34,7 +34,7 @@ parameters:
   drift:
     values: [False]
   source_term:
-    values: [scalar]
+    values: [scalar, none]
   gnl_omega:
     values: [diag]
   gnl_omega_diag:
@@ -50,13 +50,13 @@ parameters:
   m2_W_eig:
     values: [eye]
   pointwise_nonlin:
-    values: [False]
+    values: [True, False]
   conv_batch_norm:
-    values: [none]
+    values: [none, layerwise]
   XN_no_activation:
     values: [False]
   two_hops:
-    values: [True, False]
+    values: [False]
   hidden_dim:
     values: [32, 64, 128]
   time:
