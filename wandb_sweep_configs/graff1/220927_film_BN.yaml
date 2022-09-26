@@ -3,8 +3,6 @@ method: random
 parameters:
   dataset:
     values: [film]
-  geom_gcn_splits:
-    values: [True]
   data_feat_norm:
     values: [True]
   block:
@@ -92,5 +90,6 @@ command:
   - ${args}
   - --wandb
   - --wandb_sweep
+  - --geom_gcn_splits
 entity: graph_neural_diffusion
 project: film_BN
