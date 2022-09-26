@@ -3,6 +3,8 @@ method: random
 parameters:
   dataset:
     values: [chameleon]
+  geom_gcn_splits:
+    values: [True]
   data_feat_norm:
     values: [True]
   block:
