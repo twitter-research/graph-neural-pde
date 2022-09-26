@@ -2,7 +2,7 @@ program: run_GNN.py
 method: random
 parameters:
   dataset:
-    values: [chameleon]
+    values: [film]
   geom_gcn_splits:
     values: [True]
   data_feat_norm:
