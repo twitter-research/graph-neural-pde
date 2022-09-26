@@ -74,6 +74,9 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     nclass = 5
     label = even_quantile_labels(dataset.data.node_year.flatten().numpy(), nclass, verbose=False)
     dataset.data.y = torch.as_tensor(label).reshape(-1, 1)
+    if opt['hetero_undir']:
+      dataset.data.edge_index = to_undirected(dataset.data.edge_index)
+
     splits_lst = np.load(f'../linkx_splits/arxiv-year-splits.npy', allow_pickle=True)
     train_mask, val_mask, test_mask  = process_fixed_splits(splits_lst)
     dataset.data.train_mask = train_mask
@@ -82,6 +85,8 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     return dataset
   elif ds == 'snap-patents':
     dataset = load_snap_patents_mat(nclass=5)
+    if opt['hetero_undir']:
+      dataset.data.edge_index = to_undirected(dataset.data.edge_index)
     return dataset
   # elif ds in ["Twitch"]: #need to verify settings to match LINKX paper
   #   if opt['data_feat_norm']:
