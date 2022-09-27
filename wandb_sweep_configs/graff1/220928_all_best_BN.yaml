@@ -1,5 +1,5 @@
 program: run_GNN.py
-method: random
+method: grid
 parameters:
   dataset:
     values: [texas, wisconsin, cornell, film, squirrel, chameleon, Citeseer, Pubmed, Cora]:
@@ -46,7 +46,7 @@ parameters:
   m2_W_eig:
     values: [eye]
   pointwise_nonlin:
-    values: [False]
+    values: [True, False]
   conv_batch_norm:
     values: [layerwise, False]
   XN_no_activation:
@@ -66,4 +66,4 @@ command:
   - --wandb_sweep
   - --geom_gcn_splits
 entity: graph_neural_diffusion
-project: snap_patents_undir2
+project: all_best_BN
