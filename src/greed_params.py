@@ -181,7 +181,7 @@ def greed_hyper_params(opt):
     opt['time'] = 2.#4.08 #3.194 #4 #18.295 #10
     opt['epoch'] = 251#129#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['adjoint'] = False#True
-    opt['num_splits'] = 1#4#1
+    opt['num_splits'] = 10#4#1
     opt['use_labels'] = False #True
     # opt['planetoid_split'] = True
     # opt['geom_gcn_splits'] = False #True#True #False#True

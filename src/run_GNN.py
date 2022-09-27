@@ -639,7 +639,7 @@ def main(cmd_opt):
                                                     num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
         if opt['geom_gcn_splits']:
             if opt['dataset'] == "Citeseer":
-                dataset = get_dataset(opt, '../data', opt['not_lcc']) #geom-gcn citeseer uses splits over LCC and not_LCC so need to repload each split
+                dataset = get_dataset(opt, '../data', False) #opt['not_lcc']) #geom-gcn citeseer uses splits over LCC and not_LCC so need full via opt['not_lcc']=Falseto repload each split
             data = get_fixed_splits(dataset.data, opt['dataset'], rep)
             dataset.data = data
         if opt['dataset'] == 'syn_cora':
