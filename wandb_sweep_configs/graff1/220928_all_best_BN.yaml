@@ -19,6 +19,8 @@ parameters:
     values: [euler]
   gnl_style:
     values: [general_graph]
+  greed_params:
+    values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag, uniform, False, diag, free, True, True, True]]
   gnl_W_norm:
     values: [False]
   gnl_activation:
@@ -31,10 +33,6 @@ parameters:
     values: [scalar]
   q_scalar_init:
     values: [1.]
-  gnl_omega:
-    values: [diag]
-  gnl_omega_diag:
-    values: [free]
   time_dep_w:
     values: [none]
   time_dep_omega:
