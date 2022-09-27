@@ -12,7 +12,7 @@ import numpy as np
 import torch_sparse
 from torch_scatter import scatter_add, scatter_mul
 from torch_geometric.utils.loop import add_remaining_self_loops
-from torch_geometric.utils import degree, softmax, homophily, contains_self_loops, to_dense_adj
+from torch_geometric.utils import degree, softmax, homophily, contains_self_loops, to_dense_adj, to_undirected
 from torch_sparse import coalesce, transpose
 from torch_geometric.nn.inits import glorot, zeros, ones, constant
 from torch_geometric.nn import global_mean_pool, global_add_pool
@@ -1390,6 +1390,12 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
               AAx = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], Ax)
               # f = Ax @ self.gnl_W + AAx @ W
               f = Ax @ self.gnl_W + AAx @ self.gnl_W2
+            elif not self.opt['hetero_undir'] and self.opt['undir_grad_flow']: #"directed gradient flow"
+              AXW = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x @ self.gnl_W)
+              row, col = self.edge_index
+              edge_index_T = torch.stack([col, row], dim=0)
+              AtXWt = torch_sparse.spmm(edge_index_T, P, x.shape[0], x.shape[0], x @ self.gnl_W.T)
+              f = AXW + AtXWt
             else:
               f = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x @ self.gnl_W)
 

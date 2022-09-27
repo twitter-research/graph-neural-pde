@@ -55,6 +55,11 @@ def syn_cora_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
     base_df = df[(df.function != "greed_non_linear")]
     base_piv = pd.pivot_table(base_df, values="test_mean", index="target_homoph", columns="function", aggfunc=np.max)
     piv = pd.merge(gnl_piv, base_piv, on=['target_homoph'])
+    #update for ICLR
+    #filter out extra lines and rename DD to graff
+    line_cols = ["diag-dom", "gcn", "mlp"]#, "prod", "neg-prod"]
+    piv = piv[line_cols]
+    piv = piv.rename(columns={"diag-dom": "graff"})
 
     fs = 16
     if ax is None:
@@ -70,7 +75,7 @@ def syn_cora_plot(path, fig=None, ax=None, ax_idx=None, plot=False, save=False):
         ax[ax_idx].set_ylabel('Test accuracy', fontsize=fs)
         ax[ax_idx].legend(prop=dict(size=fs), loc='upper left')
     if save:
-        plt.savefig('../ablations/syn_cora_plot.pdf')
+        plt.savefig('../ablations/syn_cora_plot6.pdf')
     if plot:
         fig.show()
     return fig, ax
@@ -97,6 +102,12 @@ def syn_cora_homoph(path, line_scatter, fig=None, ax=None, ax_idx=None, plot=Fal
         df.loc[mask, 'target_homoph'] = df.loc[mask, 'target_homoph'] + 0.005
         mask = (df["W-style"] == "diag-dom")
         df.loc[mask, 'target_homoph'] = df.loc[mask, 'target_homoph'] - 0.005
+
+    #update for ICLR
+    #filter out extra lines and rename DD to graff
+    line_cols = ["diag-dom", "prod", "neg-prod"]
+    df = df[df["W-style"].isin(line_cols)]
+    df = df.replace(to_replace={"diag-dom":"graff"})
 
     fs = 16
     ps = 150
@@ -391,10 +402,10 @@ def wall_clock(path, model, line_scatter="both", plot=True, save=True):
 if __name__ == "__main__":
     path = "../ablations/ablation_syn_cora.csv"
     _,_ = syn_cora_plot(path, plot=True, save=True)
-    _,_ = syn_cora_homoph(path, line_scatter='scatter', plot=True, save=True)
+    _,_ = syn_cora_homoph(  path, line_scatter='scatter', plot=True, save=True)
 
     # 1)
-    # plot_1(path, "scatter")
+    plot_1(path, "scatter")
     # syn_cora_best_times(path)
     # syn_cora_energy(path)
 

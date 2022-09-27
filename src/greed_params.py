@@ -281,6 +281,7 @@ def greed_hyper_params(opt):
 
     opt['post_proc'] = False#'node_tanh'#'node_tanh'# 'neighbour_tanh''#'node'#'neighbour'#'node'
     opt['data_feat_norm'] = True
+    opt['dir_grad_flow'] = True
 
     #definitions of lie trotter
     #None - runs greed_non_linear with diffusion with optional simultaneous drift (ie eq 40) and the potential to pseudo inverse threshold
@@ -373,7 +374,7 @@ def tf_ablation_args(opt):
                 'm2_mlp', 'gnl_thresholding', 'gnl_W_param_free', 'gnl_W_param_free2', 'gnl_attention',
                 'XN_no_activation', 'two_hops',
                 'greed_SL', 'greed_undir', 'm2_aug', 'm1_W_eig', 'gnl_W_norm', 'drift_grad',
-                'pointwise_nonlin', 'lt_pointwise_nonlin', 'data_feat_norm',
+                'pointwise_nonlin', 'lt_pointwise_nonlin', 'data_feat_norm', 'undir_grad_flow',
                 'gcn_enc_dec', 'gcn_fixed', 'gcn_non_lin', 'gcn_symm', 'gcn_bias', 'gcn_mid_dropout',
                 'wandb', 'wandb_sweep', 'wandb_offline']#, 'adjoint']
     arg_intersect = list(set(opt.keys()) & set(tf_args))
@@ -703,6 +704,7 @@ def default_params():
     parser.add_argument('--q_scalar_init', type=float, default=1.0, help='[0.,1.] init of the learnable source multiplier')
     parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
     parser.add_argument('--post_proc', type=str, default='none', help='post processing [none, neighbour, node]')
+    parser.add_argument('--dir_grad_flow', type=str, default='none', help='undirected gradient flow')
 
     #zinc params
     parser.add_argument('--pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')

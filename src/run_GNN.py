@@ -1103,6 +1103,7 @@ if __name__ == '__main__':
     parser.add_argument('--q_scalar_init', type=float, default=1.0, help='[0.,1.] init of the learnable source multiplier')
     parser.add_argument('--dampen_gamma', type=float, default=1.0, help='gamma dampening coefficient, 1 is turned off, 0 is full dampening')
     parser.add_argument('--post_proc', type=str, default='none', help='post processing [none, neighbour, node]')
+    parser.add_argument('--dir_grad_flow', type=str, default='none', help='directed gradient flow')
 
     parser.add_argument('--pointwise_nonlin', type=str, default='False', help='pointwise_nonlin')
     parser.add_argument('--conv_batch_norm', type=str, default='False', help='conv_batch_norm')
