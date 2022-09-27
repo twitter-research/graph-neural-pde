@@ -65,4 +65,4 @@ command:
   - --geom_gcn_splits
   - --use_best_params
 entity: graph_neural_diffusion
-project: all_best_BN
+project: all_best_BN_NL
