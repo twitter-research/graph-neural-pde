@@ -99,4 +99,4 @@ command:
   - --wandb
   - --wandb_sweep
 entity: graph_neural_diffusion
-project: snap_patents_undir2
+project: snap_patents_dir
