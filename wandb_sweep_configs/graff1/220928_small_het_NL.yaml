@@ -1,0 +1,93 @@
+program: run_GNN.py
+method: random
+parameters:
+  dataset:
+    values: [texas, wisconsin, cornell]
+  block:
+    values: [constant]
+  function:
+    values: [greed_non_linear]
+  epoch:
+    values: [250]
+  num_splits:
+    values: [10]
+  self_loop_weight:
+    values: [0.0]
+  no_early:
+    values: [True]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  greed_params:
+    values: [[diag_dom, uniform, True, diag, free, False, True, True], [diag, uniform, False, diag, free, True, True, True]]
+  gnl_W_norm:
+    values: [False]
+  gnl_activation:
+    values: [identity]
+  gnl_measure:
+    values: [ones]
+  drift:
+    values: [False]
+  source_term:
+    values: [scalar]
+  q_scalar_init:
+    values: [1.]
+  time_dep_w:
+    values: [none]
+  time_dep_omega:
+    values: [none]
+  time_dep_q:
+    values: [none]
+  m1_W_eig:
+    values: [False]
+  m2_W_eig:
+    values: [eye]
+  pointwise_nonlin:
+    values: [True]
+  conv_batch_norm:
+    values: [layerwise, False]
+  XN_no_activation:
+    values: [False]
+  use_mlp:
+    values: [False]
+  m2_mlp:
+    values: [False]
+  post_proc:
+    values: [none]
+  hidden_dim:
+    values: [8, 16, 32, 64]
+  time:
+    distribution: uniform
+    min: 1.0
+    max: 4.0
+  step_size:
+    values: [0.5, 1.0]
+  input_dropout:
+    distribution: uniform
+    min: 0.3
+    max: 0.5
+  dropout:
+    distribution: uniform
+    min: 0.2
+    max: 0.45
+  optimizer:
+    values: [adam]
+  lr:
+    distribution: log_uniform
+    min: -7.60
+    max: -5.30
+  decay:
+    distribution: log_uniform
+    min: -4.61
+    max: -3.00
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --geom_gcn_splits
+entity: graph_neural_diffusion
+project: small_het_NL
