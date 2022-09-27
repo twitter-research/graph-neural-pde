@@ -7,3 +7,4 @@ images/
 ray_results/
 models/
 ./splits/.DS_Store
+./run_sweeps.sh
