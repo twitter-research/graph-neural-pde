@@ -3,6 +3,8 @@ method: grid
 parameters:
   dataset:
     values: [texas, wisconsin, cornell, film, squirrel, chameleon, Citeseer, Pubmed, Cora]
+  use_best_params:
+    values: [True]
   block:
     values: [constant]
   function:
@@ -63,6 +65,5 @@ command:
   - --wandb
   - --wandb_sweep
   - --geom_gcn_splits
-  - --use_best_params
 entity: graph_neural_diffusion
 project: all_best_BN_NL

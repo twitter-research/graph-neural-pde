@@ -537,6 +537,7 @@ def unpack_greed_params(opt):
     wandb.config.update({'gnl_omega': opt['greed_params'][3]}, allow_val_change=True)
     wandb.config.update({'gnl_omega_diag': opt['greed_params'][4]}, allow_val_change=True)
     wandb.config.update({'use_mlp': opt['greed_params'][5]}, allow_val_change=True)
+    #redundant terms now but keeping for backwards compatibility. replace by ['source_term'] = "scalar"
     wandb.config.update({'test_mu_0': opt['greed_params'][6]}, allow_val_change=True)
     wandb.config.update({'add_source': opt['greed_params'][7]}, allow_val_change=True)
 

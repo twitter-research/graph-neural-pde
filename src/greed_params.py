@@ -158,8 +158,8 @@ def greed_hyper_params(opt):
     opt['R_W_type'] = 'identity'
     opt['tau_residual'] = True
 
-    opt['test_mu_0'] = True # False #True
-    opt['add_source'] = False #True
+    # opt['test_mu_0'] = True # False #True
+    # opt['add_source'] = False #True
     opt['XN_no_activation'] = False#True #True #False "False means we do activate"
     opt['use_mlp'] = False #True #encoder mlp
     opt['m2_mlp'] = False #False #decoder mlp
