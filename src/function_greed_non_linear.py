@@ -1390,7 +1390,7 @@ class ODEFuncGreedNonLin(ODEFuncGreed):
               AAx = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], Ax)
               # f = Ax @ self.gnl_W + AAx @ W
               f = Ax @ self.gnl_W + AAx @ self.gnl_W2
-            elif not self.opt['hetero_undir'] and self.opt['undir_grad_flow']: #"directed gradient flow"
+            elif not self.opt['hetero_undir'] and self.opt['dir_grad_flow']: #"directed gradient flow"
               AXW = torch_sparse.spmm(self.edge_index, P, x.shape[0], x.shape[0], x @ self.gnl_W)
               row, col = self.edge_index
               edge_index_T = torch.stack([col, row], dim=0)
