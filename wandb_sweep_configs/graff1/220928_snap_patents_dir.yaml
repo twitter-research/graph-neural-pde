@@ -4,7 +4,7 @@ parameters:
   dataset:
     values: [snap-patents]
   hetero_undir:
-    values: [True]
+    values: [False]
   dir_grad_flow:
     values: [True]
   data_feat_norm:
