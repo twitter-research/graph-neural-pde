@@ -1,5 +1,6 @@
 import argparse
 import  wandb
+import pandas as pd
 
 #neurips submission
 # best_params_dict = {
@@ -86,3 +87,9 @@ def hetero_params(opt):
         #     opt['hetero_undir'] = True
         #     opt['geom_gcn_splits'] = True
     return opt
+
+df = pd.DataFrame.from_dict(best_params_dict_lin)
+cols = ["w_style", "source_term", "gnl_omega","conv_batch_norm"]
+print(df.transpose()[cols])
+df = pd.DataFrame.from_dict(best_params_dict_NL)
+print(df.transpose()[cols])
