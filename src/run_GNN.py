@@ -566,6 +566,7 @@ def main(cmd_opt):
         best_opt_nums = {k:best_opt[k] for k in ['w_style','lr','decay','dropout','input_dropout','hidden_dim','time','step_size']}
         # best_opt_flags = {k:best_opt[k] for k in ['w_style','conv_batch_norm',"source_term","gnl_omega"]}
         opt = {**cmd_opt, **best_opt_nums}
+        opt['gnl_W_style'] = opt['w_style']
         # merge_cmd_args(cmd_opt, opt) #for overiding particular params over best params - not really used now
     else:
         opt = cmd_opt
