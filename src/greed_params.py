@@ -168,17 +168,17 @@ def greed_hyper_params(opt):
 
     #hyper-params
     opt['optimizer'] = 'adam'
-    opt['lr'] = 0.0009#14#0.001 #0.00001# 0.001#0.001
+    opt['lr'] = 0.0027#0.0009#14#0.001 #0.00001# 0.001#0.001
     # opt['lr2'] = 0.00001
-    opt['dropout'] = 0.3#0.3674#0.35#0.0#0.35
-    opt['input_dropout'] = 0.43#0.4327#0.5#0.0#0.5Ω
-    opt['decay'] = 0.009#0.0004295#0.0005#0.0# 0.0005#005 #Cora 0.05 chameleon 0.0005
-    opt['hidden_dim'] = 16#64#64 #512
+    opt['dropout'] = 0.159# 0.3#0.3674#0.35#0.0#0.35
+    opt['input_dropout'] = 0.349#0.43#0.4327#0.5#0.0#0.5Ω
+    opt['decay'] = 0.0006#0.009#0.0004295#0.0005#0.0# 0.0005#005 #Cora 0.05 chameleon 0.0005
+    opt['hidden_dim'] = 128#64#64 #512
     # opt['use_best_params'] = False #True #False #True
     opt['method'] = 'euler'#'rk4' #'euler'
     opt['max_nfe'] = 5000 #for some reason 1000 not enough with all report building
     opt['step_size'] = 1#0.25#1.0 #1.0 #0.1 #have changed this to 0.1  dafault in run_GNN.py
-    opt['time'] = 2.#4.08 #3.194 #4 #18.295 #10
+    opt['time'] = 3.275#2.#4.08 #3.194 #4 #18.295 #10
     opt['epoch'] = 251#129#129#257#129 #20#6#129 #6#9#129 #255#129 #254 #100 #40 #40 #10
     opt['adjoint'] = False#True
     opt['num_splits'] = 10#4#1
@@ -275,12 +275,12 @@ def greed_hyper_params(opt):
     opt['num_lamb_omega'] = num_lamb
     opt['num_lamb_q'] = num_lamb
 
-    opt['conv_batch_norm'] = False#"layerwise" #"shared" False#True
+    opt['conv_batch_norm'] = "layerwise"#False#"layerwise" #"shared" False#True
     opt['pointwise_nonlin'] = False#True#False#True
     opt['graph_pool'] = ""#"mean"
 
     opt['post_proc'] = False#'node_tanh'#'node_tanh'# 'neighbour_tanh''#'node'#'neighbour'#'node'
-    opt['data_feat_norm'] = False#True# False
+    opt['data_feat_norm'] = True# False
     opt['dir_grad_flow'] = False
 
     #definitions of lie trotter
@@ -392,7 +392,7 @@ def default_params():
     # data args
     parser.add_argument('--dataset', type=str, default='Cora',
                         help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS, ogbn-arxiv')
-    parser.add_argument('--data_feat_norm', type=str, default='False',
+    parser.add_argument('--data_feat_norm', type=str, default='True',
                         help='use pre transform NormalizeFeatures')
     parser.add_argument('--data_norm', type=str, default='rw',
                         help='rw for random walk, gcn for symmetric gcn norm')

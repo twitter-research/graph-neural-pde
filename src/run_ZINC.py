@@ -503,7 +503,7 @@ if __name__ == '__main__':
     # data args
     parser.add_argument('--dataset', type=str, default='Cora',
                         help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS, ogbn-arxiv')
-    parser.add_argument('--data_feat_norm', type=str, default='False',
+    parser.add_argument('--data_feat_norm', type=str, default='True',
                         help='use pre transform NormalizeFeatures')
     parser.add_argument('--data_norm', type=str, default='rw',
                         help='rw for random walk, gcn for symmetric gcn norm')
