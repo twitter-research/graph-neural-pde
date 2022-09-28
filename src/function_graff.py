@@ -39,6 +39,13 @@ class ODEFuncGraff(ODEFunc):
     if self.time_dep_w or self.time_dep_struct_w:
       self.num_timesteps = math.ceil(self.opt['time']/self.opt['step_size'])
 
+    #batch norm
+    if self.opt['conv_batch_norm'] == "shared":
+      self.batchnorm_h = nn.BatchNorm1d(in_features)
+    elif self.opt['conv_batch_norm'] == "layerwise":
+      nts = math.ceil(self.opt['time'] / self.opt['step_size'])
+      self.batchnorms = [nn.BatchNorm1d(in_features).to(device) for _ in range(nts)]
+
     #init Omega
     if self.opt['omega_style'] == 'diag':
       if self.time_dep_w:
@@ -239,6 +246,15 @@ class ODEFuncGraff(ODEFunc):
 
     if self.opt['add_source']:
       f = f + self.beta_train * self.x0
+
+    if self.opt['conv_batch_norm'] == "shared":
+      f = self.batchnorm_h(f)
+    elif self.opt['conv_batch_norm'] == "layerwise":
+      f = self.batchnorms[T](f)
+
+    #non-linearity
+    if self.opt['pointwise_nonlin']:
+      f = torch.relu(f)
 
     return f
 

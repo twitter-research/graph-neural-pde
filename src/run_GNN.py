@@ -14,7 +14,7 @@ from data import get_dataset, set_train_val_test_split
 from heterophilic import get_fixed_splits
 from data_synth_hetero import get_pyg_syn_cora
 
-from graff_params import best_params_dict, shared_graff_params, hetero_params
+from graff_params import best_params_dict_L, best_params_dict_NL, shared_graff_params, hetero_params
 
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
@@ -111,58 +111,18 @@ def print_model_params(model):
             print(name)
             print(param.data.shape)
 
-def unpack_gcn_params(opt):
-    'temp function for ablation'
-    opt['gcn_params_idx'] = opt['gcn_params'][0]
-    opt['function'] = opt['gcn_params'][1]
-    opt['gcn_enc_dec'] = opt['gcn_params'][2]
-    opt['gcn_fixed'] = opt['gcn_params'][3]
-    opt['gcn_symm'] = opt['gcn_params'][4]
-    opt['gcn_non_lin'] = opt['gcn_params'][5]
-    return opt
-
-def unpack_graff_params(opt):
-    'temp function for "focus" models'
-    # w_style: diag_dom, diag
-    # w_diag_init: uniform, uniform
-    # w_param_free: True, False
-    # omega_style: diag, diag
-    # omega_diag: free, free
-    # use_mlp: False, True
-    # test_mu_0: True, True
-    # add_source: True, True
-    opt['w_style'] = opt['graff_params'][0]
-    opt['w_diag_init'] = opt['graff_params'][1]
-    opt['w_param_free'] = opt['graff_params'][2]
-    opt['omega'] = opt['graff_params'][3]
-    opt['omega_diag'] = opt['graff_params'][4]
-    opt['use_mlp'] = opt['graff_params'][5]
-    opt['test_mu_0'] = opt['graff_params'][6]
-    opt['add_source'] = opt['graff_params'][7]
-    return opt
-
-def unpack_omega_params(opt):
-    'temp function to help ablation'
-    opt['omega'] = opt['Omega_params'][0]
-    opt['omega_diag'] = opt['Omega_params'][1]
-    opt['omega_diag_val'] = opt['Omega_params'][2]
-    return opt
-
 def main(cmd_opt):
     if cmd_opt['use_best_params']:
-        best_opt = best_params_dict[cmd_opt['dataset']]
+        if cmd_opt['pointwise_nonlin']:
+            best_opt = best_params_dict_NL[cmd_opt['dataset']]
+        else:
+            best_opt = best_params_dict_L[cmd_opt['dataset']]
         opt = {**cmd_opt, **best_opt}
     else:
         opt = cmd_opt
 
     opt = shared_graff_params(opt)
     opt = hetero_params(opt)
-    if opt['gcn_params']: #temp function for ablation
-        unpack_gcn_params(opt)
-    if opt['graff_params']: #temp function for ablation
-        unpack_graff_params(opt)
-    if opt['omega_params']: #temp function for ablation
-        unpack_omega_params(opt)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     opt['device'] = device
@@ -182,7 +142,8 @@ def main(cmd_opt):
                                                     num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
         if opt['geom_gcn_splits']:
             if opt['dataset'] == "Citeseer":
-                dataset = get_dataset(opt, '../data', opt['not_lcc']) #geom-gcn citeseer uses splits over LCC and not_LCC so need to reload each rep/split
+                opt['not_lcc'] = False
+                dataset = get_dataset(opt, '../data', opt['not_lcc']) #geom-gcn citeseer uses splits over LCC and not_LCC so need to reload full DS each rep/split
             data = get_fixed_splits(dataset.data, opt['dataset'], rep)
             dataset.data = data
         if opt['dataset'] == 'syn_cora':
@@ -277,7 +238,7 @@ if __name__ == '__main__':
     parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true', help='apply sigmoid before multiplying by alpha')
     parser.add_argument('--beta_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) beta')
     parser.add_argument('--use_mlp', dest='use_mlp', action='store_true', help='Add a fully connected layer to the encoder.')
-    parser.add_argument('--add_source', dest='add_source', action='store_true', help='If try get rid of alpha param and the beta*x0 source term')
+    parser.add_argument('--add_source', dest='add_source', action='store_true', help='beta*x0 source term')
     parser.add_argument('--XN_activation', action='store_true', help='whether to relu activate the terminal state')
     parser.add_argument('--m2_mlp', action='store_true', help='whether to use decoder mlp')
 
@@ -316,13 +277,15 @@ if __name__ == '__main__':
     parser.add_argument('--omega_diag', type=str, default='free', help='free, const')
     parser.add_argument('--omega_params', nargs='+', default=None, help='list of Omega args for ablation')
     parser.add_argument('--w_style', type=str, default='sum', help='sum, prod, neg_prod, diag_dom, diag')
-    parser.add_argument('--w_diag_init', type=str, default='identity', help='init of diag elements [identity, uniform, linear]')
+    parser.add_argument('--w_diag_init', type=str, default='uniform', help='init of diag elements [identity, uniform, linear]')
     parser.add_argument('--w_param_free', action='store_true', help='allow parameter to require gradient')
     parser.add_argument('--w_diag_init_q', type=float, default=1.0, help='slope of init of spectrum of W')
     parser.add_argument('--w_diag_init_r', type=float, default=0.0, help='intercept of init of spectrum of W')
     parser.add_argument('--w_params', nargs='+', default=None, help='list of W args for ablation')
     parser.add_argument('--time_dep_w', action='store_true', help='Learn a time dependent potentials')
     parser.add_argument('--time_dep_struct_w', action='store_true', help='Learn a structured time dependent potentials')
+    parser.add_argument('--conv_batch_norm', type=str, default='', help='layerwise, shared')
+    parser.add_argument('--pointwise_nonlin', action='store_true', help='apply pointwise nonlin relu to f')
 
     parser.add_argument('--graff_params', nargs='+', default=None, help='list of args for focus models')
 
