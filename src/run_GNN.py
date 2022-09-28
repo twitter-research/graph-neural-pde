@@ -788,7 +788,6 @@ def main(cmd_opt):
     print(wandb_results)
     return train_acc, val_acc, test_acc
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--use_cora_defaults', action='store_true',
