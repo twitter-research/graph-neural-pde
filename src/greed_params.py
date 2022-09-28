@@ -280,7 +280,7 @@ def greed_hyper_params(opt):
     opt['graph_pool'] = ""#"mean"
 
     opt['post_proc'] = False#'node_tanh'#'node_tanh'# 'neighbour_tanh''#'node'#'neighbour'#'node'
-    opt['data_feat_norm'] = False
+    opt['data_feat_norm'] = False#True# False
     opt['dir_grad_flow'] = False
 
     #definitions of lie trotter

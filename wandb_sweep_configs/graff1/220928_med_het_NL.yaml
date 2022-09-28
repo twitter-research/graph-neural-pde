@@ -3,6 +3,8 @@ method: random
 parameters:
   dataset:
     values: [film, squirrel, chameleon]
+  data_feat_norm:
+    values: [True]
   block:
     values: [constant]
   function:
