@@ -24,7 +24,7 @@ from utils import dirichlet_energy
 # from best_params import best_params_dict
 from greed_params import greed_test_params, greed_run_params, greed_hyper_params, tf_ablation_args, not_sweep_args
 from greed_reporting_fcts import calc_energy_homoph
-from graff_params import hetero_params, best_params_dict
+from graff_params import hetero_params, best_params_dict_lin, best_params_dict_NL
 from reports import reports_manager #run_reports, run_reports_lie_trotter, reports_manager
 from heterophilic import get_fixed_splits
 from data_synth_hetero import get_pyg_syn_cora
@@ -558,9 +558,15 @@ def unpack_regularisation():
 
 def main(cmd_opt):
     if cmd_opt['use_best_params']:
-        best_opt = best_params_dict[cmd_opt['dataset']]
-        opt = {**cmd_opt, **best_opt}
-        # merge_cmd_args(cmd_opt, opt)
+        # best_opt = best_params_dict[cmd_opt['dataset']]
+        if cmd_opt['pointwise_nonlin']:
+            best_opt = best_params_dict_NL[cmd_opt['dataset']]
+        else:
+            best_opt = best_params_dict_lin[cmd_opt['dataset']]
+        best_opt_nums = {k:best_opt[k] for k in ['w_style','lr','decay','dropout','input_dropout','hidden_dim','time','step_size']}
+        # best_opt_flags = {k:best_opt[k] for k in ['w_style','conv_batch_norm',"source_term","gnl_omega"]}
+        opt = {**cmd_opt, **best_opt_nums}
+        # merge_cmd_args(cmd_opt, opt) #for overiding particular params over best params - not really used now
     else:
         opt = cmd_opt
 
@@ -594,7 +600,7 @@ def main(cmd_opt):
     if opt['omega_params']: #temp function for ablation
         unpack_omega_params(opt)
 
-    # opt = shared_graff_params(opt)
+    # opt = shared_graff_params(opt) #todo check if need this
     opt = hetero_params(opt) #adds self loops and undirected for Chameleon and Squirrel
 
     wandb.define_metric("epoch_step")  # Customize axes - https://docs.wandb.ai/guides/track/log
@@ -639,7 +645,7 @@ def main(cmd_opt):
                                                     num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
         if opt['geom_gcn_splits']:
             if opt['dataset'] == "Citeseer":
-                # opt['not_lcc']) #geom-gcn citeseer uses splits over LCC and not_LCC so need full via opt['not_lcc']=False to repload each split
+                # opt['not_lcc']) #geom-gcn citeseer uses splits over LCC and not_LCC so need full via opt['not_lcc']=False to repload full each split
                 dataset = get_dataset(opt, '../data', False)
             data = get_fixed_splits(dataset.data, opt['dataset'], rep)
             dataset.data = data

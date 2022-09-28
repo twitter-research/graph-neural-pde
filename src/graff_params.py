@@ -37,23 +37,23 @@ best_params_dict_lin = {
 
 # https://wandb.ai/graph_neural_diffusion/penn94/reports/ICLR-experiments--VmlldzoyNzEwNTUw/edit
 best_params_dict_NL = {
-'chameleon': { 'w_style': 'diag_dom' ,'lr': 0.0050 ,'decay': 0.0005 ,'dropout': 0.3577 ,'input_dropout': 0.4756 ,'hidden_dim': 64 ,'time': 3.331 ,'step_size': 0.5,
+'chameleon': { 'w_style': 'diag_dom' , 'lr': 0.0050 ,'decay': 0.0005 ,'dropout': 0.3577 ,'input_dropout': 0.4756 ,'hidden_dim': 64 ,'time': 3.331 ,'step_size': 0.5,
                        'conv_batch_norm': "layerwise", "source_term": "none", "gnl_omega": "zero"}, #71.38 \pm 1.47
-'squirrel': { 'w_style': 'diag_dom' ,'lr': 0.0065 ,'decay': 0.0009 ,'dropout': 0.1711 ,'input_dropout': 0.3545 ,'hidden_dim': 128 ,'time': 2.871 ,'step_size': 0.5,
+'squirrel': { 'w_style': 'diag_dom' , 'lr': 0.0065 ,'decay': 0.0009 ,'dropout': 0.1711 ,'input_dropout': 0.3545 ,'hidden_dim': 128 ,'time': 2.871 ,'step_size': 0.5,
               'conv_batch_norm': "layerwise", "source_term": "none", "gnl_omega": "zero"}, #59.01 \pm 1.31
 'texas': { 'w_style': 'diag_dom' ,'lr': 0.0042 ,'decay': 0.0175 ,'dropout': 0.2346 ,'input_dropout': 0.4037 ,'hidden_dim': 32 ,'time': 2.656 ,'step_size': 0.5 ,
                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"}, #86.49 \pm 4.84
-'wisconsin': { 'w_style': 'diag_dom' ,'lr': 0.0043 ,'decay': 0.0345 ,'dropout': 0.3575 ,'input_dropout': 0.3508 ,'hidden_dim': 32 ,'time': 3.785 ,'step_size': 1 ,
+'wisconsin': { 'w_style': 'diag_dom' , 'lr': 0.0043 ,'decay': 0.0345 ,'dropout': 0.3575 ,'input_dropout': 0.3508 ,'hidden_dim': 32 ,'time': 3.785 ,'step_size': 1 ,
                        'conv_batch_norm': "layerwise", "source_term": "scalar", "gnl_omega": "diag"}, #87.26 \pm 2.52
-'cornell': { 'w_style': 'diag' ,'lr': 0.0049 ,'decay': 0.0431 ,'dropout': 0.3576 ,'input_dropout': 0.4365 ,'hidden_dim': 32 ,'time': 2.336 ,'step_size': 1,
+'cornell': { 'w_style': 'diag' , 'lr': 0.0049 ,'decay': 0.0431 ,'dropout': 0.3576 ,'input_dropout': 0.4365 ,'hidden_dim': 32 ,'time': 2.336 ,'step_size': 1,
                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"}, #77.30 \pm 3.24
-'film': { 'w_style': 'diag_dom' ,'lr': 0.0049 ,'decay': 0.0163 ,'dropout': 0.3682 ,'input_dropout': 0.4223 ,'hidden_dim': 32 ,'time': 1.114 ,'step_size': 1,
+'film': { 'w_style': 'diag_dom' , 'lr': 0.0049 ,'decay': 0.0163 ,'dropout': 0.3682 ,'input_dropout': 0.4223 ,'hidden_dim': 32 ,'time': 1.114 ,'step_size': 1,
                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"}, #35.96 \pm 0.95
-'Cora': { 'w_style': 'diag_dom' ,'lr': 0.0030 ,'decay': 0.0263 ,'dropout': 0.4241 ,'input_dropout': 0.5378 ,'hidden_dim': 64 ,'time': 1.445 ,'step_size': 1,
+'Cora': { 'w_style': 'diag_dom' , 'lr': 0.0030 ,'decay': 0.0263 ,'dropout': 0.4241 ,'input_dropout': 0.5378 ,'hidden_dim': 64 ,'time': 1.445 ,'step_size': 1,
                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"}, #87.81 \pm 1.13
-'Citeseer': { 'w_style': 'diag' ,'lr': 0.0016 ,'decay': 0.0065 ,'dropout': 0.3846 ,'input_dropout': 0.4389 ,'hidden_dim': 64 ,'time': 2.136 ,'step_size': 0.5 ,
+'Citeseer': { 'w_style': 'diag' , 'lr': 0.0016 ,'decay': 0.0065 ,'dropout': 0.3846 ,'input_dropout': 0.4389 ,'hidden_dim': 64 ,'time': 2.136 ,'step_size': 0.5 ,
                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"}, #76.81 \pm 1.12
-'Pubmed': { 'w_style': 'diag' ,'lr': 0.0048 ,'decay': 0.0002 ,'dropout': 0.5292 ,'input_dropout': 0.414 ,'hidden_dim': 64 ,'time': 3.343 ,'step_size': 0.5,
+'Pubmed': { 'w_style': 'diag' , 'lr': 0.0048 ,'decay': 0.0002 ,'dropout': 0.5292 ,'input_dropout': 0.414 ,'hidden_dim': 64 ,'time': 3.343 ,'step_size': 0.5,
                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"}} #89.81 \pm 0.50
 
 
