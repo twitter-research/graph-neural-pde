@@ -17,7 +17,7 @@ import torch_geometric.transforms as T
 from torch_geometric.utils import to_undirected
 from heterophilic import WebKB, WikipediaNetwork, Actor
 from utils import ROOT_DIR
-from data_synth_hetero import get_pyg_syn_cora
+# from data_synth_hetero import get_pyg_syn_cora
 
 DATA_PATH = f'{ROOT_DIR}/data'
 
@@ -41,9 +41,9 @@ def get_dataset(opt: dict, data_dir, use_lcc: bool = False) -> InMemoryDataset:
     dataset = PygNodePropPredDataset(name=ds, root=path,
                                      transform=T.ToSparseTensor())
     use_lcc = False  #  never need to calculate the lcc with ogb datasets
-  elif ds == 'syn_cora':
-    dataset = get_pyg_syn_cora(data_dir, opt, rep=1)
-    use_lcc = False
+  # elif ds == 'syn_cora':
+  #   dataset = get_pyg_syn_cora(data_dir, opt, rep=1)
+  #   use_lcc = False
   else:
     raise Exception('Unknown dataset.')
 

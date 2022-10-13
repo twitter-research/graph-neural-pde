@@ -12,7 +12,7 @@ from torch_geometric.utils import homophily, add_remaining_self_loops, to_undire
 from GNN import GNN
 from data import get_dataset, set_train_val_test_split
 from heterophilic import get_fixed_splits
-from data_synth_hetero import get_pyg_syn_cora
+# from data_synth_hetero import get_pyg_syn_cora
 
 from graff_params import best_params_dict_L, best_params_dict_NL, shared_graff_params, hetero_params
 
@@ -146,8 +146,8 @@ def main(cmd_opt):
                 dataset = get_dataset(opt, '../data', opt['not_lcc']) #geom-gcn citeseer uses splits over LCC and not_LCC so need to reload full DS each rep/split
             data = get_fixed_splits(dataset.data, opt['dataset'], rep)
             dataset.data = data
-        if opt['dataset'] == 'syn_cora':
-            dataset = get_pyg_syn_cora("../data", opt, rep=rep+1)
+        # if opt['dataset'] == 'syn_cora':
+        #     dataset = get_pyg_syn_cora("../data", opt, rep=rep+1)
 
         data = dataset.data.to(device)
         model = GNN(opt, dataset, device).to(device)
