@@ -2,12 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 
 best_params_dict_L = {
-'chameleon': { 'w_style': 'diag_dom' ,'lr': 0.001411 ,'decay': 0.0004295 ,'dropout': 0.3674 ,'input_dropout': 0.4327 ,'hidden_dim': 2325,'time': 3 ,'step_size': 1,
-                       'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"},
-# 'chameleon': { 'w_style': 'diag_dom' ,'lr': 0.001411 ,'decay': 0.0004295 ,'dropout': 0.3674 ,'input_dropout': 0.4327 ,'hidden_dim': 64,'time': 3 ,'step_size': 1,
-#                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"},                       
+# 'chameleon': { 'w_style': 'diag_dom' ,'lr': 0.001411 ,'decay': 0.0004295 ,'dropout': 0.3674 ,'input_dropout': 0.4327 ,'hidden_dim': 2325,'time': 3 ,'step_size': 1,
+#                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"},
+'chameleon': { 'w_style': 'diag_dom' ,'lr': 0.001411 ,'decay': 0.0004295 ,'dropout': 0.3674 ,'input_dropout': 0.4327 ,'hidden_dim': 64,'time': 3 ,'step_size': 1,
+                       'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"},                       
 'squirrel': { 'w_style': 'diag_dom' ,'lr': 0.0027 ,'decay': 0.0006 ,'dropout': 0.159 ,'input_dropout': 0.349 ,'hidden_dim': 128 ,'time': 3.275 ,'step_size': 1 ,
               'conv_batch_norm': "layerwise", "source_term": "none", "gnl_omega": "zero"},
+# 'squirrel': { 'w_style': 'diag_dom' ,'lr': 0.0027 ,'decay': 0.0006 ,'dropout': 0.159 ,'input_dropout': 0.349 ,'hidden_dim': 2089 ,'time': 3.275 ,'step_size': 1 ,
+#               'conv_batch_norm': "layerwise", "source_term": "none", "gnl_omega": "zero"},
 'texas': { 'w_style': 'diag_dom' ,'lr': 0.004145 ,'decay': 0.03537 ,'dropout': 0.3293 ,'input_dropout': 0.3936 ,'hidden_dim': 64 ,'time': 0.5756 ,'step_size': 0.5 ,
                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"},
 'wisconsin': { 'w_style': 'diag' ,'lr': 0.002908 ,'decay': 0.03178 ,'dropout': 0.3717 ,'input_dropout': 0.3674 ,'hidden_dim': 64 ,'time': 2.099 ,'step_size': 0.5,
@@ -16,14 +18,19 @@ best_params_dict_L = {
                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"},
 'film': { 'w_style': 'diag' ,'lr': 0.002602 ,'decay': 0.01299 ,'dropout': 0.4847 ,'input_dropout': 0.4191 ,'hidden_dim': 64 ,'time': 1.541 ,'step_size': 1,
                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"},
-# 'Cora': { 'w_style': 'diag' ,'lr': 0.00261 ,'decay': 0.04125 ,'dropout': 0.3386 ,'input_dropout': 0.5294 ,'hidden_dim': 64 ,'time': 3 ,'step_size': 0.25 ,
-#                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"},
-'Cora': { 'w_style': 'diag' ,'lr': 0.00261 ,'decay': 0.04125 ,'dropout': 0.3386 ,'input_dropout': 0.5294 ,'hidden_dim': 1433 ,'time': 3 ,'step_size': 0.25 ,
+'Cora': { 'w_style': 'diag' ,'lr': 0.00261 ,'decay': 0.04125 ,'dropout': 0.3386 ,'input_dropout': 0.5294 ,'hidden_dim': 64 ,'time': 3 ,'step_size': 0.25 ,
                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"},
+# 'Cora': { 'w_style': 'diag' ,'lr': 0.00261 ,'decay': 0.04125 ,'dropout': 0.3386 ,'input_dropout': 0.5294 ,'hidden_dim': 1433 ,'time': 3 ,'step_size': 0.25 ,
+#                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"},
 'Citeseer': { 'w_style': 'diag' ,'lr': 0.000117 ,'decay': 0.02737 ,'dropout': 0.2224 ,'input_dropout': 0.5129 ,'hidden_dim': 64 ,'time': 2 ,'step_size': 0.5 ,
                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"},
 'Pubmed': { 'w_style': 'diag' ,'lr': 0.00394 ,'decay': 0.0003348 ,'dropout': 0.4232 ,'input_dropout': 0.412 ,'hidden_dim': 64 ,'time': 2.552 ,'step_size': 0.5,
-                       'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"}}
+                       'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"},
+# 'Pubmed': { 'w_style': 'diag' ,'lr': 0.00394 ,'decay': 0.0003348 ,'dropout': 0.4232 ,'input_dropout': 0.412 ,'hidden_dim': 500 ,'time': 2.552 ,'step_size': 0.5,
+#                        'conv_batch_norm': "none", "source_term": "scalar", "gnl_omega": "diag"},                       
+                       
+}
+                       
 
 best_params_dict_NL = {
 'chameleon': { 'w_style': 'diag_dom' , 'lr': 0.0050 ,'decay': 0.0005 ,'dropout': 0.3577 ,'input_dropout': 0.4756 ,'hidden_dim': 64 ,'time': 3.331 ,'step_size': 0.5,
@@ -52,6 +59,7 @@ def shared_graff_params(opt):
     opt['epoch'] = 250
     opt['method'] = 'euler'
     opt['geom_gcn_splits'] = True
+    opt['m2_mlp'] = True
     return opt
 
 def hetero_params(opt):

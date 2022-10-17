@@ -12,10 +12,12 @@ import numpy as np
 import torch
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.datasets import Planetoid, Amazon, Coauthor
+# from torch_geometric.datasets import Planetoid, Amazon, Coauthor, WikipediaNetwork
 # from ogb.nodeproppred import PygNodePropPredDataset
 import torch_geometric.transforms as T
 from torch_geometric.utils import to_undirected
 from heterophilic import WebKB, WikipediaNetwork, Actor
+# from heterophilic import WebKB, Actor
 from utils import ROOT_DIR
 # from data_synth_hetero import get_pyg_syn_cora
 

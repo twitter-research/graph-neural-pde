@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 from torch_geometric.nn.conv import MessagePassing
 from utils import Meter
