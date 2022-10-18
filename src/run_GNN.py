@@ -14,7 +14,7 @@ from data import get_dataset, set_train_val_test_split
 from heterophilic import get_fixed_splits
 # from data_synth_hetero import get_pyg_syn_cora
 
-from graff_params import best_params_dict_L, best_params_dict_NL, shared_graff_params, hetero_params
+from graff_params import best_params_dict_L, best_params_dict_NL, shared_graff_params, hetero_params#, tf_ablation_args
 
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
@@ -195,6 +195,8 @@ def main(cmd_opt):
         results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
                              'test_acc_std': test_acc_std}
         print(results)
+        # wandb.log({"train_acc": train_acc_mean, "val_acc": val_acc_mean, "test_acc": test_acc_mean,
+        #     "test_acc_std": test_acc_std})
         return test_acc_mean, val_acc_mean, train_acc_mean, test_acc_std
     else:
         return train_acc, val_acc, test_acc
@@ -226,6 +228,7 @@ if __name__ == '__main__':
 
     # GNN args
     parser.add_argument('--block', type=str, help='constant, mixed, attention, hard_attention')
+    parser.add_argument('--sclable_type', type=str, help='normal, scalable')
     parser.add_argument('--function', type=str, help='laplacian, transformer, greed, GAT')
     parser.add_argument('--hidden_dim', type=int, default=16, help='Hidden dimension.')
     parser.add_argument('--fc_out', dest='fc_out', action='store_true', help='Add a fully connected layer to the decoder.')
@@ -240,6 +243,7 @@ if __name__ == '__main__':
     parser.add_argument('--add_source', dest='add_source', action='store_true', help='beta*x0 source term')
     parser.add_argument('--XN_activation', action='store_true', help='whether to relu activate the terminal state')
     parser.add_argument('--m2_mlp', action='store_true', help='whether to use decoder mlp')
+    parser.add_argument('--scalable', action='store_true', help='Scalable Model')
 
     # ODE args
     parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
@@ -286,8 +290,37 @@ if __name__ == '__main__':
     parser.add_argument('--conv_batch_norm', type=str, default='', help='layerwise, shared')
     parser.add_argument('--pointwise_nonlin', action='store_true', help='apply pointwise nonlin relu to f')
 
+    # wandb logging and tuning
+    parser.add_argument('--wandb', action='store_true', help="flag if logging to wandb")
+    parser.add_argument('--wandb_offline', action='store_true')  # https://docs.wandb.ai/guides/technical-faq
+
+    parser.add_argument('--wandb_sweep', action='store_true',
+                        help="flag if sweeping")  # if not it picks up params in greed_params
+    # parser.add_argument('--wandb_watch_grad', action='store_true', help='allows gradient tracking in train function')
+    # parser.add_argument('--wandb_track_grad_flow', action='store_true')
+
+    parser.add_argument('--wandb_entity', default="graph_neural_diffusion", type=str,
+                        help="jrowbottomwnb, ger__man")  # not used as default set in web browser settings
+    parser.add_argument('--wandb_project', default="greed", type=str)
+    parser.add_argument('--wandb_group', default="testing", type=str, help="testing,tuning,eval")
+    parser.add_argument('--wandb_run_name', default=None, type=str)
+    # parser.add_argument('--wandb_output_dir', default='./wandb_output',
+                        # help='folder to output results, images and model checkpoints')
+    # parser.add_argument('--wandb_log_freq', type=int, default=1, help='Frequency to log metrics.')
+    # replaces the above
+    # parser.add_argument('--wandb_epoch_list', nargs='+', default=[1, 2, 4, 8, 16, 32, 64, 96, 128, 254],
+    #                     help='list of epochs to log gradient flow, 1 based')
+    # parser.add_argument('--run_track_reports', action='store_true', help="run_track_reports")
+    # parser.add_argument('--save_wandb_reports', action='store_true', help="save_wandb_reports")
+    # parser.add_argument('--save_local_reports', action='store_true', help="save_local_reports")
+
     parser.add_argument('--graff_params', nargs='+', default=None, help='list of args for focus models')
 
     args = parser.parse_args()
     opt = vars(args)
+
+    # opt = tf_ablation_args(opt)
+
+    # wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'], reinit=True, config=opt, allow_val_change=True)
+    # opt = wandb.config
     main(opt)

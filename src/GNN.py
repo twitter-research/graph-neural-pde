@@ -19,16 +19,20 @@ class GNN(BaseGNN):
     self.odeblock.odefunc.GNN_postXN = self.GNN_postXN
     self.odeblock.odefunc.GNN_m2 = self.m2
 
+    self.fc = torch.nn.Linear(opt["hidden_dim"], opt["hidden_dim"])
+    self.bn = torch.nn.BatchNorm1d(opt["hidden_dim"])
+
   def encoder(self, x, pos_encoding=None):
+    if self.opt['scalable']:
+      # self.m1.requires_grad_(False)
+      return x
     # Encode each node based on its feature.
     if self.opt['use_labels']:
       y = x[:, -self.num_classes:]
       x = x[:, :-self.num_classes]
 
     x = F.dropout(x, self.opt['input_dropout'], training=self.training)
-    # self.m1.requires_grad_(False)
     x = self.m1(x)
-    # x = torch.nn.functional.normalize(x)
 
     if self.opt['use_mlp']:
       x = F.dropout(x, self.opt['dropout'], training=self.training)
@@ -44,7 +48,6 @@ class GNN(BaseGNN):
     if self.opt['augment']:
       c_aux = torch.zeros(x.shape).to(self.device)
       x = torch.cat([x, c_aux], dim=1)
-
     return x
 
   def set_attributes(self, x):
@@ -83,5 +86,8 @@ class GNN(BaseGNN):
     z = self.GNN_postXN(z)
     # Decode each node embedding to get node label.
     # z = torch.nn.functional.normalize(z)
+    if self.opt['scalable']:
+      z = self.bn(z)
+      z = F.relu(self.fc(z))
     z = self.m2(z)
     return z
