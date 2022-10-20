@@ -1,0 +1,75 @@
+program: run_GNN.py
+method: random
+parameters:
+  dataset:
+    values: [Cora, Citeseer, Pubmed]
+  block:
+    values: [constant]
+  function:
+    values: [graff]
+  epoch:
+    values: [250]
+  num_splits:
+    values: [10]
+  self_loop_weight:
+    values: [0.0]
+  method:
+    values: [euler]
+  gnl_style:
+    values: [general_graph]
+  gnl_W_style:
+    values: [diag_dom]
+  gnl_W_diag_init:
+    values: [uniform, identity]
+  gnl_W_norm:
+    values: [False]
+  gnl_activation:
+    values: [identity]
+  gnl_measure:
+    values: [ones]
+  source_term:
+    values: [scalar, none]
+  gnl_omega:
+    values: [diag]
+  gnl_omega_diag:
+    values: [free]
+  m2_W_eig:
+    values: [eye]
+  conv_batch_norm:
+    values: [none]
+    # values: [none, layerwise]
+  hidden_dim:
+    values: [32, 64, 128]
+  time:
+    distribution: uniform
+    min: 1.5
+    max: 8.0
+  step_size:
+    values: [1.0]
+  # input_dropout:
+  #   distribution: uniform
+  #   min: 0.3
+  #   max: 0.55
+  dropout:
+    distribution: uniform
+    min: 0.2
+    max: 1
+  optimizer:
+    values: [adam]
+  lr:
+    distribution: log_uniform
+    min: -9.2103
+    max: -3.9120
+  decay:
+    distribution: log_uniform
+    min: -8
+    max: -5.52
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+entity: graph_neural_diffusion
+project: planetoid_best
